@@ -1,0 +1,160 @@
+{
+  "common": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "search": "搜索",
+    "filter": "筛选",
+    "reset": "重置",
+    "submit": "提交",
+    "close": "关闭"
+  },
+  "nav": {
+    "dashboard": "总览",
+    "alerts": "告警管理",
+    "incidents": "事件管理",
+    "vulnerabilities": "漏洞管理"
+  },
+  "alerts": {
+    "title": "告警管理",
+    "list": {
+      "createTime": "创建时间",
+      "alertTitle": "告警标题",
+      "riskLevel": "风险等级",
+      "status": "状态",
+      "owner": "责任人",
+      "searchPlaceholder": "按标题、风险等级、状态搜索...",
+      "allStatus": "所有状态",
+      "open": "打开",
+      "pending": "挂起",
+      "closed": "关闭",
+      "batchClose": "批量关闭",
+      "batchConvert": "转事件",
+      "associateIncident": "关联事件",
+      "timeRange": {
+        "last24Hours": "过去24小时",
+        "last7Days": "过去7天",
+        "customRange": "自定义范围"
+      },
+      "statistics": {
+        "alertTypeStats": "告警类型统计",
+        "alertTrend": "告警数量趋势",
+        "mttd": "MTTD (平均检测时间)",
+        "past7Days": "过去7天"
+      },
+      "riskLevels": {
+        "high": "高风险",
+        "medium": "中风险",
+        "low": "低风险"
+      }
+    },
+    "detail": {
+      "title": "告警详情",
+      "closeAlert": "关闭告警",
+      "convertToIncident": "转事件",
+      "aiAnalysis": "AI-Powered Analysis",
+      "overview": "概览",
+      "relatedLogs": "相关日志",
+      "threatIntelligence": "威胁情报",
+      "comments": "评论",
+      "alertInfo": "告警信息",
+      "timestamp": "时间戳",
+      "status": "状态",
+      "ruleName": "规则名称",
+      "owner": "负责人",
+      "unassigned": "未分配",
+      "addComment": "添加评论...",
+      "associatedEntities": "关联实体",
+      "eventTimeline": "事件时间线",
+      "automatedResponse": "自动化响应",
+      "runPlaybook": "运行剧本",
+      "severity": {
+        "high": "高风险",
+        "medium": "中风险",
+        "low": "低风险"
+      }
+    }
+  },
+  "incidents": {
+    "title": "事件管理",
+    "description": "监控、分析和响应安全事件",
+    "list": {
+      "severity": "严重等级",
+      "incidentName": "事件名称",
+      "sourceIp": "源 IP",
+      "targetIp": "目标 IP",
+      "occurrenceTime": "发生时间",
+      "status": "状态",
+      "action": "操作",
+      "viewDetail": "查看详情",
+      "searchPlaceholder": "搜索事件名称、IP地址...",
+      "severityLevel": "严重等级",
+      "allSeverity": "全部",
+      "high": "高危",
+      "medium": "中危",
+      "low": "低危",
+      "allStatus": "全部",
+      "pending": "待处理",
+      "inProgress": "处理中",
+      "closed": "已关闭",
+      "batchClose": "关闭事件",
+      "export": "导出",
+      "createManually": "手动创建事件",
+      "timeRange": {
+        "last24Hours": "过去 24 小时",
+        "last7Days": "过去 7 天",
+        "customRange": "自定义范围"
+      }
+    },
+    "detail": {
+      "title": "事件详情",
+      "eventId": "事件ID",
+      "assign": "分配",
+      "changeStatus": "更改状态",
+      "status": "状态",
+      "severity": "严重等级",
+      "affectedAssets": "受影响资产",
+      "mitreTactic": "MITRE ATT&CK 战术",
+      "tabs": {
+        "overview": "概览",
+        "timeline": "时间线与告警",
+        "attackChain": "攻击链",
+        "comments": "评论"
+      },
+      "timeline": {
+        "title": "时间线"
+      },
+      "attackChain": {
+        "title": "攻击链",
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "fullscreen": "全屏"
+      },
+      "overview": {
+        "eventDescription": "事件描述",
+        "associatedAlerts": "关联告警",
+        "alertId": "告警ID",
+        "timestamp": "时间戳",
+        "description": "描述",
+        "severity": "严重等级",
+        "status": "状态",
+        "triaged": "已处理",
+        "lastModified": "最后修改",
+        "by": "由",
+        "justNow": "刚刚",
+        "minutesAgo": "分钟前",
+        "hoursAgo": "小时前",
+        "daysAgo": "天前"
+      },
+      "comments": {
+        "addComment": "添加评论...",
+        "post": "发布",
+        "attachFile": "附件",
+        "noComments": "暂无评论"
+      }
+    }
+  }
+}
+

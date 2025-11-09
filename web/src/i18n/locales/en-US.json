@@ -1,0 +1,160 @@
+{
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "reset": "Reset",
+    "submit": "Submit",
+    "close": "Close"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "alerts": "Alert Management",
+    "incidents": "Incident Management",
+    "vulnerabilities": "Vulnerability Management"
+  },
+  "alerts": {
+    "title": "Alert Management",
+    "list": {
+      "createTime": "Create Time",
+      "alertTitle": "Alert Title",
+      "riskLevel": "Risk Level",
+      "status": "Status",
+      "owner": "Owner",
+      "searchPlaceholder": "Search by title, risk level, status...",
+      "allStatus": "All Status",
+      "open": "Open",
+      "pending": "Pending",
+      "closed": "Closed",
+      "batchClose": "Batch Close",
+      "batchConvert": "Convert to Incident",
+      "associateIncident": "Associate Incident",
+      "timeRange": {
+        "last24Hours": "Last 24 Hours",
+        "last7Days": "Last 7 Days",
+        "customRange": "Custom Range"
+      },
+      "statistics": {
+        "alertTypeStats": "Alert Type Statistics",
+        "alertTrend": "Alert Trend",
+        "mttd": "MTTD (Mean Time To Detect)",
+        "past7Days": "Past 7 Days"
+      },
+      "riskLevels": {
+        "high": "High Risk",
+        "medium": "Medium Risk",
+        "low": "Low Risk"
+      }
+    },
+    "detail": {
+      "title": "Alert Details",
+      "closeAlert": "Close Alert",
+      "convertToIncident": "Convert to Incident",
+      "aiAnalysis": "AI-Powered Analysis",
+      "overview": "Overview",
+      "relatedLogs": "Related Logs",
+      "threatIntelligence": "Threat Intelligence",
+      "comments": "Comments",
+      "alertInfo": "Alert Information",
+      "timestamp": "Timestamp",
+      "status": "Status",
+      "ruleName": "Rule Name",
+      "owner": "Owner",
+      "unassigned": "Unassigned",
+      "addComment": "Add a comment...",
+      "associatedEntities": "Associated Entities",
+      "eventTimeline": "Event Timeline",
+      "automatedResponse": "Automated Response",
+      "runPlaybook": "Run Playbook",
+      "severity": {
+        "high": "High Severity",
+        "medium": "Medium Severity",
+        "low": "Low Severity"
+      }
+    }
+  },
+  "incidents": {
+    "title": "Incident Management",
+    "description": "Monitor, analyze and respond to security incidents",
+    "list": {
+      "severity": "Severity",
+      "incidentName": "Incident Name",
+      "sourceIp": "Source IP",
+      "targetIp": "Target IP",
+      "occurrenceTime": "Occurrence Time",
+      "status": "Status",
+      "action": "Action",
+      "viewDetail": "View Details",
+      "searchPlaceholder": "Search incident name, IP address...",
+      "severityLevel": "Severity Level",
+      "allSeverity": "All",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "allStatus": "All",
+      "pending": "Pending",
+      "inProgress": "In Progress",
+      "closed": "Closed",
+      "batchClose": "Close Incident",
+      "export": "Export",
+      "createManually": "Create Incident Manually",
+      "timeRange": {
+        "last24Hours": "Last 24 Hours",
+        "last7Days": "Last 7 Days",
+        "customRange": "Custom Range"
+      }
+    },
+    "detail": {
+      "title": "Incident Details",
+      "eventId": "Event ID",
+      "assign": "Assign",
+      "changeStatus": "Change Status",
+      "status": "Status",
+      "severity": "Severity",
+      "affectedAssets": "Affected Assets",
+      "mitreTactic": "MITRE ATT&CK Tactic",
+      "tabs": {
+        "overview": "Overview",
+        "timeline": "Timeline & Alerts",
+        "attackChain": "Attack Chain",
+        "comments": "Comments"
+      },
+      "timeline": {
+        "title": "Timeline"
+      },
+      "attackChain": {
+        "title": "Attack Chain",
+        "zoomIn": "Zoom In",
+        "zoomOut": "Zoom Out",
+        "fullscreen": "Fullscreen"
+      },
+      "overview": {
+        "eventDescription": "Event Description",
+        "associatedAlerts": "Associated Alerts",
+        "alertId": "Alert ID",
+        "timestamp": "Timestamp",
+        "description": "Description",
+        "severity": "Severity",
+        "status": "Status",
+        "triaged": "Triaged",
+        "lastModified": "Last modified",
+        "by": "by",
+        "justNow": "Just now",
+        "minutesAgo": "minutes ago",
+        "hoursAgo": "hours ago",
+        "daysAgo": "days ago"
+      },
+      "comments": {
+        "addComment": "Add a comment...",
+        "post": "Post",
+        "attachFile": "Attach File",
+        "noComments": "No comments yet"
+      }
+    }
+  }
+}
+

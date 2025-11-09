@@ -1,0 +1,16 @@
+<template>
+  <router-view />
+</template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useAppStore } from '@/stores/app'
+
+const appStore = useAppStore()
+
+onMounted(() => {
+  // 设置暗色主题
+  document.documentElement.classList.add('dark')
+})
+</script>
+
