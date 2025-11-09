@@ -12,6 +12,13 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
+        <button
+          @click="openCreateAlertDialog"
+          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">add</span>
+          <span>{{ $t('alerts.list.createAlert') }}</span>
+        </button>
       </div>
     </header>
 
@@ -291,6 +298,13 @@
       @created="handleIncidentCreated"
     />
 
+    <!-- 创建告警对话框 -->
+    <CreateAlertDialog
+      :visible="showCreateAlertDialog"
+      @close="closeCreateAlertDialog"
+      @created="handleAlertCreated"
+    />
+
     <!-- 关联事件对话框 -->
     <div
       v-if="showAssociateIncidentDialog"
@@ -513,6 +527,7 @@ import { getAlerts, getAlertStatistics, batchCloseAlerts, associateAlertsToIncid
 import { getIncidents } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
+import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 
@@ -571,6 +586,7 @@ const incidentsTotal = ref(0)
 const incidentsTotalPages = computed(() => Math.ceil(incidentsTotal.value / incidentsPageSize.value))
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
+const showCreateAlertDialog = ref(false)
 
 
 const mttdStages = [
@@ -909,7 +925,23 @@ const handleIncidentCreated = () => {
   loadAlerts()
   // 清空选中状态
   selectedAlerts.value = []
-  selectAll.value = false
+  if (dataTableRef.value) {
+    dataTableRef.value.clearSelection()
+  }
+}
+
+const openCreateAlertDialog = () => {
+  showCreateAlertDialog.value = true
+}
+
+const closeCreateAlertDialog = () => {
+  showCreateAlertDialog.value = false
+}
+
+const handleAlertCreated = () => {
+  // 告警创建成功后，重新加载告警列表
+  loadAlerts()
+  loadStatistics()
 }
 
 const handleTimeRangeChange = (rangeKey) => {

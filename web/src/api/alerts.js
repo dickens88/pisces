@@ -282,6 +282,35 @@ export const batchCloseAlerts = (params) => {
   })
 }
 
+// 开启告警
+export const openAlert = (alertId) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Opening alert:', alertId)
+      
+      // 更新mock数据中的告警状态
+      const alert = mockAlerts.find(a => a.id === alertId)
+      if (alert) {
+        alert.status = 'open'
+      } else {
+        reject(new Error('Alert not found'))
+        return
+      }
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: 'Successfully opened alert',
+        data: {
+          alertId: alertId,
+          status: 'open'
+        }
+      })
+    }, 500)
+  })
+}
+
 // 关联告警到事件
 export const associateAlertsToIncident = (params) => {
   return new Promise((resolve, reject) => {
@@ -462,6 +491,121 @@ export const getAssociatedAlerts = (alertId) => {
       const associatedAlerts = mockAssociatedAlerts[parseInt(alertId)] || []
       resolve({ data: associatedAlerts })
     }, 200)
+  })
+}
+
+/**
+ * @brief 创建告警
+ * @param {Object} data - 告警数据
+ * @param {string} data.title - 告警标题
+ * @param {string} data.riskLevel - 风险等级 (high/medium/low)
+ * @param {string} data.status - 状态 (open/pending/closed)
+ * @param {string} data.owner - 责任人
+ * @param {string} data.description - 描述
+ * @param {string} data.ruleName - 规则名称（可选）
+ * @param {string|Date} data.timestamp - 时间戳（可选，默认当前时间）
+ * @returns {Promise} 返回创建的告警数据
+ */
+export const createAlert = (data) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Creating alert:', data)
+      
+      // 生成新的告警ID
+      const newId = Math.max(...mockAlerts.map(a => a.id), 0) + 1
+      
+      // 处理时间戳
+      const timestamp = data.timestamp 
+        ? (data.timestamp instanceof Date ? data.timestamp.toISOString() : data.timestamp)
+        : new Date().toISOString()
+      
+      // 格式化创建时间
+      const now = new Date()
+      const createTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+      
+      // 创建新告警对象
+      const newAlert = {
+        id: newId,
+        createTime: createTime,
+        title: data.title,
+        riskLevel: data.riskLevel || 'medium',
+        status: data.status || 'open',
+        owner: data.owner,
+        severity: data.riskLevel || 'medium',
+        ruleName: data.ruleName || 'Manual Alert',
+        timestamp: timestamp,
+        description: data.description,
+        aiAnalysis: null,
+        associatedEntities: [],
+        timeline: [
+          { time: timestamp, event: 'Alert Created' }
+        ],
+        comments: []
+      }
+      
+      // 添加到mock数据
+      mockAlerts.unshift(newAlert)
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: 'Successfully created alert',
+        data: newAlert
+      })
+    }, 500)
+  })
+}
+
+/**
+ * @brief 更新告警
+ * @param {number|string} alertId - 告警ID
+ * @param {Object} data - 告警数据
+ * @param {string} data.title - 告警标题
+ * @param {string} data.riskLevel - 风险等级 (high/medium/low)
+ * @param {string} data.status - 状态 (open/pending/closed)
+ * @param {string} data.owner - 责任人
+ * @param {string} data.description - 描述
+ * @param {string} data.ruleName - 规则名称（可选）
+ * @param {string|Date} data.timestamp - 时间戳（可选）
+ * @returns {Promise} 返回更新的告警数据
+ */
+export const updateAlert = (alertId, data) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Updating alert:', alertId, data)
+      
+      // 查找告警
+      const alert = mockAlerts.find(a => a.id === parseInt(alertId))
+      if (!alert) {
+        reject(new Error('Alert not found'))
+        return
+      }
+      
+      // 更新告警字段
+      if (data.title !== undefined) alert.title = data.title
+      if (data.riskLevel !== undefined) {
+        alert.riskLevel = data.riskLevel
+        alert.severity = data.riskLevel // 同时更新severity
+      }
+      if (data.status !== undefined) alert.status = data.status
+      if (data.owner !== undefined) alert.owner = data.owner
+      if (data.description !== undefined) alert.description = data.description
+      if (data.ruleName !== undefined) alert.ruleName = data.ruleName
+      if (data.timestamp !== undefined) {
+        alert.timestamp = data.timestamp instanceof Date 
+          ? data.timestamp.toISOString() 
+          : data.timestamp
+      }
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: 'Successfully updated alert',
+        data: alert
+      })
+    }, 500)
   })
 }
 

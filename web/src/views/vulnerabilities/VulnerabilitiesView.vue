@@ -18,12 +18,6 @@
         >
           <span class="truncate">{{ $t('vulnerabilities.list.exportReport') }}</span>
         </button>
-        <button
-          @click="showCreateScanDialog = true"
-          class="flex items-center gap-2 px-4 py-2 h-10 text-sm text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <span class="truncate">{{ $t('vulnerabilities.list.createScanTask') }}</span>
-        </button>
       </div>
     </header>
 

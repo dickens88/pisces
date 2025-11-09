@@ -189,25 +189,6 @@ export const getVulnerabilityDetail = (id) => {
   })
 }
 
-// 创建扫描任务
-export const createScanTask = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log('Creating scan task:', data)
-      resolve({
-        success: true,
-        message: '扫描任务创建成功',
-        data: {
-          id: Date.now(),
-          ...data,
-          status: 'pending',
-          createTime: new Date().toISOString()
-        }
-      })
-    }, 500)
-  })
-}
-
 // 批量操作漏洞
 export const batchOperateVulnerabilities = (params) => {
   return new Promise((resolve) => {

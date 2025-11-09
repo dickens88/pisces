@@ -28,10 +28,26 @@
               <div class="flex items-center gap-2">
                 <button
                   @click="openBatchCloseDialog"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                  :disabled="!canCloseAlert"
+                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
                 >
                   <span class="material-symbols-outlined text-base">archive</span>
                   {{ $t('alerts.detail.closeAlert') }}
+                </button>
+                <button
+                  @click="handleOpenAlert"
+                  :disabled="!canOpenAlert"
+                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
+                >
+                  <span class="material-symbols-outlined text-base">unarchive</span>
+                  {{ $t('alerts.detail.openAlert') }}
+                </button>
+                <button
+                  @click="openEditAlertDialog"
+                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                >
+                  <span class="material-symbols-outlined text-base">edit</span>
+                  {{ $t('alerts.detail.editAlert') }}
                 </button>
                 <button
                   @click="openCreateIncidentDialog"
@@ -676,6 +692,15 @@
       @created="handleIncidentCreated"
     />
 
+    <!-- 编辑告警对话框 -->
+    <EditAlertDialog
+      :visible="showEditAlertDialog"
+      :alert-id="currentAlertId"
+      :initial-data="editAlertInitialData"
+      @close="closeEditAlertDialog"
+      @updated="handleAlertUpdated"
+    />
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -693,8 +718,9 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, getThreatIntelligence, getAssociatedAlerts } from '@/api/alerts'
+import { getAlertDetail, batchCloseAlerts, openAlert, getThreatIntelligence, getAssociatedAlerts } from '@/api/alerts'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
+import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 
 const props = defineProps({
   alertId: {
@@ -734,6 +760,8 @@ const closeConclusion = ref({
 })
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
+const showEditAlertDialog = ref(false)
+const editAlertInitialData = ref(null)
 const showShareSuccess = ref(false)
 const threatIntelligence = ref([])
 const associatedAlerts = ref([])
@@ -840,6 +868,9 @@ const handleClose = () => {
 }
 
 const openBatchCloseDialog = () => {
+  if (!canCloseAlert.value) {
+    return
+  }
   showBatchCloseDialog.value = true
 }
 
@@ -874,6 +905,35 @@ const handleBatchClose = async () => {
     emit('closed')
   } catch (error) {
     console.error('Failed to close alert:', error)
+  }
+}
+
+// 计算是否可以关闭告警（只有状态不是closed时才可关闭）
+const canCloseAlert = computed(() => {
+  return alert.value && alert.value.status !== 'closed'
+})
+
+// 计算是否可以开启告警（只有状态为closed时才可开启）
+const canOpenAlert = computed(() => {
+  return alert.value && alert.value.status === 'closed'
+})
+
+// 开启告警
+const handleOpenAlert = async () => {
+  if (!canOpenAlert.value || !currentAlertId.value) {
+    return
+  }
+
+  try {
+    await openAlert(currentAlertId.value)
+    
+    // 重新加载告警详情以更新状态
+    await loadAlertDetail()
+    
+    // 触发刷新事件，让父组件知道需要刷新列表
+    emit('closed')
+  } catch (error) {
+    console.error('Failed to open alert:', error)
   }
 }
 
@@ -923,6 +983,55 @@ const handleIncidentCreated = () => {
   closeCreateIncidentDialog()
   // 触发刷新事件，让父组件知道需要刷新列表
   emit('created')
+}
+
+const openEditAlertDialog = () => {
+  if (!alert.value) {
+    console.warn('Alert data not loaded')
+    return
+  }
+  
+  // 解析告警的时间戳
+  let timestamp = new Date()
+  try {
+    if (alert.value.timestamp || alert.value.createTime) {
+      timestamp = new Date(alert.value.timestamp || alert.value.createTime)
+      // 如果解析失败，使用当前时间
+      if (isNaN(timestamp.getTime())) {
+        timestamp = new Date()
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to parse alert timestamp:', error)
+    timestamp = new Date()
+  }
+  
+  // 设置初始数据
+  editAlertInitialData.value = {
+    title: alert.value.title || '',
+    riskLevel: alert.value.riskLevel || alert.value.severity || '',
+    status: alert.value.status || 'open',
+    owner: alert.value.owner || '',
+    ruleName: alert.value.ruleName || '',
+    timestamp: timestamp,
+    description: alert.value.description || ''
+  }
+  
+  // 打开对话框
+  showEditAlertDialog.value = true
+}
+
+const closeEditAlertDialog = () => {
+  showEditAlertDialog.value = false
+  editAlertInitialData.value = null
+}
+
+const handleAlertUpdated = async () => {
+  // 告警更新成功后，关闭对话框并重新加载详情
+  closeEditAlertDialog()
+  await loadAlertDetail()
+  // 触发刷新事件，让父组件知道需要刷新列表
+  emit('closed')
 }
 
 const canSubmit = computed(() => {

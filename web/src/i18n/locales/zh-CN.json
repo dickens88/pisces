@@ -127,11 +127,32 @@
         "high": "高风险",
         "medium": "中风险",
         "low": "低风险"
-      }
+      },
+      "createAlert": "新建告警"
+    },
+    "create": {
+      "title": "新建告警",
+      "alertTitle": "告警标题",
+      "alertTitlePlaceholder": "请输入告警标题",
+      "riskLevel": "风险等级",
+      "selectRiskLevel": "请选择风险等级",
+      "status": "状态",
+      "timestamp": "发生时间",
+      "owner": "责任人",
+      "ownerPlaceholder": "请输入责任人",
+      "ruleName": "规则名称",
+      "ruleNamePlaceholder": "请输入规则名称（可选）",
+      "description": "告警描述",
+      "descriptionPlaceholder": "请输入告警描述"
+    },
+    "edit": {
+      "title": "编辑告警"
     },
     "detail": {
       "title": "告警详情",
       "closeAlert": "关闭告警",
+      "openAlert": "开启告警",
+      "editAlert": "编辑告警",
       "convertToIncident": "转事件",
       "share": "分享",
       "aiAnalysis": "AI-Powered Analysis",
@@ -317,7 +338,6 @@
       "detail": "详情",
       "searchPlaceholder": "搜索CVE, IP, 名称...",
       "exportReport": "导出报告",
-      "createScanTask": "新建扫描任务",
       "batchOperate": "批量操作",
       "riskLevels": {
         "critical": "严重",

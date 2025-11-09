@@ -127,11 +127,32 @@
         "high": "High Risk",
         "medium": "Medium Risk",
         "low": "Low Risk"
-      }
+      },
+      "createAlert": "Create Alert"
+    },
+    "create": {
+      "title": "Create Alert",
+      "alertTitle": "Alert Title",
+      "alertTitlePlaceholder": "Please enter alert title",
+      "riskLevel": "Risk Level",
+      "selectRiskLevel": "Please select risk level",
+      "status": "Status",
+      "timestamp": "Timestamp",
+      "owner": "Owner",
+      "ownerPlaceholder": "Please enter owner",
+      "ruleName": "Rule Name",
+      "ruleNamePlaceholder": "Please enter rule name (optional)",
+      "description": "Description",
+      "descriptionPlaceholder": "Please enter alert description"
+    },
+    "edit": {
+      "title": "Edit Alert"
     },
     "detail": {
       "title": "Alert Details",
       "closeAlert": "Close Alert",
+      "openAlert": "Open Alert",
+      "editAlert": "Edit Alert",
       "convertToIncident": "Convert to Incident",
       "share": "Share",
       "aiAnalysis": "AI-Powered Analysis",
@@ -317,7 +338,6 @@
       "detail": "Detail",
       "searchPlaceholder": "Search CVE, IP, Name...",
       "exportReport": "Export Report",
-      "createScanTask": "Create Scan Task",
       "batchOperate": "Batch Operate",
       "riskLevels": {
         "critical": "Critical",
