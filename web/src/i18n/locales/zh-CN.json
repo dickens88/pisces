@@ -9,13 +9,73 @@
     "filter": "筛选",
     "reset": "重置",
     "submit": "提交",
-    "close": "关闭"
+    "close": "关闭",
+    "noComments": "暂无评论",
+    "noData": "暂无数据",
+    "pagination": {
+      "showing": "显示第 {start}-{end} 条，共 {total} 条",
+      "previous": "上一页",
+      "next": "下一页",
+      "itemsPerPage": "每页显示:"
+    },
+    "timeRange": {
+      "last24Hours": "过去 24 小时",
+      "last3Days": "过去 3 天",
+      "last7Days": "过去 7 天",
+      "last30Days": "过去 30 天",
+      "last3Months": "过去 3 个月",
+      "customRange": "自定义范围"
+    }
   },
   "nav": {
     "dashboard": "总览",
     "alerts": "告警管理",
     "incidents": "事件管理",
     "vulnerabilities": "漏洞管理"
+  },
+  "dashboard": {
+    "title": "总览",
+    "lastUpdated": "最后更新: 刚刚",
+    "refresh": "刷新",
+    "statistics": {
+      "alertCount24h": "告警数量 (24小时)",
+      "incidentCount24h": "事件数 (24小时)",
+      "vulnerabilityCount": "漏洞数 (未关闭)",
+      "mttd": "平均检测时间 (MTTD)"
+    },
+    "charts": {
+      "alertTypeStats": "告警类型统计",
+      "manual": "手动处理",
+      "auto": "自动处理",
+      "aiAccuracy": "AI研判正确率",
+      "noData": "暂无数据"
+    },
+    "tables": {
+      "recentOpenAlerts": "最近未关闭的告警",
+      "recentOpenVulnerabilities": "最近未关闭的漏洞",
+      "severity": "严重性",
+      "alertName": "告警名称",
+      "time": "时间",
+      "sourceIp": "源 IP",
+      "status": "状态",
+      "action": "操作",
+      "investigate": "调查",
+      "cvss": "CVSS",
+      "vulnerabilityName": "漏洞名称",
+      "affectedAsset": "影响资产",
+      "discoveryTime": "发现时间",
+      "detail": "详情"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "status": {
+      "new": "New",
+      "inProgress": "In Progress"
+    }
   },
   "alerts": {
     "title": "告警管理",
@@ -25,18 +85,37 @@
       "riskLevel": "风险等级",
       "status": "状态",
       "owner": "责任人",
-      "searchPlaceholder": "按标题、风险等级、状态搜索...",
+      "searchPlaceholder": "输入关键字后按回车搜索标题...",
       "allStatus": "所有状态",
       "open": "打开",
       "pending": "挂起",
       "closed": "关闭",
       "batchClose": "批量关闭",
+      "batchCloseDialog": {
+        "title": "批量关闭告警",
+        "selectedCount": "已选中 {count} 条告警",
+        "confirmMessage": "请确认是否关闭选中的 {count} 条告警？",
+        "conclusionCategory": "结论分类",
+        "selectCategory": "请选择分类",
+        "categories": {
+          "falsePositive": "误报",
+          "resolved": "已解决",
+          "convertedToIncident": "转事件",
+          "other": "其他"
+        },
+        "conclusion": "调查结论",
+        "conclusionPlaceholder": "请输入调查结论..."
+      },
       "batchConvert": "转事件",
       "associateIncident": "关联事件",
-      "timeRange": {
-        "last24Hours": "过去24小时",
-        "last7Days": "过去7天",
-        "customRange": "自定义范围"
+      "associateIncidentDialog": {
+        "title": "关联事件",
+        "selectedCount": "已选中 {count} 条告警",
+        "confirmMessage": "请确认是否关联选中的 {count} 条告警到事件？",
+        "incidentId": "事件ID",
+        "incidentTitle": "事件标题",
+        "createTime": "创建时间",
+        "noIncidents": "暂无事件"
       },
       "statistics": {
         "alertTypeStats": "告警类型统计",
@@ -54,10 +133,12 @@
       "title": "告警详情",
       "closeAlert": "关闭告警",
       "convertToIncident": "转事件",
+      "share": "分享",
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "概览",
-      "relatedLogs": "相关日志",
+      "associatedAlerts": "关联告警",
       "threatIntelligence": "威胁情报",
+      "aiAgent": "AI智能体",
       "comments": "评论",
       "alertInfo": "告警信息",
       "timestamp": "时间戳",
@@ -65,11 +146,20 @@
       "ruleName": "规则名称",
       "owner": "负责人",
       "unassigned": "未分配",
+      "model": "模型",
+      "created": "创建时间",
+      "responseTime": "响应时间",
       "addComment": "添加评论...",
+      "aiAgentPlaceholder": "向AI询问此告警...",
       "associatedEntities": "关联实体",
       "eventTimeline": "事件时间线",
       "automatedResponse": "自动化响应",
       "runPlaybook": "运行剧本",
+      "associatedAlertsContent": "关联告警将在此显示",
+      "relatedLogsContent": "相关日志将在此显示",
+      "threatIntelligenceContent": "威胁情报信息将在此显示",
+      "noThreatIntelligence": "暂无威胁情报匹配",
+      "noAssociatedAlerts": "暂无关联告警",
       "severity": {
         "high": "高风险",
         "medium": "中风险",
@@ -83,40 +173,99 @@
     "list": {
       "severity": "严重等级",
       "incidentName": "事件名称",
-      "sourceIp": "源 IP",
-      "targetIp": "目标 IP",
+      "responsibleDepartment": "责任人部门",
+      "rootCause": "根因",
       "occurrenceTime": "发生时间",
       "status": "状态",
       "action": "操作",
       "viewDetail": "查看详情",
-      "searchPlaceholder": "搜索事件名称、IP地址...",
+      "searchPlaceholder": "搜索事件名称、责任人部门、根因...",
       "severityLevel": "严重等级",
       "allSeverity": "全部",
       "high": "高危",
       "medium": "中危",
       "low": "低危",
       "allStatus": "全部",
+      "open": "打开",
       "pending": "待处理",
       "inProgress": "处理中",
       "closed": "已关闭",
       "batchClose": "关闭事件",
+      "batchCloseDialog": {
+        "title": "批量关闭事件",
+        "selectedCount": "已选中 {count} 条事件",
+        "conclusionCategory": "结论分类",
+        "selectCategory": "请选择分类",
+        "categories": {
+          "falsePositive": "误报",
+          "resolved": "已解决",
+          "convertedToIncident": "转事件",
+          "other": "其他"
+        },
+        "conclusion": "调查结论",
+        "conclusionPlaceholder": "请输入调查结论..."
+      },
       "export": "导出",
-      "createManually": "手动创建事件",
-      "timeRange": {
-        "last24Hours": "过去 24 小时",
-        "last7Days": "过去 7 天",
-        "customRange": "自定义范围"
-      }
+      "createIncident": "创建事件"
+    },
+    "edit": {
+      "title": "编辑事件"
+    },
+    "create": {
+      "title": "创建事件",
+      "incidentTitle": "事件标题",
+      "incidentTitlePlaceholder": "请输入事件标题",
+      "category": "事件分类",
+      "selectCategory": "请选择分类",
+      "categoryPlatform": "平台安全",
+      "categoryTenant": "租户安全",
+      "occurrenceTime": "事件发生时间",
+      "responsiblePerson": "责任人",
+      "responsiblePersonPlaceholder": "请输入责任人",
+      "responsibleDepartment": "责任部门",
+      "responsibleDepartmentPlaceholder": "请输入责任部门",
+      "rootCause": "事件根因",
+      "selectRootCause": "请选择根因",
+      "rootCauseExposedPort": "高危端口暴露",
+      "rootCauseWeakPassword": "弱口令",
+      "rootCauseWeakConfig": "弱配置",
+      "rootCauseUnauthorizedApi": "未授权接口",
+      "rootCauseHistoricalVulnerability": "历史漏洞",
+      "currentStatus": "当前状态",
+      "description": "事件描述",
+      "descriptionPlaceholder": "请输入事件描述"
     },
     "detail": {
       "title": "事件详情",
       "eventId": "事件ID",
+      "createTime": "创建时间",
+      "updateTime": "最后更新时间",
       "assign": "分配",
+      "edit": "编辑",
       "changeStatus": "更改状态",
+      "closeIncident": "关闭事件",
+      "share": "分享",
+      "shareSuccess": "已复制到剪切板",
       "status": "状态",
       "severity": "严重等级",
       "affectedAssets": "受影响资产",
       "mitreTactic": "MITRE ATT&CK 战术",
+      "responsibleDepartment": "责任部门",
+      "responsiblePerson": "责任人",
+      "closeDialog": {
+        "title": "关闭事件",
+        "confirmMessage": "请确认是否关闭此事件？",
+        "conclusionCategory": "结论分类",
+        "selectCategory": "请选择分类",
+        "categories": {
+          "falsePositive": "误报",
+          "resolved": "已解决",
+          "convertedToIncident": "转事件",
+          "other": "其他"
+        },
+        "conclusion": "调查结论",
+        "conclusionPlaceholder": "请输入调查结论..."
+      },
       "tabs": {
         "overview": "概览",
         "timeline": "时间线与告警",
@@ -154,6 +303,38 @@
         "attachFile": "附件",
         "noComments": "暂无评论"
       }
+    }
+  },
+  "vulnerabilities": {
+    "title": "漏洞管理",
+    "list": {
+      "nameCve": "漏洞名称/CVE",
+      "riskLevel": "风险等级",
+      "affectedAsset": "受影响资产",
+      "firstDiscoveryTime": "首次发现时间",
+      "status": "状态",
+      "action": "操作",
+      "detail": "详情",
+      "searchPlaceholder": "搜索CVE, IP, 名称...",
+      "exportReport": "导出报告",
+      "createScanTask": "新建扫描任务",
+      "batchOperate": "批量操作",
+      "riskLevels": {
+        "critical": "严重",
+        "high": "高危",
+        "medium": "中危",
+        "low": "低危"
+      },
+      "status": {
+        "pending": "待处理",
+        "inProgress": "处理中",
+        "fixed": "已修复",
+        "ignored": "已忽略"
+      }
+    },
+    "statistics": {
+      "trend": "漏洞趋势统计",
+      "departmentDistribution": "漏洞责任部门分布"
     }
   }
 }

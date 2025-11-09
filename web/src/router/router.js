@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Layout from '@/layouts/index.vue'
+import Layout from '@/layouts/MainLayout.vue'
 
 const routes = [
   {
@@ -10,19 +10,25 @@ const routes = [
       {
         path: 'dashboard',
         name: 'Dashboard',
-        component: () => import('@/views/dashboard/index.vue'),
+        component: () => import('@/views/dashboard/DashboardView.vue'),
         meta: { title: '总览' }
       },
       {
         path: 'alerts',
         name: 'Alerts',
-        component: () => import('@/views/alerts/index.vue'),
+        component: () => import('@/views/alerts/AlertsView.vue'),
+        meta: { title: '告警管理' }
+      },
+      {
+        path: 'alerts/:id',
+        name: 'AlertsWithDetail',
+        component: () => import('@/views/alerts/AlertsView.vue'),
         meta: { title: '告警管理' }
       },
       {
         path: 'incidents',
         name: 'Incidents',
-        component: () => import('@/views/incidents/index.vue'),
+        component: () => import('@/views/incidents/IncidentsView.vue'),
         meta: { title: '事件管理' }
       },
       {
@@ -34,7 +40,7 @@ const routes = [
       {
         path: 'vulnerabilities',
         name: 'Vulnerabilities',
-        component: () => import('@/views/placeholder/index.vue'),
+        component: () => import('@/views/vulnerabilities/VulnerabilitiesView.vue'),
         meta: { title: '漏洞管理' }
       }
     ]

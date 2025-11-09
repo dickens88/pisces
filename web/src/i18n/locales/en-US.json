@@ -9,13 +9,73 @@
     "filter": "Filter",
     "reset": "Reset",
     "submit": "Submit",
-    "close": "Close"
+    "close": "Close",
+    "noComments": "No comments yet",
+    "noData": "No data available",
+    "pagination": {
+      "showing": "Showing {start}-{end} of {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "itemsPerPage": "Items per page:"
+    },
+    "timeRange": {
+      "last24Hours": "Last 24 Hours",
+      "last3Days": "Last 3 Days",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "last3Months": "Last 3 Months",
+      "customRange": "Custom Range"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
     "alerts": "Alert Management",
     "incidents": "Incident Management",
     "vulnerabilities": "Vulnerability Management"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "lastUpdated": "Last updated: Just now",
+    "refresh": "Refresh",
+    "statistics": {
+      "alertCount24h": "Alert Count (24h)",
+      "incidentCount24h": "Incident Count (24h)",
+      "vulnerabilityCount": "Vulnerability Count (Open)",
+      "mttd": "Mean Time To Detect (MTTD)"
+    },
+    "charts": {
+      "alertTypeStats": "Alert Type Statistics",
+      "manual": "Manual",
+      "auto": "Auto",
+      "aiAccuracy": "AI Accuracy Rate",
+      "noData": "No data available"
+    },
+    "tables": {
+      "recentOpenAlerts": "Recent Open Alerts",
+      "recentOpenVulnerabilities": "Recent Open Vulnerabilities",
+      "severity": "Severity",
+      "alertName": "Alert Name",
+      "time": "Time",
+      "sourceIp": "Source IP",
+      "status": "Status",
+      "action": "Action",
+      "investigate": "Investigate",
+      "cvss": "CVSS",
+      "vulnerabilityName": "Vulnerability Name",
+      "affectedAsset": "Affected Asset",
+      "discoveryTime": "Discovery Time",
+      "detail": "Detail"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "status": {
+      "new": "New",
+      "inProgress": "In Progress"
+    }
   },
   "alerts": {
     "title": "Alert Management",
@@ -25,18 +85,37 @@
       "riskLevel": "Risk Level",
       "status": "Status",
       "owner": "Owner",
-      "searchPlaceholder": "Search by title, risk level, status...",
+      "searchPlaceholder": "Enter keyword and press Enter to search title...",
       "allStatus": "All Status",
       "open": "Open",
       "pending": "Pending",
       "closed": "Closed",
       "batchClose": "Batch Close",
+      "batchCloseDialog": {
+        "title": "Batch Close Alerts",
+        "selectedCount": "Selected {count} alert(s)",
+        "confirmMessage": "Please confirm whether to close the selected {count} alert(s)?",
+        "conclusionCategory": "Conclusion Category",
+        "selectCategory": "Please select a category",
+        "categories": {
+          "falsePositive": "False Positive",
+          "resolved": "Resolved",
+          "convertedToIncident": "Converted to Incident",
+          "other": "Other"
+        },
+        "conclusion": "Investigation Conclusion",
+        "conclusionPlaceholder": "Please enter investigation conclusion..."
+      },
       "batchConvert": "Convert to Incident",
       "associateIncident": "Associate Incident",
-      "timeRange": {
-        "last24Hours": "Last 24 Hours",
-        "last7Days": "Last 7 Days",
-        "customRange": "Custom Range"
+      "associateIncidentDialog": {
+        "title": "Associate Incident",
+        "selectedCount": "Selected {count} alert(s)",
+        "confirmMessage": "Please confirm whether to associate the selected {count} alert(s) to an incident?",
+        "incidentId": "Incident ID",
+        "incidentTitle": "Incident Title",
+        "createTime": "Create Time",
+        "noIncidents": "No incidents available"
       },
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",
@@ -54,10 +133,12 @@
       "title": "Alert Details",
       "closeAlert": "Close Alert",
       "convertToIncident": "Convert to Incident",
+      "share": "Share",
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "Overview",
-      "relatedLogs": "Related Logs",
+      "associatedAlerts": "Associated Alerts",
       "threatIntelligence": "Threat Intelligence",
+      "aiAgent": "AI Agent",
       "comments": "Comments",
       "alertInfo": "Alert Information",
       "timestamp": "Timestamp",
@@ -65,11 +146,20 @@
       "ruleName": "Rule Name",
       "owner": "Owner",
       "unassigned": "Unassigned",
+      "model": "Model",
+      "created": "Created",
+      "responseTime": "TTR",
       "addComment": "Add a comment...",
+      "aiAgentPlaceholder": "Ask AI about this alert...",
       "associatedEntities": "Associated Entities",
       "eventTimeline": "Event Timeline",
       "automatedResponse": "Automated Response",
       "runPlaybook": "Run Playbook",
+      "associatedAlertsContent": "Associated alerts will be displayed here.",
+      "relatedLogsContent": "Related logs will be displayed here.",
+      "threatIntelligenceContent": "Threat intelligence information will be displayed here.",
+      "noThreatIntelligence": "No threat intelligence matches found",
+      "noAssociatedAlerts": "No associated alerts found",
       "severity": {
         "high": "High Severity",
         "medium": "Medium Severity",
@@ -83,40 +173,99 @@
     "list": {
       "severity": "Severity",
       "incidentName": "Incident Name",
-      "sourceIp": "Source IP",
-      "targetIp": "Target IP",
+      "responsibleDepartment": "Responsible Department",
+      "rootCause": "Root Cause",
       "occurrenceTime": "Occurrence Time",
       "status": "Status",
       "action": "Action",
       "viewDetail": "View Details",
-      "searchPlaceholder": "Search incident name, IP address...",
+      "searchPlaceholder": "Search incident name, responsible department, root cause...",
       "severityLevel": "Severity Level",
       "allSeverity": "All",
       "high": "High",
       "medium": "Medium",
       "low": "Low",
       "allStatus": "All",
+      "open": "Open",
       "pending": "Pending",
       "inProgress": "In Progress",
       "closed": "Closed",
       "batchClose": "Close Incident",
+      "batchCloseDialog": {
+        "title": "Batch Close Incidents",
+        "selectedCount": "Selected {count} incident(s)",
+        "conclusionCategory": "Conclusion Category",
+        "selectCategory": "Please select a category",
+        "categories": {
+          "falsePositive": "False Positive",
+          "resolved": "Resolved",
+          "convertedToIncident": "Converted to Incident",
+          "other": "Other"
+        },
+        "conclusion": "Investigation Conclusion",
+        "conclusionPlaceholder": "Please enter investigation conclusion..."
+      },
       "export": "Export",
-      "createManually": "Create Incident Manually",
-      "timeRange": {
-        "last24Hours": "Last 24 Hours",
-        "last7Days": "Last 7 Days",
-        "customRange": "Custom Range"
-      }
+      "createIncident": "Create Incident"
+    },
+    "edit": {
+      "title": "Edit Incident"
+    },
+    "create": {
+      "title": "Create Incident",
+      "incidentTitle": "Incident Title",
+      "incidentTitlePlaceholder": "Please enter incident title",
+      "category": "Category",
+      "selectCategory": "Please select category",
+      "categoryPlatform": "Platform Security",
+      "categoryTenant": "Tenant Security",
+      "occurrenceTime": "Occurrence Time",
+      "responsiblePerson": "Responsible Person",
+      "responsiblePersonPlaceholder": "Please enter responsible person",
+      "responsibleDepartment": "Responsible Department",
+      "responsibleDepartmentPlaceholder": "Please enter responsible department",
+      "rootCause": "Root Cause",
+      "selectRootCause": "Please select root cause",
+      "rootCauseExposedPort": "Exposed High-Risk Port",
+      "rootCauseWeakPassword": "Weak Password",
+      "rootCauseWeakConfig": "Weak Configuration",
+      "rootCauseUnauthorizedApi": "Unauthorized API",
+      "rootCauseHistoricalVulnerability": "Historical Vulnerability",
+      "currentStatus": "Current Status",
+      "description": "Description",
+      "descriptionPlaceholder": "Please enter incident description"
     },
     "detail": {
       "title": "Incident Details",
       "eventId": "Event ID",
+      "createTime": "Create Time",
+      "updateTime": "Last Updated",
       "assign": "Assign",
+      "edit": "Edit",
       "changeStatus": "Change Status",
+      "closeIncident": "Close Incident",
+      "share": "Share",
+      "shareSuccess": "Copied to clipboard",
       "status": "Status",
       "severity": "Severity",
       "affectedAssets": "Affected Assets",
       "mitreTactic": "MITRE ATT&CK Tactic",
+      "responsibleDepartment": "Responsible Department",
+      "responsiblePerson": "Responsible Person",
+      "closeDialog": {
+        "title": "Close Incident",
+        "confirmMessage": "Please confirm whether to close this incident?",
+        "conclusionCategory": "Conclusion Category",
+        "selectCategory": "Please select a category",
+        "categories": {
+          "falsePositive": "False Positive",
+          "resolved": "Resolved",
+          "convertedToIncident": "Converted to Incident",
+          "other": "Other"
+        },
+        "conclusion": "Investigation Conclusion",
+        "conclusionPlaceholder": "Please enter investigation conclusion..."
+      },
       "tabs": {
         "overview": "Overview",
         "timeline": "Timeline & Alerts",
@@ -154,6 +303,38 @@
         "attachFile": "Attach File",
         "noComments": "No comments yet"
       }
+    }
+  },
+  "vulnerabilities": {
+    "title": "Vulnerability Management",
+    "list": {
+      "nameCve": "Vulnerability Name/CVE",
+      "riskLevel": "Risk Level",
+      "affectedAsset": "Affected Asset",
+      "firstDiscoveryTime": "First Discovery Time",
+      "status": "Status",
+      "action": "Action",
+      "detail": "Detail",
+      "searchPlaceholder": "Search CVE, IP, Name...",
+      "exportReport": "Export Report",
+      "createScanTask": "Create Scan Task",
+      "batchOperate": "Batch Operate",
+      "riskLevels": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "status": {
+        "pending": "Pending",
+        "inProgress": "In Progress",
+        "fixed": "Fixed",
+        "ignored": "Ignored"
+      }
+    },
+    "statistics": {
+      "trend": "Vulnerability Trend Statistics",
+      "departmentDistribution": "Vulnerability Department Distribution"
     }
   }
 }

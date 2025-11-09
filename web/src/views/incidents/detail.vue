@@ -6,28 +6,50 @@
         <h1 class="text-white text-3xl font-black leading-tight tracking-tight">
           {{ incident?.name }}
         </h1>
-        <p class="text-slate-400 text-base font-normal leading-normal">
-          {{ $t('incidents.detail.eventId') }}: {{ incident?.eventId }}
-        </p>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-base font-normal leading-normal">
+          <div class="flex items-center gap-1.5">
+            <span>{{ $t('incidents.detail.eventId') }}:</span>
+            <span class="text-white">{{ incident?.eventId }}</span>
+          </div>
+          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="flex items-center gap-1.5">
+            <span>{{ $t('incidents.detail.createTime') }}:</span>
+            <span class="text-white">{{ formatDateTime(incident?.createTime) }}</span>
+          </div>
+          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="flex items-center gap-1.5">
+            <span>{{ $t('incidents.detail.updateTime') }}:</span>
+            <span class="text-white">{{ formatDateTime(incident?.updateTime) }}</span>
+          </div>
+        </div>
       </div>
       <div class="flex flex-1 gap-3 flex-wrap justify-start sm:justify-end min-w-max">
         <button
+          @click="openEditDialog"
           class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
         >
-          <span class="material-symbols-outlined text-base">person_add</span>
-          <span class="truncate">{{ $t('incidents.detail.assign') }}</span>
+          <span class="material-symbols-outlined text-base">edit</span>
+          <span class="truncate">{{ $t('incidents.detail.edit') }}</span>
         </button>
         <button
+          @click="openCloseDialog"
           class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
         >
-          <span class="material-symbols-outlined text-base">task_alt</span>
-          <span class="truncate">{{ $t('incidents.detail.changeStatus') }}</span>
+          <span class="material-symbols-outlined text-base">archive</span>
+          <span class="truncate">{{ $t('incidents.detail.closeIncident') }}</span>
+        </button>
+        <button
+          @click="handleShare"
+          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          :title="$t('incidents.detail.share') || 'Share'"
+        >
+          <span class="material-symbols-outlined text-base">share</span>
         </button>
       </div>
     </header>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
         <p class="text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.status') }}
@@ -75,10 +97,18 @@
       </div>
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
         <p class="text-slate-300 text-sm font-medium leading-normal">
-          {{ $t('incidents.detail.mitreTactic') }}
+          {{ $t('incidents.detail.responsibleDepartment') }}
         </p>
         <p class="text-white text-xl font-bold leading-tight">
-          {{ incident?.mitreTactic || '-' }}
+          {{ incident?.responsibleDepartment || '-' }}
+        </p>
+      </div>
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
+        <p class="text-slate-300 text-sm font-medium leading-normal">
+          {{ $t('incidents.detail.responsiblePerson') }}
+        </p>
+        <p class="text-white text-xl font-bold leading-tight">
+          {{ incident?.responsiblePerson || '-' }}
         </p>
       </div>
     </div>
@@ -104,94 +134,49 @@
 
     <!-- 标签页内容 -->
     <div class="mt-6 flex-grow">
-      <!-- 时间线与告警 -->
-      <div v-if="activeTab === 'timeline'" class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <!-- 左侧时间线 -->
-        <div class="lg:col-span-2 bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col h-[600px] lg:h-auto">
-          <h3 class="text-white font-bold text-lg mb-4">
-            {{ $t('incidents.detail.timeline.title') }}
-          </h3>
-          <div class="flex-grow relative overflow-y-auto pr-2">
-            <div
-              v-for="(event, index) in incident?.timeline || []"
-              :key="index"
-              class="flex gap-4"
-            >
-              <div class="flex flex-col items-center">
-                <div
+      <!-- 时间线 -->
+      <div v-if="activeTab === 'timeline'" class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col h-[600px] lg:h-auto">
+        <h3 class="text-white font-bold text-lg mb-4">
+          {{ $t('incidents.detail.timeline.title') }}
+        </h3>
+        <div class="flex-grow relative overflow-y-auto pr-2">
+          <div
+            v-for="(event, index) in incident?.timeline || []"
+            :key="index"
+            class="flex gap-4"
+          >
+            <div class="flex flex-col items-center">
+              <div
+                :class="[
+                  'flex items-center justify-center size-8 rounded-full',
+                  getTimelineIconBgClass(event.severity)
+                ]"
+              >
+                <span
                   :class="[
-                    'flex items-center justify-center size-8 rounded-full',
-                    getTimelineIconBgClass(event.severity)
+                    'material-symbols-outlined text-base',
+                    getTimelineIconColorClass(event.severity)
                   ]"
                 >
-                  <span
-                    :class="[
-                      'material-symbols-outlined text-base',
-                      getTimelineIconColorClass(event.severity)
-                    ]"
-                  >
-                    {{ event.icon }}
-                  </span>
-                </div>
-                <div
-                  v-if="index < (incident?.timeline?.length || 0) - 1"
-                  class="w-px h-full bg-slate-700 my-2"
-                ></div>
+                  {{ event.icon }}
+                </span>
               </div>
-              <div class="pb-8 flex-1">
-                <p class="text-sm text-slate-400">{{ event.time }}</p>
-                <p class="font-medium text-white">{{ event.title }}</p>
-                <p class="text-sm text-slate-300 mt-1">{{ event.description }}</p>
-                <a
-                  v-if="event.alertId"
-                  @click="openAlertDetail(event.alertId)"
-                  class="text-primary text-sm font-semibold mt-2 inline-block cursor-pointer hover:underline"
-                >
-                  View Alert #{{ event.alertId }}
-                </a>
-              </div>
+              <div
+                v-if="index < (incident?.timeline?.length || 0) - 1"
+                class="w-px h-full bg-slate-700 my-2"
+              ></div>
             </div>
-          </div>
-        </div>
-
-        <!-- 右侧攻击链 -->
-        <div class="lg:col-span-3 bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col h-[600px] lg:h-auto">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-white font-bold text-lg">
-              {{ $t('incidents.detail.attackChain.title') }}
-            </h3>
-            <div class="flex items-center gap-2">
-              <button
-                class="flex items-center justify-center size-8 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
-                :title="$t('incidents.detail.attackChain.zoomIn')"
+            <div class="pb-8 flex-1">
+              <p class="text-sm text-slate-400">{{ event.time }}</p>
+              <p class="font-medium text-white">{{ event.title }}</p>
+              <p class="text-sm text-slate-300 mt-1">{{ event.description }}</p>
+              <a
+                v-if="event.alertId"
+                @click="openAlertDetail(event.alertId)"
+                class="text-primary text-sm font-semibold mt-2 inline-block cursor-pointer hover:underline"
               >
-                <span class="material-symbols-outlined text-base">zoom_in</span>
-              </button>
-              <button
-                class="flex items-center justify-center size-8 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
-                :title="$t('incidents.detail.attackChain.zoomOut')"
-              >
-                <span class="material-symbols-outlined text-base">zoom_out</span>
-              </button>
-              <button
-                class="flex items-center justify-center size-8 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
-                :title="$t('incidents.detail.attackChain.fullscreen')"
-              >
-                <span class="material-symbols-outlined text-base">fullscreen</span>
-              </button>
-            </div>
-          </div>
-          <div
-            class="mt-4 flex-grow rounded-md flex items-center justify-center"
-            style="--dot-bg: #101822; --dot-color: #2E4057; background-image: radial-gradient(var(--dot-color) 1px, var(--dot-bg) 1px); background-size: 20px 20px;"
-          >
-            <div
-              v-if="incident?.attackChainImage"
-              class="w-full h-full bg-contain bg-no-repeat bg-center"
-              :style="{ backgroundImage: `url('${incident.attackChainImage}')` }"
-            ></div>
-            <div v-else class="text-slate-400 text-sm">
-              {{ $t('incidents.detail.attackChain.title') }}
+                View Alert #{{ event.alertId }}
+              </a>
             </div>
           </div>
         </div>
@@ -383,10 +368,6 @@
         </div>
       </div>
 
-      <!-- Attack Chain 标签页 -->
-      <div v-if="activeTab === 'attackChain'" class="text-slate-400">
-        Attack Chain content coming soon...
-      </div>
     </div>
 
     <!-- 告警详情抽屉 -->
@@ -395,15 +376,111 @@
       :alert-id="selectedAlertId"
       @close="closeAlertDetail"
     />
+
+    <!-- 关闭事件对话框 -->
+    <div
+      v-if="showCloseDialog"
+      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
+      @click.self="closeCloseDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('incidents.detail.closeDialog.title') }}
+          </h2>
+          <button
+            @click="closeCloseDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- 提示信息 -->
+        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ $t('incidents.detail.closeDialog.confirmMessage') }}
+          </p>
+        </div>
+
+        <!-- 结论分类下拉框 -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('incidents.detail.closeDialog.conclusionCategory') }}
+          </label>
+          <select
+            v-model="closeConclusion.category"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+          >
+            <option value="">{{ $t('incidents.detail.closeDialog.selectCategory') }}</option>
+            <option value="falsePositive">{{ $t('incidents.detail.closeDialog.categories.falsePositive') }}</option>
+            <option value="resolved">{{ $t('incidents.detail.closeDialog.categories.resolved') }}</option>
+            <option value="convertedToIncident">{{ $t('incidents.detail.closeDialog.categories.convertedToIncident') }}</option>
+            <option value="other">{{ $t('incidents.detail.closeDialog.categories.other') }}</option>
+          </select>
+        </div>
+
+        <!-- 调查结论输入框 -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('incidents.detail.closeDialog.conclusion') }}
+          </label>
+          <textarea
+            v-model="closeConclusion.notes"
+            rows="4"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+            :placeholder="$t('incidents.detail.closeDialog.conclusionPlaceholder')"
+          ></textarea>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeCloseDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleCloseIncident"
+            :disabled="!closeConclusion.category || !closeConclusion.notes.trim()"
+            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ $t('common.submit') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑事件对话框 -->
+    <EditIncidentDialog
+      :visible="showEditDialog"
+      :incident-id="route.params.id"
+      :initial-data="editIncidentInitialData"
+      @close="closeEditDialog"
+      @updated="handleIncidentUpdated"
+    />
+
+    <!-- 分享成功提示 -->
+    <Transition name="fade">
+      <div
+        v-if="showShareSuccess"
+        class="fixed top-4 right-4 z-[100] bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2"
+      >
+        <span class="material-symbols-outlined text-sm">check_circle</span>
+        <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || '已复制到剪切板' }}</span>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getIncidentDetail } from '@/api/incidents'
+import { getIncidentDetail, batchCloseIncidents } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
+import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -415,11 +492,18 @@ const newComment = ref('')
 const isEditingDescription = ref(false)
 const editingDescription = ref('')
 const selectedAlertId = ref(null)
+const showShareSuccess = ref(false)
+const showCloseDialog = ref(false)
+const closeConclusion = ref({
+  category: '',
+  notes: ''
+})
+const showEditDialog = ref(false)
+const editIncidentInitialData = ref(null)
 
 const tabs = [
   { key: 'overview', label: 'incidents.detail.tabs.overview' },
   { key: 'timeline', label: 'incidents.detail.tabs.timeline' },
-  { key: 'attackChain', label: 'incidents.detail.tabs.attackChain' },
   { key: 'comments', label: 'incidents.detail.tabs.comments' }
 ]
 
@@ -488,6 +572,25 @@ const handleSaveDescription = async () => {
   // } catch (error) {
   //   console.error('Failed to save description:', error)
   // }
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return '-'
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return '-'
+    // 格式化日期时间为 YYYY-MM-DD HH:mm:ss
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (error) {
+    console.error('Failed to format date:', error)
+    return '-'
+  }
 }
 
 const formatLastModified = (dateString) => {
@@ -587,8 +690,148 @@ const getTimelineIconColorClass = (severity) => {
   return classes[severity] || classes.low
 }
 
+/**
+ * @brief 生成事件详情URL
+ * @return {string} 事件的完整URL
+ */
+const getIncidentUrl = () => {
+  const baseUrl = window.location.origin
+  const incidentId = route.params.id
+  return `${baseUrl}/incidents/${incidentId}`
+}
+
+/**
+ * @brief 分享事件（复制标题和链接到剪切板）
+ */
+const handleShare = async () => {
+  if (!incident.value) return
+  
+  const title = incident.value.name || ''
+  const url = getIncidentUrl()
+  const textToCopy = `${title}: ${url}`
+  
+  try {
+    await navigator.clipboard.writeText(textToCopy)
+    // 显示成功提示
+    showShareSuccess.value = true
+    setTimeout(() => {
+      showShareSuccess.value = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy to clipboard:', err)
+    // 降级方案：使用传统的复制方法
+    const textArea = document.createElement('textarea')
+    textArea.value = textToCopy
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      // 显示成功提示
+      showShareSuccess.value = true
+      setTimeout(() => {
+        showShareSuccess.value = false
+      }, 2000)
+    } catch (fallbackErr) {
+      console.error('Fallback copy failed:', fallbackErr)
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+const openCloseDialog = () => {
+  showCloseDialog.value = true
+}
+
+const closeCloseDialog = () => {
+  showCloseDialog.value = false
+  // 重置表单
+  closeConclusion.value = {
+    category: '',
+    notes: ''
+  }
+}
+
+const handleCloseIncident = async () => {
+  if (!closeConclusion.value.category || !closeConclusion.value.notes.trim()) {
+    return
+  }
+
+  try {
+    await batchCloseIncidents({
+      incidentIds: [parseInt(route.params.id)],
+      category: closeConclusion.value.category,
+      notes: closeConclusion.value.notes.trim()
+    })
+    
+    // 关闭对话框并重置表单
+    closeCloseDialog()
+    
+    // 重新加载事件详情
+    await loadIncidentDetail()
+  } catch (error) {
+    console.error('Failed to close incident:', error)
+  }
+}
+
+const openEditDialog = () => {
+  if (!incident.value) {
+    console.warn('Incident data not loaded')
+    return
+  }
+  
+  console.log('Opening edit dialog with incident data:', incident.value)
+  
+  // 设置初始数据，确保所有字段都从事件数据中填充
+  editIncidentInitialData.value = {
+    title: incident.value.name || incident.value.title || '',
+    category: incident.value.category || 'platform',
+    status: incident.value.status || 'open',
+    occurrenceTime: incident.value.occurrenceTime 
+      ? (incident.value.occurrenceTime instanceof Date 
+          ? incident.value.occurrenceTime 
+          : new Date(incident.value.occurrenceTime))
+      : new Date(),
+    responsiblePerson: incident.value.responsiblePerson || '',
+    responsibleDepartment: incident.value.responsibleDepartment || '',
+    rootCause: incident.value.rootCause || '',
+    description: incident.value.description || ''
+  }
+  
+  console.log('Initial data set:', editIncidentInitialData.value)
+  
+  // 使用 nextTick 确保数据更新后再打开对话框
+  nextTick(() => {
+    showEditDialog.value = true
+  })
+}
+
+const closeEditDialog = () => {
+  showEditDialog.value = false
+  editIncidentInitialData.value = null
+}
+
+const handleIncidentUpdated = async () => {
+  // 事件更新成功后，关闭对话框并重新加载详情
+  closeEditDialog()
+  await loadIncidentDetail()
+}
+
 onMounted(() => {
   loadIncidentDetail()
 })
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
 

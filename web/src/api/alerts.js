@@ -1,4 +1,4 @@
-import service from './index'
+import service from './axios.js'
 
 // Mock数据
 const mockAlerts = [
@@ -170,20 +170,29 @@ const mockAlerts = [
   }
 ]
 
-// 获取告警列表
+/**
+ * @brief 获取告警列表
+ * @param {Object} params - 查询参数
+ * @param {Array<string>} params.searchKeywords - 搜索关键字数组（支持多关键字AND搜索）
+ * @param {string} params.status - 状态过滤
+ * @param {number} params.page - 页码
+ * @param {number} params.pageSize - 每页数量
+ * @returns {Promise} 返回告警列表数据
+ */
 export const getAlerts = (params = {}) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       let filteredAlerts = [...mockAlerts]
       
-      // 简单的搜索过滤
-      if (params.search) {
-        const searchLower = params.search.toLowerCase()
-        filteredAlerts = filteredAlerts.filter(alert => 
-          alert.title.toLowerCase().includes(searchLower) ||
-          alert.riskLevel.toLowerCase().includes(searchLower) ||
-          alert.status.toLowerCase().includes(searchLower)
-        )
+      // 多关键字搜索过滤（AND逻辑：标题必须同时包含所有关键字）
+      if (params.searchKeywords && params.searchKeywords.length > 0) {
+        filteredAlerts = filteredAlerts.filter(alert => {
+          const titleLower = alert.title.toLowerCase()
+          // 检查标题是否同时包含所有关键字
+          return params.searchKeywords.every(keyword => 
+            titleLower.includes(keyword.toLowerCase())
+          )
+        })
       }
       
       // 状态过滤
@@ -236,6 +245,222 @@ export const getAlertStatistics = () => {
           ]
         }
       })
+    }, 200)
+  })
+}
+
+// 批量关闭告警
+export const batchCloseAlerts = (params) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Batch closing alerts:', {
+        alertIds: params.alertIds,
+        category: params.category,
+        notes: params.notes
+      })
+      
+      // 更新mock数据中的告警状态
+      params.alertIds.forEach(alertId => {
+        const alert = mockAlerts.find(a => a.id === alertId)
+        if (alert) {
+          alert.status = 'closed'
+        }
+      })
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: `Successfully closed ${params.alertIds.length} alert(s)`,
+        data: {
+          closedCount: params.alertIds.length,
+          category: params.category,
+          notes: params.notes
+        }
+      })
+    }, 500)
+  })
+}
+
+// 关联告警到事件
+export const associateAlertsToIncident = (params) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Associating alerts to incident:', {
+        alertIds: params.alertIds,
+        incidentId: params.incidentId
+      })
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: `Successfully associated ${params.alertIds.length} alert(s) to incident ${params.incidentId}`,
+        data: {
+          associatedCount: params.alertIds.length,
+          incidentId: params.incidentId
+        }
+      })
+    }, 500)
+  })
+}
+
+/**
+ * @brief 威胁情报匹配数据（Mock）
+ * @details 包含恶意IP、TTP、Campaign、Vulnerability等威胁情报信息
+ */
+const mockThreatIntelligence = {
+  1: [
+    {
+      id: 1,
+      type: 'ip',
+      title: 'Malicious IP: 192.168.1.100',
+      description: 'IP associated with known botnet activity and SSH brute-force campaigns. Classified as high-confidence threat.',
+      source: 'SOC Team',
+      timestamp: '2023-10-26 09:15:00'
+    },
+    {
+      id: 2,
+      type: 'ttp',
+      title: 'TTP: T1078 - Valid Accounts',
+      description: 'Adversaries may obtain and abuse credentials of existing accounts as a means of gaining initial access, persistence, privilege escalation, or defense evasion.',
+      source: 'Threat Intel Feed',
+      timestamp: '2023-10-25 11:30:21'
+    },
+    {
+      id: 3,
+      type: 'campaign',
+      title: 'Campaign: "Winter Dragon"',
+      description: 'Ongoing campaign targeting financial institutions using SSH brute-force and credential stuffing. The source IP is a known indicator for this campaign.',
+      source: 'Alex Smith',
+      timestamp: '2023-10-24 18:05:44'
+    },
+    {
+      id: 4,
+      type: 'vulnerability',
+      title: 'Vulnerability: CVE-2023-4863',
+      description: 'Heap buffer overflow in WebP in Google Chrome prior to 116.0.5845.187 and libwebp 1.3.2 allowed a remote attacker to perform an out of bounds memory write.',
+      source: 'NVD Feed',
+      timestamp: '2023-09-11 10:00:00'
+    }
+  ],
+  2: [
+    {
+      id: 1,
+      type: 'ip',
+      title: 'Suspicious IP: 203.0.113.45',
+      description: 'IP address with no prior successful login history. Multiple failed login attempts detected.',
+      source: 'Security Team',
+      timestamp: '2023-10-27 13:50:00'
+    }
+  ],
+  4: [
+    {
+      id: 1,
+      type: 'ip',
+      title: 'Malicious IP: 192.168.1.100',
+      description: 'IP associated with known brute-force attacks targeting admin accounts.',
+      source: 'Threat Intel Feed',
+      timestamp: '2023-10-27 11:40:00'
+    },
+    {
+      id: 2,
+      type: 'ttp',
+      title: 'TTP: T1110 - Brute Force',
+      description: 'Adversaries may use brute force techniques to gain access to accounts when passwords are unknown or when password hashes are obtained.',
+      source: 'MITRE ATT&CK',
+      timestamp: '2023-10-27 11:35:00'
+    }
+  ]
+}
+
+/**
+ * @brief 关联告警数据（Mock）
+ * @details 包含与当前告警相关的其他告警信息
+ */
+const mockAssociatedAlerts = {
+  1: [
+    {
+      id: 4,
+      title: 'Multiple Failed Login Attempts for admin account',
+      description: 'Detected 15 failed login attempts within 5 minutes from IP 192.168.1.100 targeting the admin account. This may indicate a brute force attack.',
+      createTime: '2023-10-27 11:45:21',
+      owner: 'John Smith',
+      riskLevel: 'medium',
+      status: 'open',
+      severity: 'medium'
+    },
+    {
+      id: 2,
+      title: 'Unusual Login Activity from an Unrecognized IP',
+      description: 'Successful login detected from IP address 203.0.113.45 which has not been seen in the past 90 days. User account: jane.doe@company.com',
+      createTime: '2023-10-27 13:55:02',
+      owner: 'Sarah Johnson',
+      riskLevel: 'medium',
+      status: 'pending',
+      severity: 'medium'
+    }
+  ],
+  2: [
+    {
+      id: 1,
+      title: 'SQL Injection Attempt Detected on Server DB01',
+      description: 'Potential SQL injection attack detected in web application logs. Malicious payload identified in POST request to /api/users endpoint.',
+      createTime: '2023-10-27 14:30:15',
+      owner: 'Mike Chen',
+      riskLevel: 'high',
+      status: 'open',
+      severity: 'high'
+    }
+  ],
+  4: [
+    {
+      id: 1,
+      title: 'SQL Injection Attempt Detected on Server DB01',
+      description: 'Potential SQL injection attack detected in web application logs. Malicious payload identified in POST request to /api/users endpoint.',
+      createTime: '2023-10-27 14:30:15',
+      owner: 'Mike Chen',
+      riskLevel: 'high',
+      status: 'open',
+      severity: 'high'
+    },
+    {
+      id: 2,
+      title: 'Unusual Login Activity from an Unrecognized IP',
+      description: 'Successful login detected from IP address 203.0.113.45 which has not been seen in the past 90 days. User account: jane.doe@company.com',
+      createTime: '2023-10-27 13:55:02',
+      owner: 'Sarah Johnson',
+      riskLevel: 'medium',
+      status: 'pending',
+      severity: 'medium'
+    }
+  ]
+}
+
+/**
+ * @brief 获取告警的威胁情报信息
+ * @param {number|string} alertId - 告警ID
+ * @returns {Promise} 返回威胁情报数据
+ */
+export const getThreatIntelligence = (alertId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const threatIntel = mockThreatIntelligence[parseInt(alertId)] || []
+      resolve({ data: threatIntel })
+    }, 200)
+  })
+}
+
+/**
+ * @brief 获取告警的关联告警列表
+ * @param {number|string} alertId - 告警ID
+ * @returns {Promise} 返回关联告警数据
+ */
+export const getAssociatedAlerts = (alertId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const associatedAlerts = mockAssociatedAlerts[parseInt(alertId)] || []
+      resolve({ data: associatedAlerts })
     }, 200)
   })
 }

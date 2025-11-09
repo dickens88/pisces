@@ -1,4 +1,4 @@
-import service from './index'
+import service from './axios.js'
 
 // Mock数据
 const mockIncidents = [
@@ -6,8 +6,8 @@ const mockIncidents = [
     id: 73519,
     severity: 'high',
     name: '检测到恶意软件: Trojan.GenericKD.312...',
-    sourceIp: '192.168.1.102',
-    targetIp: '203.0.113.45',
+    responsibleDepartment: '安全运营部',
+    rootCause: '弱口令',
     occurrenceTime: '2023-10-27 14:30:15',
     status: 'pending',
     fullName: '检测到恶意软件: Trojan.GenericKD.312456789',
@@ -17,8 +17,8 @@ const mockIncidents = [
     id: 73518,
     severity: 'medium',
     name: '多次登录失败',
-    sourceIp: '10.0.0.5',
-    targetIp: '172.16.0.10',
+    responsibleDepartment: 'IT运维部',
+    rootCause: '弱配置',
     occurrenceTime: '2023-10-27 14:25:01',
     status: 'inProgress',
     fullName: '多次登录失败',
@@ -28,8 +28,8 @@ const mockIncidents = [
     id: 73517,
     severity: 'low',
     name: '策略变更: 防火墙规则更新',
-    sourceIp: 'admin@local',
-    targetIp: 'firewall-01',
+    responsibleDepartment: '网络管理部',
+    rootCause: '弱配置',
     occurrenceTime: '2023-10-27 14:20:55',
     status: 'closed',
     fullName: '策略变更: 防火墙规则更新',
@@ -39,8 +39,8 @@ const mockIncidents = [
     id: 73516,
     severity: 'high',
     name: '检测到数据泄露企图',
-    sourceIp: '192.168.1.150',
-    targetIp: 'fileserver.internal',
+    responsibleDepartment: '安全运营部',
+    rootCause: '高危端口暴露',
     occurrenceTime: '2023-10-27 14:15:23',
     status: 'pending',
     fullName: '检测到数据泄露企图',
@@ -50,8 +50,8 @@ const mockIncidents = [
     id: 73515,
     severity: 'medium',
     name: '检测到异常网络扫描',
-    sourceIp: '103.22.14.8',
-    targetIp: 'public-web-server',
+    responsibleDepartment: 'IT运维部',
+    rootCause: '未授权接口',
     occurrenceTime: '2023-10-27 14:10:02',
     status: 'pending',
     fullName: '检测到异常网络扫描',
@@ -70,8 +70,8 @@ export const getIncidents = (params = {}) => {
         const searchLower = params.search.toLowerCase()
         filteredIncidents = filteredIncidents.filter(incident => 
           incident.name.toLowerCase().includes(searchLower) ||
-          incident.sourceIp.toLowerCase().includes(searchLower) ||
-          incident.targetIp.toLowerCase().includes(searchLower)
+          (incident.responsibleDepartment && incident.responsibleDepartment.toLowerCase().includes(searchLower)) ||
+          (incident.rootCause && incident.rootCause.toLowerCase().includes(searchLower))
         )
       }
       
@@ -95,6 +95,99 @@ export const getIncidents = (params = {}) => {
   })
 }
 
+// 批量关闭事件
+export const batchCloseIncidents = (params) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Batch closing incidents:', {
+        incidentIds: params.incidentIds,
+        category: params.category,
+        notes: params.notes
+      })
+      
+      // 模拟成功响应
+      resolve({
+        success: true,
+        message: `Successfully closed ${params.incidentIds.length} incident(s)`,
+        data: {
+          closedCount: params.incidentIds.length,
+          category: params.category,
+          notes: params.notes
+        }
+      })
+    }, 500)
+  })
+}
+
+// 创建事件
+export const createIncident = (data) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Creating incident:', data)
+      
+      // 模拟成功响应
+      const newIncident = {
+        id: Date.now(),
+        severity: 'medium',
+        name: data.title,
+        responsibleDepartment: data.responsibleDepartment || '-',
+        rootCause: data.rootCause || '-',
+        occurrenceTime: data.occurrenceTime,
+        status: data.status || 'open',
+        fullName: data.title,
+        eventId: Date.now(),
+        ...data
+      }
+      
+      resolve({
+        success: true,
+        message: 'Successfully created incident',
+        data: newIncident
+      })
+    }, 500)
+  })
+}
+
+// 更新事件
+export const updateIncident = (id, data) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Mock API调用
+      console.log('Updating incident:', id, data)
+      
+      // 模拟成功响应，保存所有字段
+      const now = new Date().toISOString()
+      const updatedIncident = {
+        id: parseInt(id),
+        eventId: parseInt(id),
+        name: data.title,
+        title: data.title,
+        severity: 'high', // 保持原有严重等级
+        status: data.status || 'open',
+        category: data.category || 'platform',
+        responsibleDepartment: data.responsibleDepartment || '',
+        responsiblePerson: data.responsiblePerson || '',
+        rootCause: data.rootCause || '',
+        occurrenceTime: data.occurrenceTime,
+        description: data.description || '',
+        fullName: data.title,
+        createTime: data.createTime || now, // 保留创建时间
+        updateTime: now, // 更新最后更新时间
+        // 保留其他字段（如果有）
+        affectedAssets: 4
+      }
+      
+      resolve({
+        success: true,
+        message: 'Successfully updated incident',
+        data: updatedIncident
+      })
+    }, 500)
+  })
+}
+
 // 获取事件详情
 export const getIncidentDetail = (id) => {
   return new Promise((resolve, reject) => {
@@ -103,10 +196,17 @@ export const getIncidentDetail = (id) => {
         id: 73519,
         eventId: 73519,
         name: 'Potential Ransomware Activity Detected on SRV-FIN-02',
+        title: 'Potential Ransomware Activity Detected on SRV-FIN-02',
         severity: 'high',
         status: 'inProgress',
         affectedAssets: 4,
-        mitreTactic: 'TA0002',
+        category: 'platform',
+        responsibleDepartment: '安全运营部',
+        responsiblePerson: 'Anna Lawson',
+        rootCause: 'weakPassword',
+        occurrenceTime: '2023-10-27T14:30:15',
+        createTime: '2023-10-27T14:30:15',
+        updateTime: '2023-10-27T15:45:30',
         description: 'This event correlates multiple high-severity alerts indicating a sophisticated attack targeting financial server SRV-FIN-02. The attack chain began with a successful phishing attempt, followed by PowerShell execution for persistence, command and control communication, and culminating in widespread file encryption activity characteristic of ransomware. The affected asset is a critical server containing sensitive financial data, elevating the incident\'s impact. Immediate response is required to contain the threat and prevent further data loss.',
         associatedAlerts: [
           {
@@ -230,7 +330,32 @@ export const getIncidentDetail = (id) => {
         // 为其他ID生成模拟数据
         const baseIncident = mockIncidents.find(i => i.id === parseInt(id))
         if (baseIncident) {
-          resolve({ data: { ...incident, ...baseIncident, eventId: baseIncident.id } })
+          // 映射 rootCause 的中文到英文
+          const rootCauseMap = {
+            '弱口令': 'weakPassword',
+            '弱配置': 'weakConfig',
+            '高危端口暴露': 'exposedPort',
+            '未授权接口': 'unauthorizedApi',
+            '历史漏洞': 'historicalVulnerability'
+          }
+          
+          resolve({ 
+            data: { 
+              ...incident, 
+              ...baseIncident, 
+              eventId: baseIncident.id,
+              title: baseIncident.name || baseIncident.fullName,
+              name: baseIncident.name || baseIncident.fullName,
+              category: baseIncident.category || 'platform',
+              responsibleDepartment: baseIncident.responsibleDepartment || '安全运营部',
+              responsiblePerson: baseIncident.responsiblePerson || '系统管理员',
+              rootCause: rootCauseMap[baseIncident.rootCause] || baseIncident.rootCause || 'weakPassword',
+              occurrenceTime: baseIncident.occurrenceTime || '2023-10-27T14:30:15',
+              createTime: baseIncident.createTime || baseIncident.occurrenceTime || '2023-10-27T14:30:15',
+              updateTime: baseIncident.updateTime || baseIncident.occurrenceTime || '2023-10-27T14:30:15',
+              description: baseIncident.description || incident.description
+            } 
+          })
         } else {
           reject(new Error('Incident not found'))
         }
