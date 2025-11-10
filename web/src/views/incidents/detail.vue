@@ -58,7 +58,7 @@
           <span
             :class="[
               'w-2 h-2 rounded-full',
-              getStatusDotClass(incident?.status)
+              getIncidentStatusDotClass(incident?.status)
             ]"
           ></span>
           <p class="text-white text-xl font-bold leading-tight">
@@ -232,75 +232,66 @@
         </div>
 
         <!-- 关联告警 -->
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex-grow flex flex-col">
-          <div class="p-6">
+        <div class="bg-[#111822] border border-[#324867] rounded-xl">
+          <div class="p-6 border-b border-[#324867]">
             <h3 class="text-white font-bold text-lg">
               {{ $t('incidents.detail.overview.associatedAlerts') }}
             </h3>
           </div>
-          <div class="overflow-x-auto">
-            <div class="min-w-full align-middle">
-              <table class="min-w-full divide-y divide-slate-700">
-                <thead class="bg-slate-800/30">
-                  <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider" scope="col">
-                      {{ $t('incidents.detail.overview.alertId') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider" scope="col">
-                      {{ $t('incidents.detail.overview.timestamp') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider" scope="col">
-                      {{ $t('incidents.detail.overview.description') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider" scope="col">
-                      {{ $t('incidents.detail.overview.severity') }}
-                    </th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-slate-300 uppercase tracking-wider" scope="col">
-                      {{ $t('incidents.detail.overview.status') }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-700">
-                  <tr
-                    v-for="alert in incident?.associatedAlerts || []"
-                    :key="alert.id"
-                    class="hover:bg-slate-700/30 transition-colors"
-                  >
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <a
-                        @click="openAlertDetail(alert.id)"
-                        class="text-primary hover:underline cursor-pointer"
-                      >
-                        {{ alert.id }}
-                      </a>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {{ alert.timestamp }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {{ alert.description }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                      <div class="flex items-center gap-2">
-                        <span
-                          :class="[
-                            'h-2 w-2 rounded-full',
-                            getAlertSeverityDotClass(alert.severity)
-                          ]"
-                        ></span>
-                        <span :class="getAlertSeverityTextClass(alert.severity)">
-                          {{ getAlertSeverityLabel(alert.severity) }}
-                        </span>
-                      </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                      {{ alert.status }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DataTable
+            :columns="associatedAlertsColumns"
+            :items="formattedAssociatedAlerts"
+            :selectable="false"
+            :resizable="true"
+            storage-key="incident-associated-alerts-table-columns"
+            :default-widths="associatedAlertsDefaultWidths"
+            :pagination="false"
+          >
+            <template #cell-createTime="{ value }">
+              {{ value }}
+            </template>
+            <template #cell-alertTitle="{ item }">
+              <div class="flex items-center gap-2">
+                <button
+                  @click.stop="openAlertDetailInNewWindow(item.id)"
+                  class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+                  :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+                >
+                  <span class="material-symbols-outlined text-base">open_in_new</span>
+                </button>
+                <a
+                  @click="openAlertDetail(item.id)"
+                  class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+                  :title="item.title"
+                >
+                  {{ item.title }}
+                </a>
+              </div>
+            </template>
+            <template #cell-riskLevel="{ item }">
+              <span
+                :class="[
+                  'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
+                  getRiskLevelClass(item.riskLevel)
+                ]"
+                :title="$t(`alerts.list.riskLevels.${item.riskLevel}`)"
+              >
+                {{ $t(`alerts.list.riskLevels.${item.riskLevel}`) }}
+              </span>
+            </template>
+            <template #cell-status="{ item }">
+              <span
+                :class="[
+                  'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
+                  getStatusClass(item.status)
+                ]"
+                :title="$t(`alerts.list.${item.status}`)"
+              >
+                <span :class="['size-1.5 rounded-full', getStatusDotClass(item.status)]"></span>
+                {{ $t(`alerts.list.${item.status}`) }}
+              </span>
+            </template>
+          </DataTable>
         </div>
       </div>
 
@@ -475,12 +466,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { getIncidentDetail, batchCloseIncidents } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
+import DataTable from '@/components/common/DataTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -507,6 +499,37 @@ const tabs = [
   { key: 'comments', label: 'incidents.detail.tabs.comments' }
 ]
 
+// 关联告警表格列配置
+const associatedAlertsColumns = computed(() => [
+  { key: 'createTime', label: t('alerts.list.createTime') },
+  { key: 'alertTitle', label: t('alerts.list.alertTitle') },
+  { key: 'riskLevel', label: t('alerts.list.riskLevel') },
+  { key: 'status', label: t('alerts.list.status') }
+])
+
+// 关联告警表格默认列宽
+const associatedAlertsDefaultWidths = {
+  createTime: 180,
+  alertTitle: 400,
+  riskLevel: 120,
+  status: 120
+}
+
+// 格式化关联告警数据，将事件详情的数据格式转换为告警管理页面的格式
+const formattedAssociatedAlerts = computed(() => {
+  if (!incident.value?.associatedAlerts) {
+    return []
+  }
+  return incident.value.associatedAlerts.map(alert => ({
+    id: alert.id,
+    createTime: alert.timestamp || '-',
+    title: alert.description || '-',
+    riskLevel: alert.severity || 'low', // severity 映射为 riskLevel
+    status: alert.status || 'open',
+    owner: '-' // 事件详情中的告警可能没有 owner 字段
+  }))
+})
+
 const loadIncidentDetail = async () => {
   try {
     const incidentId = route.params.id
@@ -520,6 +543,14 @@ const loadIncidentDetail = async () => {
 
 const openAlertDetail = (alertId) => {
   selectedAlertId.value = alertId
+}
+
+const openAlertDetailInNewWindow = (alertId) => {
+  // 在新窗口打开告警详情
+  const route = router.resolve({ path: `/alerts/${alertId}` })
+  // 构建完整的 URL
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
 }
 
 const closeAlertDetail = () => {
@@ -645,7 +676,36 @@ const getAlertSeverityLabel = (severity) => {
   return labels[severity] || severity
 }
 
+// 复用告警管理页面的样式函数
+const getRiskLevelClass = (level) => {
+  const classes = {
+    high: 'bg-red-900 text-red-300',
+    medium: 'bg-orange-900 text-orange-300',
+    low: 'bg-blue-900 text-blue-300'
+  }
+  return classes[level] || classes.low
+}
+
+const getStatusClass = (status) => {
+  const classes = {
+    open: 'bg-primary/20 text-primary',
+    pending: 'bg-orange-500/20 text-orange-400',
+    closed: 'bg-gray-500/20 text-gray-400'
+  }
+  return classes[status] || classes.open
+}
+
 const getStatusDotClass = (status) => {
+  const classes = {
+    open: 'bg-primary',
+    pending: 'bg-orange-400',
+    closed: 'bg-gray-400'
+  }
+  return classes[status] || classes.open
+}
+
+// 事件状态的样式函数（保留用于事件详情页面的其他部分）
+const getIncidentStatusDotClass = (status) => {
   const classes = {
     pending: 'bg-amber-400',
     inProgress: 'bg-blue-400',

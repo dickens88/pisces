@@ -108,6 +108,7 @@
       },
       "batchConvert": "转事件",
       "associateIncident": "关联事件",
+      "openInNewWindow": "在新窗口打开",
       "associateIncidentDialog": {
         "title": "关联事件",
         "selectedCount": "已选中 {count} 条告警",
@@ -154,6 +155,7 @@
       "openAlert": "开启告警",
       "editAlert": "编辑告警",
       "convertToIncident": "转事件",
+      "moreActions": "更多",
       "share": "分享",
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "概览",

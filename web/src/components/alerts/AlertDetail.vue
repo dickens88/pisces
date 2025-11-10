@@ -34,28 +34,53 @@
                   <span class="material-symbols-outlined text-base">archive</span>
                   {{ $t('alerts.detail.closeAlert') }}
                 </button>
-                <button
-                  @click="handleOpenAlert"
-                  :disabled="!canOpenAlert"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
-                >
-                  <span class="material-symbols-outlined text-base">unarchive</span>
-                  {{ $t('alerts.detail.openAlert') }}
-                </button>
-                <button
-                  @click="openEditAlertDialog"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
-                >
-                  <span class="material-symbols-outlined text-base">edit</span>
-                  {{ $t('alerts.detail.editAlert') }}
-                </button>
-                <button
-                  @click="openCreateIncidentDialog"
-                  class="bg-primary hover:bg-blue-500 text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
-                >
-                  <span class="material-symbols-outlined text-base">shield</span>
-                  {{ $t('alerts.detail.convertToIncident') }}
-                </button>
+                <!-- 更多操作下拉菜单 -->
+                <div class="relative">
+                  <button
+                    @click.stop="showMoreActionsMenu = !showMoreActionsMenu"
+                    class="more-actions-button bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                  >
+                    <span class="material-symbols-outlined text-base">more_vert</span>
+                    {{ $t('alerts.detail.moreActions') }}
+                    <span class="material-symbols-outlined text-base">arrow_drop_down</span>
+                  </button>
+                  <!-- 下拉菜单 -->
+                  <div
+                    v-if="showMoreActionsMenu"
+                    @click.stop
+                    class="more-actions-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+                  >
+                    <button
+                      @click="handleOpenAlertFromMenu"
+                      :disabled="!canOpenAlert"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+                    >
+                      <span class="material-symbols-outlined text-base">unarchive</span>
+                      {{ $t('alerts.detail.openAlert') }}
+                    </button>
+                    <button
+                      @click="handleEditAlertFromMenu"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                    >
+                      <span class="material-symbols-outlined text-base">edit</span>
+                      {{ $t('alerts.detail.editAlert') }}
+                    </button>
+                    <button
+                      @click="handleConvertToIncidentFromMenu"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                    >
+                      <span class="material-symbols-outlined text-base">shield</span>
+                      {{ $t('alerts.detail.convertToIncident') }}
+                    </button>
+                    <button
+                      @click="handleAssociateIncidentFromMenu"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                    >
+                      <span class="material-symbols-outlined text-base">link</span>
+                      {{ $t('alerts.list.associateIncident') }}
+                    </button>
+                  </div>
+                </div>
                 <button
                   @click="handleShare"
                   class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center"
@@ -701,6 +726,14 @@
       @updated="handleAlertUpdated"
     />
 
+    <!-- 关联事件对话框 -->
+    <AssociateIncidentDialog
+      :visible="showAssociateIncidentDialog"
+      :alert-ids="[currentAlertId]"
+      @close="closeAssociateIncidentDialog"
+      @associated="handleAssociateIncidentSuccess"
+    />
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -721,6 +754,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, getThreatIntelligence, getAssociatedAlerts } from '@/api/alerts'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
+import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 
 const props = defineProps({
   alertId: {
@@ -767,6 +801,8 @@ const threatIntelligence = ref([])
 const associatedAlerts = ref([])
 const loadingThreatIntel = ref(false)
 const loadingAssociatedAlerts = ref(false)
+const showAssociateIncidentDialog = ref(false)
+const showMoreActionsMenu = ref(false)
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -1029,6 +1065,47 @@ const closeEditAlertDialog = () => {
 const handleAlertUpdated = async () => {
   // 告警更新成功后，关闭对话框并重新加载详情
   closeEditAlertDialog()
+  await loadAlertDetail()
+  // 触发刷新事件，让父组件知道需要刷新列表
+  emit('closed')
+}
+
+const openAssociateIncidentDialog = () => {
+  if (!currentAlertId.value) {
+    console.warn('No alert ID available')
+    return
+  }
+  showAssociateIncidentDialog.value = true
+}
+
+// 从菜单触发的包装函数
+const handleOpenAlertFromMenu = () => {
+  handleOpenAlert()
+  showMoreActionsMenu.value = false
+}
+
+const handleEditAlertFromMenu = () => {
+  openEditAlertDialog()
+  showMoreActionsMenu.value = false
+}
+
+const handleConvertToIncidentFromMenu = () => {
+  openCreateIncidentDialog()
+  showMoreActionsMenu.value = false
+}
+
+const handleAssociateIncidentFromMenu = () => {
+  openAssociateIncidentDialog()
+  showMoreActionsMenu.value = false
+}
+
+const closeAssociateIncidentDialog = () => {
+  showAssociateIncidentDialog.value = false
+}
+
+const handleAssociateIncidentSuccess = async () => {
+  // 关联成功后，关闭对话框并重新加载详情
+  closeAssociateIncidentDialog()
   await loadAlertDetail()
   // 触发刷新事件，让父组件知道需要刷新列表
   emit('closed')
@@ -1312,14 +1389,27 @@ watch(activeTab, (newTab) => {
   }
 })
 
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  const dropdown = event.target.closest('.more-actions-dropdown')
+  const button = event.target.closest('.more-actions-button')
+  if (!dropdown && !button) {
+    showMoreActionsMenu.value = false
+  }
+}
+
 onMounted(() => {
   // 阻止背景滚动
   document.body.style.overflow = 'hidden'
+  // 添加点击外部关闭下拉菜单的监听器
+  document.addEventListener('click', handleClickOutside)
 })
 
 // 组件卸载时恢复滚动
 onUnmounted(() => {
   document.body.style.overflow = ''
+  // 移除点击外部关闭下拉菜单的监听器
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

@@ -108,6 +108,7 @@
       },
       "batchConvert": "Convert to Incident",
       "associateIncident": "Associate Incident",
+      "openInNewWindow": "Open in New Window",
       "associateIncidentDialog": {
         "title": "Associate Incident",
         "selectedCount": "Selected {count} alert(s)",
@@ -154,6 +155,7 @@
       "openAlert": "Open Alert",
       "editAlert": "Edit Alert",
       "convertToIncident": "Convert to Incident",
+      "moreActions": "More Actions",
       "share": "Share",
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "Overview",

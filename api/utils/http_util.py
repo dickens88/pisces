@@ -1,0 +1,72 @@
+from urllib.parse import urlparse
+
+from utils.apig_sdk import signer
+from utils.app_config import config
+from utils.common_utils import decrypt
+
+
+def _sign(method, uri, headers, AK, SK, body=None):
+    sig = signer.Signer()
+    # Set the AK/SK to sign and authenticate the request.
+    sig.Key = AK
+    sig.Secret = SK
+
+    r = signer.HttpRequest(method, uri)
+    r.headers = headers
+    if body:
+        r.body = body
+    sig.Sign(r)
+    return r
+
+
+def _remove_last_slash(url):
+    if url:
+        return url if not url.endswith("/") else url[:-1]
+    else:
+        return url
+
+
+def _get_domain_from_url(url):
+    return url if not url else urlparse(url).hostname
+
+
+def build_conditions_and_logics(input_conditions):
+    conditions = []
+    logics = []
+    for data in input_conditions:
+        for field, value in data.items():
+            condition = {
+                "name": field,
+                "data": [
+                    field,
+                    "contains",
+                    value
+                ]
+            }
+            conditions.append(condition)
+            logics.append("and")
+            logics.append(field)
+
+    logics = logics[1:]
+    return conditions, logics
+
+
+def wrap_http_auth_headers(method, url, headers, body=None):
+    """
+    add signature to headers and return final url and headers
+    """
+    # AK/SK sign
+    secmaster_base_url = config.get("application.secmaster.base_url")
+    ak = config.get("application.secmaster.ak")
+    sk = decrypt(config.get("application.secmaster.sk"))
+    r = _sign(method, url, headers, ak, sk, body)
+    headers = r.headers
+
+    # 在使用API代理的情况下需要确保签名使用真正的API网关URL，发送的时候修改URL和host指向代理，代理收到请求后替换URL和HOST
+    if config.get("application.secmaster.apig_proxy_base_url"):
+        apig_proxy_base_url = config.get("application.secmaster.apig_proxy_base_url")
+        proxy_base_url = _remove_last_slash(apig_proxy_base_url)
+        url = url.replace(secmaster_base_url, proxy_base_url)
+        headers["host"] = _get_domain_from_url(proxy_base_url)
+
+    return url, headers

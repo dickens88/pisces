@@ -244,13 +244,22 @@
           {{ value }}
         </template>
         <template #cell-alertTitle="{ item }">
-          <a
-            @click="openAlertDetail(item.id)"
-            class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap block font-medium"
-            :title="item.title"
-          >
-            {{ item.title }}
-          </a>
+          <div class="flex items-center gap-2">
+            <button
+              @click.stop="openAlertDetailInNewWindow(item.id)"
+              class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+              :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+            >
+              <span class="material-symbols-outlined text-base">open_in_new</span>
+            </button>
+            <a
+              @click="openAlertDetail(item.id)"
+              class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+              :title="item.title"
+            >
+              {{ item.title }}
+            </a>
+          </div>
         </template>
         <template #cell-riskLevel="{ item }">
           <span
@@ -306,141 +315,12 @@
     />
 
     <!-- 关联事件对话框 -->
-    <div
-      v-if="showAssociateIncidentDialog"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="closeAssociateIncidentDialog"
-    >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
-            {{ $t('alerts.list.associateIncidentDialog.title') }}
-          </h2>
-          <button
-            @click="closeAssociateIncidentDialog"
-            class="text-gray-400 hover:text-white transition-colors"
-          >
-            <span class="material-symbols-outlined text-base">close</span>
-          </button>
-        </div>
-
-        <!-- 提示信息 -->
-        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
-            {{ $t('alerts.list.associateIncidentDialog.confirmMessage', { count: selectedAlerts.length }) }}
-          </p>
-        </div>
-
-        <!-- 事件列表 -->
-        <div class="flex-1 overflow-y-auto mb-4">
-          <div class="bg-[#1e293b] rounded-md border border-[#324867]">
-            <table class="w-full text-sm text-left text-[#92a9c9]">
-              <thead class="text-xs text-white uppercase bg-[#111822] sticky top-0">
-                <tr>
-                  <th class="px-4 py-3" scope="col" style="width: 50px;"></th>
-                  <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.incidentId') }}</th>
-                  <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.incidentTitle') }}</th>
-                  <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.createTime') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="incident in incidentsList"
-                  :key="incident.id"
-                  @click="selectIncident(incident.id)"
-                  :class="[
-                    'border-b border-[#324867] hover:bg-primary/10 transition-colors cursor-pointer',
-                    selectedIncidentId === incident.id ? 'bg-primary/20' : ''
-                  ]"
-                >
-                  <td class="px-4 py-3">
-                    <input
-                      type="radio"
-                      :checked="selectedIncidentId === incident.id"
-                      @click.stop="selectIncident(incident.id)"
-                      class="bg-transparent border-[#324867] text-primary focus:ring-primary"
-                    />
-                  </td>
-                  <td class="px-4 py-3">{{ incident.id }}</td>
-                  <td class="px-4 py-3">
-                    <div class="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" :title="incident.name">
-                      {{ incident.name }}
-                    </div>
-                  </td>
-                  <td class="px-4 py-3">{{ incident.occurrenceTime }}</td>
-                </tr>
-                <tr v-if="incidentsList.length === 0">
-                  <td colspan="4" class="px-4 py-8 text-center text-gray-400">
-                    {{ $t('alerts.list.associateIncidentDialog.noIncidents') }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 分页 -->
-        <nav v-if="incidentsTotal > 0" aria-label="Incidents table navigation" class="flex items-center justify-between mb-6">
-          <span class="text-sm font-normal text-gray-400">
-            {{ $t('common.pagination.showing', { 
-              start: incidentsPageSize * (incidentsPage - 1) + 1, 
-              end: Math.min(incidentsPageSize * incidentsPage, incidentsTotal),
-              total: incidentsTotal 
-            }) }}
-          </span>
-          <ul class="inline-flex -space-x-px text-sm h-8">
-            <li>
-              <button
-                @click="incidentsPage > 1 && (incidentsPage--, loadIncidents())"
-                :disabled="incidentsPage === 1"
-                class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-400 bg-[#233348] border border-gray-700 rounded-s-lg hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ $t('common.pagination.previous') }}
-              </button>
-            </li>
-            <li v-for="page in incidentsTotalPages" :key="page">
-              <button
-                @click="incidentsPage = page; loadIncidents()"
-                :class="[
-                  'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
-                  incidentsPage === page
-                    ? 'text-white bg-primary hover:bg-primary/90'
-                    : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
-                ]"
-              >
-                {{ page }}
-              </button>
-            </li>
-            <li>
-              <button
-                @click="incidentsPage < incidentsTotalPages && (incidentsPage++, loadIncidents())"
-                :disabled="incidentsPage === incidentsTotalPages"
-                class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-[#233348] border border-gray-700 rounded-e-lg hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {{ $t('common.pagination.next') }}
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        <!-- 操作按钮 -->
-        <div class="flex items-center justify-end gap-3">
-          <button
-            @click="closeAssociateIncidentDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
-          >
-            {{ $t('common.cancel') }}
-          </button>
-          <button
-            @click="handleAssociateIncident"
-            :disabled="!selectedIncidentId"
-            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ $t('common.submit') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <AssociateIncidentDialog
+      :visible="showAssociateIncidentDialog"
+      :alert-ids="selectedAlerts"
+      @close="closeAssociateIncidentDialog"
+      @associated="handleAssociateIncidentSuccess"
+    />
 
     <!-- 批量关闭对话框 -->
     <div
@@ -523,11 +403,11 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, associateAlertsToIncident } from '@/api/alerts'
-import { getIncidents } from '@/api/incidents'
+import { getAlerts, getAlertStatistics, batchCloseAlerts } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
+import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 
@@ -578,12 +458,6 @@ const closeConclusion = ref({
   notes: ''
 })
 const showAssociateIncidentDialog = ref(false)
-const incidentsList = ref([])
-const selectedIncidentId = ref(null)
-const incidentsPage = ref(1)
-const incidentsPageSize = ref(10)
-const incidentsTotal = ref(0)
-const incidentsTotalPages = computed(() => Math.ceil(incidentsTotal.value / incidentsPageSize.value))
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
@@ -736,6 +610,14 @@ const openAlertDetail = (alertId) => {
   router.push({ path: `/alerts/${alertId}`, replace: true })
 }
 
+const openAlertDetailInNewWindow = (alertId) => {
+  // 在新窗口打开告警详情
+  const route = router.resolve({ path: `/alerts/${alertId}` })
+  // 构建完整的 URL
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
+}
+
 const closeAlertDetail = () => {
   selectedAlertId.value = null
   // 清除URL中的告警ID
@@ -806,70 +688,29 @@ const handleBatchClose = async () => {
   }
 }
 
-const openAssociateIncidentDialog = async () => {
+const openAssociateIncidentDialog = () => {
   if (selectedAlerts.value.length === 0) {
     console.warn('No alerts selected')
     return
   }
   console.log('Opening associate incident dialog, selected count:', selectedAlerts.value.length)
   showAssociateIncidentDialog.value = true
-  selectedIncidentId.value = null
-  incidentsPage.value = 1
-  
-  // 加载事件列表
-  await loadIncidents()
-}
-
-const loadIncidents = async () => {
-  try {
-    const response = await getIncidents({
-      page: incidentsPage.value,
-      pageSize: incidentsPageSize.value
-    })
-    incidentsList.value = response.data
-    incidentsTotal.value = response.total
-  } catch (error) {
-    console.error('Failed to load incidents:', error)
-    incidentsList.value = []
-    incidentsTotal.value = 0
-  }
 }
 
 const closeAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = false
-  selectedIncidentId.value = null
-  incidentsPage.value = 1
-  incidentsList.value = []
-  incidentsTotal.value = 0
 }
 
-const selectIncident = (incidentId) => {
-  selectedIncidentId.value = incidentId
-}
-
-const handleAssociateIncident = async () => {
-  if (!selectedIncidentId.value) {
-    return
+const handleAssociateIncidentSuccess = () => {
+  // 关联成功后，关闭对话框并重置
+  closeAssociateIncidentDialog()
+  selectedAlerts.value = []
+  if (dataTableRef.value) {
+    dataTableRef.value.clearSelection()
   }
-
-  try {
-    await associateAlertsToIncident({
-      alertIds: selectedAlerts.value,
-      incidentId: selectedIncidentId.value
-    })
-    
-    // 关闭对话框并重置
-    closeAssociateIncidentDialog()
-    selectedAlerts.value = []
-    if (dataTableRef.value) {
-      dataTableRef.value.clearSelection()
-    }
-    
-    // 重新加载告警列表
-    loadAlerts()
-  } catch (error) {
-    console.error('Failed to associate alerts to incident:', error)
-  }
+  
+  // 重新加载告警列表
+  loadAlerts()
 }
 
 const openCreateIncidentDialog = () => {

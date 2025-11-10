@@ -27,7 +27,7 @@
               :key="column.key"
               :scope="'col'"
               :style="{ width: getColumnWidth(column.key) + 'px', minWidth: '80px' }"
-              class="px-6 py-3 relative border-r border-[#324867]/50 overflow-hidden text-ellipsis whitespace-nowrap"
+              class="px-4 py-2 relative border-r border-[#324867]/50 overflow-hidden text-ellipsis whitespace-nowrap"
             >
               <div class="flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
                 <slot :name="`header-${column.key}`" :column="column">
@@ -55,7 +55,7 @@
               <!-- 复选框列 -->
               <td
                 v-if="selectable"
-                class="p-2"
+                class="p-1"
                 style="width: 35px; min-width: 35px; max-width: 35px;"
                 @click.stop
               >
@@ -72,7 +72,7 @@
               <td
                 v-for="column in columns"
                 :key="column.key"
-                class="px-6 py-4 border-r border-[#324867]/30 overflow-hidden text-ellipsis whitespace-nowrap"
+                class="px-4 py-2 border-r border-[#324867]/30 overflow-hidden text-ellipsis whitespace-nowrap"
                 :title="getCellValue(item, column.key)"
               >
                 <slot :name="`cell-${column.key}`" :item="item" :value="getCellValue(item, column.key)" :column="column">
