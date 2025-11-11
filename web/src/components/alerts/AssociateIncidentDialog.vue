@@ -91,19 +91,24 @@
               {{ $t('common.pagination.previous') }}
             </button>
           </li>
-          <li v-for="pageNum in totalPages" :key="pageNum">
-            <button
-              @click="page = pageNum; loadIncidents()"
-              :class="[
-                'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
-                page === pageNum
-                  ? 'text-white bg-primary hover:bg-primary/90'
-                  : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
-              ]"
-            >
-              {{ pageNum }}
-            </button>
-          </li>
+          <template v-for="(item, index) in displayPages" :key="index">
+            <li v-if="item.type === 'page'">
+              <button
+                @click="page = item.value; loadIncidents()"
+                :class="[
+                  'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
+                  page === item.value
+                    ? 'text-white bg-primary hover:bg-primary/90'
+                    : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
+                ]"
+              >
+                {{ item.value }}
+              </button>
+            </li>
+            <li v-else-if="item.type === 'ellipsis'" class="flex items-center justify-center px-2 h-8 text-gray-400 bg-[#233348] border border-gray-700">
+              <span class="material-symbols-outlined" style="font-size: 18px;">more_horiz</span>
+            </li>
+          </template>
           <li>
             <button
               @click="handleNextPage"
@@ -163,6 +168,61 @@ const page = ref(1)
 const pageSize = ref(10)
 const incidentsTotal = ref(0)
 const totalPages = computed(() => Math.ceil(incidentsTotal.value / pageSize.value))
+
+// 计算要显示的页码数组
+const displayPages = computed(() => {
+  const total = totalPages.value
+  const current = page.value
+  const pages = []
+  
+  // 如果总页数少于等于 5，显示所有页码
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) {
+      pages.push({ type: 'page', value: i })
+    }
+    return pages
+  }
+  
+  // 总是显示第一页
+  pages.push({ type: 'page', value: 1 })
+  
+  // 计算当前页附近的页码
+  let start = Math.max(2, current - 1)
+  let end = Math.min(total - 1, current + 1)
+  
+  // 如果当前页在开头附近，显示前几页
+  if (current <= 3) {
+    start = 2
+    end = Math.min(4, total - 1)
+  }
+  // 如果当前页在结尾附近，显示后几页
+  else if (current >= total - 2) {
+    start = Math.max(2, total - 3)
+    end = total - 1
+  }
+  
+  // 如果 start > 2，添加省略号
+  if (start > 2) {
+    pages.push({ type: 'ellipsis' })
+  }
+  
+  // 添加当前页附近的页码
+  for (let i = start; i <= end; i++) {
+    pages.push({ type: 'page', value: i })
+  }
+  
+  // 如果 end < total - 1，添加省略号
+  if (end < total - 1) {
+    pages.push({ type: 'ellipsis' })
+  }
+  
+  // 总是显示最后一页（如果不是第一页）
+  if (total > 1) {
+    pages.push({ type: 'page', value: total })
+  }
+  
+  return pages
+})
 
 // 监听 visible 变化，打开时加载事件列表
 watch(() => props.visible, (newVal) => {

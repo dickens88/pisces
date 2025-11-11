@@ -92,7 +92,7 @@
             getSeverityClass(item.severity)
           ]"
         >
-          {{ $t(`incidents.list.${item.severity}`) }}
+          {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
         </span>
       </template>
       <template #cell-incidentName="{ item }">
@@ -110,8 +110,8 @@
       <template #cell-rootCause="{ value }">
         {{ value || '-' }}
       </template>
-      <template #cell-occurrenceTime="{ value }">
-        {{ value }}
+      <template #cell-occurrenceTime="{ value, item }">
+        {{ formatDateTime(value || item?.occurrenceTime || item?.occurrence_time) }}
       </template>
       <template #cell-status="{ item }">
         <span :class="getStatusClass(item.status)">
@@ -136,6 +136,7 @@ import { getIncidents } from '@/api/incidents'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 

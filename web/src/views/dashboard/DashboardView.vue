@@ -202,7 +202,7 @@
                       getSeverityDotClass(alert.severity)
                     ]"
                   ></span>
-                  {{ $t(`dashboard.severity.${alert.severity}`) }}
+                  {{ $t(`common.severity.${alert.severity?.toLowerCase()}`) }}
                 </span>
               </td>
               <td class="px-6 py-4 font-medium text-white/90">
@@ -264,7 +264,7 @@
                     getCvssClass(vuln.cvssLevel)
                   ]"
                 >
-                  {{ vuln.cvss }} {{ $t(`dashboard.severity.${vuln.cvssLevel}`) }}
+                  {{ vuln.cvss }} {{ $t(`common.severity.${vuln.cvssLevel?.toLowerCase()}`) }}
                 </span>
               </td>
               <td class="px-6 py-4 font-medium text-white/90">

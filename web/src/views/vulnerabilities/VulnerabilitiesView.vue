@@ -172,7 +172,7 @@
         </template>
         <template #cell-riskLevel="{ item }">
           <span :class="getRiskLevelClass(item.riskLevel)">
-            {{ $t(`vulnerabilities.list.riskLevels.${item.riskLevel}`) }}
+            {{ $t(`common.severity.${item.riskLevel?.toLowerCase()}`) }}
           </span>
         </template>
         <template #cell-affectedAsset="{ value }">

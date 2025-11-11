@@ -72,8 +72,10 @@
               <td
                 v-for="column in columns"
                 :key="column.key"
-                class="px-4 py-2 border-r border-[#324867]/30 overflow-hidden text-ellipsis whitespace-nowrap"
-                :title="getCellValue(item, column.key)"
+                :class="[
+                  'px-4 py-2 border-r border-[#324867]/30',
+                  wordWrap ? 'cell-content-wrap' : 'cell-content-nowrap'
+                ]"
               >
                 <slot :name="`cell-${column.key}`" :item="item" :value="getCellValue(item, column.key)" :column="column">
                   {{ getCellValue(item, column.key) }}
@@ -135,19 +137,24 @@
             {{ $t('common.pagination.previous') }}
           </button>
         </li>
-        <li v-for="page in totalPages" :key="page">
-          <button
-            @click="handlePageChange(page)"
-            :class="[
-              'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
-              currentPage === page
-                ? 'text-white bg-primary hover:bg-primary/90'
-                : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
-            ]"
-          >
-            {{ page }}
-          </button>
-        </li>
+        <template v-for="(item, index) in displayPages" :key="index">
+          <li v-if="item.type === 'page'">
+            <button
+              @click="handlePageChange(item.value)"
+              :class="[
+                'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
+                currentPage === item.value
+                  ? 'text-white bg-primary hover:bg-primary/90'
+                  : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
+              ]"
+            >
+              {{ item.value }}
+            </button>
+          </li>
+          <li v-else-if="item.type === 'ellipsis'" class="flex items-center justify-center px-2 h-8 text-gray-400 bg-[#233348] border border-gray-700">
+            <span class="material-symbols-outlined" style="font-size: 18px;">more_horiz</span>
+          </li>
+        </template>
         <li>
           <button
             @click="handleNextPage"
@@ -266,6 +273,19 @@ const { getColumnWidth, startResize } = useResizableColumns(
   props.defaultWidths
 )
 
+// 换行状态（默认自动换行）
+const getInitialWordWrap = () => {
+  const saved = localStorage.getItem(`datatable-wordwrap-${props.storageKey}`)
+  return saved !== null ? saved === 'true' : true
+}
+const wordWrap = ref(getInitialWordWrap())
+
+// 切换换行状态
+const toggleWordWrap = () => {
+  wordWrap.value = !wordWrap.value
+  localStorage.setItem(`datatable-wordwrap-${props.storageKey}`, wordWrap.value.toString())
+}
+
 // 选中的项
 const selectedItems = ref([])
 
@@ -286,6 +306,61 @@ const selectAll = computed({
 
 // 总页数
 const totalPages = computed(() => Math.ceil(props.total / props.pageSize))
+
+// 计算要显示的页码数组
+const displayPages = computed(() => {
+  const total = totalPages.value
+  const current = props.currentPage
+  const pages = []
+  
+  // 如果总页数少于等于 5，显示所有页码
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) {
+      pages.push({ type: 'page', value: i })
+    }
+    return pages
+  }
+  
+  // 总是显示第一页
+  pages.push({ type: 'page', value: 1 })
+  
+  // 计算当前页附近的页码
+  let start = Math.max(2, current - 1)
+  let end = Math.min(total - 1, current + 1)
+  
+  // 如果当前页在开头附近，显示前几页
+  if (current <= 3) {
+    start = 2
+    end = Math.min(4, total - 1)
+  }
+  // 如果当前页在结尾附近，显示后几页
+  else if (current >= total - 2) {
+    start = Math.max(2, total - 3)
+    end = total - 1
+  }
+  
+  // 如果 start > 2，添加省略号
+  if (start > 2) {
+    pages.push({ type: 'ellipsis' })
+  }
+  
+  // 添加当前页附近的页码
+  for (let i = start; i <= end; i++) {
+    pages.push({ type: 'page', value: i })
+  }
+  
+  // 如果 end < total - 1，添加省略号
+  if (end < total - 1) {
+    pages.push({ type: 'ellipsis' })
+  }
+  
+  // 总是显示最后一页（如果不是第一页）
+  if (total > 1) {
+    pages.push({ type: 'page', value: total })
+  }
+  
+  return pages
+})
 
 // 获取行键
 const getRowKey = (item, index) => {
@@ -383,7 +458,40 @@ defineExpose({
   selectAll: () => {
     selectedItems.value = [...props.items]
     emit('select-all', selectedItems.value)
-  }
+  },
+  toggleWordWrap,
+  wordWrap
 })
 </script>
 
+<style scoped>
+/* 自动换行模式 */
+.cell-content-wrap {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+.cell-content-wrap * {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  max-width: 100% !important;
+}
+
+/* 单行显示模式 */
+.cell-content-nowrap {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.cell-content-nowrap * {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+}
+</style>

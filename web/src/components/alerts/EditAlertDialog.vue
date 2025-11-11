@@ -61,9 +61,11 @@
                     class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('alerts.create.selectRiskLevel') }}</option>
-                    <option value="high">{{ $t('alerts.list.riskLevels.high') }}</option>
-                    <option value="medium">{{ $t('alerts.list.riskLevels.medium') }}</option>
-                    <option value="low">{{ $t('alerts.list.riskLevels.low') }}</option>
+                    <option value="fatal">{{ $t('common.severity.fatal') }}</option>
+                    <option value="high">{{ $t('common.severity.high') }}</option>
+                    <option value="medium">{{ $t('common.severity.medium') }}</option>
+                    <option value="low">{{ $t('common.severity.low') }}</option>
+                    <option value="tips">{{ $t('common.severity.tips') }}</option>
                   </select>
                 </div>
 
@@ -78,7 +80,7 @@
                     class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="open">{{ $t('alerts.list.open') }}</option>
-                    <option value="pending">{{ $t('alerts.list.pending') }}</option>
+                    <option value="block">{{ $t('alerts.list.block') }}</option>
                     <option value="closed">{{ $t('alerts.list.closed') }}</option>
                   </select>
                 </div>
@@ -225,20 +227,15 @@ const getInitialFormData = () => {
 
 const formData = ref(getInitialFormData())
 
-// 填充表单数据的函数
 const fillFormData = () => {
-  // 重置表单
   formData.value = getInitialFormData()
   
-  // 如果有初始数据，填充表单
+
   if (props.initialData) {
-    console.log('Filling form with initial data:', props.initialData)
-    // 填充所有字段，使用初始数据或默认值
     formData.value.title = props.initialData.title || ''
     formData.value.riskLevel = props.initialData.riskLevel || ''
     formData.value.status = props.initialData.status || 'open'
     
-    // 处理日期时间
     if (props.initialData.timestamp) {
       formData.value.timestamp = props.initialData.timestamp instanceof Date 
         ? props.initialData.timestamp 

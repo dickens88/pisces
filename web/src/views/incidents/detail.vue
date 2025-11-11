@@ -83,7 +83,7 @@
               getSeverityTextClass(incident?.severity)
             ]"
           >
-            {{ $t(`incidents.list.${incident?.severity}`) }}
+            {{ $t(`common.severity.${incident?.severity?.toLowerCase()}`) }}
           </p>
         </div>
       </div>
@@ -274,9 +274,9 @@
                   'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
                   getRiskLevelClass(item.riskLevel)
                 ]"
-                :title="$t(`alerts.list.riskLevels.${item.riskLevel}`)"
+                :title="$t(`common.severity.${item.riskLevel}`)"
               >
-                {{ $t(`alerts.list.riskLevels.${item.riskLevel}`) }}
+                {{ $t(`common.severity.${item.riskLevel}`) }}
               </span>
             </template>
             <template #cell-status="{ item }">
@@ -473,6 +473,7 @@ import { getIncidentDetail, batchCloseIncidents } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
+import { formatDateTime } from '@/utils/dateTime'
 
 const route = useRoute()
 const router = useRouter()
@@ -605,25 +606,6 @@ const handleSaveDescription = async () => {
   // }
 }
 
-const formatDateTime = (dateString) => {
-  if (!dateString) return '-'
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return '-'
-    // 格式化日期时间为 YYYY-MM-DD HH:mm:ss
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-  } catch (error) {
-    console.error('Failed to format date:', error)
-    return '-'
-  }
-}
-
 const formatLastModified = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -679,9 +661,11 @@ const getAlertSeverityLabel = (severity) => {
 // 复用告警管理页面的样式函数
 const getRiskLevelClass = (level) => {
   const classes = {
+    fatal: 'bg-red-950 text-red-200',
     high: 'bg-red-900 text-red-300',
     medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300'
+    low: 'bg-blue-900 text-blue-300',
+    tips: 'bg-gray-700 text-gray-300'
   }
   return classes[level] || classes.low
 }
@@ -689,7 +673,7 @@ const getRiskLevelClass = (level) => {
 const getStatusClass = (status) => {
   const classes = {
     open: 'bg-primary/20 text-primary',
-    pending: 'bg-orange-500/20 text-orange-400',
+    block: 'bg-yellow-500/20 text-yellow-400',
     closed: 'bg-gray-500/20 text-gray-400'
   }
   return classes[status] || classes.open
@@ -698,7 +682,7 @@ const getStatusClass = (status) => {
 const getStatusDotClass = (status) => {
   const classes = {
     open: 'bg-primary',
-    pending: 'bg-orange-400',
+    block: 'bg-yellow-400',
     closed: 'bg-gray-400'
   }
   return classes[status] || classes.open
@@ -841,9 +825,6 @@ const openEditDialog = () => {
     return
   }
   
-  console.log('Opening edit dialog with incident data:', incident.value)
-  
-  // 设置初始数据，确保所有字段都从事件数据中填充
   editIncidentInitialData.value = {
     title: incident.value.name || incident.value.title || '',
     category: incident.value.category || 'platform',
@@ -859,9 +840,7 @@ const openEditDialog = () => {
     description: incident.value.description || ''
   }
   
-  console.log('Initial data set:', editIncidentInitialData.value)
-  
-  // 使用 nextTick 确保数据更新后再打开对话框
+
   nextTick(() => {
     showEditDialog.value = true
   })

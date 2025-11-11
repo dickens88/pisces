@@ -1,28 +1,28 @@
 from typing import List
 
 import requests
-
-from utils.app_config import config
-
 import json
 
+from controllers.comment_service import CommentService
+from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics
+from utils.logger_init import logger
 
 
 class AlertService:
+    base_url = config.get('application.secmaster.base_url')
+    project_id = config.get('application.secmaster.project_id')
+    workspace_id = config.get('application.secmaster.workspace_id')
 
-    @staticmethod
-    def list_alerts(conditions: List, time_range=1, limit=50, offset=0):
+    @classmethod
+    def list_alerts(cls, conditions: List, time_range=1, limit=50, offset=1):
         from_date, to_date = get_date_range(time_range)
 
         conditions, logics = build_conditions_and_logics(conditions)
 
-        base_url = config.get('application.secmaster.base_url')
-        project_id = config.get('application.secmaster.project_id')
-        workspace_id = config.get('application.secmaster.workspace_id')
-        base_url = f"{base_url}/v1/{project_id}/workspaces/{workspace_id}/soc/alerts/search"
-        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": project_id}
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/search"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "limit": limit,
             "offset": offset,
@@ -37,12 +37,119 @@ class AlertService:
         }
         body = json.dumps(body)
 
+
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
 
-        # print("**url**:", base_url)
-        # print("**headers**:", headers)
-        # print("**body**:", body)
         resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
         resp.raise_for_status()
 
-        return resp.json()
+        data = json.loads(resp.text)
+        result = []
+        total = data['total']
+        for item in data['data']:
+            row = {
+                "id": item['id'],
+                "create_time": item['data_object']['create_time'],
+                "update_time": item['data_object']['update_time'],
+                "close_time": item['data_object']['close_time'],
+                "handle_status": item['data_object']['handle_status'],
+                "arrive_time": item['data_object']['arrive_time'],
+                "labels": item['data_object']['labels'],
+                "close_reason": item['data_object']['close_reason'],
+                "is_auto_closed": item['data_object']['is_auto_closed'],
+                "title": item['data_object']['title'],
+                "owner": item['data_object']['owner'],
+                "severity": item['data_object']['severity'],
+                "close_comment": item['data_object']['close_comment'],
+                "creator": item['data_object']['creator'],
+                "ttr": item['data_object']['ttr'],
+                "extend_properties": item['data_object']['extend_properties'],
+            }
+            try:
+                row["description"] = json.loads(item['data_object']['description'])
+            except Exception as ex:
+                logger.error(ex)
+            result.append(row)
+
+        return result, total
+
+
+    @classmethod
+    def retrieve_alert_by_id(cls, alert_id):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
+        resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        data = json.loads(resp.text)
+        item = data['data']
+
+        row = {
+            "id": item['id'],
+            "create_time": item['data_object']['create_time'],
+            "update_time": item['data_object']['update_time'],
+            "close_time": item['data_object']['close_time'],
+            "handle_status": item['data_object']['handle_status'],
+            "arrive_time": item['data_object']['arrive_time'],
+            "labels": item['data_object']['labels'],
+            "close_reason": item['data_object']['close_reason'],
+            "is_auto_closed": item['data_object']['is_auto_closed'],
+            "title": item['data_object']['title'],
+            "owner": item['data_object']['owner'],
+            "severity": item['data_object']['severity'],
+            "close_comment": item['data_object']['close_comment'],
+            "creator": item['data_object']['creator'],
+            "ttd": item['data_object']['ttd'],
+            "extend_properties": item['data_object']['extend_properties'],
+        }
+        try:
+            row["description"] = json.loads(item['data_object']['description'])
+        except Exception as ex:
+            logger.error(ex)
+
+        extra_info = CommentService.retrieve_comments(alert_id)
+        extra_info["entities"] = cls.extract_entities(row["description"])
+
+        extra_info["timeline"] = [
+            {"time": row["create_time"], "event": "Alert Triggered"},
+            {"time": row["close_time"], "event": "Close Alert"}
+        ]
+        row.update(extra_info)
+
+        return row
+
+    @classmethod
+    def extract_entities(cls, description: dict):   
+        entities = []
+        
+        for key, value in description.items():
+            key_lower = key.lower()
+            
+            if not value:
+                continue
+            
+            if "ip" in key_lower:
+                entity = {
+                    "type": "ip",
+                    "name": str(value),
+                    "from": "Source IP"
+                }
+                entities.append(entity)
+            elif "host" in key_lower:
+                entity = {
+                    "type": "host",
+                    "name": str(value),
+                    "from": "Host"
+                }
+                entities.append(entity)
+            elif "user" in key_lower:
+                entity = {
+                    "type": "user",
+                    "name": str(value),
+                    "from": "Target User"
+                }
+                entities.append(entity)
+        
+        return entities

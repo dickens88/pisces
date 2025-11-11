@@ -106,15 +106,15 @@
                 <span
                   :class="[
                     'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
-                    getSeverityClass(alert.severity)
+                    getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
                   ]"
                 >
                   <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
                     <circle cx="4" cy="4" r="3"></circle>
                   </svg>
-                  {{ $t(`alerts.detail.severity.${alert.severity}`) }}
+                  {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
                 </span>
-                <h1 class="mt-2 text-3xl font-bold text-white">{{ alert.title }}</h1>
+                <h1 class="mt-2 text-xl font-bold text-white">{{ alert.title }}</h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-light">
                   <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
@@ -184,18 +184,24 @@
                     <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.owner') }}:</p>
                     <p class="font-medium text-white break-all">{{ alert?.owner || $t('alerts.detail.unassigned') }}</p>
                   </div>
-                  <div v-if="alert?.sourceIp" class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">source.ip:</p>
-                    <p class="font-medium text-white break-all">{{ alert.sourceIp }}</p>
-                  </div>
-                  <div v-if="alert?.destinationHostname" class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">destination.hostname:</p>
-                    <p class="font-medium text-white break-all">{{ alert.destinationHostname }}</p>
-                  </div>
-                  <div v-if="alert?.userName" class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">user.name:</p>
-                    <p class="font-medium text-white break-all">{{ alert.userName }}</p>
-                  </div>
+                  <!-- 动态显示 description 中的所有字段 -->
+                  <template v-if="alert?.description && typeof alert.description === 'object'">
+                    <template
+                      v-for="(value, key) in alert.description"
+                      :key="key"
+                    >
+                      <div
+                        v-if="value !== null && value !== undefined && value !== ''"
+                        class="flex items-baseline"
+                      >
+                        <p class="text-text-light w-40 shrink-0">{{ key }}:</p>
+                        <p class="font-medium text-white break-all">
+                          <span v-if="typeof value === 'object'">{{ JSON.stringify(value) }}</span>
+                          <span v-else>{{ value }}</span>
+                        </p>
+                      </div>
+                    </template>
+                  </template>
                 </div>
                 
                 <!-- 分割线 -->
@@ -222,7 +228,7 @@
                           <p class="text-xs text-text-light">{{ comment.time }}</p>
                         </div>
                         <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none">
-                          {{ comment.content }}
+                          <div v-html="comment.content"></div>
                           <!-- 显示附件 -->
                           <div v-if="comment.files && comment.files.length > 0" class="mt-3 flex flex-wrap gap-2">
                             <a
@@ -380,34 +386,53 @@
 
               <!-- 威胁情报标签页 -->
               <div v-if="activeTab === 'threatIntelligence'">
-
-                
                 <div v-if="loadingThreatIntel" class="flex items-center justify-center py-12">
                   <div class="text-text-light text-sm">加载中...</div>
                 </div>
                 
-                <div v-else-if="threatIntelligence.length === 0" class="text-text-light text-sm py-12 text-center">
+                <div v-else-if="(!alert?.intelligence || alert.intelligence.length === 0) && threatIntelligence.length === 0" class="text-text-light text-sm py-12 text-center">
                   {{ $t('alerts.detail.noThreatIntelligence') || '暂无威胁情报匹配' }}
                 </div>
                 
-                <div v-else class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
-                  <div
-                    v-for="item in threatIntelligence"
-                    :key="item.id"
-                    class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60"
-                  >
-                    <div class="flex items-start justify-between">
-                      <h4 class="text-base font-semibold text-white">{{ item.title }}</h4>
-                    </div>
-                    <p class="mt-2 text-sm text-text-light">{{ item.description }}</p>
-                    <div class="mt-4 flex items-center justify-between text-xs text-text-light">
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">person</span>
-                        <span>{{ item.source }}</span>
+                <div v-else class="space-y-4">
+                  <!-- 显示从告警详情接口返回的intelligence数据 -->
+                  <div v-if="alert?.intelligence && alert.intelligence.length > 0" class="space-y-4">
+                    <div
+                      v-for="(item, index) in alert.intelligence"
+                      :key="`intel-${index}`"
+                      class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60"
+                    >
+                      <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                          <span class="material-symbols-outlined text-primary text-base">security</span>
+                          <h4 class="text-base font-semibold text-white">{{ item.author || 'Unknown' }}</h4>
+                        </div>
+                        <span class="text-xs text-text-light">{{ item.time || '-' }}</span>
                       </div>
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">schedule</span>
-                        <span>{{ item.timestamp }}</span>
+                      <div class="text-sm text-[#c3d3e8] mt-2" v-html="item.content"></div>
+                    </div>
+                  </div>
+                  
+                  <!-- 显示从威胁情报接口返回的数据 -->
+                  <div v-if="threatIntelligence.length > 0" class="space-y-4">
+                    <div
+                      v-for="item in threatIntelligence"
+                      :key="item.id"
+                      class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60"
+                    >
+                      <div class="flex items-start justify-between">
+                        <h4 class="text-base font-semibold text-white">{{ item.title || 'Threat Intelligence' }}</h4>
+                      </div>
+                      <p class="mt-2 text-sm text-text-light">{{ item.description || item.content || '' }}</p>
+                      <div class="mt-4 flex items-center justify-between text-xs text-text-light">
+                        <div class="flex items-center gap-1.5">
+                          <span class="material-symbols-outlined text-base">person</span>
+                          <span>{{ item.source || item.author || 'Unknown' }}</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                          <span class="material-symbols-outlined text-base">schedule</span>
+                          <span>{{ item.timestamp || item.time || '-' }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -417,44 +442,30 @@
               <div v-if="activeTab === 'aiAgent'">
                 <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.aiAgent') }}</h3>
                 <div class="space-y-6">
+                  <!-- 显示从后端返回的AI数据 -->
                   <div
-                    v-for="comment in alert?.comments || []"
-                    :key="comment.id"
+                    v-for="(aiItem, index) in alert?.ai || []"
+                    :key="`ai-${index}`"
                     class="flex items-start gap-4"
                   >
                     <div
-                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                      :class="getAvatarColor(comment.authorInitials)"
+                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
                     >
-                      <span class="font-bold text-white">{{ comment.authorInitials }}</span>
+                      <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
                     </div>
                     <div class="flex-1">
                       <div class="flex items-baseline gap-2">
-                        <p class="font-semibold text-white">{{ comment.author }}</p>
-                        <p class="text-xs text-text-light">{{ comment.time }}</p>
+                        <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
+                        <p class="text-xs text-text-light">{{ aiItem.create_time || aiItem.time || '-' }}</p>
                       </div>
-                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none">
-                        {{ comment.content }}
-                        <!-- 显示附件 -->
-                        <div v-if="comment.files && comment.files.length > 0" class="mt-3 flex flex-wrap gap-2">
-                          <a
-                            v-for="(file, fileIndex) in comment.files"
-                            :key="fileIndex"
-                            href="#"
-                            class="inline-flex items-center gap-2 rounded-md bg-[#1e293b] border border-[#3c4a60] px-2.5 py-1.5 text-xs text-text-light hover:text-white hover:border-primary/50 transition-colors"
-                          >
-                            <span class="material-symbols-outlined text-primary text-sm">
-                              {{ getFileIcon(file.type) }}
-                            </span>
-                            <span class="max-w-[150px] truncate">{{ file.name }}</span>
-                            <span class="text-text-light/60">{{ formatFileSize(file.size) }}</span>
-                          </a>
-                        </div>
+                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none" v-html="aiItem.content || ''">
                       </div>
                     </div>
                   </div>
-                  <div v-if="!alert?.comments || alert.comments.length === 0" class="text-text-light text-sm">
-                    {{ $t('common.noComments') || 'No comments yet' }}
+                  
+                  <!-- 如果没有AI数据，显示提示 -->
+                  <div v-if="!alert?.ai || alert.ai.length === 0" class="text-text-light text-sm">
+                    {{ $t('alerts.detail.noAiResponse') || '暂无AI分析结果' }}
                   </div>
                 </div>
                 
@@ -812,6 +823,113 @@ const tabs = [
 ]
 
 /**
+ * @brief 转换后端返回的告警详情数据为前端期望的格式
+ * @param {Object} apiData - 后端返回的告警数据
+ * @returns {Object} 转换后的告警对象
+ */
+const transformAlertDetailData = (apiData) => {
+  if (!apiData) return null
+
+  // 转换severity为riskLevel (Fatal/High/Medium/Low/Tips -> fatal/high/medium/low/tips)
+  const severityMap = {
+    'Fatal': 'fatal',
+    'High': 'high',
+    'Medium': 'medium',
+    'Low': 'low',
+    'Tips': 'tips'
+  }
+  
+  // 转换handle_status为status (Open/Block/Closed -> open/block/closed)
+  const statusMap = {
+    'Open': 'open',
+    'Block': 'block',
+    'Closed': 'closed'
+  }
+
+  // 从description中提取字段
+  const description = apiData.description || {}
+  const extendProperties = apiData.extend_properties || {}
+
+  // 转换comments格式
+  const comments = (apiData.comments || []).map(comment => ({
+    id: comment.id || Date.now(),
+    author: comment.author || 'Unknown',
+    authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
+    time: comment.create_time || comment.time || '-',
+    content: comment.content || ''
+  }))
+
+  // 转换intelligence格式
+  const intelligence = (apiData.intelligence || []).map(item => ({
+    id: item.id || Date.now(),
+    author: item.author || 'Unknown',
+    time: item.create_time || item.time || '-',
+    content: item.content || ''
+  }))
+
+  // 转换ai格式
+  const ai = (apiData.ai || []).map(item => ({
+    id: item.id || Date.now(),
+    author: item.author || 'AI Agent',
+    time: item.create_time || item.time || '-',
+    content: item.content || ''
+  }))
+
+  // 转换entities格式
+  const entities = (apiData.entities || []).map(entity => ({
+    type: entity.type || 'unknown',
+    name: entity.name || '',
+    label: entity.from || entity.label || ''
+  }))
+
+  // 转换timeline格式
+  const timeline = (apiData.timeline || []).map(event => ({
+    time: event.time || '-',
+    event: event.event || ''
+  }))
+
+  // 从description中提取字段
+  const sourceIp = description.srcip || description.sourceIp || description.src_ip
+  const userName = description.username || description.userName || description.user_name
+  const destinationHostname = description.destinationHostname || description.dest_hostname
+  const ruleName = extendProperties.rule_name || description.model_name || ''
+
+  return {
+    id: apiData.id,
+    title: apiData.title || '',
+    severity: apiData.severity || 'Medium',
+    riskLevel: severityMap[apiData.severity] || apiData.severity?.toLowerCase() || 'medium',
+    handle_status: apiData.handle_status || 'Open',
+    status: statusMap[apiData.handle_status] || apiData.handle_status?.toLowerCase() || 'open',
+    owner: apiData.owner || '',
+    creator: apiData.creator || '',
+    createTime: apiData.create_time || apiData.createTime,
+    updateTime: apiData.update_time || apiData.updateTime,
+    closeTime: apiData.close_time || apiData.closeTime,
+    arriveTime: apiData.arrive_time || apiData.arriveTime,
+    timestamp: apiData.create_time || apiData.arrive_time || apiData.timestamp,
+    labels: apiData.labels || '',
+    close_reason: apiData.close_reason,
+    is_auto_closed: apiData.is_auto_closed,
+    close_comment: apiData.close_comment,
+    ttr: apiData.ttr,
+    ttd: apiData.ttd,
+    description: description,
+    extend_properties: extendProperties,
+    ruleName: ruleName,
+    sourceIp: sourceIp,
+    userName: userName,
+    destinationHostname: destinationHostname,
+    comments: comments,
+    intelligence: intelligence,
+    ai: ai,
+    associatedEntities: entities,
+    entities: entities,
+    timeline: timeline
+  }
+}
+
+/**
  * @brief 加载告警详情
  * @details 从API获取告警详细信息并显示
  */
@@ -820,7 +938,8 @@ const loadAlertDetail = async () => {
   
   try {
     const response = await getAlertDetail(currentAlertId.value)
-    alert.value = response.data
+    // 转换后端返回的数据格式
+    alert.value = transformAlertDetailData(response.data)
     // 延迟显示以触发动画
     setTimeout(() => {
       visible.value = true
@@ -1256,17 +1375,19 @@ const handleSendAiMessage = () => {
 
 const getSeverityClass = (severity) => {
   const classes = {
+    fatal: 'bg-red-950/20 text-red-300',
     high: 'bg-red-500/10 text-red-400',
     medium: 'bg-orange-500/10 text-orange-400',
-    low: 'bg-blue-500/10 text-blue-400'
+    low: 'bg-blue-500/10 text-blue-400',
+    tips: 'bg-gray-500/10 text-gray-400'
   }
-  return classes[severity] || classes.low
+  return classes[severity] || classes.medium
 }
 
 const getStatusBadgeClass = (status) => {
   const classes = {
     open: 'bg-yellow-400/10 text-yellow-500 ring-yellow-400/20',
-    pending: 'bg-orange-400/10 text-orange-500 ring-orange-400/20',
+    block: 'bg-orange-400/10 text-orange-500 ring-orange-400/20',
     closed: 'bg-gray-400/10 text-gray-500 ring-gray-400/20'
   }
   return classes[status] || classes.open
@@ -1289,27 +1410,29 @@ const getEntityIcon = (type) => {
 
 /**
  * @brief 获取风险等级样式类
- * @param {string} level - 风险等级（high/medium/low）
+ * @param {string} level - 风险等级（fatal/high/medium/low/tips）
  * @returns {string} 返回对应的CSS类名
  */
 const getRiskLevelClass = (level) => {
   const classes = {
+    fatal: 'bg-red-950 text-red-200',
     high: 'bg-red-900 text-red-300',
     medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300'
+    low: 'bg-blue-900 text-blue-300',
+    tips: 'bg-gray-700 text-gray-300'
   }
   return classes[level] || classes.low
 }
 
 /**
  * @brief 获取状态样式类
- * @param {string} status - 状态（open/pending/closed）
+ * @param {string} status - 状态（open/block/closed）
  * @returns {string} 返回对应的CSS类名
  */
 const getStatusClass = (status) => {
   const classes = {
     open: 'bg-primary/20 text-primary',
-    pending: 'bg-orange-500/20 text-orange-400',
+    block: 'bg-yellow-500/20 text-yellow-400',
     closed: 'bg-gray-500/20 text-gray-400'
   }
   return classes[status] || classes.open
@@ -1317,13 +1440,13 @@ const getStatusClass = (status) => {
 
 /**
  * @brief 获取状态点样式类
- * @param {string} status - 状态（open/pending/closed）
+ * @param {string} status - 状态（open/block/closed）
  * @returns {string} 返回对应的CSS类名
  */
 const getStatusDotClass = (status) => {
   const classes = {
     open: 'bg-primary',
-    pending: 'bg-orange-400',
+    block: 'bg-yellow-400',
     closed: 'bg-gray-400'
   }
   return classes[status] || classes.open

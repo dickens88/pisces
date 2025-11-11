@@ -25,6 +25,16 @@
       "last30Days": "Last 30 Days",
       "last3Months": "Last 3 Months",
       "customRange": "Custom Range"
+    },
+    "wordWrap": "Word Wrap",
+    "singleLine": "Single Line",
+    "severity": {
+      "fatal": "Fatal",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "tips": "Tips"
     }
   },
   "nav": {
@@ -66,12 +76,6 @@
       "discoveryTime": "Discovery Time",
       "detail": "Detail"
     },
-    "severity": {
-      "critical": "Critical",
-      "high": "High",
-      "medium": "Medium",
-      "low": "Low"
-    },
     "status": {
       "new": "New",
       "inProgress": "In Progress"
@@ -88,7 +92,7 @@
       "searchPlaceholder": "Enter keyword and press Enter to search title...",
       "allStatus": "All Status",
       "open": "Open",
-      "pending": "Pending",
+      "block": "Block",
       "closed": "Closed",
       "batchClose": "Batch Close",
       "batchCloseDialog": {
@@ -123,11 +127,6 @@
         "alertTrend": "Alert Trend",
         "mttd": "MTTD (Mean Time To Detect)",
         "past7Days": "Past 7 Days"
-      },
-      "riskLevels": {
-        "high": "High Risk",
-        "medium": "Medium Risk",
-        "low": "Low Risk"
       },
       "createAlert": "Create Alert"
     },
@@ -182,12 +181,7 @@
       "relatedLogsContent": "Related logs will be displayed here.",
       "threatIntelligenceContent": "Threat intelligence information will be displayed here.",
       "noThreatIntelligence": "No threat intelligence matches found",
-      "noAssociatedAlerts": "No associated alerts found",
-      "severity": {
-        "high": "High Severity",
-        "medium": "Medium Severity",
-        "low": "Low Severity"
-      }
+      "noAssociatedAlerts": "No associated alerts found"
     }
   },
   "incidents": {
@@ -205,9 +199,6 @@
       "searchPlaceholder": "Search incident name, responsible department, root cause...",
       "severityLevel": "Severity Level",
       "allSeverity": "All",
-      "high": "High",
-      "medium": "Medium",
-      "low": "Low",
       "allStatus": "All",
       "open": "Open",
       "pending": "Pending",
@@ -335,18 +326,11 @@
       "riskLevel": "Risk Level",
       "affectedAsset": "Affected Asset",
       "firstDiscoveryTime": "First Discovery Time",
-      "status": "Status",
       "action": "Action",
       "detail": "Detail",
       "searchPlaceholder": "Search CVE, IP, Name...",
       "exportReport": "Export Report",
       "batchOperate": "Batch Operate",
-      "riskLevels": {
-        "critical": "Critical",
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low"
-      },
       "status": {
         "pending": "Pending",
         "inProgress": "In Progress",

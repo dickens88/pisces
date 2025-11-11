@@ -189,7 +189,7 @@
             >
               <option value="all">{{ $t('alerts.list.allStatus') }}</option>
               <option value="open">{{ $t('alerts.list.open') }}</option>
-              <option value="pending">{{ $t('alerts.list.pending') }}</option>
+              <option value="block">{{ $t('alerts.list.block') }}</option>
               <option value="closed">{{ $t('alerts.list.closed') }}</option>
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
@@ -220,6 +220,31 @@
             <span class="material-symbols-outlined text-base">transform</span>
             <span>{{ $t('alerts.list.batchConvert') }}</span>
           </button>
+          <!-- 更多操作按钮 -->
+          <div class="relative">
+            <button
+              @click="showMoreMenu = !showMoreMenu"
+              class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
+              :title="$t('common.more') || '更多'"
+            >
+              <span class="material-symbols-outlined text-base">more_vert</span>
+            </button>
+            <!-- 下拉菜单 -->
+            <div
+              v-if="showMoreMenu"
+              class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+            >
+              <button
+                @click="handleToggleWordWrap"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ isWordWrap ? 'wrap_text' : 'text_fields' }}
+                </span>
+                <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -240,8 +265,8 @@
         @select-all="handleSelectAll"
         @page-size-change="handlePageSizeChange"
       >
-        <template #cell-createTime="{ value }">
-          {{ value }}
+        <template #cell-createTime="{ value, item }">
+          {{ formatDateTime(value || item?.createTime || item?.create_time) }}
         </template>
         <template #cell-alertTitle="{ item }">
           <div class="flex items-center gap-2">
@@ -267,9 +292,9 @@
               'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
               getRiskLevelClass(item.riskLevel)
             ]"
-            :title="$t(`alerts.list.riskLevels.${item.riskLevel}`)"
+            :title="$t(`common.severity.${item.riskLevel}`)"
           >
-            {{ $t(`alerts.list.riskLevels.${item.riskLevel}`) }}
+            {{ $t(`common.severity.${item.riskLevel}`) }}
           </span>
         </template>
         <template #cell-status="{ item }">
@@ -400,7 +425,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getAlerts, getAlertStatistics, batchCloseAlerts } from '@/api/alerts'
@@ -410,6 +435,7 @@ import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
@@ -424,7 +450,7 @@ const columns = computed(() => [
 
 // 默认列宽
 const defaultWidths = {
-  createTime: 180,
+  createTime: 200, // 调整为200以适应 yyyy-MM-dd HH:mm:ss 格式
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
@@ -461,6 +487,7 @@ const showAssociateIncidentDialog = ref(false)
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
+const showMoreMenu = ref(false)
 
 
 const mttdStages = [
@@ -511,6 +538,13 @@ const loadAlerts = async () => {
     const response = await getAlerts(params)
     alerts.value = response.data
     total.value = response.total
+    
+    // 调试：检查第一条数据的时间字段
+    if (response.data && response.data.length > 0) {
+      console.log('First alert data:', response.data[0])
+      console.log('createTime field:', response.data[0].createTime)
+      console.log('create_time field:', response.data[0].create_time)
+    }
   } catch (error) {
     console.error('Failed to load alerts:', error)
   }
@@ -576,9 +610,11 @@ const handleSelectAll = (items) => {
 
 const getRiskLevelClass = (level) => {
   const classes = {
+    fatal: 'bg-red-950 text-red-200',
     high: 'bg-red-900 text-red-300',
     medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300'
+    low: 'bg-blue-900 text-blue-300',
+    tips: 'bg-gray-700 text-gray-300'
   }
   return classes[level] || classes.low
 }
@@ -586,7 +622,7 @@ const getRiskLevelClass = (level) => {
 const getStatusClass = (status) => {
   const classes = {
     open: 'bg-primary/20 text-primary',
-    pending: 'bg-orange-500/20 text-orange-400',
+    block: 'bg-yellow-500/20 text-yellow-400',
     closed: 'bg-gray-500/20 text-gray-400'
   }
   return classes[status] || classes.open
@@ -595,7 +631,7 @@ const getStatusClass = (status) => {
 const getStatusDotClass = (status) => {
   const classes = {
     open: 'bg-primary',
-    pending: 'bg-orange-400',
+    block: 'bg-yellow-400',
     closed: 'bg-gray-400'
   }
   return classes[status] || classes.open
@@ -644,12 +680,34 @@ const handleAlertConvertedToIncident = () => {
   }
 }
 
+// 自动换行状态
+const isWordWrap = computed(() => {
+  return dataTableRef.value?.wordWrap?.value ?? true
+})
+
+// 切换自动换行
+const handleToggleWordWrap = () => {
+  if (dataTableRef.value) {
+    dataTableRef.value.toggleWordWrap()
+    showMoreMenu.value = false
+  }
+}
+
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  const dropdown = event.target.closest('.more-menu-dropdown')
+  const button = event.target.closest('.more-menu-button')
+  if (!dropdown && !button) {
+    showMoreMenu.value = false
+  }
+}
+
 const openBatchCloseDialog = () => {
   if (selectedAlerts.value.length === 0) {
     console.warn('No alerts selected')
     return
   }
-  console.log('Opening batch close dialog, selected count:', selectedAlerts.value.length)
+
   showBatchCloseDialog.value = true
 }
 
@@ -693,7 +751,6 @@ const openAssociateIncidentDialog = () => {
     console.warn('No alerts selected')
     return
   }
-  console.log('Opening associate incident dialog, selected count:', selectedAlerts.value.length)
   showAssociateIncidentDialog.value = true
 }
 
@@ -823,6 +880,13 @@ onMounted(() => {
   if (route.params.id) {
     selectedAlertId.value = route.params.id
   }
+  // 添加点击外部关闭下拉菜单的监听器
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  // 移除点击外部关闭下拉菜单的监听器
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

@@ -248,18 +248,13 @@ const formData = ref(getInitialFormData())
 
 // 填充表单数据的函数
 const fillFormData = () => {
-  // 重置表单
   formData.value = getInitialFormData()
   
-  // 如果有初始数据，填充表单
   if (props.initialData) {
-    console.log('Filling form with initial data:', props.initialData)
-    // 填充所有字段，使用初始数据或默认值
     formData.value.title = props.initialData.title || ''
     formData.value.category = props.initialData.category || 'platform'
     formData.value.status = props.initialData.status || 'open'
     
-    // 处理日期时间
     if (props.initialData.occurrenceTime) {
       formData.value.occurrenceTime = props.initialData.occurrenceTime instanceof Date 
         ? props.initialData.occurrenceTime 
