@@ -1,26 +1,26 @@
 import service from './axios.js'
 
-// 获取事件列表
+// Get incident list
 export const getIncidents = (params = {}) => {
   return service.post('/incidents', params)
 }
 
-// 批量关闭事件
+// Batch close incidents
 export const batchCloseIncidents = (params) => {
   return service.post('/incidents/batch-close', params)
 }
 
-// 创建事件
+// Create incident
 export const createIncident = (data) => {
   return service.post('/incidents/create', data)
 }
 
-// 更新事件
+// Update incident
 export const updateIncident = (id, data) => {
   return service.put(`/incidents/${id}/update`, data)
 }
 
-// 获取事件详情
+// Get incident detail
 export const getIncidentDetail = (id) => {
   return service.get(`/incidents/${id}`)
 }

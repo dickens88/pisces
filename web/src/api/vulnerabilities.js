@@ -1,36 +1,36 @@
 import service from './axios.js'
 
-// 获取漏洞列表
+// Get vulnerability list
 export const getVulnerabilities = (params = {}) => {
   return service.post('/vulnerabilities', params)
 }
 
-// 获取漏洞趋势统计
+// Get vulnerability trend statistics
 export const getVulnerabilityTrend = (params = {}) => {
   return service.get('/vulnerabilities/trend', { params })
 }
 
-// 获取漏洞责任部门分布
+// Get vulnerability department distribution
 export const getVulnerabilityDepartmentDistribution = (params = {}) => {
   return service.get('/vulnerabilities/department-distribution', { params })
 }
 
-// 获取漏洞详情
+// Get vulnerability detail
 export const getVulnerabilityDetail = (id) => {
   return service.get(`/vulnerabilities/${id}`)
 }
 
-// 批量操作漏洞
+// Batch operate vulnerabilities
 export const batchOperateVulnerabilities = (params) => {
   return service.post('/vulnerabilities/batch-operate', params)
 }
 
-// 导出报告
+// Export report
 export const exportVulnerabilityReport = (params) => {
   return service.post('/vulnerabilities/export', params, {
     responseType: 'blob'
   }).then(response => {
-    // 创建下载链接
+    // Create download link
     const blob = new Blob([response.data])
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

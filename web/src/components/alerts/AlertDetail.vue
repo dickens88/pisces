@@ -5,20 +5,20 @@
       class="fixed inset-0 z-50 flex items-center justify-end"
       @click.self="handleClose"
     >
-      <!-- 遮罩层 - 直接显示，无动画 -->
+      <!-- Overlay - displayed directly, no animation -->
       <div 
         class="fixed inset-0 bg-black/90"
         @click="handleClose"
       ></div>
       
-      <!-- 详情面板 - 有滑入动画 -->
-      <Transition name="slide">
+      <!-- Detail panel - with slide-in animation -->
+      <Transition name="slide" appear>
         <div
           v-if="visible"
           class="relative w-[70vw] h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
           @click.stop="handlePanelClick"
         >
-          <!-- 头部 -->
+          <!-- Header -->
           <div class="sticky top-0 z-20 bg-panel-dark/80 backdrop-blur-sm border-b border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
               <h2 class="text-xl font-bold text-white flex items-center gap-2">
@@ -34,7 +34,7 @@
                   <span class="material-symbols-outlined text-base">archive</span>
                   {{ $t('alerts.detail.closeAlert') }}
                 </button>
-                <!-- 更多操作下拉菜单 -->
+                <!-- More actions dropdown menu -->
                 <div class="relative">
                   <button
                     @click.stop="showMoreActionsMenu = !showMoreActionsMenu"
@@ -44,7 +44,7 @@
                     {{ $t('alerts.detail.moreActions') }}
                     <span class="material-symbols-outlined text-base">arrow_drop_down</span>
                   </button>
-                  <!-- 下拉菜单 -->
+                  <!-- Dropdown menu -->
                   <div
                     v-if="showMoreActionsMenu"
                     @click.stop
@@ -111,9 +111,9 @@
             </div>
           </div>
 
-          <!-- 内容区 -->
+          <!-- Content area -->
           <div class="flex flex-1 overflow-hidden relative">
-            <!-- 加载动画 -->
+            <!-- Loading animation - shown when loading or when closing if still loading -->
             <Transition name="fade">
               <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-[#111822]/90 z-10">
                 <div class="flex flex-col items-center gap-4">
@@ -126,9 +126,9 @@
               </div>
             </Transition>
             
-            <!-- 内容 -->
+            <!-- Content -->
             <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
-              <!-- 标题和严重程度 -->
+              <!-- Title and severity -->
               <div>
                 <span
                   :class="[
@@ -172,7 +172,7 @@
                 </div>
               </div>
 
-              <!-- 标签页 -->
+              <!-- Tabs -->
               <div class="border-b border-border-dark">
                 <nav aria-label="Tabs" class="-mb-px flex space-x-6">
                   <button
@@ -191,7 +191,7 @@
                 </nav>
               </div>
 
-              <!-- 标签页内容 -->
+              <!-- Tab content -->
               <div v-if="activeTab === 'overview'">
                 <h3 class="text-lg font-semibold mb-3 text-white">{{ $t('alerts.detail.alertInfo') }}</h3>
                 <div class="grid grid-cols-1 @lg:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono @container">
@@ -211,7 +211,7 @@
                     <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.owner') }}:</p>
                     <p class="font-medium text-white break-all">{{ alert?.owner || $t('alerts.detail.unassigned') }}</p>
                   </div>
-                  <!-- 动态显示 description 中的所有字段 -->
+                  <!-- Dynamically display all fields in description -->
                   <template v-if="alert?.description && typeof alert.description === 'object'">
                     <template
                       v-for="(value, key) in alert.description"
@@ -234,7 +234,7 @@
                 <!-- 分割线 -->
                 <div class="mt-6 border-t border-border-dark"></div>
 
-                <!-- 评论区域 -->
+                <!-- Comments area -->
                 <div class="pt-4">
                   <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.comments') }}</h3>
                   <div class="space-y-6">
@@ -251,7 +251,7 @@
                         </div>
                         <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none">
                           <div v-html="comment.content"></div>
-                          <!-- 显示附件 -->
+                          <!-- Display attachments -->
                           <div v-if="comment.files && comment.files.length > 0" class="mt-3 flex flex-wrap gap-2">
                             <a
                               v-for="(file, fileIndex) in comment.files"
@@ -274,12 +274,12 @@
                     </div>
                   </div>
                   
-                  <!-- 评论输入框 -->
+                  <!-- Comment input -->
                   <div class="mt-6 pt-6 border-t border-border-dark">
                     <div class="flex items-start gap-4">
                       <UserAvatar name="Current User" class="w-10 h-10 shrink-0" />
                       <div class="flex-1">
-                        <!-- 输入框容器 -->
+                        <!-- Input container -->
                         <div 
                           class="relative rounded-xl border-2 border-[#3c4a60] bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
                           :class="{ 
@@ -298,9 +298,9 @@
                             @input="handleTextareaInput"
                           ></textarea>
                           
-                          <!-- 工具栏 -->
+                          <!-- Toolbar -->
                           <div class="absolute bottom-3 left-4 flex items-center gap-2">
-                            <!-- 文件上传按钮 -->
+                            <!-- File upload button -->
                             <label class="cursor-pointer">
                               <input
                                 ref="fileInput"
@@ -318,7 +318,7 @@
                               </button>
                             </label>
                             
-                            <!-- 表情按钮（可选） -->
+                            <!-- Emoji button (optional) -->
                             <button
                               type="button"
                               class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200"
@@ -328,7 +328,7 @@
                             </button>
                           </div>
                           
-                          <!-- 提交按钮 -->
+                          <!-- Submit button -->
                           <button
                             @click="handleAddComment"
                             :disabled="!canSubmit"
@@ -339,7 +339,7 @@
                           </button>
                         </div>
                         
-                        <!-- 已上传文件列表 -->
+                        <!-- Uploaded files list -->
                         <div v-if="uploadedFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
                           <div
                             v-for="(file, index) in uploadedFiles"
@@ -368,7 +368,7 @@
                 </div>
               </div>
 
-              <!-- 关联告警标签页 -->
+              <!-- Associated alerts tab -->
               <div v-if="activeTab === 'associatedAlerts'">
 
                 <div v-if="loadingAssociatedAlerts" class="flex items-center justify-center py-12">
@@ -392,14 +392,14 @@
                 </div>
               </div>
 
-              <!-- 威胁情报标签页 -->
+              <!-- Threat intelligence tab -->
               <div v-if="activeTab === 'threatIntelligence'">
                 <div v-if="!alert?.intelligence || alert.intelligence.length === 0" class="text-text-light text-sm py-12 text-center">
                   {{ $t('alerts.detail.noThreatIntelligence') || '暂无威胁情报匹配' }}
                 </div>
                 
                 <div v-else class="space-y-6">
-                  <!-- 显示从告警详情接口返回的intelligence数据 -->
+                  <!-- Display intelligence data returned from alert detail API -->
                   <div v-if="alert?.intelligence && alert.intelligence.length > 0" class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
                     <AlertInfoCard
                       v-for="(item, index) in alert.intelligence"
@@ -417,7 +417,7 @@
               <div v-if="activeTab === 'aiAgent'">
                 <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.aiAgent') }}</h3>
                 <div class="space-y-6">
-                  <!-- 显示从后端返回的AI数据 -->
+                  <!-- Display AI data returned from backend -->
                   <div
                     v-for="(aiItem, index) in alert?.ai || []"
                     :key="`ai-${index}`"
@@ -955,8 +955,11 @@ const transformAlertDetailData = (apiData) => {
 const loadAlertDetail = async () => {
   if (!currentAlertId.value) return
   
-  // 先显示面板和加载状态
+  // 重置状态
+  alert.value = null
   isLoading.value = true
+  
+  // 先显示面板，确保滑入动画能触发
   visible.value = true
   
   // 添加一个小延迟确保动画能显示
@@ -1007,9 +1010,23 @@ const loadAssociatedAlerts = async () => {
   }
 }
 
-const handleClose = () => {
+const handleClose = async () => {
   showMoreActionsMenu.value = false
+  
+  // 如果还在加载，等待加载完成，但最多等待动画时间
+  const closeDelay = 300 // 动画持续时间
+  const startTime = Date.now()
+  
+  // 如果还在加载，等待加载完成（但不超过动画时间）
+  if (isLoading.value) {
+    while (isLoading.value && (Date.now() - startTime) < closeDelay) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+  }
+  
+  // 开始关闭动画
   visible.value = false
+  
   setTimeout(() => {
     // 如果是从路由访问，跳转回告警列表
     if (route.params.id) {
@@ -1017,7 +1034,7 @@ const handleClose = () => {
     } else {
       emit('close')
     }
-  }, 300)
+  }, closeDelay)
 }
 
 const openBatchCloseDialog = () => {
@@ -1579,13 +1596,21 @@ const handleShare = async () => {
 }
 
 // 监听告警ID变化，避免重复加载
-watch(currentAlertId, (newId, oldId) => {
+watch(currentAlertId, async (newId, oldId) => {
   if (!newId) {
+    visible.value = false
     return
   }
   if (newId === oldId) {
     return
   }
+  
+  // 如果面板已经打开，先短暂隐藏以触发新的滑入动画
+  if (visible.value && oldId) {
+    visible.value = false
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+  
   loadAlertDetail()
 }, { immediate: true })
 

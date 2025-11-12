@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth'
  * @returns {Object} 转换后的告警对象
  */
 const transformAlertData = (apiAlert) => {
-  // 转换severity为riskLevel (Fatal/High/Medium/Low/Tips -> fatal/high/medium/low/tips)
+  // Convert severity to riskLevel (Fatal/High/Medium/Low/Tips -> fatal/high/medium/low/tips)
   const severityMap = {
     'Fatal': 'fatal',
     'High': 'high',
@@ -17,7 +17,7 @@ const transformAlertData = (apiAlert) => {
     'Tips': 'tips'
   }
   
-  // 转换handle_status为status (Open/Block/Closed -> open/block/closed)
+  // Convert handle_status to status (Open/Block/Closed -> open/block/closed)
   const statusMap = {
     'Open': 'open',
     'Block': 'block',
@@ -31,7 +31,7 @@ const transformAlertData = (apiAlert) => {
     riskLevel: severityMap[apiAlert.severity] || apiAlert.severity?.toLowerCase() || 'medium',
     status: statusMap[apiAlert.handle_status] || apiAlert.handle_status?.toLowerCase() || 'open',
     owner: apiAlert.owner,
-    // 保留原始字段以便详情页面使用
+    // Keep original fields for detail page use
     severity: apiAlert.severity,
     handle_status: apiAlert.handle_status,
     update_time: apiAlert.update_time,
@@ -77,7 +77,7 @@ const convertTimeRange = (startTime, endTime) => {
 const buildConditions = (searchKeywords, status) => {
   const conditions = []
   
-  // 添加状态条件
+  // Add status condition
   if (status && status !== 'all') {
     const statusMap = {
       'open': 'Open',
@@ -89,15 +89,15 @@ const buildConditions = (searchKeywords, status) => {
     })
   }
   
-  // 添加搜索关键字条件（搜索标题）
-  // 注意：根据API实现，多个关键字会使用AND逻辑
+  // Add search keyword conditions (search title)
+  // Note: According to API implementation, multiple keywords will use AND logic
   if (searchKeywords) {
     const keywords = Array.isArray(searchKeywords) 
       ? searchKeywords 
       : searchKeywords.split(',').map(k => k.trim()).filter(k => k)
     
     if (keywords.length > 0) {
-      // 如果多个关键字，每个关键字作为一个条件（后端会使用AND逻辑）
+      // If multiple keywords, each keyword is a condition (backend will use AND logic)
       keywords.forEach(keyword => {
         conditions.push({
           'title': keyword
@@ -121,19 +121,19 @@ const buildConditions = (searchKeywords, status) => {
  * @returns {Promise} 返回告警列表数据
  */
 export const getAlerts = async (params = {}) => {
-  // 构建API请求参数
+  // Build API request parameters
   const page = params.page || 1
   const pageSize = params.pageSize || 10
   const limit = pageSize
   const offset = (page - 1) * pageSize
   
-  // 转换时间范围
+  // Convert time range
   const time_range = convertTimeRange(params.startTime, params.endTime)
   
-  // 构建查询条件
+  // Build query conditions
   const conditions = buildConditions(params.searchKeywords, params.status)
   
-  // 构建请求体
+  // Build request body
   const requestBody = {
     limit,
     offset,
@@ -141,14 +141,14 @@ export const getAlerts = async (params = {}) => {
     conditions
   }
   
-  // 使用axios直接调用/alerts，由vite代理转发到后端
-  // 在开发环境，vite代理会将/alerts转发到http://localhost:8080/alerts
-  // 在生产环境，需要配置nginx或使用完整URL
+  // Use axios to directly call /alerts, forwarded to backend by vite proxy
+  // In development, vite proxy will forward /alerts to http://localhost:8080/alerts
+  // In production, need to configure nginx or use full URL
   try {
     const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
     const url = apiBaseURL ? `${apiBaseURL}/alerts` : '/alerts'
     
-    // 获取认证token
+    // Get authentication token
     const authStore = useAuthStore()
     const headers = {
       'Content-Type': 'application/json'
@@ -159,7 +159,7 @@ export const getAlerts = async (params = {}) => {
     
     const response = await axios.post(url, requestBody, { headers })
     
-    // 转换响应数据
+    // Transform response data
     const transformedData = {
       data: (response.data.data || []).map(transformAlertData),
       total: response.data.total || 0

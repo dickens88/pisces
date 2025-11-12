@@ -1,6 +1,6 @@
 /**
- * 日期时间格式化工具函数
- * 用于将各种日期时间格式转换为本地时区的 yyyy-MM-dd HH:mm:ss 格式
+ * Date time formatting utility functions
+ * Used to convert various date time formats to local timezone yyyy-MM-dd HH:mm:ss format
  */
 
 /**
@@ -15,44 +15,44 @@
  * formatDateTime(null) // '-'
  */
 export const formatDateTime = (dateString) => {
-  // 处理空值、undefined、null、空字符串
+  // Handle empty values, undefined, null, empty strings
   if (!dateString || dateString === '' || dateString === 'null' || dateString === 'undefined') {
     return '-'
   }
   
-  // 如果已经是Date对象，直接使用
+  // If already a Date object, use directly
   let date
   if (dateString instanceof Date) {
     date = dateString
   } else if (typeof dateString === 'number') {
-    // 处理时间戳（毫秒或秒）
+    // Handle timestamp (milliseconds or seconds)
     date = new Date(dateString > 1e10 ? dateString : dateString * 1000)
   } else {
-    // 尝试解析字符串
+    // Try to parse string
     try {
       let dateStr = String(dateString).trim()
       
-      // 处理特殊格式：2025-11-11T20:37:57.202Z+0000
-      // 移除末尾的 +0000 或 +00:00，因为 Z 已经表示 UTC
-      dateStr = dateStr.replace(/Z\+0{4}$/, 'Z') // 移除 Z+0000
-      dateStr = dateStr.replace(/Z\+00:00$/, 'Z') // 移除 Z+00:00
+      // Handle special format: 2025-11-11T20:37:57.202Z+0000
+      // Remove trailing +0000 or +00:00, as Z already represents UTC
+      dateStr = dateStr.replace(/Z\+0{4}$/, 'Z') // Remove Z+0000
+      dateStr = dateStr.replace(/Z\+00:00$/, 'Z') // Remove Z+00:00
       
-      // 尝试解析
+      // Try to parse
       date = new Date(dateStr)
       
-      // 如果仍然无效，尝试移除 Z 并添加时区信息
+      // If still invalid, try removing Z and adding timezone info
       if (isNaN(date.getTime()) && dateStr.includes('T')) {
-        // 尝试作为 UTC 时间解析
+        // Try parsing as UTC time
         dateStr = dateStr.replace(/Z$/, '') + 'Z'
         date = new Date(dateStr)
       }
       
-      // 如果解析失败，尝试其他格式
+      // If parsing fails, try other formats
       if (isNaN(date.getTime())) {
-        // 尝试将 "YYYY-MM-DD HH:mm:ss" 转换为 ISO 格式
+        // Try converting "YYYY-MM-DD HH:mm:ss" to ISO format
         const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\s+UTC)?$/)
         if (match) {
-          // 使用本地时区解析
+          // Parse using local timezone
           date = new Date(
             parseInt(match[1]), 
             parseInt(match[2]) - 1, 
@@ -62,7 +62,7 @@ export const formatDateTime = (dateString) => {
             parseInt(match[6])
           )
         } else {
-          // 最后尝试直接解析
+          // Finally try direct parsing
           date = new Date(dateStr)
         }
       }
@@ -72,13 +72,13 @@ export const formatDateTime = (dateString) => {
     }
   }
   
-  // 检查日期是否有效
+  // Check if date is valid
   if (isNaN(date.getTime())) {
     console.warn('Invalid date value:', dateString, 'Parsed as:', date)
     return '-'
   }
   
-  // 使用浏览器本地时区格式化日期时间为 yyyy-MM-dd HH:mm:ss
+  // Format date time to yyyy-MM-dd HH:mm:ss using browser local timezone
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')

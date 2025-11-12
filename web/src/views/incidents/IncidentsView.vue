@@ -1,6 +1,6 @@
 <template>
   <div class="w-full">
-    <!-- 页面标题和操作 -->
+    <!-- Page title and actions -->
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <div class="flex min-w-72 flex-col gap-2">
         <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
@@ -24,9 +24,9 @@
       </div>
     </header>
 
-    <!-- 事件列表表格 -->
+    <!-- Incident list table -->
     <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
-      <!-- 加载遮罩层 -->
+      <!-- Loading overlay -->
       <div
         v-if="loadingIncidents"
         class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
@@ -45,7 +45,7 @@
             <div class="pointer-events-none flex items-center shrink-0">
               <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
             </div>
-            <!-- 搜索关键字标签 -->
+            <!-- Search keyword tags -->
             <div
               v-for="(keyword, index) in searchKeywords"
               :key="index"
@@ -61,7 +61,7 @@
                 <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
               </button>
             </div>
-            <!-- 输入框 -->
+            <!-- Input field -->
             <input
               v-model="currentSearchInput"
               @keydown.enter.prevent="addKeyword"
@@ -169,7 +169,7 @@
       </DataTable>
     </section>
 
-    <!-- 创建事件对话框 -->
+    <!-- Create incident dialog -->
     <CreateIncidentDialog
       :visible="showCreateDialog"
       @close="showCreateDialog = false"
@@ -191,7 +191,7 @@ import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
-// 定义列配置（使用computed确保响应式）
+// Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
   { key: 'occurrenceTime', label: t('incidents.list.occurrenceTime') },
   { key: 'incidentName', label: t('incidents.list.incidentName') },
@@ -201,7 +201,7 @@ const columns = computed(() => [
   { key: 'owner', label: t('incidents.list.owner') }
 ])
 
-// 默认列宽
+// Default column widths
 const defaultWidths = {
   occurrenceTime: 200,
   incidentName: 400,
@@ -224,7 +224,7 @@ const pageSize = ref(10)
 const total = ref(0)
 const showCreateDialog = ref(false)
 
-// 时间范围选择器
+// Time range picker
 const selectedTimeRange = ref('last3Months')
 const customTimeRange = ref(null)
 
@@ -233,14 +233,14 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 const loadIncidents = async () => {
   loadingIncidents.value = true
   try {
-    // 计算时间范围（天数）
-    let timeRange = 1 // 默认1天
+    // Calculate time range (in days)
+    let timeRange = 1 // Default 1 day
     if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      // 自定义时间范围：计算天数差
+      // Custom time range: calculate day difference
       const diffTime = Math.abs(customTimeRange.value[1] - customTimeRange.value[0])
       timeRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
     } else {
-      // 预定义时间范围
+      // Predefined time range
       if (selectedTimeRange.value === 'last24Hours') {
         timeRange = 1
       } else if (selectedTimeRange.value === 'last3Days') {
@@ -254,9 +254,9 @@ const loadIncidents = async () => {
       }
     }
     
-    // 构建条件数组
+    // Build conditions array
     const conditions = []
-    // 添加搜索关键字条件
+    // Add search keyword conditions
     searchKeywords.value.forEach(keyword => {
       conditions.push({ title: keyword })
     })
@@ -267,7 +267,7 @@ const loadIncidents = async () => {
       conditions.push({ handle_status: statusFilter.value })
     }
     
-    // 构建后端期望的参数格式
+    // Build parameters in the format expected by the backend
     const params = {
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
@@ -313,8 +313,8 @@ const removeKeyword = (index) => {
  * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
  */
 const handleSearchInput = () => {
-  // 如果需要实时搜索，可以在这里调用 loadIncidents()
-  // 目前只在添加/删除关键字时搜索
+  // If real-time search is needed, call loadIncidents() here
+  // Currently only searches when adding/removing keywords
 }
 
 /**
@@ -382,22 +382,22 @@ const getStatusText = (status) => {
 }
 
 const openIncidentDetailInNewWindow = (incidentId) => {
-  // 在新窗口打开事件详情
+  // Open incident detail in a new window
   const route = router.resolve({ path: `/incidents/${incidentId}` })
-  // 构建完整的 URL
+  // Build complete URL
   const url = window.location.origin + route.href
   window.open(url, '_blank')
 }
 
 const handleIncidentCreated = () => {
-  // 重新加载事件列表
+  // Reload incident list
   loadIncidents()
 }
 
 const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
-    // 根据选择的时间范围加载数据
+    // Load data based on selected time range
     loadIncidents()
   }
 }

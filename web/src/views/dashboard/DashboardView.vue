@@ -1,6 +1,6 @@
 <template>
   <div class="w-full">
-    <!-- 页面头部 -->
+    <!-- Page header -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
       <h1 class="text-white text-3xl font-bold tracking-tight">
         {{ $t('dashboard.title') }}
@@ -15,9 +15,9 @@
       </div>
     </div>
 
-    <!-- 统计卡片 -->
+    <!-- Statistics cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      <!-- 告警数量 -->
+      <!-- Alert count -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
         <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.alertCount24h') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
@@ -36,7 +36,7 @@
         </p>
       </div>
 
-      <!-- 事件数 -->
+      <!-- Incident count -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
         <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.incidentCount24h') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
@@ -55,7 +55,7 @@
         </p>
       </div>
 
-      <!-- 漏洞数 -->
+      <!-- Vulnerability count -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
         <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.vulnerabilityCount') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
@@ -74,7 +74,7 @@
         </p>
       </div>
 
-      <!-- 平均检测时间 -->
+      <!-- Average detection time -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
         <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.mttd') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
@@ -94,9 +94,9 @@
       </div>
     </div>
 
-    <!-- 图表区域 -->
+    <!-- Charts area -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <!-- 告警类型统计 -->
+      <!-- Alert type statistics -->
       <div class="flex flex-col gap-4 rounded-xl border border-[#324867]/50 p-6 bg-[#19222c]">
         <div class="flex justify-between items-center">
           <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.alertTypeStats') }}</p>
@@ -139,7 +139,7 @@
         </div>
       </div>
 
-      <!-- AI研判正确率 -->
+      <!-- AI accuracy rate -->
       <div class="flex flex-col gap-4 rounded-xl border border-[#324867]/50 p-6 bg-[#19222c]">
         <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
         <div class="h-80 flex items-end gap-x-4 md:gap-x-6">
@@ -166,8 +166,8 @@
       </div>
     </div>
 
-    <!-- 表格区域 -->
-    <!-- 最近未关闭的告警 -->
+    <!-- Table area -->
+    <!-- Recent unclosed alerts -->
     <div class="rounded-xl border border-[#324867]/50 bg-[#19222c] mb-6">
       <div class="p-6">
         <h3 class="text-white text-lg font-semibold">{{ $t('dashboard.tables.recentOpenAlerts') }}</h3>
@@ -240,7 +240,7 @@
       </div>
     </div>
 
-    <!-- 最近未关闭的漏洞 -->
+    <!-- Recent unclosed vulnerabilities -->
     <div class="rounded-xl border border-[#324867]/50 bg-[#19222c]">
       <div class="p-6">
         <h3 class="text-white text-lg font-semibold">{{ $t('dashboard.tables.recentOpenVulnerabilities') }}</h3>
@@ -368,10 +368,10 @@ const loadStatistics = async () => {
   try {
     const response = await getDashboardStatistics()
     if (response && response.data) {
-      // 分别处理各个字段，避免覆盖默认值
+      // Handle each field separately to avoid overwriting default values
       const data = response.data
       
-      // 更新基本统计字段
+      // Update basic statistics fields
       if (data.alertCount24h !== undefined) statistics.value.alertCount24h = data.alertCount24h
       if (data.alertCount24hChange !== undefined) statistics.value.alertCount24hChange = data.alertCount24hChange
       if (data.alertCount24hTrend !== undefined) statistics.value.alertCount24hTrend = data.alertCount24hTrend
@@ -388,7 +388,7 @@ const loadStatistics = async () => {
       if (data.mttdChange !== undefined) statistics.value.mttdChange = data.mttdChange
       if (data.mttdTrend !== undefined) statistics.value.mttdTrend = data.mttdTrend
       
-      // 更新图表数据（只有在有有效数据时才更新）
+      // Update chart data (only update when there is valid data)
       if (data.alertTypeStats && Array.isArray(data.alertTypeStats) && data.alertTypeStats.length > 0) {
         statistics.value.alertTypeStats = data.alertTypeStats
       }
@@ -399,7 +399,7 @@ const loadStatistics = async () => {
     }
   } catch (error) {
     console.error('Failed to load statistics:', error)
-    // API 调用失败时使用默认 mock 数据，但保留已有的图表数据
+    // Use default mock data when API call fails, but keep existing chart data
     statistics.value.alertCount24h = 1258
     statistics.value.alertCount24hChange = 12.5
     statistics.value.alertCount24hTrend = 'up'
@@ -412,7 +412,7 @@ const loadStatistics = async () => {
     statistics.value.mttd = '12m 34s'
     statistics.value.mttdChange = -1.2
     statistics.value.mttdTrend = 'down'
-    // 图表数据保持默认值不变
+    // Chart data remains at default values
   }
 }
 
@@ -421,7 +421,7 @@ const loadStatistics = async () => {
  */
 const loadRecentAlerts = async () => {
   try {
-    // 计算时间范围
+    // Calculate time range
     const end = new Date()
     const start = new Date()
     
@@ -439,11 +439,11 @@ const loadRecentAlerts = async () => {
     } else if (selectedTimeRange.value === 'last3Months') {
       start.setMonth(start.getMonth() - 3)
     } else {
-      // 默认24小时
+      // Default 24 hours
       start.setHours(start.getHours() - 24)
     }
     
-    // 调用 /api/alerts 接口，只获取状态为 open 的告警，限制5条
+    // Call /api/alerts endpoint, only get alerts with status 'open', limit to 5
     const response = await getAlerts({
       status: 'open',
       page: 1,
@@ -476,7 +476,7 @@ const loadRecentVulnerabilities = async () => {
  * @param {String} rangeKey 时间范围键
  */
 const handleTimeRangeChange = (rangeKey) => {
-  // 当时间范围变化时，重新加载数据
+  // Reload data when time range changes
   loadData()
 }
 
@@ -485,7 +485,7 @@ const handleTimeRangeChange = (rangeKey) => {
  * @param {Array} range 自定义时间范围数组
  */
 const handleCustomRangeChange = (range) => {
-  // 当自定义时间范围变化时，重新加载数据
+  // Reload data when custom time range changes
   if (range && range.length === 2) {
     loadData()
   }

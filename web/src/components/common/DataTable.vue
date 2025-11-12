@@ -1,11 +1,11 @@
 <template>
   <div class="bg-[#111822] border border-[#324867] rounded-lg overflow-hidden">
-    <!-- 表格 -->
+    <!-- Table -->
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left text-gray-300" style="table-layout: fixed;">
         <thead class="text-xs text-white uppercase bg-[#1e293b]">
           <tr>
-            <!-- 复选框列 -->
+            <!-- Checkbox column -->
             <th
               v-if="selectable"
               class="p-2"
@@ -21,7 +21,7 @@
                 />
               </div>
             </th>
-            <!-- 数据列 -->
+            <!-- Data columns -->
             <th
               v-for="(column, index) in columns"
               :key="column.key"
@@ -34,7 +34,7 @@
                   {{ column.label }}
                 </slot>
               </div>
-              <!-- 调整列宽的手柄 -->
+              <!-- Column resize handle -->
               <div
                 v-if="resizable && index < columns.length - 1"
                 @mousedown="startResize(column.key, $event)"
@@ -52,7 +52,7 @@
               :class="rowClass"
               @click="handleRowClick(item, rowIndex)"
             >
-              <!-- 复选框列 -->
+              <!-- Checkbox column -->
               <td
                 v-if="selectable"
                 class="p-1"
@@ -68,7 +68,7 @@
                   />
                 </div>
               </td>
-              <!-- 数据列 -->
+              <!-- Data columns -->
               <td
                 v-for="column in columns"
                 :key="column.key"
@@ -83,7 +83,7 @@
               </td>
             </tr>
           </slot>
-          <!-- 空状态 -->
+          <!-- Empty state -->
           <tr v-if="items.length === 0">
             <td :colspan="selectable ? columns.length + 1 : columns.length" class="px-4 py-8 text-center text-gray-400">
               <slot name="empty">
@@ -95,7 +95,7 @@
       </table>
     </div>
 
-    <!-- 分页 -->
+    <!-- Pagination -->
     <nav
       v-if="pagination"
       aria-label="Table navigation"
@@ -175,7 +175,7 @@ import { useI18n } from 'vue-i18n'
 import { useResizableColumns } from '@/composables/useResizableColumns'
 
 const props = defineProps({
-  // 列配置
+  // Column configuration
   columns: {
     type: Array,
     required: true,
@@ -183,72 +183,72 @@ const props = defineProps({
       return value.every(col => col.key && col.label)
     }
   },
-  // 数据
+  // Data
   items: {
     type: Array,
     default: () => []
   },
-  // 是否可选择
+  // Whether selectable
   selectable: {
     type: Boolean,
     default: false
   },
-  // 行键获取函数
+  // Row key getter function
   rowKey: {
     type: [String, Function],
     default: 'id'
   },
-  // 是否可调整列宽
+  // Whether resizable
   resizable: {
     type: Boolean,
     default: true
   },
-  // 列宽存储键
+  // Column width storage key
   storageKey: {
     type: String,
     required: true
   },
-  // 默认列宽
+  // Default column widths
   defaultWidths: {
     type: Object,
     default: () => ({})
   },
-  // 分页配置
+  // Pagination configuration
   pagination: {
     type: Boolean,
     default: true
   },
-  // 当前页
+  // Current page
   currentPage: {
     type: Number,
     default: 1
   },
-  // 每页显示条数
+  // Items per page
   pageSize: {
     type: Number,
     default: 10
   },
-  // 总条数
+  // Total count
   total: {
     type: Number,
     default: 0
   },
-  // 是否显示每页显示条数选择器
+  // Whether to show page size selector
   showPageSizeSelector: {
     type: Boolean,
     default: true
   },
-  // 每页显示条数选项
+  // Page size options
   pageSizeOptions: {
     type: Array,
     default: () => [10, 20, 50, 100, 200]
   },
-  // 空状态文本
+  // Empty state text
   emptyText: {
     type: String,
     default: '暂无数据'
   },
-  // 行样式类
+  // Row style class
   rowClass: {
     type: String,
     default: 'border-b border-[#324867] hover:bg-white/5'
@@ -267,29 +267,29 @@ const emit = defineEmits([
 
 const { t } = useI18n()
 
-// 使用可调整列宽的composable
+// Use resizable columns composable
 const { getColumnWidth, startResize } = useResizableColumns(
   props.storageKey,
   props.defaultWidths
 )
 
-// 换行状态（默认自动换行）
+// Word wrap state (default auto wrap)
 const getInitialWordWrap = () => {
   const saved = localStorage.getItem(`datatable-wordwrap-${props.storageKey}`)
   return saved !== null ? saved === 'true' : true
 }
 const wordWrap = ref(getInitialWordWrap())
 
-// 切换换行状态
+// Toggle word wrap state
 const toggleWordWrap = () => {
   wordWrap.value = !wordWrap.value
   localStorage.setItem(`datatable-wordwrap-${props.storageKey}`, wordWrap.value.toString())
 }
 
-// 选中的项
+// Selected items
 const selectedItems = ref([])
 
-// 全选状态
+// Select all state
 const selectAll = computed({
   get: () => {
     return props.items.length > 0 && selectedItems.value.length === props.items.length
@@ -304,16 +304,16 @@ const selectAll = computed({
   }
 })
 
-// 总页数
+// Total pages
 const totalPages = computed(() => Math.ceil(props.total / props.pageSize))
 
-// 计算要显示的页码数组
+// Calculate page numbers array to display
 const displayPages = computed(() => {
   const total = totalPages.value
   const current = props.currentPage
   const pages = []
   
-  // 如果总页数少于等于 5，显示所有页码
+  // If total pages <= 5, show all page numbers
   if (total <= 5) {
     for (let i = 1; i <= total; i++) {
       pages.push({ type: 'page', value: i })
@@ -321,40 +321,40 @@ const displayPages = computed(() => {
     return pages
   }
   
-  // 总是显示第一页
+  // Always show first page
   pages.push({ type: 'page', value: 1 })
   
-  // 计算当前页附近的页码
+  // Calculate page numbers near current page
   let start = Math.max(2, current - 1)
   let end = Math.min(total - 1, current + 1)
   
-  // 如果当前页在开头附近，显示前几页
+  // If current page is near the beginning, show first few pages
   if (current <= 3) {
     start = 2
     end = Math.min(4, total - 1)
   }
-  // 如果当前页在结尾附近，显示后几页
+  // If current page is near the end, show last few pages
   else if (current >= total - 2) {
     start = Math.max(2, total - 3)
     end = total - 1
   }
   
-  // 如果 start > 2，添加省略号
+  // If start > 2, add ellipsis
   if (start > 2) {
     pages.push({ type: 'ellipsis' })
   }
   
-  // 添加当前页附近的页码
+  // Add page numbers near current page
   for (let i = start; i <= end; i++) {
     pages.push({ type: 'page', value: i })
   }
   
-  // 如果 end < total - 1，添加省略号
+  // If end < total - 1, add ellipsis
   if (end < total - 1) {
     pages.push({ type: 'ellipsis' })
   }
   
-  // 总是显示最后一页（如果不是第一页）
+  // Always show last page (if not first page)
   if (total > 1) {
     pages.push({ type: 'page', value: total })
   }
@@ -362,7 +362,7 @@ const displayPages = computed(() => {
   return pages
 })
 
-// 获取行键
+// Get row key
 const getRowKey = (item, index) => {
   if (typeof props.rowKey === 'function') {
     return props.rowKey(item, index)
@@ -370,7 +370,7 @@ const getRowKey = (item, index) => {
   return item[props.rowKey] || index
 }
 
-// 获取单元格值
+// Get cell value
 const getCellValue = (item, key) => {
   const keys = key.split('.')
   let value = item
@@ -380,18 +380,18 @@ const getCellValue = (item, key) => {
   return value ?? ''
 }
 
-// 判断项是否被选中
+// Check if item is selected
 const isSelected = (item) => {
   const key = getRowKey(item)
   return selectedItems.value.some(selected => getRowKey(selected) === key)
 }
 
-// 处理全选
+// Handle select all
 const handleSelectAll = (event) => {
   selectAll.value = event.target.checked
 }
 
-// 处理单项选择
+// Handle single item selection
 const handleItemSelect = (item, checked) => {
   const key = getRowKey(item)
   if (checked) {
@@ -406,49 +406,49 @@ const handleItemSelect = (item, checked) => {
   emit('select', selectedItems.value)
 }
 
-// 处理行点击
+// Handle row click
 const handleRowClick = (item, index) => {
   emit('row-click', item, index)
 }
 
-// 处理页码变化
+// Handle page change
 const handlePageChange = (page) => {
   emit('update:currentPage', page)
   emit('page-change', page)
 }
 
-// 处理上一页
+// Handle previous page
 const handlePreviousPage = () => {
   if (props.currentPage > 1) {
     handlePageChange(props.currentPage - 1)
   }
 }
 
-// 处理下一页
+// Handle next page
 const handleNextPage = () => {
   if (props.currentPage < totalPages.value) {
     handlePageChange(props.currentPage + 1)
   }
 }
 
-// 处理每页显示条数变化
+// Handle page size change
 const handlePageSizeChange = (event) => {
   const newPageSize = Number(event.target.value)
   emit('update:pageSize', newPageSize)
   emit('page-size-change', newPageSize)
-  // 重置到第一页
+  // Reset to first page
   handlePageChange(1)
 }
 
-// 监听 items 变化，更新选中状态
+// Watch items changes, update selection state
 watch(() => props.items, (newItems) => {
-  // 移除不在当前列表中的选中项
+  // Remove selected items not in current list
   selectedItems.value = selectedItems.value.filter(selected => {
     return newItems.some(item => getRowKey(item) === getRowKey(selected))
   })
 }, { deep: true })
 
-// 暴露方法给父组件
+// Expose methods to parent component
 defineExpose({
   getSelectedItems: () => selectedItems.value,
   clearSelection: () => {
@@ -465,7 +465,7 @@ defineExpose({
 </script>
 
 <style scoped>
-/* 自动换行模式 */
+/* Auto wrap mode */
 .cell-content-wrap {
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -481,7 +481,7 @@ defineExpose({
   max-width: 100% !important;
 }
 
-/* 单行显示模式 */
+/* Single line display mode */
 .cell-content-nowrap {
   white-space: nowrap !important;
   overflow: hidden !important;

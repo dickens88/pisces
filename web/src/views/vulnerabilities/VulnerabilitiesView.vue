@@ -1,6 +1,6 @@
 <template>
   <div class="w-full">
-    <!-- 页面标题和操作 -->
+    <!-- Page title and actions -->
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
         {{ $t('vulnerabilities.title') }}
@@ -21,9 +21,9 @@
       </div>
     </header>
 
-    <!-- 统计图表 -->
+    <!-- Statistics charts -->
     <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-      <!-- 漏洞趋势统计 -->
+      <!-- Vulnerability trend statistics -->
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
           {{ $t('vulnerabilities.statistics.trend') }}
@@ -65,7 +65,7 @@
         </div>
       </div>
 
-      <!-- 漏洞责任部门分布 -->
+      <!-- Vulnerability department distribution -->
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
           {{ $t('vulnerabilities.statistics.departmentDistribution') }}
@@ -108,7 +108,7 @@
       </div>
     </section>
 
-    <!-- 搜索和筛选 -->
+    <!-- Search and filter -->
     <section class="flex flex-col gap-4 rounded-xl border border-[#324867] bg-[#111822] p-4 mb-6">
       <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
         <div class="flex items-center gap-2">
@@ -147,7 +147,7 @@
         </button>
       </div>
 
-      <!-- 数据表格 -->
+      <!-- Data table -->
       <DataTable
         ref="dataTableRef"
         :columns="columns"
@@ -213,7 +213,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 
 const { t } = useI18n()
 
-// 定义列配置
+// Define column configuration
 const columns = computed(() => [
   { key: 'name', label: t('vulnerabilities.list.nameCve') },
   { key: 'riskLevel', label: t('vulnerabilities.list.riskLevel') },
@@ -223,7 +223,7 @@ const columns = computed(() => [
   { key: 'action', label: t('vulnerabilities.list.action') }
 ])
 
-// 默认列宽
+// Default column widths
 const defaultWidths = {
   name: 400,
   riskLevel: 120,
@@ -246,11 +246,11 @@ const showFilterDialog = ref(false)
 const showBatchOperateDialog = ref(false)
 const showCreateScanDialog = ref(false)
 
-// 时间范围选择器
+// Time range picker
 const selectedTimeRange = ref('last30Days')
 const customTimeRange = ref(null)
 
-// 加载漏洞列表
+// Load vulnerability list
 const loadVulnerabilities = async () => {
   try {
     const params = {
@@ -259,7 +259,7 @@ const loadVulnerabilities = async () => {
       pageSize: pageSize.value
     }
     
-    // 根据选择的时间范围添加时间参数
+    // Add time parameters based on selected time range
     if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
       params.startTime = customTimeRange.value[0].toISOString()
       params.endTime = customTimeRange.value[1].toISOString()
@@ -278,7 +278,7 @@ const loadVulnerabilities = async () => {
       } else if (selectedTimeRange.value === 'last3Months') {
         start.setMonth(start.getMonth() - 3)
       } else {
-        // 默认30天
+        // Default 30 days
         start.setDate(start.getDate() - 30)
       }
       
@@ -294,7 +294,7 @@ const loadVulnerabilities = async () => {
   }
 }
 
-// 加载趋势数据
+// Load trend data
 const loadTrendData = async () => {
   try {
     const response = await getVulnerabilityTrend()
@@ -304,7 +304,7 @@ const loadTrendData = async () => {
   }
 }
 
-// 加载部门分布数据
+// Load department distribution data
 const loadDepartmentData = async () => {
   try {
     const response = await getVulnerabilityDepartmentDistribution()

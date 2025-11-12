@@ -1,6 +1,6 @@
 <template>
   <div class="w-full">
-    <!-- 页面头部 -->
+    <!-- Page header -->
     <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
       <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
         {{ $t('alerts.title') }}
@@ -22,7 +22,7 @@
       </div>
     </header>
 
-    <!-- 统计卡片 -->
+    <!-- Statistics cards -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
@@ -145,9 +145,9 @@
       </div>
     </section>
 
-    <!-- 告警列表表格 -->
+    <!-- Alert list table -->
     <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
-      <!-- 加载遮罩层 -->
+      <!-- Loading overlay -->
       <div
         v-if="loadingAlerts"
         class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
@@ -166,7 +166,7 @@
             <div class="pointer-events-none flex items-center shrink-0">
               <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
             </div>
-            <!-- 搜索关键字标签 -->
+            <!-- Search keyword tags -->
             <div
               v-for="(keyword, index) in searchKeywords"
               :key="index"
@@ -182,7 +182,7 @@
                 <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
               </button>
             </div>
-            <!-- 输入框 -->
+            <!-- Input field -->
             <input
               v-model="currentSearchInput"
               @keydown.enter.prevent="addKeyword"
@@ -233,7 +233,7 @@
             <span class="material-symbols-outlined text-base">transform</span>
             <span>{{ $t('alerts.list.batchConvert') }}</span>
           </button>
-          <!-- 更多操作按钮 -->
+          <!-- More actions button -->
           <div class="relative">
             <button
               @click="showMoreMenu = !showMoreMenu"
@@ -242,7 +242,7 @@
             >
               <span class="material-symbols-outlined text-base">more_vert</span>
             </button>
-            <!-- 下拉菜单 -->
+            <!-- Dropdown menu -->
             <div
               v-if="showMoreMenu"
               class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
@@ -330,7 +330,7 @@
       </DataTable>
     </section>
 
-    <!-- 告警详情抽屉 -->
+    <!-- Alert detail drawer -->
     <AlertDetail
       v-if="currentAlertId"
       :alert-id="currentAlertId"
@@ -339,7 +339,7 @@
       @created="handleAlertConvertedToIncident"
     />
 
-    <!-- 创建事件对话框 -->
+    <!-- Create incident dialog -->
     <CreateIncidentDialog
       :visible="showCreateIncidentDialog"
       :initial-data="createIncidentInitialData"
@@ -347,14 +347,14 @@
       @created="handleIncidentCreated"
     />
 
-    <!-- 创建告警对话框 -->
+    <!-- Create alert dialog -->
     <CreateAlertDialog
       :visible="showCreateAlertDialog"
       @close="closeCreateAlertDialog"
       @created="handleAlertCreated"
     />
 
-    <!-- 关联事件对话框 -->
+    <!-- Associate incident dialog -->
     <AssociateIncidentDialog
       :visible="showAssociateIncidentDialog"
       :alert-ids="selectedAlerts"
@@ -362,7 +362,7 @@
       @associated="handleAssociateIncidentSuccess"
     />
 
-    <!-- 批量关闭对话框 -->
+    <!-- Batch close dialog -->
     <div
       v-if="showBatchCloseDialog"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -381,14 +381,14 @@
           </button>
         </div>
 
-        <!-- 提示信息 -->
+        <!-- Prompt message -->
         <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
           <p class="text-sm text-gray-400">
             {{ $t('alerts.list.batchCloseDialog.confirmMessage', { count: selectedAlerts.length }) }}
           </p>
         </div>
 
-        <!-- 结论分类下拉框 -->
+        <!-- Conclusion category dropdown -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusionCategory') }}
@@ -405,7 +405,7 @@
           </select>
         </div>
 
-        <!-- 调查结论输入框 -->
+        <!-- Investigation conclusion input -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
@@ -418,7 +418,7 @@
           ></textarea>
         </div>
 
-        <!-- 操作按钮 -->
+        <!-- Action buttons -->
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeBatchCloseDialog"
@@ -457,7 +457,7 @@ const { t } = useI18n()
 
 
 
-// 定义列配置（使用computed确保响应式）
+// Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
@@ -466,9 +466,9 @@ const columns = computed(() => [
   { key: 'owner', label: t('alerts.list.owner') }
 ])
 
-// 默认列宽
+// Default column widths
 const defaultWidths = {
-  createTime: 200, // 调整为200以适应 yyyy-MM-dd HH:mm:ss 格式
+  createTime: 200, // Adjusted to 200 to fit yyyy-MM-dd HH:mm:ss format
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
@@ -527,7 +527,7 @@ const loadAlerts = async () => {
       pageSize: pageSize.value
     }
     
-    // 根据选择的时间范围添加时间参数
+    // Add time parameters based on selected time range
     if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
       params.startTime = customTimeRange.value[0].toISOString()
       params.endTime = customTimeRange.value[1].toISOString()
@@ -546,7 +546,7 @@ const loadAlerts = async () => {
       } else if (selectedTimeRange.value === 'last3Months') {
         start.setMonth(start.getMonth() - 3)
       } else {
-        // 默认24小时
+        // Default 24 hours
         start.setHours(start.getHours() - 24)
       }
       
@@ -558,12 +558,6 @@ const loadAlerts = async () => {
     alerts.value = response.data
     total.value = response.total
     
-    // 调试：检查第一条数据的时间字段
-    if (response.data && response.data.length > 0) {
-      console.log('First alert data:', response.data[0])
-      console.log('createTime field:', response.data[0].createTime)
-      console.log('create_time field:', response.data[0].create_time)
-    }
   } catch (error) {
     console.error('Failed to load alerts:', error)
   } finally {
@@ -607,8 +601,8 @@ const removeKeyword = (index) => {
  * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
  */
 const handleSearchInput = () => {
-  // 如果需要实时搜索，可以在这里调用 loadAlerts()
-  // 目前只在添加/删除关键字时搜索
+  // If real-time search is needed, call loadAlerts() here
+  // Currently only searches when adding/removing keywords
 }
 
 const handleFilter = () => {
@@ -616,8 +610,8 @@ const handleFilter = () => {
 }
 
 const handlePageSizeChange = () => {
-  pageSize.value = Number(pageSize.value) // 确保是数字类型
-  currentPage.value = 1 // 重置到第一页
+  pageSize.value = Number(pageSize.value) // Ensure it's a number type
+  currentPage.value = 1 // Reset to first page
   loadAlerts()
 }
 
@@ -663,27 +657,27 @@ const route = useRoute()
 const currentAlertId = computed(() => route.params.id ?? null)
 
 const openAlertDetail = (alertId) => {
-  // 更新URL，但不触发页面跳转
+  // Update URL without triggering page navigation
   router.push({ path: `/alerts/${alertId}`, replace: true })
 }
 
 const openAlertDetailInNewWindow = (alertId) => {
-  // 在新窗口打开告警详情
+  // Open alert detail in a new window
   const route = router.resolve({ path: `/alerts/${alertId}` })
-  // 构建完整的 URL
+  // Build complete URL
   const url = window.location.origin + route.href
   window.open(url, '_blank')
 }
 
 const closeAlertDetail = () => {
-  // 清除URL中的告警ID
+  // Clear alert ID from URL
   router.push({ path: '/alerts', replace: true })
 }
 
 const handleAlertClosed = () => {
-  // 告警关闭后，重新加载告警列表
+  // Reload alert list after alert is closed
   loadAlerts()
-  // 清空选中状态
+  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -691,21 +685,21 @@ const handleAlertClosed = () => {
 }
 
 const handleAlertConvertedToIncident = () => {
-  // 告警转事件后，重新加载告警列表
+  // Reload alert list after alert is converted to incident
   loadAlerts()
-  // 清空选中状态
+  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
   }
 }
 
-// 自动换行状态
+// Word wrap state
 const isWordWrap = computed(() => {
   return dataTableRef.value?.wordWrap?.value ?? true
 })
 
-// 切换自动换行
+// Toggle word wrap
 const handleToggleWordWrap = () => {
   if (dataTableRef.value) {
     dataTableRef.value.toggleWordWrap()
@@ -713,7 +707,7 @@ const handleToggleWordWrap = () => {
   }
 }
 
-// 点击外部关闭下拉菜单
+// Close dropdown menu when clicking outside
 const handleClickOutside = (event) => {
   const dropdown = event.target.closest('.more-menu-dropdown')
   const button = event.target.closest('.more-menu-button')
@@ -733,7 +727,7 @@ const openBatchCloseDialog = () => {
 
 const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
-  // 重置表单
+  // Reset form
   closeConclusion.value = {
     category: '',
     notes: ''
@@ -752,14 +746,14 @@ const handleBatchClose = async () => {
       notes: closeConclusion.value.notes.trim()
     })
     
-    // 关闭对话框并重置表单
+    // Close dialog and reset form
     closeBatchCloseDialog()
     selectedAlerts.value = []
     if (dataTableRef.value) {
       dataTableRef.value.clearSelection()
     }
     
-    // 重新加载告警列表
+    // Reload alert list
     loadAlerts()
   } catch (error) {
     console.error('Failed to batch close alerts:', error)
@@ -779,14 +773,14 @@ const closeAssociateIncidentDialog = () => {
 }
 
 const handleAssociateIncidentSuccess = () => {
-  // 关联成功后，关闭对话框并重置
+  // Close dialog and reset after successful association
   closeAssociateIncidentDialog()
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
   }
   
-  // 重新加载告警列表
+  // Reload alert list
   loadAlerts()
 }
 
@@ -796,20 +790,20 @@ const openCreateIncidentDialog = () => {
     return
   }
   
-  // 找到选中的告警
+  // Find selected alert
   const selectedAlert = alerts.value.find(alert => alert.id === selectedAlerts.value[0])
   if (!selectedAlert) {
     console.warn('Selected alert not found')
     return
   }
   
-  // 解析告警的创建时间
+  // Parse alert creation time
   let occurrenceTime = new Date()
   try {
-    // 尝试解析告警的创建时间
+    // Try to parse alert creation time
     if (selectedAlert.createTime) {
       occurrenceTime = new Date(selectedAlert.createTime)
-      // 如果解析失败，使用当前时间
+      // Use current time if parsing fails
       if (isNaN(occurrenceTime.getTime())) {
         occurrenceTime = new Date()
       }
@@ -819,17 +813,17 @@ const openCreateIncidentDialog = () => {
     occurrenceTime = new Date()
   }
   
-  // 获取告警描述（优先使用 aiAnalysis.description，否则使用 description）
+  // Get alert description (prefer aiAnalysis.description, otherwise use description)
   const alertDescription = selectedAlert.aiAnalysis?.description || selectedAlert.description || ''
   
-  // 设置初始数据
+  // Set initial data
   createIncidentInitialData.value = {
     title: selectedAlert.title || '',
     occurrenceTime: occurrenceTime,
     description: alertDescription
   }
   
-  // 打开对话框
+  // Open dialog
   showCreateIncidentDialog.value = true
 }
 
@@ -839,9 +833,9 @@ const closeCreateIncidentDialog = () => {
 }
 
 const handleIncidentCreated = () => {
-  // 事件创建成功后，重新加载告警列表
+  // Reload alert list after incident is created
   loadAlerts()
-  // 清空选中状态
+  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -857,7 +851,7 @@ const closeCreateAlertDialog = () => {
 }
 
 const handleAlertCreated = () => {
-  // 告警创建成功后，重新加载告警列表
+  // Reload alert list after alert is created
   loadAlerts()
   loadStatistics()
 }
@@ -865,7 +859,7 @@ const handleAlertCreated = () => {
 const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
-    // 根据选择的时间范围加载数据
+    // Load data based on selected time range
     loadAlerts()
   }
 }
@@ -884,12 +878,12 @@ watch([currentPage], () => {
 onMounted(() => {
   loadAlerts()
   loadStatistics()
-  // 添加点击外部关闭下拉菜单的监听器
+  // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  // 移除点击外部关闭下拉菜单的监听器
+  // Remove click outside listener
   document.removeEventListener('click', handleClickOutside)
 })
 </script>

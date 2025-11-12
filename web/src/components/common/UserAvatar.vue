@@ -19,13 +19,13 @@ const props = defineProps({
   }
 })
 
-// 预设的5种颜色（冷色调）
+// Preset 5 colors (cool tones)
 const colors = [
-  '#1abc9c', // 绿松石
-  '#3498db', // 蓝色
-  '#9b59b6', // 紫色
-  '#16a085', // 深青色
-  '#2980b9'  // 深蓝色
+  '#1abc9c', // Turquoise
+  '#3498db', // Blue
+  '#9b59b6', // Purple
+  '#16a085', // Dark cyan
+  '#2980b9'  // Dark blue
 ]
 
 /**
