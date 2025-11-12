@@ -8,6 +8,8 @@ from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics
 from utils.logger_init import logger
+from utils.mysql_conn import Session
+from models.alert import Alert
 
 
 class AlertService:
@@ -109,19 +111,47 @@ class AlertService:
         except Exception as ex:
             logger.error(ex)
 
-        extra_info = CommentService.retrieve_comments(alert_id)
-        extra_info["entities"] = cls.extract_entities(row["description"])
+        # retrieve comments by current alert ID
+        comment = CommentService.retrieve_comments(alert_id)
 
-        extra_info["timeline"] = [
+        # extract key data objects from comment
+        row.update(cls.extract_info_from_comment(comment))
+
+        # extract key data object from alert description
+        row["entities"] = cls.extract_entities_from_alert(row["description"])
+        row["timeline"] = [
             {"time": row["create_time"], "event": "Alert Triggered"},
             {"time": row["close_time"], "event": "Close Alert"}
         ]
-        row.update(extra_info)
-
         return row
 
-    @classmethod
-    def extract_entities(cls, description: dict):   
+    @staticmethod
+    def extract_info_from_comment(comment: dict):
+        result = {
+            "comments": [],
+            "intelligence": [],
+            "ai": [],
+            "historic": []
+        }
+        for item in comment['data']:
+            row = {
+                "author": item['content']['come_from'],
+                "create_time": item['content']['occurred_time'],
+                "content": item["content"]["value"]
+            }
+            content = row["content"]
+            if "Intelligence Information" in content:
+                result["intelligence"].append(row)
+            elif "AI" in content or "Dify" in content:
+                result["ai"].append(row)
+            elif "Historical" in content:
+                result["historic"].append(row)
+            else:
+                result["comments"].append(row)
+        return result
+
+    @staticmethod
+    def extract_entities_from_alert(description: dict):
         entities = []
         
         for key, value in description.items():
@@ -153,3 +183,36 @@ class AlertService:
                 entities.append(entity)
         
         return entities
+
+    @classmethod
+    def create_alert(cls, payload: dict) -> dict:
+        """
+        Create a new alert record in local DB.
+        """
+        session = Session()
+        try:
+            alert = Alert(
+                alert_id=payload.get("alert_id"),
+                create_time=payload.get("create_time"),
+                last_update_time=payload.get("last_update_time"),
+                close_time=payload.get("close_time"),
+                title=payload.get("title"),
+                description=json.dumps(payload.get("description")) if isinstance(payload.get("description"), (dict, list)) else payload.get("description"),
+                severity=payload.get("severity", "MEDIUM"),
+                handle_status=payload.get("handle_status", "Open"),
+                owner=payload.get("owner"),
+                creator=payload.get("creator"),
+                close_reason=payload.get("close_reason"),
+                close_comment=payload.get("close_comment"),
+                data_source_product_name=payload.get("data_source_product_name"),
+            )
+            session.add(alert)
+            session.commit()
+            session.refresh(alert)
+            return alert.to_dict()
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()

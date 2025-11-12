@@ -33,3 +33,16 @@ class AlertView(Resource):
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
+
+
+class AlertCreateView(Resource):
+
+    # @jwt_required()
+    def post(self):
+        try:
+            payload = json.loads(request.data or "{}")
+            created = AlertService.create_alert(payload)
+            return {"data": created}, 201
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500

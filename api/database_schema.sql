@@ -31,7 +31,26 @@ CREATE TABLE IF NOT EXISTS `t_revoked_tokens` (
     KEY `idx_jti` (`jti`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='已撤销的JWT令牌表';
 
--- 4. 创建数据库用户并授予权限
+-- 4. 告警表
+CREATE TABLE IF NOT EXISTS `t_alerts` (
+    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `alert_id` TINYTEXT COMMENT '告警唯一ID',
+    `create_time` VARCHAR(40) DEFAULT NULL COMMENT '创建时间，ISO8601含时区',
+    `last_update_time` VARCHAR(40) DEFAULT NULL COMMENT '最后更新时间，ISO8601含时区',
+    `close_time` VARCHAR(40) DEFAULT NULL COMMENT '关闭时间，ISO8601含时区',
+    `title` TEXT COMMENT '标题',
+    `description` TEXT COMMENT '描述',
+    `severity` ENUM('TIPS', 'LOW', 'MEDIUM', 'HIGH', 'FATAL') DEFAULT 'MEDIUM' COMMENT '严重程度',
+    `handle_status` ENUM('Open', 'Block', 'Closed') DEFAULT 'Open' COMMENT '处理状态',
+    `owner` TINYTEXT COMMENT '负责人',
+    `creator` TINYTEXT COMMENT '创建人',
+    `close_reason` ENUM('False positive', 'Resolved', 'Repeated', 'Other') DEFAULT NULL COMMENT '关闭原因',
+    `close_comment` TEXT COMMENT '关闭备注',
+    `data_source_product_name` TINYTEXT COMMENT '数据源产品名',
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='告警表';
+
+-- 5. 创建数据库用户并授予权限
 -- 创建用户 pisces_user，密码为 1234567
 CREATE USER IF NOT EXISTS 'pisces_user'@'%' IDENTIFIED BY '1234567';
 

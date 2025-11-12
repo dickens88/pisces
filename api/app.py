@@ -37,6 +37,7 @@ api.add_resource(auth_view.UserView, '/user/password')
 api.add_resource(auth_view.UserManagement, '/user/management')
 
 api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'])
+api.add_resource(alert_view.AlertCreateView, '/api/alerts/create')
 
 # Mock API路由 - 告警相关
 # api.add_resource(mock_alert_view.MockAlertListView, '/api/alerts')
@@ -47,7 +48,7 @@ api.add_resource(mock_alert_view.MockOpenAlertView, '/api/alerts/<int:alert_id>/
 api.add_resource(mock_alert_view.MockAssociateAlertsToIncidentView, '/api/alerts/associate')
 api.add_resource(mock_alert_view.MockThreatIntelligenceView, '/api/alerts/<int:alert_id>/threat-intelligence')
 api.add_resource(mock_alert_view.MockAssociatedAlertsView, '/api/alerts/<int:alert_id>/associated')
-api.add_resource(mock_alert_view.MockCreateAlertView, '/api/alerts/create')
+# api.add_resource(mock_alert_view.MockCreateAlertView, '/api/alerts/create')
 api.add_resource(mock_alert_view.MockUpdateAlertView, '/api/alerts/<int:alert_id>/update')
 
 # Mock API路由 - 仪表板相关

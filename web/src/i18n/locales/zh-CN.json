@@ -8,6 +8,7 @@
     "search": "搜索",
     "filter": "筛选",
     "reset": "重置",
+    "refresh": "刷新",
     "submit": "提交",
     "close": "关闭",
     "noComments": "暂无评论",
@@ -159,7 +160,9 @@
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "概览",
       "associatedAlerts": "关联告警",
+      "viewAlert": "查看告警",
       "threatIntelligence": "威胁情报",
+      "unknownSource": "未知来源",
       "aiAgent": "AI智能体",
       "comments": "评论",
       "alertInfo": "告警信息",
@@ -181,7 +184,10 @@
       "relatedLogsContent": "相关日志将在此显示",
       "threatIntelligenceContent": "威胁情报信息将在此显示",
       "noThreatIntelligence": "暂无威胁情报匹配",
-      "noAssociatedAlerts": "暂无关联告警"
+      "noAssociatedAlerts": "暂无关联告警",
+      "noAiResponse": "暂无AI分析结果",
+      "responseTab": "响应",
+      "securityAgentTab": "安全智能体"
     }
   },
   "incidents": {
@@ -331,13 +337,7 @@
       "detail": "详情",
       "searchPlaceholder": "搜索CVE, IP, 名称...",
       "exportReport": "导出报告",
-      "batchOperate": "批量操作",
-      "status": {
-        "pending": "待处理",
-        "inProgress": "处理中",
-        "fixed": "已修复",
-        "ignored": "已忽略"
-      }
+      "batchOperate": "批量操作"
     },
     "statistics": {
       "trend": "漏洞趋势统计",

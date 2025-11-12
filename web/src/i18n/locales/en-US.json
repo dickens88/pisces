@@ -8,6 +8,7 @@
     "search": "Search",
     "filter": "Filter",
     "reset": "Reset",
+    "refresh": "Refresh",
     "submit": "Submit",
     "close": "Close",
     "noComments": "No comments yet",
@@ -159,7 +160,9 @@
       "aiAnalysis": "AI-Powered Analysis",
       "overview": "Overview",
       "associatedAlerts": "Associated Alerts",
+      "viewAlert": "View Alert",
       "threatIntelligence": "Threat Intelligence",
+      "unknownSource": "Unknown Source",
       "aiAgent": "AI Agent",
       "comments": "Comments",
       "alertInfo": "Alert Information",
@@ -181,7 +184,10 @@
       "relatedLogsContent": "Related logs will be displayed here.",
       "threatIntelligenceContent": "Threat intelligence information will be displayed here.",
       "noThreatIntelligence": "No threat intelligence matches found",
-      "noAssociatedAlerts": "No associated alerts found"
+      "noAssociatedAlerts": "No associated alerts found",
+      "noAiResponse": "No AI analysis results",
+      "responseTab": "Response",
+      "securityAgentTab": "Security Agent"
     }
   },
   "incidents": {
@@ -331,12 +337,7 @@
       "searchPlaceholder": "Search CVE, IP, Name...",
       "exportReport": "Export Report",
       "batchOperate": "Batch Operate",
-      "status": {
-        "pending": "Pending",
-        "inProgress": "In Progress",
-        "fixed": "Fixed",
-        "ignored": "Ignored"
-      }
+      "status": "Status"
     },
     "statistics": {
       "trend": "Vulnerability Trend Statistics",
