@@ -438,7 +438,7 @@
                     </div>
                   </div>
                   
-                  <!-- 如果没有AI数据，显示提示 -->
+                  <!-- If no AI data, show prompt -->
                   <div v-if="!alert?.ai || alert.ai.length === 0" class="text-text-light text-sm">
                     {{ $t('alerts.detail.noAiResponse') || '暂无AI分析结果' }}
                   </div>
@@ -447,12 +447,12 @@
               </div>
             </main>
             
-            <!-- 无数据状态 -->
+            <!-- No data state -->
             <div v-if="!isLoading && !alert" class="flex-1 flex items-center justify-center">
               <p class="text-text-light text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
             </div>
 
-            <!-- 侧边栏 -->
+            <!-- Sidebar -->
             <aside v-if="!isLoading && alert" class="w-80 border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden">
               <!-- 页签导航 -->
               <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
