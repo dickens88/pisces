@@ -8,6 +8,8 @@ from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics
 from utils.logger_init import logger
+from utils.mysql_conn import Session
+from models.alert import Alert
 
 
 class AlertService:
@@ -103,6 +105,7 @@ class AlertService:
             "creator": item['data_object']['creator'],
             "ttd": item['data_object']['ttd'],
             "extend_properties": item['data_object']['extend_properties'],
+            "data_source_product_name" : item['data_object']['data_source']['product_name'],
         }
         try:
             row["description"] = json.loads(item['data_object']['description'])
@@ -153,3 +156,126 @@ class AlertService:
                 entities.append(entity)
         
         return entities
+
+    @classmethod
+    def build_alert_entity(cls, payload: dict) -> Alert:
+        """
+        Create an `Alert` ORM instance from payload data without persisting it.
+        """
+        severity_choices = set(Alert.__table__.columns['severity'].type.enums)
+        handle_status_choices = set(Alert.__table__.columns['handle_status'].type.enums)
+        close_reason_choices = set(Alert.__table__.columns['close_reason'].type.enums)
+
+        severity_default = 'MEDIUM'
+        handle_status_default = 'Open'
+
+        severity = payload.get("severity", severity_default)
+        if severity not in severity_choices:
+            if severity:
+                logger.warning(
+                    "Unsupported severity '%s' received for alert %s, defaulting to '%s'",
+                    severity,
+                    payload.get("id"),
+                    severity_default,
+                )
+            severity = severity_default
+
+        handle_status = payload.get("handle_status", handle_status_default)
+        if handle_status not in handle_status_choices:
+            if handle_status:
+                logger.warning(
+                    "Unsupported handle_status '%s' received for alert %s, defaulting to '%s'",
+                    handle_status,
+                    payload.get("id"),
+                    handle_status_default,
+                )
+            handle_status = handle_status_default
+
+        close_reason = payload.get("close_reason")
+        if close_reason not in close_reason_choices:
+            if close_reason:
+                logger.warning(
+                    "Unsupported close_reason '%s' received for alert %s, storing as NULL",
+                    close_reason,
+                    payload.get("id"),
+                )
+            close_reason = None
+
+        description = payload.get("description")
+        if isinstance(description, (dict, list)):
+            description = json.dumps(description)
+
+        return Alert(
+            alert_id=payload.get("id"),
+            create_time=payload.get("create_time"),
+            last_update_time=payload.get("update_time"),
+            close_time=payload.get("close_time"),
+            title=payload.get("title"),
+            description=description,
+            severity=severity,
+            handle_status=handle_status,
+            owner=payload.get("owner"),
+            creator=payload.get("creator"),
+            close_reason=close_reason,
+            close_comment=payload.get("close_comment"),
+            data_source_product_name=payload["data_source"]["product_name"],
+        )
+
+    @classmethod
+    def create_alert(cls, payload: dict) -> dict:
+        """
+        Create a new alert record in local DB.
+        """
+        session = Session()
+        try:
+            alert = cls.build_alert_entity(payload)
+            session.add(alert)
+            session.commit()
+            session.refresh(alert)
+            return alert.to_dict()
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
+    @classmethod
+    def change_alert_status(cls, id: str, status: str, close_comment: str = None, close_reason: str = None):
+        session = Session()
+        alert = session.query(Alert).get(id)
+        payload= {
+            "data_object":{
+                "handle_status": status,
+            }
+        }
+        if close_comment:
+            payload["data_object"]["close_comment"] = close_comment
+
+        if close_reason:
+            payload["data_object"]["close_reason"] = close_reason
+
+
+
+        body = json.dumps(payload)
+
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers)
+
+        resp = requests.put(base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+
+        resp.raise_for_status()
+
+        data = json.loads(resp.text)
+        new_alert_content = data["data_object"]
+
+        new_alert = cls.build_alert_entity(new_alert_content)
+
+        for col in alert.table.columns.keys():
+            if col != "id":
+                setattr(alert, col, getattr(new_alert, col, getattr(alert, col)))
+
+        session.commit()
+        session.close()

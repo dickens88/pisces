@@ -6,7 +6,7 @@ from utils.app_config import config as conf
 from utils.common_utils import decrypt
 
 
-engine = create_engine(f'mysql+pymysql://{0}:{1}@{2}:{3}/{4}?charset=utf8'
+engine = create_engine('mysql+pymysql://{0}:{1}@{2}:{3}/{4}?charset=utf8'
                        .format(conf.get('application.mysql.db_user'),
                                urlquote(decrypt(conf.get('application.mysql.db_password'))),
                                conf.get('application.mysql.db_host'),
