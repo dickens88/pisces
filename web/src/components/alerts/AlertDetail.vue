@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div
-      v-if="alert"
+      v-if="visible || currentAlertId"
       class="fixed inset-0 z-50 flex items-center justify-end"
       @click.self="handleClose"
     >
@@ -112,10 +112,24 @@
           </div>
 
           <!-- 内容区 -->
-          <div class="flex flex-1 overflow-hidden">
-            <main class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
+          <div class="flex flex-1 overflow-hidden relative">
+            <!-- 加载动画 -->
+            <Transition name="fade">
+              <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-[#111822]/90 z-10">
+                <div class="flex flex-col items-center gap-4">
+                  <div class="relative w-20 h-20">
+                    <div class="absolute inset-0 border-4 border-primary/30 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-transparent border-t-primary border-r-primary/50 rounded-full animate-spin"></div>
+                  </div>
+                  <p class="text-white text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+                </div>
+              </div>
+            </Transition>
+            
+            <!-- 内容 -->
+            <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
               <!-- 标题和严重程度 -->
-              <div v-if="alert">
+              <div>
                 <span
                   :class="[
                     'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
@@ -380,11 +394,7 @@
 
               <!-- 威胁情报标签页 -->
               <div v-if="activeTab === 'threatIntelligence'">
-                <div v-if="loadingThreatIntel" class="flex items-center justify-center py-12">
-                  <div class="text-text-light text-sm">加载中...</div>
-                </div>
-                
-                <div v-else-if="(!alert?.intelligence || alert.intelligence.length === 0) && threatIntelligence.length === 0" class="text-text-light text-sm py-12 text-center">
+                <div v-if="!alert?.intelligence || alert.intelligence.length === 0" class="text-text-light text-sm py-12 text-center">
                   {{ $t('alerts.detail.noThreatIntelligence') || '暂无威胁情报匹配' }}
                 </div>
                 
@@ -399,18 +409,6 @@
                     :html-content="item.content || ''"
                     :summary="item.summary"
                     :owner="item.author || $t('alerts.detail.unknownSource')"
-                    />
-                  </div>
-                  
-                  <!-- 显示从威胁情报接口返回的数据 -->
-                  <div v-if="threatIntelligence.length > 0" class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
-                    <AlertInfoCard
-                      v-for="item in threatIntelligence"
-                      :key="item.id"
-                      :title="item.title || $t('alerts.detail.threatIntelligence')"
-                    :header-meta="item.timestamp || item.time || '-'"
-                      :summary="item.description || item.content || ''"
-                      :owner="item.source || item.author || $t('alerts.detail.unknownSource')"
                     />
                   </div>
                 </div>
@@ -448,9 +446,14 @@
                 
               </div>
             </main>
+            
+            <!-- 无数据状态 -->
+            <div v-if="!isLoading && !alert" class="flex-1 flex items-center justify-center">
+              <p class="text-text-light text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
+            </div>
 
             <!-- 侧边栏 -->
-            <aside class="w-80 border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden">
+            <aside v-if="!isLoading && alert" class="w-80 border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden">
               <!-- 页签导航 -->
               <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
                 <nav class="flex -mb-px space-x-4">
@@ -697,7 +700,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, openAlert, getThreatIntelligence, getAssociatedAlerts } from '@/api/alerts'
+import { getAlertDetail, batchCloseAlerts, openAlert, getAssociatedAlerts } from '@/api/alerts'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
@@ -723,6 +726,7 @@ const route = useRoute()
 
 const visible = ref(false)
 const alert = ref(null)
+const isLoading = ref(false)
 
 // 获取告警ID：优先使用props，如果没有则从路由参数获取
 const currentAlertId = computed(() => {
@@ -755,9 +759,7 @@ const createIncidentInitialData = ref(null)
 const showEditAlertDialog = ref(false)
 const editAlertInitialData = ref(null)
 const showShareSuccess = ref(false)
-const threatIntelligence = ref([])
 const associatedAlerts = ref([])
-const loadingThreatIntel = ref(false)
 const loadingAssociatedAlerts = ref(false)
 const showAssociateIncidentDialog = ref(false)
 const showMoreActionsMenu = ref(false)
@@ -953,16 +955,18 @@ const transformAlertDetailData = (apiData) => {
 const loadAlertDetail = async () => {
   if (!currentAlertId.value) return
   
+  // 先显示面板和加载状态
+  isLoading.value = true
+  visible.value = true
+  
+  // 添加一个小延迟确保动画能显示
+  await new Promise(resolve => setTimeout(resolve, 50))
+  
   try {
     const response = await getAlertDetail(currentAlertId.value)
     // 转换后端返回的数据格式
     alert.value = transformAlertDetailData(response.data)
-    // 延迟显示以触发动画
-    setTimeout(() => {
-      visible.value = true
-    }, 10)
-    // 加载威胁情报和关联告警
-    loadThreatIntelligence()
+    // 加载关联告警
     loadAssociatedAlerts()
   } catch (error) {
     console.error('Failed to load alert detail:', error)
@@ -972,25 +976,9 @@ const loadAlertDetail = async () => {
     } else {
       emit('close')
     }
-  }
-}
-
-/**
- * @brief 加载威胁情报数据
- * @details 从API获取当前告警的威胁情报匹配信息
- */
-const loadThreatIntelligence = async () => {
-  if (!currentAlertId.value) return
-  
-  loadingThreatIntel.value = true
-  try {
-    const response = await getThreatIntelligence(currentAlertId.value)
-    threatIntelligence.value = response.data || []
-  } catch (error) {
-    console.error('Failed to load threat intelligence:', error)
-    threatIntelligence.value = []
   } finally {
-    loadingThreatIntel.value = false
+    // 确保加载状态在数据加载完成后才关闭
+    isLoading.value = false
   }
 }
 
@@ -1603,9 +1591,7 @@ watch(currentAlertId, (newId, oldId) => {
 
 // 监听标签页切换，按需加载数据
 watch(activeTab, (newTab) => {
-  if (newTab === 'threatIntelligence' && threatIntelligence.value.length === 0 && !loadingThreatIntel.value) {
-    loadThreatIntelligence()
-  } else if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value) {
+  if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value) {
     loadAssociatedAlerts()
   }
 })

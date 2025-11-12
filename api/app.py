@@ -7,7 +7,7 @@ from flask_restful import Api
 
 from models import user
 from utils.common_utils import generate_random_string
-from views import auth_view, alert_view
+from views import auth_view, alert_view, incident_view
 from views import mock_alert_view, mock_dashboard_view, mock_incident_view, mock_vulnerability_view
 
 app = Flask(__name__)
@@ -40,6 +40,8 @@ api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'
 api.add_resource(alert_view.AlertCreateView, '/api/alerts/create')
 api.add_resource(alert_view.AlertChangeStatusView, '/api/alerts/<alert_id>/status')
 
+api.add_resource(incident_view.IncidentView, *['/api/incidents', '/api/incidents/<incident_id>'])
+
 # Mock API路由 - 告警相关
 # api.add_resource(mock_alert_view.MockAlertListView, '/api/alerts')
 api.add_resource(mock_alert_view.MockAlertDetailView, '/api/alerts/<int:alert_id>')
@@ -58,7 +60,7 @@ api.add_resource(mock_dashboard_view.MockRecentOpenAlertsView, '/api/dashboard/r
 api.add_resource(mock_dashboard_view.MockRecentOpenVulnerabilitiesView, '/api/dashboard/recent-vulnerabilities')
 
 # Mock API路由 - 事件相关
-api.add_resource(mock_incident_view.MockIncidentListView, '/api/incidents')
+# api.add_resource(mock_incident_view.MockIncidentListView, '/api/incidents')
 api.add_resource(mock_incident_view.MockIncidentDetailView, '/api/incidents/<int:incident_id>')
 api.add_resource(mock_incident_view.MockBatchCloseIncidentsView, '/api/incidents/batch-close')
 api.add_resource(mock_incident_view.MockCreateIncidentView, '/api/incidents/create')

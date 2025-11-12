@@ -24,51 +24,80 @@
       </div>
     </header>
 
-    <!-- 搜索和筛选 -->
-    <div class="bg-[#111822] border border-[#324867] rounded-lg p-4 mb-6">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="relative flex-1 min-w-[250px]">
-          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#92a9c9]">
-            search
-          </span>
-          <input
-            v-model="searchQuery"
-            @input="handleSearch"
-            class="w-full bg-[#1e293b] text-white border-0 rounded-md pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary"
-            :placeholder="$t('incidents.list.searchPlaceholder')"
-            type="text"
-          />
+    <!-- 事件列表表格 -->
+    <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
+      <!-- 加载遮罩层 -->
+      <div
+        v-if="loadingIncidents"
+        class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+      >
+        <div class="flex flex-col items-center gap-4">
+          <div class="relative w-16 h-16">
+            <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+          </div>
+          <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button
-            @click="showSeverityFilter = !showSeverityFilter"
-            class="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
-          >
-            {{ $t('incidents.list.severityLevel') }}
-            <span class="material-symbols-outlined text-base">expand_more</span>
-          </button>
-          <button
-            @click="showStatusFilter = !showStatusFilter"
-            class="flex items-center gap-2 px-4 py-2 text-sm text-white bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
-          >
-            {{ $t('incidents.list.status') }}
-            <span class="material-symbols-outlined text-base">expand_more</span>
-          </button>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
+        <div class="relative w-full max-w-sm">
+          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+            <div class="pointer-events-none flex items-center shrink-0">
+              <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
+            </div>
+            <!-- 搜索关键字标签 -->
+            <div
+              v-for="(keyword, index) in searchKeywords"
+              :key="index"
+              class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
+            >
+              <span>{{ keyword }}</span>
+              <button
+                @click="removeKeyword(index)"
+                class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                type="button"
+                :aria-label="$t('common.delete')"
+              >
+                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+              </button>
+            </div>
+            <!-- 输入框 -->
+            <input
+              v-model="currentSearchInput"
+              @keydown.enter.prevent="addKeyword"
+              @input="handleSearchInput"
+              class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
+              :placeholder="searchKeywords.length === 0 ? $t('incidents.list.searchPlaceholder') : ''"
+              type="text"
+            />
+          </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <select
+              v-model="statusFilter"
+              @change="handleFilter"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-[#233348] h-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            >
+              <option value="all">{{ $t('incidents.list.allStatus') }}</option>
+              <option value="Open">{{ $t('incidents.list.open') }}</option>
+              <option value="Block">{{ $t('incidents.list.block') }}</option>
+              <option value="Closed">{{ $t('incidents.list.closed') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
           <button
             :disabled="selectedIncidents.length === 0"
-            class="flex items-center gap-2 px-4 py-2 text-sm text-[#92a9c9] bg-[#1e293b] rounded-md disabled:opacity-50 cursor-not-allowed transition-colors"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
           >
             <span class="material-symbols-outlined text-base">ios_share</span>
-            {{ $t('incidents.list.export') }}
+            <span>{{ $t('incidents.list.export') }}</span>
           </button>
         </div>
       </div>
-    </div>
-
-    <!-- 事件列表表格 -->
-    <DataTable
+      <DataTable
       ref="dataTableRef"
       :columns="columns"
       :items="incidents"
@@ -85,40 +114,60 @@
       @select-all="handleSelectAll"
       @page-size-change="handlePageSizeChange"
     >
+      <template #cell-occurrenceTime="{ value, item }">
+        {{ formatDateTime(value || item?.arrive_time || item?.create_time || item?.occurrenceTime || item?.occurrence_time) }}
+      </template>
+      <template #cell-incidentName="{ item }">
+        <div class="flex items-center gap-2">
+          <button
+            @click.stop="openIncidentDetailInNewWindow(item.id)"
+            class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+            :title="$t('incidents.list.openInNewWindow') || '在新窗口打开'"
+          >
+            <span class="material-symbols-outlined text-base">open_in_new</span>
+          </button>
+          <router-link
+            :to="`/incidents/${item.id}`"
+            class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+            :title="item.title || item.name"
+          >
+            {{ item.title || item.name }}
+          </router-link>
+        </div>
+      </template>
       <template #cell-severity="{ item }">
         <span
           :class="[
-            'px-2 py-1 text-xs font-medium rounded-full',
+            'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
             getSeverityClass(item.severity)
           ]"
+          :title="$t(`common.severity.${item.severity?.toLowerCase()}`)"
         >
           {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
         </span>
       </template>
-      <template #cell-incidentName="{ item }">
-        <router-link
-          :to="`/incidents/${item.id}`"
-          class="text-primary hover:underline font-medium overflow-hidden text-ellipsis whitespace-nowrap block"
-          :title="item.name"
-        >
-          {{ item.name }}
-        </router-link>
-      </template>
-      <template #cell-responsibleDepartment="{ value }">
-        {{ value || '-' }}
-      </template>
-      <template #cell-rootCause="{ value }">
-        {{ value || '-' }}
-      </template>
-      <template #cell-occurrenceTime="{ value, item }">
-        {{ formatDateTime(value || item?.occurrenceTime || item?.occurrence_time) }}
-      </template>
       <template #cell-status="{ item }">
-        <span :class="getStatusClass(item.status)">
-          {{ $t(`incidents.list.${item.status}`) }}
+        <span
+          :class="[
+            'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
+            getStatusClass(item.handle_status || item.status)
+          ]"
+          :title="getStatusText(item.handle_status || item.status)"
+        >
+          <span :class="['size-1.5 rounded-full', getStatusDotClass(item.handle_status || item.status)]"></span>
+          {{ getStatusText(item.handle_status || item.status) }}
         </span>
       </template>
-    </DataTable>
+      <template #cell-responsibleDepartment="{ value, item }">
+        {{ item.extend_properties?.dataspace_name || value || '-' }}
+      </template>
+      <template #cell-owner="{ value, item }">
+        <div class="flex justify-center w-full">
+          <UserAvatar :name="item.owner || value || ''" />
+        </div>
+      </template>
+      </DataTable>
+    </section>
 
     <!-- 创建事件对话框 -->
     <CreateIncidentDialog
@@ -132,99 +181,146 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { getIncidents } from '@/api/incidents'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
 // 定义列配置（使用computed确保响应式）
 const columns = computed(() => [
-  { key: 'severity', label: t('incidents.list.severity') },
-  { key: 'incidentName', label: t('incidents.list.incidentName') },
-  { key: 'responsibleDepartment', label: t('incidents.list.responsibleDepartment') },
-  { key: 'rootCause', label: t('incidents.list.rootCause') },
   { key: 'occurrenceTime', label: t('incidents.list.occurrenceTime') },
-  { key: 'status', label: t('incidents.list.status') }
+  { key: 'incidentName', label: t('incidents.list.incidentName') },
+  { key: 'severity', label: t('incidents.list.severity') },
+  { key: 'status', label: t('incidents.list.status') },
+  { key: 'responsibleDepartment', label: t('incidents.list.responsibleDepartment') },
+  { key: 'owner', label: t('incidents.list.owner') }
 ])
 
 // 默认列宽
 const defaultWidths = {
-  severity: 100,
-  incidentName: 300,
+  occurrenceTime: 200,
+  incidentName: 400,
+  severity: 120,
+  status: 120,
   responsibleDepartment: 150,
-  rootCause: 150,
-  occurrenceTime: 180,
-  status: 100
+  owner: 50
 }
 
 const incidents = ref([])
 const dataTableRef = ref(null)
-const searchQuery = ref('')
+const loadingIncidents = ref(false)
+const searchKeywords = ref([])
+const currentSearchInput = ref('')
 const severityFilter = ref('all')
 const statusFilter = ref('all')
 const selectedIncidents = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const showSeverityFilter = ref(false)
-const showStatusFilter = ref(false)
 const showCreateDialog = ref(false)
 
 // 时间范围选择器
-const selectedTimeRange = ref('last24Hours')
+const selectedTimeRange = ref('last3Months')
 const customTimeRange = ref(null)
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 const loadIncidents = async () => {
+  loadingIncidents.value = true
   try {
-    const params = {
-      search: searchQuery.value,
-      severity: severityFilter.value,
-      status: statusFilter.value,
-      page: currentPage.value,
-      pageSize: pageSize.value
+    // 计算时间范围（天数）
+    let timeRange = 1 // 默认1天
+    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
+      // 自定义时间范围：计算天数差
+      const diffTime = Math.abs(customTimeRange.value[1] - customTimeRange.value[0])
+      timeRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
+    } else {
+      // 预定义时间范围
+      if (selectedTimeRange.value === 'last24Hours') {
+        timeRange = 1
+      } else if (selectedTimeRange.value === 'last3Days') {
+        timeRange = 3
+      } else if (selectedTimeRange.value === 'last7Days') {
+        timeRange = 7
+      } else if (selectedTimeRange.value === 'last30Days') {
+        timeRange = 30
+      } else if (selectedTimeRange.value === 'last3Months') {
+        timeRange = 90
+      }
     }
     
-    // 根据选择的时间范围添加时间参数
-    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      params.startTime = customTimeRange.value[0].toISOString()
-      params.endTime = customTimeRange.value[1].toISOString()
-    } else {
-      const end = new Date()
-      const start = new Date()
-      
-      if (selectedTimeRange.value === 'last24Hours') {
-        start.setHours(start.getHours() - 24)
-      } else if (selectedTimeRange.value === 'last3Days') {
-        start.setDate(start.getDate() - 3)
-      } else if (selectedTimeRange.value === 'last7Days') {
-        start.setDate(start.getDate() - 7)
-      } else if (selectedTimeRange.value === 'last30Days') {
-        start.setDate(start.getDate() - 30)
-      } else if (selectedTimeRange.value === 'last3Months') {
-        start.setMonth(start.getMonth() - 3)
-      } else {
-        // 默认24小时
-        start.setHours(start.getHours() - 24)
-      }
-      
-      params.startTime = start.toISOString()
-      params.endTime = end.toISOString()
+    // 构建条件数组
+    const conditions = []
+    // 添加搜索关键字条件
+    searchKeywords.value.forEach(keyword => {
+      conditions.push({ title: keyword })
+    })
+    if (severityFilter.value && severityFilter.value !== 'all') {
+      conditions.push({ severity: severityFilter.value })
+    }
+    if (statusFilter.value && statusFilter.value !== 'all') {
+      conditions.push({ handle_status: statusFilter.value })
+    }
+    
+    // 构建后端期望的参数格式
+    const params = {
+      limit: pageSize.value,
+      offset: (currentPage.value - 1) * pageSize.value,
+      time_range: timeRange,
+      conditions: conditions
     }
     
     const response = await getIncidents(params)
-    incidents.value = response.data
-    total.value = response.total
+    incidents.value = response.data || []
+    total.value = response.total || 0
   } catch (error) {
     console.error('Failed to load incidents:', error)
+    incidents.value = []
+    total.value = 0
+  } finally {
+    loadingIncidents.value = false
   }
 }
 
-const handleSearch = () => {
+/**
+ * @brief 添加搜索关键字
+ */
+const addKeyword = () => {
+  const keyword = currentSearchInput.value.trim()
+  if (keyword && !searchKeywords.value.includes(keyword)) {
+    searchKeywords.value.push(keyword)
+    currentSearchInput.value = ''
+    loadIncidents()
+  }
+}
+
+/**
+ * @brief 删除搜索关键字
+ * @param {number} index - 要删除的关键字索引
+ */
+const removeKeyword = (index) => {
+  searchKeywords.value.splice(index, 1)
+  loadIncidents()
+}
+
+/**
+ * @brief 处理搜索输入
+ * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
+ */
+const handleSearchInput = () => {
+  // 如果需要实时搜索，可以在这里调用 loadIncidents()
+  // 目前只在添加/删除关键字时搜索
+}
+
+/**
+ * @brief 处理筛选器变化
+ */
+const handleFilter = () => {
   loadIncidents()
 }
 
@@ -242,22 +338,55 @@ const handlePageSizeChange = (newPageSize) => {
   loadIncidents()
 }
 
+const router = useRouter()
+
 const getSeverityClass = (severity) => {
+  const severityLower = (severity || '').toLowerCase()
   const classes = {
     high: 'text-white bg-[#E57373]',
     medium: 'text-black bg-[#FFB74D]',
     low: 'text-white bg-[#64B5F6]'
   }
-  return classes[severity] || classes.low
+  return classes[severityLower] || classes.low
 }
 
 const getStatusClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
   const classes = {
-    pending: 'text-amber-400',
-    inProgress: 'text-blue-400',
-    closed: 'text-gray-400'
+    open: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    block: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+    closed: 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
   }
-  return classes[status] || classes.pending
+  return classes[statusLower] || classes.open
+}
+
+const getStatusDotClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
+  const classes = {
+    open: 'bg-amber-400',
+    block: 'bg-yellow-400',
+    closed: 'bg-gray-400'
+  }
+  return classes[statusLower] || classes.open
+}
+
+const getStatusText = (status) => {
+  if (!status) return t('incidents.list.open')
+  const statusLower = status.toLowerCase()
+  const statusMap = {
+    'open': t('incidents.list.open'),
+    'block': t('incidents.list.block'),
+    'closed': t('incidents.list.closed')
+  }
+  return statusMap[statusLower] || status
+}
+
+const openIncidentDetailInNewWindow = (incidentId) => {
+  // 在新窗口打开事件详情
+  const route = router.resolve({ path: `/incidents/${incidentId}` })
+  // 构建完整的 URL
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
 }
 
 const handleIncidentCreated = () => {
@@ -280,7 +409,7 @@ const handleCustomRangeChange = (newRange) => {
   }
 }
 
-watch([currentPage, severityFilter, statusFilter, pageSize], () => {
+watch([currentPage, pageSize], () => {
   loadIncidents()
 })
 

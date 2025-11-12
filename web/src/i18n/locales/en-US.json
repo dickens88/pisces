@@ -1,5 +1,6 @@
 {
   "common": {
+    "more": "More",
     "confirm": "Confirm",
     "cancel": "Cancel",
     "save": "Save",
@@ -11,6 +12,7 @@
     "refresh": "Refresh",
     "submit": "Submit",
     "close": "Close",
+    "loading": "Loading...",
     "noComments": "No comments yet",
     "noData": "No data available",
     "pagination": {
@@ -200,13 +202,16 @@
       "rootCause": "Root Cause",
       "occurrenceTime": "Occurrence Time",
       "status": "Status",
+      "owner": "Owner",
       "action": "Action",
       "viewDetail": "View Details",
+      "openInNewWindow": "Open in New Window",
       "searchPlaceholder": "Search incident name, responsible department, root cause...",
       "severityLevel": "Severity Level",
       "allSeverity": "All",
       "allStatus": "All",
       "open": "Open",
+      "block": "Block",
       "pending": "Pending",
       "inProgress": "In Progress",
       "closed": "Closed",
@@ -293,7 +298,14 @@
         "comments": "Comments"
       },
       "timeline": {
-        "title": "Timeline"
+        "title": "Timeline",
+        "incidentCreated": "Incident Created",
+        "incidentCreatedDesc": "Incident has been created",
+        "alertConverted": "Alert Converted to Incident",
+        "severityChanged": "Severity Changed",
+        "ownerChanged": "Owner Changed",
+        "incidentClosed": "Incident Closed",
+        "incidentClosedDesc": "Incident has been closed"
       },
       "attackChain": {
         "title": "Attack Chain",

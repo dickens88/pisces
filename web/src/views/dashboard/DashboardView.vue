@@ -176,11 +176,11 @@
         <table class="w-full text-sm text-left text-white/80">
           <thead class="text-xs text-white/60 uppercase bg-[#101822]/30">
             <tr>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.severity') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.alertName') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.time') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.sourceIp') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.status') }}</th>
+              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.createTime') }}</th>
+              <th class="px-6 py-3 text-left" scope="col" style="text-align: left;">{{ $t('alerts.list.alertTitle') }}</th>
+              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.riskLevel') }}</th>
+              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.status') }}</th>
+              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.owner') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -190,40 +190,44 @@
               class="border-t border-[#324867]/50 hover:bg-white/5"
             >
               <td class="px-6 py-4">
-                <span 
-                  :class="[
-                    'inline-flex items-center gap-2 font-medium',
-                    getSeverityClass(alert.severity)
-                  ]"
-                >
-                  <span 
-                    :class="[
-                      'w-2 h-2 rounded-full',
-                      getSeverityDotClass(alert.severity)
-                    ]"
-                  ></span>
-                  {{ $t(`common.severity.${alert.severity?.toLowerCase()}`) }}
-                </span>
+                {{ formatDateTime(alert.createTime || alert.create_time) }}
               </td>
-              <td class="px-6 py-4 font-medium text-white/90">
+              <td class="px-6 py-4 font-medium text-white/90 text-left" style="text-align: left;">
                 <button 
                   @click="handleInvestigateAlert(alert)"
-                  class="text-primary hover:underline"
+                  class="text-primary hover:underline text-left"
+                  style="text-align: left;"
                 >
-                  {{ alert.name }}
+                  {{ alert.title }}
                 </button>
               </td>
-              <td class="px-6 py-4">{{ alert.timestamp }}</td>
-              <td class="px-6 py-4">{{ alert.sourceIp }}</td>
               <td class="px-6 py-4">
-                <span 
+                <span
                   :class="[
-                    'text-xs font-medium px-2.5 py-0.5 rounded-full',
+                    'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
+                    getRiskLevelClass(alert.riskLevel)
+                  ]"
+                  :title="$t(`common.severity.${alert.riskLevel}`)"
+                >
+                  {{ $t(`common.severity.${alert.riskLevel}`) }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
                     getStatusClass(alert.status)
                   ]"
+                  :title="$t(`alerts.list.${alert.status}`)"
                 >
-                  {{ $t(`dashboard.status.${alert.status}`) }}
+                  <span :class="['size-1.5 rounded-full', getStatusDotClass(alert.status)]"></span>
+                  {{ $t(`alerts.list.${alert.status}`) }}
                 </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex justify-center w-full">
+                  <UserAvatar :name="alert.owner" />
+                </div>
               </td>
             </tr>
             <tr v-if="recentAlerts.length === 0">
@@ -295,7 +299,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
-import { getDashboardStatistics, getRecentOpenAlerts, getRecentOpenVulnerabilities } from '@/api/dashboard'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import { getDashboardStatistics, getRecentOpenVulnerabilities } from '@/api/dashboard'
+import { getAlerts } from '@/api/alerts'
+import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -414,10 +421,41 @@ const loadStatistics = async () => {
  */
 const loadRecentAlerts = async () => {
   try {
-    const response = await getRecentOpenAlerts({ limit: 3 })
-    recentAlerts.value = response.data
+    // 计算时间范围
+    const end = new Date()
+    const start = new Date()
+    
+    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
+      start.setTime(customTimeRange.value[0].getTime())
+      end.setTime(customTimeRange.value[1].getTime())
+    } else if (selectedTimeRange.value === 'last24Hours') {
+      start.setHours(start.getHours() - 24)
+    } else if (selectedTimeRange.value === 'last3Days') {
+      start.setDate(start.getDate() - 3)
+    } else if (selectedTimeRange.value === 'last7Days') {
+      start.setDate(start.getDate() - 7)
+    } else if (selectedTimeRange.value === 'last30Days') {
+      start.setDate(start.getDate() - 30)
+    } else if (selectedTimeRange.value === 'last3Months') {
+      start.setMonth(start.getMonth() - 3)
+    } else {
+      // 默认24小时
+      start.setHours(start.getHours() - 24)
+    }
+    
+    // 调用 /api/alerts 接口，只获取状态为 open 的告警，限制5条
+    const response = await getAlerts({
+      status: 'open',
+      page: 1,
+      pageSize: 5,
+      startTime: start.toISOString(),
+      endTime: end.toISOString()
+    })
+    
+    recentAlerts.value = response.data || []
   } catch (error) {
     console.error('Failed to load recent alerts:', error)
+    recentAlerts.value = []
   }
 }
 
@@ -465,46 +503,47 @@ const loadData = async () => {
 }
 
 /**
- * @brief 获取严重性样式类
- * @param {String} severity 严重性级别
+ * @brief 获取风险等级样式类（复用 AlertsView 的逻辑）
+ * @param {String} level 风险等级
  * @return {String} CSS类名
  */
-const getSeverityClass = (severity) => {
+const getRiskLevelClass = (level) => {
   const classes = {
-    critical: 'text-red-400',
-    high: 'text-orange-400',
-    medium: 'text-yellow-400',
-    low: 'text-blue-400'
+    fatal: 'bg-red-950 text-red-200',
+    high: 'bg-red-900 text-red-300',
+    medium: 'bg-orange-900 text-orange-300',
+    low: 'bg-blue-900 text-blue-300',
+    tips: 'bg-gray-700 text-gray-300'
   }
-  return classes[severity] || 'text-gray-400'
+  return classes[level] || classes.low
 }
 
 /**
- * @brief 获取严重性点样式类
- * @param {String} severity 严重性级别
- * @return {String} CSS类名
- */
-const getSeverityDotClass = (severity) => {
-  const classes = {
-    critical: 'bg-red-500',
-    high: 'bg-orange-500',
-    medium: 'bg-yellow-500',
-    low: 'bg-blue-500'
-  }
-  return classes[severity] || 'bg-gray-500'
-}
-
-/**
- * @brief 获取状态样式类
+ * @brief 获取状态样式类（复用 AlertsView 的逻辑）
  * @param {String} status 状态
  * @return {String} CSS类名
  */
 const getStatusClass = (status) => {
   const classes = {
-    new: 'bg-red-500/20 text-red-300',
-    inProgress: 'bg-yellow-500/20 text-yellow-300'
+    open: 'bg-primary/20 text-primary',
+    block: 'bg-yellow-500/20 text-yellow-400',
+    closed: 'bg-gray-500/20 text-gray-400'
   }
-  return classes[status] || 'bg-gray-500/20 text-gray-300'
+  return classes[status] || classes.open
+}
+
+/**
+ * @brief 获取状态点样式类（复用 AlertsView 的逻辑）
+ * @param {String} status 状态
+ * @return {String} CSS类名
+ */
+const getStatusDotClass = (status) => {
+  const classes = {
+    open: 'bg-primary',
+    block: 'bg-yellow-400',
+    closed: 'bg-gray-400'
+  }
+  return classes[status] || classes.open
 }
 
 /**
@@ -523,11 +562,11 @@ const getCvssClass = (level) => {
 }
 
 /**
- * @brief 处理调查告警
+ * @brief 处理调查告警（复用 AlertsView 的逻辑）
  * @param {Object} alert 告警对象
  */
 const handleInvestigateAlert = (alert) => {
-  router.push(`/alerts/${alert.id}`)
+  router.push({ path: `/alerts/${alert.id}`, replace: false })
 }
 
 /**

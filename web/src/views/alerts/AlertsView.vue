@@ -146,7 +146,20 @@
     </section>
 
     <!-- 告警列表表格 -->
-    <section class="bg-[#111822] border border-[#324867] rounded-xl">
+    <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
+      <!-- 加载遮罩层 -->
+      <div
+        v-if="loadingAlerts"
+        class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+      >
+        <div class="flex flex-col items-center gap-4">
+          <div class="relative w-16 h-16">
+            <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+          </div>
+          <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        </div>
+      </div>
       <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
         <div class="relative w-full max-w-sm">
           <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
@@ -225,7 +238,7 @@
             <button
               @click="showMoreMenu = !showMoreMenu"
               class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
-              :title="$t('common.more') || '更多'"
+              :title="$t('common.more')"
             >
               <span class="material-symbols-outlined text-base">more_vert</span>
             </button>
@@ -309,8 +322,10 @@
             {{ $t(`alerts.list.${item.status}`) }}
           </span>
         </template>
-        <template #cell-owner="{ value }">
-          <UserAvatar :name="value" />
+                <template #cell-owner="{ value }">
+          <div class="flex justify-center w-full">
+            <UserAvatar :name="value" />
+          </div>
         </template>
       </DataTable>
     </section>
@@ -457,10 +472,11 @@ const defaultWidths = {
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
-  owner: 100
+  owner: 50
 }
 
 const alerts = ref([])
+const loadingAlerts = ref(false)
 const dataTableRef = ref(null)
 const statistics = ref({
   totalAlerts: 0,
@@ -502,6 +518,7 @@ const mttdStages = [
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 const loadAlerts = async () => {
+  loadingAlerts.value = true
   try {
     const params = {
       searchKeywords: searchKeywords.value,
@@ -549,6 +566,8 @@ const loadAlerts = async () => {
     }
   } catch (error) {
     console.error('Failed to load alerts:', error)
+  } finally {
+    loadingAlerts.value = false
   }
 }
 

@@ -1,5 +1,18 @@
 <template>
-  <div class="w-full">
+  <div class="w-full relative">
+    <!-- 加载遮罩层 -->
+    <div
+      v-if="loadingIncident"
+      class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+    >
+      <div class="flex flex-col items-center gap-4">
+        <div class="relative w-16 h-16">
+          <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+          <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+        </div>
+        <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+      </div>
+    </div>
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
@@ -62,7 +75,7 @@
             ]"
           ></span>
           <p class="text-white text-xl font-bold leading-tight">
-            {{ $t(`incidents.list.${incident?.status}`) }}
+            {{ getStatusText(incident?.status) }}
           </p>
         </div>
       </div>
@@ -100,7 +113,7 @@
           {{ $t('incidents.detail.responsibleDepartment') }}
         </p>
         <p class="text-white text-xl font-bold leading-tight">
-          {{ incident?.responsibleDepartment || '-' }}
+          {{ incident?.extendProperties?.dataspace_name || '-' }}
         </p>
       </div>
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
@@ -108,7 +121,7 @@
           {{ $t('incidents.detail.responsiblePerson') }}
         </p>
         <p class="text-white text-xl font-bold leading-tight">
-          {{ incident?.responsiblePerson || '-' }}
+          {{ incident?.owner || incident?.responsiblePerson || '-' }}
         </p>
       </div>
     </div>
@@ -480,6 +493,7 @@ const router = useRouter()
 const { t } = useI18n()
 
 const incident = ref(null)
+const loadingIncident = ref(false)
 const activeTab = ref('overview')
 const newComment = ref('')
 const isEditingDescription = ref(false)
@@ -532,14 +546,168 @@ const formattedAssociatedAlerts = computed(() => {
 })
 
 const loadIncidentDetail = async () => {
+  loadingIncident.value = true
   try {
     const incidentId = route.params.id
     const response = await getIncidentDetail(incidentId)
-    incident.value = response.data
+    const data = response.data
+    
+    // 格式化数据，将后端字段映射到前端使用的字段
+    incident.value = {
+      id: data.id,
+      eventId: data.id,
+      name: data.title,
+      title: data.title,
+      createTime: data.create_time,
+      updateTime: data.update_time,
+      closeTime: data.close_time,
+      status: data.handle_status,
+      severity: data.severity,
+      owner: data.owner,
+      responsiblePerson: data.owner,
+      creator: data.creator,
+      labels: data.labels,
+      closeReason: data.close_reason,
+      closeComment: data.close_comment,
+      isAutoClosed: data.is_auto_closed,
+      ttd: data.ttd,
+      arriveTime: data.arrive_time,
+      description: data.description || data.title, // 如果没有description，使用title
+      extendProperties: data.extend_properties,
+      dataSourceProductName: data.data_source_product_name,
+      // 格式化评论数据
+      comments: formatComments(data.comments || []),
+      // 从评论生成时间线
+      timeline: generateTimeline(data),
+      // 关联告警（如果有）
+      associatedAlerts: data.associatedAlerts || []
+    }
   } catch (error) {
     console.error('Failed to load incident detail:', error)
     router.push('/incidents')
+  } finally {
+    loadingIncident.value = false
   }
+}
+
+/**
+ * @brief 格式化评论数据
+ */
+const formatComments = (comments) => {
+  if (!comments || !Array.isArray(comments)) {
+    return []
+  }
+  
+  return comments.map((comment, index) => {
+    const author = comment.author || 'Unknown'
+    const authorWords = author.trim().split(/\s+/)
+    const authorInitials = authorWords.length > 1
+      ? authorWords.slice(0, 3).map(word => word.charAt(0).toUpperCase()).join('')
+      : author.charAt(0).toUpperCase()
+    
+    // 根据作者名称生成头像颜色
+    let hash = 0
+    for (let i = 0; i < author.length; i++) {
+      hash = author.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const colors = ['bg-teal-500', 'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500']
+    const avatarColor = colors[Math.abs(hash % colors.length)]
+    
+    return {
+      id: comment.id || index,
+      author: author,
+      authorInitials: authorInitials,
+      avatarColor: avatarColor,
+      time: formatDateTime(comment.create_time),
+      content: comment.content,
+      create_time: comment.create_time
+    }
+  })
+}
+
+/**
+ * @brief 从事件数据生成时间线
+ */
+const generateTimeline = (data) => {
+  const timeline = []
+  
+  // 添加创建事件
+  if (data.create_time) {
+    timeline.push({
+      time: formatDateTime(data.create_time),
+      rawTime: data.create_time,
+      title: t('incidents.detail.timeline.incidentCreated'),
+      description: t('incidents.detail.timeline.incidentCreatedDesc'),
+      icon: 'event',
+      severity: data.severity?.toLowerCase() || 'low'
+    })
+  }
+  
+  // 从评论中提取重要事件
+  if (data.comments && Array.isArray(data.comments)) {
+    data.comments.forEach(comment => {
+      const content = comment.content || ''
+      
+      // 检查是否是重要事件
+      if (content.includes('transfer alert to incident')) {
+        timeline.push({
+          time: formatDateTime(comment.create_time),
+          rawTime: comment.create_time,
+          title: t('incidents.detail.timeline.alertConverted'),
+          description: content,
+          icon: 'transform',
+          severity: 'medium'
+        })
+      } else if (content.includes('change severity')) {
+        const severityMatch = content.match(/severity:(\w+)/i)
+        timeline.push({
+          time: formatDateTime(comment.create_time),
+          rawTime: comment.create_time,
+          title: t('incidents.detail.timeline.severityChanged'),
+          description: content,
+          icon: 'priority',
+          severity: severityMatch ? severityMatch[1].toLowerCase() : 'low'
+        })
+      } else if (content.includes('change owner')) {
+        timeline.push({
+          time: formatDateTime(comment.create_time),
+          rawTime: comment.create_time,
+          title: t('incidents.detail.timeline.ownerChanged'),
+          description: content,
+          icon: 'person',
+          severity: 'low'
+        })
+      } else if (content.includes('Resolved') || content.includes('Closed')) {
+        timeline.push({
+          time: formatDateTime(comment.create_time),
+          rawTime: comment.create_time,
+          title: t('incidents.detail.timeline.incidentClosed'),
+          description: content,
+          icon: 'archive',
+          severity: 'low'
+        })
+      }
+    })
+  }
+  
+  // 添加关闭事件
+  if (data.close_time) {
+    timeline.push({
+      time: formatDateTime(data.close_time),
+      rawTime: data.close_time,
+      title: t('incidents.detail.timeline.incidentClosed'),
+      description: data.close_comment || t('incidents.detail.timeline.incidentClosedDesc'),
+      icon: 'check_circle',
+      severity: 'low'
+    })
+  }
+  
+  // 按时间排序（从旧到新），使用原始时间字段
+  return timeline.sort((a, b) => {
+    const timeA = a.rawTime ? new Date(a.rawTime) : new Date(a.time)
+    const timeB = b.rawTime ? new Date(b.rawTime) : new Date(b.time)
+    return timeA - timeB
+  })
 }
 
 const openAlertDetail = (alertId) => {
@@ -690,12 +858,27 @@ const getStatusDotClass = (status) => {
 
 // 事件状态的样式函数（保留用于事件详情页面的其他部分）
 const getIncidentStatusDotClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
   const classes = {
-    pending: 'bg-amber-400',
-    inProgress: 'bg-blue-400',
+    open: 'bg-amber-400',
+    block: 'bg-yellow-400',
     closed: 'bg-gray-400'
   }
-  return classes[status] || classes.pending
+  return classes[statusLower] || classes.open
+}
+
+/**
+ * @brief 获取状态文本
+ */
+const getStatusText = (status) => {
+  if (!status) return t('incidents.list.open')
+  const statusLower = status.toLowerCase()
+  const statusMap = {
+    'open': t('incidents.list.open'),
+    'block': t('incidents.list.block'),
+    'closed': t('incidents.list.closed')
+  }
+  return statusMap[statusLower] || status
 }
 
 const getSeverityDotClass = (severity) => {

@@ -202,15 +202,6 @@ export const associateAlertsToIncident = (params) => {
 }
 
 /**
- * @brief 获取告警的威胁情报信息
- * @param {number|string} alertId - 告警ID
- * @returns {Promise} 返回威胁情报数据
- */
-export const getThreatIntelligence = (alertId) => {
-  return service.get(`/alerts/${alertId}/threat-intelligence`)
-}
-
-/**
  * @brief 获取告警的关联告警列表
  * @param {number|string} alertId - 告警ID
  * @returns {Promise} 返回关联告警数据

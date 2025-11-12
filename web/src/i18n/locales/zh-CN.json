@@ -1,5 +1,6 @@
 {
   "common": {
+    "more": "更多",
     "confirm": "确认",
     "cancel": "取消",
     "save": "保存",
@@ -11,6 +12,7 @@
     "refresh": "刷新",
     "submit": "提交",
     "close": "关闭",
+    "loading": "加载中...",
     "noComments": "暂无评论",
     "noData": "暂无数据",
     "pagination": {
@@ -200,13 +202,16 @@
       "rootCause": "根因",
       "occurrenceTime": "发生时间",
       "status": "状态",
+      "owner": "责任人",
       "action": "操作",
       "viewDetail": "查看详情",
+      "openInNewWindow": "在新窗口打开",
       "searchPlaceholder": "搜索事件名称、责任人部门、根因...",
       "severityLevel": "严重等级",
       "allSeverity": "全部",
       "allStatus": "全部",
       "open": "打开",
+      "block": "阻塞",
       "pending": "待处理",
       "inProgress": "处理中",
       "closed": "已关闭",
@@ -293,7 +298,14 @@
         "comments": "评论"
       },
       "timeline": {
-        "title": "时间线"
+        "title": "时间线",
+        "incidentCreated": "事件已创建",
+        "incidentCreatedDesc": "事件已创建",
+        "alertConverted": "告警转换为事件",
+        "severityChanged": "严重等级已更改",
+        "ownerChanged": "责任人已更改",
+        "incidentClosed": "事件已关闭",
+        "incidentClosedDesc": "事件已关闭"
       },
       "attackChain": {
         "title": "攻击链",
