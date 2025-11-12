@@ -34,7 +34,7 @@ const routes = [
       {
         path: 'incidents/:id',
         name: 'IncidentDetail',
-        component: () => import('@/views/incidents/detail.vue'),
+        component: () => import('@/views/incidents/IncidentsDetail.vue'),
         meta: { title: '事件详情' }
       },
       {

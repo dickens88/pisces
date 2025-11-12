@@ -310,15 +310,15 @@
           </span>
         </template>
         <template #cell-owner="{ value }">
-          {{ value }}
+          <UserAvatar :name="value" />
         </template>
       </DataTable>
     </section>
 
     <!-- 告警详情抽屉 -->
     <AlertDetail
-      v-if="selectedAlertId"
-      :alert-id="selectedAlertId"
+      v-if="currentAlertId"
+      :alert-id="currentAlertId"
       @close="closeAlertDetail"
       @closed="handleAlertClosed"
       @created="handleAlertConvertedToIncident"
@@ -435,9 +435,12 @@ import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
+
+
 
 // 定义列配置（使用computed确保响应式）
 const columns = computed(() => [
@@ -477,7 +480,6 @@ const pageSize = ref(10)
 const total = ref(0)
 const selectedTimeRange = ref('last24Hours')
 const customTimeRange = ref(null)
-const selectedAlertId = ref(null)
 const showBatchCloseDialog = ref(false)
 const closeConclusion = ref({
   category: '',
@@ -639,9 +641,9 @@ const getStatusDotClass = (status) => {
 
 const router = useRouter()
 const route = useRoute()
+const currentAlertId = computed(() => route.params.id ?? null)
 
 const openAlertDetail = (alertId) => {
-  selectedAlertId.value = alertId
   // 更新URL，但不触发页面跳转
   router.push({ path: `/alerts/${alertId}`, replace: true })
 }
@@ -655,7 +657,6 @@ const openAlertDetailInNewWindow = (alertId) => {
 }
 
 const closeAlertDetail = () => {
-  selectedAlertId.value = null
   // 清除URL中的告警ID
   router.push({ path: '/alerts', replace: true })
 }
@@ -861,25 +862,9 @@ watch([currentPage], () => {
   loadAlerts()
 })
 
-// 监听路由参数，如果URL中有告警ID，自动打开告警详情
-watch(() => route.params.id, (alertId) => {
-  if (alertId) {
-    selectedAlertId.value = alertId
-  } else {
-    // 如果路由中没有ID，但之前有选中的告警，清除选中状态
-    if (selectedAlertId.value && route.path === '/alerts') {
-      selectedAlertId.value = null
-    }
-  }
-}, { immediate: true })
-
 onMounted(() => {
   loadAlerts()
   loadStatistics()
-  // 如果URL中有告警ID，自动打开告警详情
-  if (route.params.id) {
-    selectedAlertId.value = route.params.id
-  }
   // 添加点击外部关闭下拉菜单的监听器
   document.addEventListener('click', handleClickOutside)
 })

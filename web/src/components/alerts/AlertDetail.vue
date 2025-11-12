@@ -16,7 +16,7 @@
         <div
           v-if="visible"
           class="relative w-[70vw] h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
-          @click.stop
+          @click.stop="handlePanelClick"
         >
           <!-- 头部 -->
           <div class="sticky top-0 z-20 bg-panel-dark/80 backdrop-blur-sm border-b border-border-dark">
@@ -82,6 +82,19 @@
                   </div>
                 </div>
                 <button
+                  @click="handleRefresh"
+                  :disabled="isRefreshing"
+                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
+                  :title="$t('common.refresh') || 'Refresh'"
+                >
+                  <span
+                    class="material-symbols-outlined text-base"
+                    :class="{ 'animate-spin': isRefreshing }"
+                  >
+                    refresh
+                  </span>
+                </button>
+                <button
                   @click="handleShare"
                   class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center"
                   :title="$t('alerts.detail.share') || 'Share'"
@@ -135,7 +148,7 @@
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.created') }}:</span>
-                    <span class="text-white">{{ alert.timestamp || alert.createTime || '-' }}</span>
+                    <span class="text-white">{{ formatDateTime(alert.timestamp || alert.createTime) }}</span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
@@ -170,7 +183,7 @@
                 <div class="grid grid-cols-1 @lg:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono @container">
                   <div class="flex items-baseline">
                     <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.timestamp') }}:</p>
-                    <p class="font-medium text-white break-all">{{ alert?.timestamp || alert?.createTime || '-' }}</p>
+                    <p class="font-medium text-white break-all">{{ formatDateTime(alert?.timestamp || alert?.createTime) }}</p>
                   </div>
                   <div class="flex items-baseline">
                     <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.status') }}:</p>
@@ -216,12 +229,7 @@
                       :key="comment.id"
                       class="flex items-start gap-4"
                     >
-                      <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                        :class="getAvatarColor(comment.authorInitials)"
-                      >
-                        <span class="font-bold text-white">{{ comment.authorInitials }}</span>
-                      </div>
+                      <UserAvatar :name="comment.author" class="w-10 h-10 shrink-0" />
                       <div class="flex-1">
                         <div class="flex items-baseline gap-2">
                           <p class="font-semibold text-white">{{ comment.author }}</p>
@@ -255,9 +263,7 @@
                   <!-- 评论输入框 -->
                   <div class="mt-6 pt-6 border-t border-border-dark">
                     <div class="flex items-start gap-4">
-                      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-                        <span class="font-bold text-white text-sm">ME</span>
-                      </div>
+                      <UserAvatar name="Current User" class="w-10 h-10 shrink-0" />
                       <div class="flex-1">
                         <!-- 输入框容器 -->
                         <div 
@@ -360,27 +366,15 @@
                 </div>
                 
                 <div v-else class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
-                  <div
+                  <AlertInfoCard
                     v-for="associatedAlert in associatedAlerts"
                     :key="associatedAlert.id"
-                    @click="openAssociatedAlert(associatedAlert.id)"
-                    class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60 cursor-pointer"
-                  >
-                    <div class="flex items-start justify-between">
-                      <h4 class="text-base font-semibold text-white">{{ associatedAlert.title }}</h4>
-                    </div>
-                    <p class="mt-2 text-sm text-text-light">{{ associatedAlert.description }}</p>
-                    <div class="mt-4 flex items-center justify-between text-xs text-text-light">
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">person</span>
-                        <span>{{ associatedAlert.owner || $t('alerts.detail.unassigned') }}</span>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">schedule</span>
-                        <span>{{ associatedAlert.createTime }}</span>
-                      </div>
-                    </div>
-                  </div>
+                    :title="associatedAlert.title"
+                    :header-meta="associatedAlert.displayCreateTime"
+                    :html-content="associatedAlert.content || ''"
+                    :summary="associatedAlert.summary"
+                    :owner="associatedAlert.owner"
+                  />
                 </div>
               </div>
 
@@ -394,47 +388,30 @@
                   {{ $t('alerts.detail.noThreatIntelligence') || '暂无威胁情报匹配' }}
                 </div>
                 
-                <div v-else class="space-y-4">
+                <div v-else class="space-y-6">
                   <!-- 显示从告警详情接口返回的intelligence数据 -->
-                  <div v-if="alert?.intelligence && alert.intelligence.length > 0" class="space-y-4">
-                    <div
+                  <div v-if="alert?.intelligence && alert.intelligence.length > 0" class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
+                    <AlertInfoCard
                       v-for="(item, index) in alert.intelligence"
                       :key="`intel-${index}`"
-                      class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60"
-                    >
-                      <div class="flex items-start justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                          <span class="material-symbols-outlined text-primary text-base">security</span>
-                          <h4 class="text-base font-semibold text-white">{{ item.author || 'Unknown' }}</h4>
-                        </div>
-                        <span class="text-xs text-text-light">{{ item.time || '-' }}</span>
-                      </div>
-                      <div class="text-sm text-[#c3d3e8] mt-2" v-html="item.content"></div>
-                    </div>
+                    :title="item.title || $t('alerts.detail.threatIntelligence')"
+                    :header-meta="item.time || '-'"
+                    :html-content="item.content || ''"
+                    :summary="item.summary"
+                    :owner="item.author || $t('alerts.detail.unknownSource')"
+                    />
                   </div>
                   
                   <!-- 显示从威胁情报接口返回的数据 -->
-                  <div v-if="threatIntelligence.length > 0" class="space-y-4">
-                    <div
+                  <div v-if="threatIntelligence.length > 0" class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
+                    <AlertInfoCard
                       v-for="item in threatIntelligence"
                       :key="item.id"
-                      class="rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all hover:border-primary/50 hover:bg-[#1f2937]/60"
-                    >
-                      <div class="flex items-start justify-between">
-                        <h4 class="text-base font-semibold text-white">{{ item.title || 'Threat Intelligence' }}</h4>
-                      </div>
-                      <p class="mt-2 text-sm text-text-light">{{ item.description || item.content || '' }}</p>
-                      <div class="mt-4 flex items-center justify-between text-xs text-text-light">
-                        <div class="flex items-center gap-1.5">
-                          <span class="material-symbols-outlined text-base">person</span>
-                          <span>{{ item.source || item.author || 'Unknown' }}</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                          <span class="material-symbols-outlined text-base">schedule</span>
-                          <span>{{ item.timestamp || item.time || '-' }}</span>
-                        </div>
-                      </div>
-                    </div>
+                      :title="item.title || $t('alerts.detail.threatIntelligence')"
+                    :header-meta="item.timestamp || item.time || '-'"
+                      :summary="item.description || item.content || ''"
+                      :owner="item.source || item.author || $t('alerts.detail.unknownSource')"
+                    />
                   </div>
                 </div>
               </div>
@@ -458,7 +435,7 @@
                         <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
                         <p class="text-xs text-text-light">{{ aiItem.create_time || aiItem.time || '-' }}</p>
                       </div>
-                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none" v-html="aiItem.content || ''">
+                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')">
                       </div>
                     </div>
                   </div>
@@ -469,175 +446,133 @@
                   </div>
                 </div>
                 
-                <!-- AI 对话输入框 -->
-                <div class="mt-6 pt-6 border-t border-border-dark">
-                  <div class="flex items-start gap-4">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
-                      <span class="font-bold text-white text-sm">ME</span>
-                    </div>
-                    <div class="flex-1">
-                      <!-- 输入框容器 -->
-                      <div 
-                        class="relative rounded-xl border-2 border-[#3c4a60] bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
-                        :class="{ 
-                          'border-primary shadow-lg shadow-primary/20 drag-active': isAiDragging,
-                          'border-primary/50': isAiDragging
-                        }"
-                        @drop.prevent="handleAiDrop"
-                        @dragover.prevent="isAiDragging = true"
-                        @dragleave.prevent="isAiDragging = false"
-                      >
-                        <textarea
-                          v-model="newAiMessage"
-                          class="w-full rounded-xl bg-transparent p-4 pr-32 text-white placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]"
-                          :placeholder="$t('alerts.detail.aiAgentPlaceholder') || 'Ask AI about this alert...'"
-                          rows="3"
-                          @input="handleAiMessageInput"
-                        ></textarea>
-                        
-                        <!-- 工具栏 -->
-                        <div class="absolute bottom-3 left-4 flex items-center gap-2">
-                          <!-- 文件上传按钮 -->
-                          <label class="cursor-pointer">
-                            <input
-                              ref="aiFileInput"
-                              type="file"
-                              multiple
-                              class="hidden"
-                              @change="handleAiFileSelect"
-                            />
-                            <button
-                              type="button"
-                              class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200 group"
-                              title="Upload file"
-                            >
-                              <span class="material-symbols-outlined text-lg">attach_file</span>
-                            </button>
-                          </label>
-                          
-                          <!-- 表情按钮（可选） -->
-                          <button
-                            type="button"
-                            class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200"
-                            title="Add emoji"
-                          >
-                            <span class="material-symbols-outlined text-lg">mood</span>
-                          </button>
-                        </div>
-                        
-                        <!-- 提交按钮 -->
-                        <button
-                          @click="handleSendAiMessage"
-                          :disabled="!canSubmitAiMessage"
-                          class="absolute bottom-3 right-3 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
-                        >
-                          <span class="material-symbols-outlined text-base">send</span>
-                          <span>{{ $t('common.submit') || 'Send' }}</span>
-                        </button>
-                      </div>
-                      
-                      <!-- 已上传文件列表 -->
-                      <div v-if="uploadedAiFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
-                        <div
-                          v-for="(file, index) in uploadedAiFiles"
-                          :key="index"
-                          class="group relative flex items-center gap-2 rounded-lg bg-[#2a3546] border border-[#3c4a60] px-3 py-2 hover:bg-[#3c4a60] transition-colors"
-                        >
-                          <span class="material-symbols-outlined text-primary text-sm">
-                            {{ getFileIcon(file.type) }}
-                          </span>
-                          <span class="text-xs text-text-light max-w-[200px] truncate">{{ file.name }}</span>
-                          <span class="text-xs text-text-light/60">{{ formatFileSize(file.size) }}</span>
-                          <button
-                            @click="removeAiFile(index)"
-                            class="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-[#1e293b] hover:bg-red-500/20 text-text-light hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Remove file"
-                          >
-                            <span class="material-symbols-outlined text-sm">close</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </main>
 
             <!-- 侧边栏 -->
-            <aside class="w-80 border-l border-border-dark p-6 space-y-8 bg-[#1f2937]/20 overflow-y-auto custom-scrollbar">
-              <!-- 关联实体 -->
-              <div class="space-y-4" v-if="alert?.associatedEntities">
-                <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
-                <div class="space-y-3">
-                  <div
-                    v-for="(entity, index) in alert.associatedEntities"
-                    :key="index"
-                    class="flex items-center gap-3 p-3 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] cursor-pointer transition-colors"
+            <aside class="w-80 border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden">
+              <!-- 页签导航 -->
+              <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
+                <nav class="flex -mb-px space-x-4">
+                  <button
+                    @click="rightSidebarTab = 'response'"
+                    :class="[
+                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
+                      rightSidebarTab === 'response'
+                        ? 'text-primary border-primary'
+                        : 'text-slate-400 hover:text-white border-transparent'
+                    ]"
                   >
-                    <span class="material-symbols-outlined text-primary">
-                      {{ getEntityIcon(entity.type) }}
-                    </span>
-                    <div class="text-sm">
-                      <p class="font-medium text-white">{{ entity.name }}</p>
-                      <p class="text-text-light">{{ entity.label }}</p>
-                    </div>
-                  </div>
-                </div>
+                    {{ $t('alerts.detail.responseTab') }}
+                  </button>
+                  <button
+                    @click="rightSidebarTab = 'securityAgent'"
+                    :class="[
+                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
+                      rightSidebarTab === 'securityAgent'
+                        ? 'text-primary border-primary'
+                        : 'text-slate-400 hover:text-white border-transparent'
+                    ]"
+                  >
+                    {{ $t('alerts.detail.securityAgentTab') }}
+                  </button>
+                </nav>
               </div>
 
-              <!-- 事件时间线 -->
-              <div class="space-y-4" v-if="alert?.timeline">
-                <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.eventTimeline') }}</h3>
-                <div class="relative pl-6">
-                  <div class="absolute left-0 h-full w-0.5 bg-border-dark"></div>
-                  <div class="relative space-y-6">
+              <!-- Response 页签内容 -->
+              <div v-if="rightSidebarTab === 'response'" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
+                <div class="pr-6 space-y-6">
+                <!-- 关联实体 -->
+                <div class="space-y-4" v-if="alert?.associatedEntities">
+                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
+                  <div class="space-y-3">
                     <div
-                      v-for="(event, index) in alert.timeline"
+                      v-for="(entity, index) in alert.associatedEntities"
                       :key="index"
-                      class="relative"
+                      class="flex items-center gap-3 p-3 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] cursor-pointer transition-colors"
                     >
-                      <div
-                        :class="[
-                          'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-panel-dark',
-                          index === 0 ? 'bg-primary' : 'bg-border-dark'
-                        ]"
-                      ></div>
-                      <p class="text-xs text-text-light">{{ event.time }}</p>
-                      <p class="text-sm text-white">{{ event.event }}</p>
+                      <span class="material-symbols-outlined text-primary">
+                        {{ getEntityIcon(entity.type) }}
+                      </span>
+                      <div class="text-sm flex-1 min-w-0">
+                        <p class="font-medium text-white truncate">{{ entity.name }}</p>
+                        <p class="text-text-light truncate">{{ entity.label }}</p>
+                      </div>
                     </div>
                   </div>
+                </div>
+
+                <!-- 事件时间线 -->
+                <div class="space-y-4" v-if="alert?.timeline">
+                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.eventTimeline') }}</h3>
+                  <div class="relative pl-6">
+                    <div class="absolute left-0 h-full w-0.5 bg-border-dark"></div>
+                    <div class="relative space-y-6">
+                      <div
+                        v-for="(event, index) in alert.timeline"
+                        :key="index"
+                        class="relative"
+                      >
+                        <div
+                          :class="[
+                            'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-panel-dark',
+                            index === 0 ? 'bg-primary' : 'bg-border-dark'
+                          ]"
+                        ></div>
+                        <p class="text-xs text-text-light">{{ event.time }}</p>
+                        <p class="text-sm text-white">{{ event.event }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 自动化响应 -->
+                <div class="space-y-4">
+                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
+                  <div class="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <div class="flex items-start gap-3">
+                      <span class="material-symbols-outlined text-green-400 mt-0.5">task_alt</span>
+                      <div>
+                        <p class="font-semibold text-white text-sm">Block IP Address</p>
+                        <p class="text-xs text-green-300/80">
+                          Successfully blocked {{ alert?.associatedEntities?.find(e => e.type === 'ip')?.name || 'IP' }} at firewall.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                    <div class="flex items-start gap-3">
+                      <span class="material-symbols-outlined text-yellow-400 mt-0.5">hourglass_top</span>
+                      <div>
+                        <p class="font-semibold text-white text-sm">Threat Intel Scan</p>
+                        <p class="text-xs text-yellow-300/80">Scan in progress for related indicators...</p>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    class="w-full bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center"
+                  >
+                    <span class="material-symbols-outlined text-base">play_circle</span>
+                    {{ $t('alerts.detail.runPlaybook') }}
+                  </button>
+                </div>
                 </div>
               </div>
 
-              <!-- 自动化响应 -->
-              <div class="space-y-4">
-                <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
-                <div class="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                  <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-green-400 mt-0.5">task_alt</span>
-                    <div>
-                      <p class="font-semibold text-white text-sm">Block IP Address</p>
-                      <p class="text-xs text-green-300/80">
-                        Successfully blocked {{ alert?.associatedEntities?.find(e => e.type === 'ip')?.name || 'IP' }} at firewall.
-                      </p>
-                    </div>
-                  </div>
+              <!-- Security Agent 页签内容 -->
+              <div v-if="rightSidebarTab === 'securityAgent'" class="flex flex-col flex-1 min-h-0 pl-6 pb-6">
+                <h3 class="text-base font-semibold text-white mb-4 flex-shrink-0 pr-6">{{ $t('alerts.detail.securityAgentTab') }}</h3>
+                
+                <!-- 使用复用的 AI 对话框组件 -->
+                <div class="flex-1 min-h-0">
+                  <AiChatDialog
+                    :ai-data="alert?.ai || []"
+                    :compact="true"
+                    :auto-scroll="true"
+                    :scroll-to-edge="true"
+                    @send="handleRightSidebarAiSend"
+                  />
                 </div>
-                <div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                  <div class="flex items-start gap-3">
-                    <span class="material-symbols-outlined text-yellow-400 mt-0.5">hourglass_top</span>
-                    <div>
-                      <p class="font-semibold text-white text-sm">Threat Intel Scan</p>
-                      <p class="text-xs text-yellow-300/80">Scan in progress for related indicators...</p>
-                    </div>
-                  </div>
-                </div>
-                <button
-                  class="w-full bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center"
-                >
-                  <span class="material-symbols-outlined text-base">play_circle</span>
-                  {{ $t('alerts.detail.runPlaybook') }}
-                </button>
               </div>
             </aside>
           </div>
@@ -766,6 +701,11 @@ import { getAlertDetail, batchCloseAlerts, openAlert, getThreatIntelligence, get
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
+import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
+import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
+import { formatDateTime } from '@/utils/dateTime'
+import DOMPurify from 'dompurify'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const props = defineProps({
   alertId: {
@@ -798,6 +738,13 @@ const newAiMessage = ref('')
 const uploadedAiFiles = ref([])
 const aiFileInput = ref(null)
 const isAiDragging = ref(false)
+// 右侧侧边栏页签
+const rightSidebarTab = ref('response')
+// 右侧侧边栏AI问答相关（独立于主内容区域的AI问答）
+const rightSidebarAiMessage = ref('')
+const rightSidebarAiFiles = ref([])
+const rightSidebarAiFileInput = ref(null)
+const isRightSidebarAiDragging = ref(false)
 const showBatchCloseDialog = ref(false)
 const closeConclusion = ref({
   category: '',
@@ -814,6 +761,7 @@ const loadingThreatIntel = ref(false)
 const loadingAssociatedAlerts = ref(false)
 const showAssociateIncidentDialog = ref(false)
 const showMoreActionsMenu = ref(false)
+const isRefreshing = ref(false)
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -821,6 +769,74 @@ const tabs = [
   { key: 'threatIntelligence', label: 'alerts.detail.threatIntelligence' },
   { key: 'aiAgent', label: 'alerts.detail.aiAgent' }
 ]
+
+const stripHtmlTags = (html = '') => {
+  if (!html || typeof html !== 'string') return ''
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|pre)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+}
+
+const extractFirstBoldText = (html = '') => {
+  const match = html.match(/<b>([\s\S]*?)<\/b>/i)
+  if (match && match[1]) {
+    return stripHtmlTags(match[1])
+  }
+  return ''
+}
+
+const sanitizeHtml = (html) => {
+  if (!html || typeof html !== 'string') return ''
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['br', 'strong', 'em', 'pre', 'code', 'b', 'i', 'u', 'p'],
+    ALLOWED_ATTR: []
+  })
+}
+
+const transformHistoricEntries = (entries = [], baseAlertId) => {
+  return entries.map((item, index) => {
+    const titleFromContent = extractFirstBoldText(item.content)
+    const fallbackTitle = titleFromContent || `Historical Reference ${index + 1}`
+    const plainSummary = stripHtmlTags(item.content)
+    let formattedTime = ''
+    if (item.create_time) {
+      try {
+        formattedTime = formatDateTime(item.create_time)
+      } catch (error) {
+        formattedTime = item.create_time
+      }
+    }
+
+    return {
+      id: item.id || `${baseAlertId || 'alert'}-historic-${index}`,
+      title: fallbackTitle,
+      owner: item.author || '',
+      content: item.content || '',
+      summary: plainSummary,
+      rawCreateTime: item.create_time || '',
+      displayCreateTime: formattedTime
+    }
+  })
+}
+
+const transformAssociatedAlertsResponse = (data = []) => {
+  return data.map((item, index) => {
+    const rawTime = item.create_time || item.createTime || ''
+
+    return {
+      id: item.id || item.alert_id || `associated-${index}`,
+      title: item.title || item.subject || `Associated Alert ${index + 1}`,
+      owner: item.owner || item.author || '',
+      content: item.content || '',
+      summary: item.description || '',
+      rawCreateTime: rawTime,
+      displayCreateTime: rawTime
+    }
+  })
+}
 
 /**
  * @brief 转换后端返回的告警详情数据为前端期望的格式
@@ -925,7 +941,8 @@ const transformAlertDetailData = (apiData) => {
     ai: ai,
     associatedEntities: entities,
     entities: entities,
-    timeline: timeline
+    timeline: timeline,
+    historic: apiData.historic || []
   }
 }
 
@@ -983,34 +1000,27 @@ const loadThreatIntelligence = async () => {
  */
 const loadAssociatedAlerts = async () => {
   if (!currentAlertId.value) return
-  
+
   loadingAssociatedAlerts.value = true
   try {
-    const response = await getAssociatedAlerts(currentAlertId.value)
-    associatedAlerts.value = response.data || []
+    let data = []
+    if (alert.value?.historic?.length) {
+      data = transformHistoricEntries(alert.value.historic, alert.value?.id)
+    } else {
+      const response = await getAssociatedAlerts(currentAlertId.value)
+      data = transformAssociatedAlertsResponse(response.data || [])
+    }
+    associatedAlerts.value = data
   } catch (error) {
     console.error('Failed to load associated alerts:', error)
-    associatedAlerts.value = []
+    associatedAlerts.value = transformHistoricEntries(alert.value?.historic || [], alert.value?.id)
   } finally {
     loadingAssociatedAlerts.value = false
   }
 }
 
-/**
- * @brief 打开关联告警详情
- * @param {number} alertId - 告警ID
- * @details 当用户点击关联告警时，打开该告警的详情页面。通过更新路由来触发父组件重新加载告警详情。
- */
-const openAssociatedAlert = (alertId) => {
-  // 关闭当前详情面板
-  handleClose()
-  // 延迟更新路由，确保关闭动画完成后再打开新的详情
-  setTimeout(() => {
-    router.push(`/alerts/${alertId}`)
-  }, 300)
-}
-
 const handleClose = () => {
+  showMoreActionsMenu.value = false
   visible.value = false
   setTimeout(() => {
     // 如果是从路由访问，跳转回告警列表
@@ -1222,12 +1232,36 @@ const closeAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = false
 }
 
+const handlePanelClick = (event) => {
+  const dropdown = event.target.closest('.more-actions-dropdown')
+  const button = event.target.closest('.more-actions-button')
+
+  if (!dropdown && !button) {
+    showMoreActionsMenu.value = false
+  }
+}
+
 const handleAssociateIncidentSuccess = async () => {
   // 关联成功后，关闭对话框并重新加载详情
   closeAssociateIncidentDialog()
   await loadAlertDetail()
   // 触发刷新事件，让父组件知道需要刷新列表
   emit('closed')
+}
+
+const handleRefresh = async () => {
+  if (!currentAlertId.value || isRefreshing.value) {
+    return
+  }
+
+  isRefreshing.value = true
+  try {
+    await loadAlertDetail()
+  } catch (error) {
+    console.error('Failed to refresh alert detail:', error)
+  } finally {
+    isRefreshing.value = false
+  }
 }
 
 const canSubmit = computed(() => {
@@ -1373,6 +1407,70 @@ const handleSendAiMessage = () => {
   uploadedAiFiles.value = []
 }
 
+// 右侧侧边栏AI问答相关方法
+const canSubmitRightSidebarAiMessage = computed(() => {
+  return rightSidebarAiMessage.value.trim().length > 0 || rightSidebarAiFiles.value.length > 0
+})
+
+const handleRightSidebarAiMessageInput = () => {
+  // 可以在这里添加自动调整高度的逻辑
+}
+
+const handleRightSidebarAiFileSelect = (event) => {
+  const files = Array.from(event.target.files || [])
+  addRightSidebarAiFiles(files)
+  // 清空input，以便可以再次选择相同文件
+  if (rightSidebarAiFileInput.value) {
+    rightSidebarAiFileInput.value.value = ''
+  }
+}
+
+const handleRightSidebarAiDrop = (event) => {
+  isRightSidebarAiDragging.value = false
+  const files = Array.from(event.dataTransfer.files || [])
+  addRightSidebarAiFiles(files)
+}
+
+const addRightSidebarAiFiles = (files) => {
+  files.forEach(file => {
+    // 检查文件大小（限制为10MB）
+    if (file.size > 10 * 1024 * 1024) {
+      console.warn(`File ${file.name} is too large (max 10MB)`)
+      return
+    }
+    // 检查是否已存在
+    if (!rightSidebarAiFiles.value.find(f => f.name === file.name && f.size === file.size)) {
+      rightSidebarAiFiles.value.push(file)
+    }
+  })
+}
+
+const removeRightSidebarAiFile = (index) => {
+  rightSidebarAiFiles.value.splice(index, 1)
+}
+
+const handleSendRightSidebarAiMessage = () => {
+  if (!canSubmitRightSidebarAiMessage.value) return
+  
+  // TODO: 实现发送右侧侧边栏 AI 消息的逻辑，包含文件上传
+  console.log('Sending right sidebar AI message:', rightSidebarAiMessage.value)
+  console.log('Files:', rightSidebarAiFiles.value)
+  
+  // 清空输入
+  rightSidebarAiMessage.value = ''
+  rightSidebarAiFiles.value = []
+}
+
+// 处理复用的 AI 对话框组件发送事件
+const handleRightSidebarAiSend = (data) => {
+  // TODO: 实现发送右侧侧边栏 AI 消息的逻辑，包含文件上传
+  console.log('Sending right sidebar AI message:', data.message)
+  console.log('Files:', data.files)
+  
+  // 这里可以调用 API 发送消息
+  // 发送成功后，组件会自动清空输入框
+}
+
 const getSeverityClass = (severity) => {
   const classes = {
     fatal: 'bg-red-950/20 text-red-300',
@@ -1393,11 +1491,7 @@ const getStatusBadgeClass = (status) => {
   return classes[status] || classes.open
 }
 
-const getAvatarColor = (initials) => {
-  const colors = ['bg-slate-500', 'bg-purple-500', 'bg-blue-500', 'bg-green-500']
-  const index = initials.charCodeAt(0) % colors.length
-  return colors[index]
-}
+
 
 const getEntityIcon = (type) => {
   const icons = {
@@ -1496,11 +1590,15 @@ const handleShare = async () => {
   }
 }
 
-// 监听告警ID变化（包括props和路由参数）
-watch([() => props.alertId, () => route.params.id], () => {
-  if (currentAlertId.value) {
-    loadAlertDetail()
+// 监听告警ID变化，避免重复加载
+watch(currentAlertId, (newId, oldId) => {
+  if (!newId) {
+    return
   }
+  if (newId === oldId) {
+    return
+  }
+  loadAlertDetail()
 }, { immediate: true })
 
 // 监听标签页切换，按需加载数据
@@ -1599,5 +1697,24 @@ onUnmounted(() => {
 .drag-active {
   animation: dragPulse 1.5s ease-in-out infinite;
 }
+
+.ai-agent__html :deep(pre) {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  margin: 10px 0;
+}
+
+.ai-agent__html :deep(code) {
+  font-family: 'Fira Code', 'Source Code Pro', monospace;
+  font-size: 13px;
+}
+
+.ai-agent__html :deep(b) {
+  color: #e2e8f0;
+}
+
 </style>
 

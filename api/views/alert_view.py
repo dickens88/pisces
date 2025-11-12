@@ -57,10 +57,10 @@ class AlertChangeStatusView(Resource):
             status = data.get('status')
             if not status:
                 return {"error_message": "status is required"}, 400
-            
+
             close_comment = data.get('close_comment')
             close_reason = data.get('close_reason')
-            
+
             AlertService.change_alert_status(alert_id, status, close_comment, close_reason)
             return {"message": "Alert status updated successfully"}, 200
         except Exception as ex:

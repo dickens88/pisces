@@ -112,19 +112,47 @@ class AlertService:
         except Exception as ex:
             logger.error(ex)
 
-        extra_info = CommentService.retrieve_comments(alert_id)
-        extra_info["entities"] = cls.extract_entities(row["description"])
+        # retrieve comments by current alert ID
+        comment = CommentService.retrieve_comments(alert_id)
 
-        extra_info["timeline"] = [
+        # extract key data objects from comment
+        row.update(cls.extract_info_from_comment(comment))
+
+        # extract key data object from alert description
+        row["entities"] = cls.extract_entities_from_alert(row["description"])
+        row["timeline"] = [
             {"time": row["create_time"], "event": "Alert Triggered"},
             {"time": row["close_time"], "event": "Close Alert"}
         ]
-        row.update(extra_info)
-
         return row
 
-    @classmethod
-    def extract_entities(cls, description: dict):   
+    @staticmethod
+    def extract_info_from_comment(comment: dict):
+        result = {
+            "comments": [],
+            "intelligence": [],
+            "ai": [],
+            "historic": []
+        }
+        for item in comment['data']:
+            row = {
+                "author": item['content']['come_from'],
+                "create_time": item['content']['occurred_time'],
+                "content": item["content"]["value"]
+            }
+            content = row["content"]
+            if "Intelligence Information" in content:
+                result["intelligence"].append(row)
+            elif "AI" in content or "Dify" in content:
+                result["ai"].append(row)
+            elif "Historical" in content:
+                result["historic"].append(row)
+            else:
+                result["comments"].append(row)
+        return result
+
+    @staticmethod
+    def extract_entities_from_alert(description: dict):
         entities = []
         
         for key, value in description.items():

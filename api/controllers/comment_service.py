@@ -28,24 +28,4 @@ class CommentService:
         resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
         resp.raise_for_status()
 
-        data = json.loads(resp.text)
-        result = {
-            "comments": [],
-            "intelligence": [],
-            "ai": []
-        }
-        for item in data['data']:
-            row = {
-                "author": item['content']['come_from'],
-                "create_time": item['content']['occurred_time'],
-                "content": item["content"]["value"]
-            }
-            content = row["content"]
-            if "Intelligence Information" in content:
-                result["intelligence"].append(row)
-            elif "AI" in content:
-                result["ai"].append(row)
-            else:
-                result["comments"].append(row)
-
-        return result
+        return json.loads(resp.text)
