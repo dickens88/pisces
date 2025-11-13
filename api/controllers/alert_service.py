@@ -1,15 +1,16 @@
+import json
 from typing import List
 
 import requests
-import json
+from sqlalchemy import func, DateTime, cast
 
 from controllers.comment_service import CommentService
+from models.alert import Alert
 from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics
 from utils.logger_init import logger
 from utils.mysql_conn import Session
-from models.alert import Alert
 
 
 class AlertService:
@@ -88,7 +89,7 @@ class AlertService:
         data = json.loads(resp.text)
         item = data['data']
 
-        row = {
+        alert_content = {
             "id": item['id'],
             "create_time": item['data_object']['create_time'],
             "update_time": item['data_object']['update_time'],
@@ -108,26 +109,85 @@ class AlertService:
             "data_source_product_name" : item['data_object']['data_source']['product_name'],
         }
         try:
-            row["description"] = json.loads(item['data_object']['description'])
+            alert_content["description"] = json.loads(item['data_object']['description'])
         except Exception as ex:
             logger.error(ex)
+        return alert_content
+
+    @classmethod
+    def retrieve_alert_and_comments(cls, alert_id):
+        alert = cls.retrieve_alert_by_id(alert_id)
 
         # retrieve comments by current alert ID
         comment = CommentService.retrieve_comments(alert_id)
 
         # extract key data objects from comment
-        row.update(cls.extract_info_from_comment(comment))
+        alert.update(cls._extract_info_from_comment(comment))
 
         # extract key data object from alert description
-        row["entities"] = cls.extract_entities_from_alert(row["description"])
-        row["timeline"] = [
-            {"time": row["create_time"], "event": "Alert Triggered"},
-            {"time": row["close_time"], "event": "Close Alert"}
+        alert["entities"] = cls._extract_entities_from_alert(alert["description"])
+        alert["timeline"] = [
+            {"time": alert["create_time"], "event": "Alert Triggered"},
+            {"time": alert["close_time"], "event": "Close Alert"}
         ]
-        return row
+        return alert
+
+    @classmethod
+    def close_alert(cls, alert_id, close_reason, comment):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {
+            "data_object": {
+                "handle_status": "Closed",
+                "close_reason": close_reason,
+                "close_comment": comment
+            }
+        }
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
+        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        return json.loads(resp.text)
+
+    @classmethod
+    def update_alert(cls, alert_id, update_info):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {"data_object": update_info}
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
+        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        return json.loads(resp.text)
+
+    @classmethod
+    def convert_alert_to_incident(cls, alert_ids):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/batch-order"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {
+            "ids": []
+        }
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
+        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        return json.loads(resp.text)
+
+    @classmethod
+    def associate_alert(cls, alert_id):
+        pass
 
     @staticmethod
-    def extract_info_from_comment(comment: dict):
+    def _extract_info_from_comment(comment: dict):
         result = {
             "comments": [],
             "intelligence": [],
@@ -152,7 +212,7 @@ class AlertService:
         return result
 
     @staticmethod
-    def extract_entities_from_alert(description: dict):
+    def _extract_entities_from_alert(description: dict):
         entities = []
         
         for key, value in description.items():
@@ -283,8 +343,6 @@ class AlertService:
         if close_reason:
             payload["data_object"]["close_reason"] = close_reason
 
-
-
         body = json.dumps(payload)
 
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
@@ -307,3 +365,17 @@ class AlertService:
 
         session.commit()
         session.close()
+
+
+    @classmethod
+    def get_alert_count_by_product_name(cls, start_date):
+        session = Session()
+
+
+        results = (
+            session.query(Alert.data_source_product_name, func.count(Alert.id))
+            .filter(cast(Alert.create_time, DateTime)>=start_date)
+            .group_by(Alert.data_source_product_name)
+            .all()
+        )
+        

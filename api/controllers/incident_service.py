@@ -3,6 +3,7 @@ from typing import List
 import requests
 import json
 
+from controllers.alert_service import AlertService
 from controllers.comment_service import CommentService
 from utils.app_config import config
 from utils.common_utils import get_date_range
@@ -66,11 +67,8 @@ class IncidentService:
                 "creator": item['data_object']['creator'],
                 "ttr": item['data_object']['ttr'],
                 "extend_properties": item['data_object']['extend_properties'],
+                "description": item['data_object']['description']
             }
-            try:
-                row["description"] = json.loads(item['data_object']['description'])
-            except Exception as ex:
-                logger.error(ex)
             result.append(row)
 
         return result, total
@@ -105,16 +103,20 @@ class IncidentService:
             "creator": item['data_object']['creator'],
             "ttd": item['data_object']['ttd'],
             "extend_properties": item['data_object']['extend_properties'],
-            "data_source_product_name" : item['data_object']['data_source']['product_name'],
+            "description": item['data_object']['description'],
+            "data_source_product_name": item['data_object']['data_source']['product_name'],
         }
-        try:
-            row["description"] = json.loads(item['data_object']['description'])
-        except Exception as ex:
-            logger.error(ex)
+
+        # retrieve complete associated alert by id
+        associated_alerts = []
+        associated_ids = item['data_object']['alert_list']
+        for alert_id in associated_ids:
+            alert = AlertService.retrieve_alert_by_id(alert_id)
+            associated_alerts.append(alert)
+        row["associated_alerts"] = associated_alerts
 
         # retrieve comments by current alert ID
         row["comments"] = cls.extract_info_from_comment(CommentService.retrieve_comments(incident_id))
-
         return row
 
     @staticmethod

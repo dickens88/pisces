@@ -28,8 +28,29 @@ class AlertView(Resource):
     # @jwt_required()
     def get(self, alert_id):
         try:
-            data = AlertService.retrieve_alert_by_id(alert_id)
+            data = AlertService.retrieve_alert_and_comments(alert_id)
             return {"data": data}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+    # @jwt_required
+    def put(self, alert_id):
+        data = json.loads(request.data)
+        action = data.get("action")
+
+        try:
+            if action == "update":
+                update_info = data["data"]
+                result = AlertService.update_alert(alert_id, update_info)
+                return {"data": result}, 200
+            elif action == "close":
+                close_reason = data["data"]["close_reason"]
+                close_comment = data["data"]["close_comment"]
+                result = AlertService.close_alert(alert_id=alert_id, close_reason=close_reason, comment=close_comment)
+                return {"data": result}, 200
+            else:
+                raise Exception(f"The action {action} is not supported")
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
