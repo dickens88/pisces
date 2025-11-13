@@ -3,12 +3,10 @@
     <div
       v-if="visible"
       class="fixed inset-0 z-50 flex items-center justify-end"
-      @click.self="handleClose"
     >
       <!-- 遮罩层 -->
       <div 
         class="fixed inset-0 bg-black/50"
-        @click="handleClose"
       ></div>
       
       <!-- 编辑告警面板 - 有滑入动画 -->
@@ -246,7 +244,16 @@ const fillFormData = () => {
     
     formData.value.owner = props.initialData.owner || ''
     formData.value.ruleName = props.initialData.ruleName || ''
-    formData.value.description = props.initialData.description || ''
+    // 处理 description 字段：如果是对象，转换为 JSON 字符串；如果是字符串，直接使用
+    if (props.initialData.description) {
+      if (typeof props.initialData.description === 'object') {
+        formData.value.description = JSON.stringify(props.initialData.description, null, 2)
+      } else {
+        formData.value.description = String(props.initialData.description)
+      }
+    } else {
+      formData.value.description = ''
+    }
   } else {
     console.warn('No initial data provided to EditAlertDialog')
   }

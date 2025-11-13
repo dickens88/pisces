@@ -47,23 +47,3 @@ class AlertCreateView(Resource):
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
-
-
-class AlertChangeStatusView(Resource):
-
-    # @jwt_required()
-    def put(self, alert_id):
-        try:
-            data = json.loads(request.data or "{}")
-            status = data.get('status')
-            if not status:
-                return {"error_message": "status is required"}, 400
-
-            close_comment = data.get('close_comment')
-            close_reason = data.get('close_reason')
-
-            AlertService.change_alert_status(alert_id, status, close_comment, close_reason)
-            return {"message": "Alert status updated successfully"}, 200
-        except Exception as ex:
-            logger.exception(ex)
-            return {"error_message": str(ex)}, 500

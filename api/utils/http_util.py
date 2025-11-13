@@ -5,6 +5,8 @@ from utils.app_config import config
 from utils.common_utils import decrypt
 
 
+STUPID_SECMASTER_TEMPLATE1 = {"description":"","title":"","alert_type":{"category":"1111","alert_type":"1111"},"workspace_id":"1","domain_id":"1","verification_state":"Unknown","handle_status":"Open","severity":"Tips","creator":"hwstaff_intl_eu_CBUSOC","create_time":"2025-11-13T21:08:39.255Z+0000","region_id":"eu-west-101","version":"1.0.0","data_source":{"domain_id":"111","product_feature":"1","project_id":"111","company_name":"Huawei","region_id":"1","source_type":1,"product_name":"1"},"environment":{"domain_id":"1","project_id":"1","region_id":"111","vendor_type":"HWC"}}
+
 def _sign(method, uri, headers, AK, SK, body=None):
     sig = signer.Signer()
     # Set the AK/SK to sign and authenticate the request.

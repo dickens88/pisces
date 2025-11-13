@@ -195,24 +195,10 @@
               <div v-if="activeTab === 'overview'">
                 <h3 class="text-lg font-semibold mb-3 text-white">{{ $t('alerts.detail.alertInfo') }}</h3>
                 <div class="grid grid-cols-1 @lg:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono @container">
-                  <div class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.timestamp') }}:</p>
-                    <p class="font-medium text-white break-all">{{ formatDateTime(alert?.timestamp || alert?.createTime) }}</p>
-                  </div>
-                  <div class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.status') }}:</p>
-                    <p class="font-medium text-white break-all">{{ $t(`alerts.list.${alert?.status}`) || '-' }}</p>
-                  </div>
-                  <div class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.ruleName') }}:</p>
-                    <p class="font-medium text-white break-all">{{ alert?.ruleName || '-' }}</p>
-                  </div>
-                  <div class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.owner') }}:</p>
-                    <p class="font-medium text-white break-all">{{ alert?.owner || $t('alerts.detail.unassigned') }}</p>
-                  </div>
+                  
                   <!-- Dynamically display all fields in description -->
-                  <template v-if="alert?.description && typeof alert.description === 'object'">
+                  <!-- 如果 description 是对象（且不为 null），遍历显示所有字段 -->
+                  <template v-if="alert?.description && typeof alert.description === 'object' && alert.description !== null && !Array.isArray(alert.description)">
                     <template
                       v-for="(value, key) in alert.description"
                       :key="key"
@@ -223,12 +209,17 @@
                       >
                         <p class="text-text-light w-40 shrink-0">{{ key }}:</p>
                         <p class="font-medium text-white break-all">
-                          <span v-if="typeof value === 'object'">{{ JSON.stringify(value) }}</span>
+                          <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
                           <span v-else>{{ value }}</span>
                         </p>
                       </div>
                     </template>
                   </template>
+                  <!-- 如果 description 不是对象（字符串、数字、布尔值等），直接显示 -->
+                  <div v-else-if="alert?.description !== null && alert?.description !== undefined" class="flex items-baseline">
+                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.description') || '描述' }}:</p>
+                    <p class="font-medium text-white break-all">{{ alert.description }}</p>
+                  </div>
                 </div>
                 
                 <!-- 分割线 -->
@@ -621,7 +612,7 @@
             <option value="">{{ $t('alerts.list.batchCloseDialog.selectCategory') }}</option>
             <option value="falsePositive">{{ $t('alerts.list.batchCloseDialog.categories.falsePositive') }}</option>
             <option value="resolved">{{ $t('alerts.list.batchCloseDialog.categories.resolved') }}</option>
-            <option value="convertedToIncident">{{ $t('alerts.list.batchCloseDialog.categories.convertedToIncident') }}</option>
+            <option value="repeated">{{ $t('alerts.list.batchCloseDialog.categories.repeated') }}</option>
             <option value="other">{{ $t('alerts.list.batchCloseDialog.categories.other') }}</option>
           </select>
         </div>
@@ -700,7 +691,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, openAlert, getAssociatedAlerts } from '@/api/alerts'
+import { getAlertDetail, batchCloseAlerts, openAlert, getAssociatedAlerts, closeAlert } from '@/api/alerts'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
@@ -865,7 +856,10 @@ const transformAlertDetailData = (apiData) => {
   }
 
   // 从description中提取字段
-  const description = apiData.description || {}
+  // 保留原始的 description 值（可能是字符串或对象）
+  const description = apiData.description !== null && apiData.description !== undefined
+    ? apiData.description
+    : {}
   const extendProperties = apiData.extend_properties || {}
 
   // 转换comments格式
@@ -906,11 +900,12 @@ const transformAlertDetailData = (apiData) => {
     event: event.event || ''
   }))
 
-  // 从description中提取字段
-  const sourceIp = description.srcip || description.sourceIp || description.src_ip
-  const userName = description.username || description.userName || description.user_name
-  const destinationHostname = description.destinationHostname || description.dest_hostname
-  const ruleName = extendProperties.rule_name || description.model_name || ''
+  // 从description中提取字段（只有当description是对象时才尝试访问属性）
+  const descriptionObj = typeof description === 'object' && description !== null ? description : {}
+  const sourceIp = descriptionObj.srcip || descriptionObj.sourceIp || descriptionObj.src_ip
+  const userName = descriptionObj.username || descriptionObj.userName || descriptionObj.user_name
+  const destinationHostname = descriptionObj.destinationHostname || descriptionObj.dest_hostname
+  const ruleName = extendProperties.rule_name || descriptionObj.model_name || ''
 
   return {
     id: apiData.id,
@@ -1058,9 +1053,13 @@ const handleBatchClose = async () => {
     return
   }
 
+  if (!currentAlertId.value) {
+    return
+  }
+
   try {
-    await batchCloseAlerts({
-      alertIds: [props.alertId],
+    // 调用单个告警关闭接口
+    await closeAlert(currentAlertId.value, {
       category: closeConclusion.value.category,
       notes: closeConclusion.value.notes.trim()
     })

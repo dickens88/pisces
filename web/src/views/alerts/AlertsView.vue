@@ -6,6 +6,19 @@
         {{ $t('alerts.title') }}
       </h1>
       <div class="flex gap-2 items-center">
+        <button
+          @click="handleRefresh"
+          :disabled="isRefreshing"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': isRefreshing }"
+          >
+            refresh
+          </span>
+        </button>
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
@@ -404,7 +417,7 @@
             <option value="">{{ $t('alerts.list.batchCloseDialog.selectCategory') }}</option>
             <option value="falsePositive">{{ $t('alerts.list.batchCloseDialog.categories.falsePositive') }}</option>
             <option value="resolved">{{ $t('alerts.list.batchCloseDialog.categories.resolved') }}</option>
-            <option value="convertedToIncident">{{ $t('alerts.list.batchCloseDialog.categories.convertedToIncident') }}</option>
+            <option value="repeated">{{ $t('alerts.list.batchCloseDialog.categories.repeated') }}</option>
             <option value="other">{{ $t('alerts.list.batchCloseDialog.categories.other') }}</option>
           </select>
         </div>
@@ -448,7 +461,7 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, getAlertCountsBySource } from '@/api/alerts'
+import { getAlerts, getAlertStatistics, batchCloseAlerts, getAlertCountsBySource, closeAlert } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
@@ -482,6 +495,7 @@ const defaultWidths = {
 
 const alerts = ref([])
 const loadingAlerts = ref(false)
+const isRefreshing = ref(false)
 const dataTableRef = ref(null)
 const statistics = ref({
   totalAlerts: 0,
@@ -710,6 +724,22 @@ const loadAlerts = async () => {
   }
 }
 
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  try {
+    await Promise.all([
+      loadAlerts(),
+      loadStatistics()
+    ])
+  } catch (error) {
+    console.error('Failed to refresh:', error)
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
 const loadStatistics = async () => {
   try {
     const response = await getAlertStatistics()
@@ -885,11 +915,23 @@ const handleBatchClose = async () => {
   }
 
   try {
-    await batchCloseAlerts({
-      alertIds: selectedAlerts.value,
+    // 遍历选中的告警，逐个调用关闭接口
+    const closeParams = {
       category: closeConclusion.value.category,
       notes: closeConclusion.value.notes.trim()
-    })
+    }
+    
+    // 使用 Promise.all 并行调用所有接口，或者使用 for...of 串行调用
+    // 这里使用串行调用，以便更好地处理错误
+    for (const alertId of selectedAlerts.value) {
+      try {
+        await closeAlert(alertId, closeParams)
+      } catch (error) {
+        console.error(`Failed to close alert ${alertId}:`, error)
+        // 可以选择继续处理其他告警，或者中断整个流程
+        // 这里选择继续处理其他告警
+      }
+    }
     
     // Close dialog and reset form
     closeBatchCloseDialog()

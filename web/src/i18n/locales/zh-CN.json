@@ -106,9 +106,9 @@
         "conclusionCategory": "结论分类",
         "selectCategory": "请选择分类",
         "categories": {
-          "falsePositive": "误报",
+          "falsePositive": "误检",
           "resolved": "已解决",
-          "convertedToIncident": "转事件",
+          "repeated": "重复",
           "other": "其他"
         },
         "conclusion": "调查结论",

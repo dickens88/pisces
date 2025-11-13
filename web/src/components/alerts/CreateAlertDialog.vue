@@ -3,12 +3,10 @@
     <div
       v-if="visible"
       class="fixed inset-0 z-50 flex items-center justify-end"
-      @click.self="handleClose"
     >
       <!-- 遮罩层 -->
       <div 
         class="fixed inset-0 bg-black/50"
-        @click="handleClose"
       ></div>
       
       <!-- 创建告警面板 - 有滑入动画 -->
@@ -247,18 +245,15 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
     
-    // 将日期对象转换为后端需要的 ISO 格式
-    const timestamp = formData.value.timestamp instanceof Date 
-      ? formData.value.timestamp.toISOString()
-      : new Date(formData.value.timestamp).toISOString()
-    
+    // createAlert 函数会自动处理时间格式转换
     const alertData = {
       title: formData.value.title,
       riskLevel: formData.value.riskLevel,
       status: formData.value.status,
       owner: formData.value.owner,
+      creator: formData.value.owner, // 创建者默认为责任人
       ruleName: formData.value.ruleName || undefined,
-      timestamp: timestamp,
+      timestamp: formData.value.timestamp, // 直接传递 Date 对象，createAlert 会处理格式转换
       description: formData.value.description
     }
 

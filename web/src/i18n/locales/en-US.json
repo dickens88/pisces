@@ -106,9 +106,9 @@
         "conclusionCategory": "Conclusion Category",
         "selectCategory": "Please select a category",
         "categories": {
-          "falsePositive": "False Positive",
+          "falsePositive": "False detection",
           "resolved": "Resolved",
-          "convertedToIncident": "Converted to Incident",
+          "repeated": "Repeated",
           "other": "Other"
         },
         "conclusion": "Investigation Conclusion",

@@ -110,6 +110,42 @@ const buildConditions = (searchKeywords, status) => {
 }
 
 /**
+ * @brief 格式化时间为后端期望的格式：YYYY-MM-DDTHH:mm:ssZ+HHmm (例如: 2021-01-30T23:00:00Z+0800)
+ * @param {Date} date - 日期对象
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatDateTime = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  const offset = -date.getTimezoneOffset()
+  const oh = Math.floor(Math.abs(offset) / 60)
+  const om = Math.abs(offset) % 60
+  const sign = offset >= 0 ? '+' : '-'
+  return `${y}-${m}-${d}T${h}:${min}:${s}Z${sign}${String(oh).padStart(2, '0')}${String(om).padStart(2, '0')}`
+}
+
+/**
+ * @brief 将时间戳转换为后端期望的格式
+ * @param {Date|string|undefined} timestamp - 时间戳（Date对象、ISO字符串或undefined）
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTimestamp = (timestamp) => {
+  if (timestamp instanceof Date) {
+    return formatDateTime(timestamp)
+  } else if (typeof timestamp === 'string') {
+    const date = new Date(timestamp)
+    if (!isNaN(date.getTime())) {
+      return formatDateTime(date)
+    }
+  }
+  return formatDateTime(new Date())
+}
+
+/**
  * @brief 获取告警列表
  * @param {Object} params - 查询参数
  * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
@@ -135,6 +171,7 @@ export const getAlerts = async (params = {}) => {
   
   // Build request body
   const requestBody = {
+    action: 'list',
     limit,
     offset,
     time_range,
@@ -199,6 +236,27 @@ export const getAlertCountsBySource = (startDate) => {
   return service.get('/alerts/data-source-count', { params })
 }
 
+// 关闭单个告警
+export const closeAlert = (alertId, params) => {
+  // 将 category 映射到 close_reason
+  const reasonMap = {
+    'falsePositive': 'False detection',
+    'resolved': 'Resolved',
+    'repeated': 'Repeated',
+    'other': 'Other'
+  }
+  
+  const closeReason = reasonMap[params.category] || params.category || 'Other'
+  
+  return service.put(`/alerts/${alertId}`, {
+    action: 'close',
+    data: {
+      close_reason: closeReason,
+      close_comment: params.notes || ''
+    }
+  })
+}
+
 // 批量关闭告警
 export const batchCloseAlerts = (params) => {
   return service.post('/alerts/batch-close', params)
@@ -227,16 +285,47 @@ export const getAssociatedAlerts = (alertId) => {
  * @brief 创建告警
  * @param {Object} data - 告警数据
  * @param {string} data.title - 告警标题
- * @param {string} data.riskLevel - 风险等级 (high/medium/low)
- * @param {string} data.status - 状态 (open/pending/closed)
+ * @param {string} data.riskLevel - 风险等级 (fatal/high/medium/low/tips)
+ * @param {string} data.status - 状态 (open/block/closed)
  * @param {string} data.owner - 责任人
  * @param {string} data.description - 描述
  * @param {string} data.ruleName - 规则名称（可选）
  * @param {string|Date} data.timestamp - 时间戳（可选，默认当前时间）
+ * @param {string} data.creator - 创建者（可选）
  * @returns {Promise} 返回创建的告警数据
  */
 export const createAlert = (data) => {
-  return service.post('/alerts/create', data)
+  // 将前端字段映射为后端期望的格式
+  const severityMap = {
+    'fatal': 'Fatal',
+    'high': 'High',
+    'medium': 'Medium',
+    'low': 'Low',
+    'tips': 'TIPS'
+  }
+  
+  const statusMap = {
+    'open': 'Open',
+    'block': 'Block',
+    'closed': 'Closed'
+  }
+  
+  // 构建请求体，符合后端期望的格式
+  const requestBody = {
+    action: 'create',
+    data: {
+      title: data.title,
+      create_time: formatTimestamp(data.timestamp),
+      severity: severityMap[data.riskLevel] || data.riskLevel || 'Medium',
+      handle_status: statusMap[data.status] || data.status || 'Open',
+      owner: data.owner,
+      creator: data.creator || data.owner || 'System',
+      rule_name: data.ruleName || '',
+      description: data.description
+    }
+  }
+  
+  return service.post('/alerts', requestBody)
 }
 
 /**
@@ -244,8 +333,8 @@ export const createAlert = (data) => {
  * @param {number|string} alertId - 告警ID
  * @param {Object} data - 告警数据
  * @param {string} data.title - 告警标题
- * @param {string} data.riskLevel - 风险等级 (high/medium/low)
- * @param {string} data.status - 状态 (open/pending/closed)
+ * @param {string} data.riskLevel - 风险等级 (fatal/high/medium/low/tips)
+ * @param {string} data.status - 状态 (open/block/closed)
  * @param {string} data.owner - 责任人
  * @param {string} data.description - 描述
  * @param {string} data.ruleName - 规则名称（可选）
@@ -253,6 +342,35 @@ export const createAlert = (data) => {
  * @returns {Promise} 返回更新的告警数据
  */
 export const updateAlert = (alertId, data) => {
-  return service.put(`/alerts/${alertId}/update`, data)
+  // 将前端字段映射为后端期望的格式
+  const severityMap = {
+    'fatal': 'Fatal',
+    'high': 'High',
+    'medium': 'Medium',
+    'low': 'Low',
+    'tips': 'TIPS'
+  }
+  
+  const statusMap = {
+    'open': 'Open',
+    'block': 'Block',
+    'closed': 'Closed'
+  }
+  
+  // 构建请求体，符合后端期望的格式，与创建告警类似但 action 为 'update'
+  const requestBody = {
+    action: 'update',
+    data: {
+      title: data.title,
+      create_time: formatTimestamp(data.timestamp),
+      severity: severityMap[data.riskLevel] || data.riskLevel || 'Medium',
+      handle_status: statusMap[data.status] || data.status || 'Open',
+      owner: data.owner,
+      rule_name: data.ruleName || '',
+      description: data.description
+    }
+  }
+  
+  return service.put(`/alerts/${alertId}`, requestBody)
 }
 
