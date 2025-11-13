@@ -39,6 +39,8 @@ api.add_resource(auth_view.UserManagement, '/user/management')
 api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'])
 api.add_resource(alert_view.AlertCreateView, '/api/alerts/create')
 api.add_resource(alert_view.AlertChangeStatusView, '/api/alerts/<alert_id>/status')
+api.add_resource(alert_view.AlertCountBySourceView, '/api/alerts/data-source-count')
+api.add_resource(alert_view.AlertCreateFromSecmasterView, '/api/alerts/secmaster/create')
 
 api.add_resource(incident_view.IncidentView, *['/api/incidents', '/api/incidents/<incident_id>'])
 

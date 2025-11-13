@@ -3,6 +3,9 @@ from typing import List
 import requests
 import json
 
+from datetime import datetime
+from sqlalchemy import func, DateTime, cast
+
 from controllers.comment_service import CommentService
 from utils.app_config import config
 from utils.common_utils import get_date_range
@@ -269,6 +272,20 @@ class AlertService:
             session.close()
 
     @classmethod
+    def create_alert_from_secmaster(cls, alert_id):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
+
+        resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        data = json.loads(resp.text)
+
+        cls.create_alert(data["data"].get("data_object"))
+
+    @classmethod
     def change_alert_status(cls, id: str, status: str, close_comment: str = None, close_reason: str = None):
         session = Session()
         alert = session.query(Alert).get(id)
@@ -283,11 +300,9 @@ class AlertService:
         if close_reason:
             payload["data_object"]["close_reason"] = close_reason
 
-
-
         body = json.dumps(payload)
 
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers)
@@ -307,3 +322,17 @@ class AlertService:
 
         session.commit()
         session.close()
+
+
+    @classmethod
+    def get_alert_count_by_product_name(cls, start_date):
+        
+        with Session() as session:
+            results = (
+                session.query(Alert.data_source_product_name, func.count(Alert.id))
+                .filter(cast(Alert.create_time, DateTime)>=start_date)
+                .group_by(Alert.data_source_product_name)
+                .all()
+            )
+
+        return dict(results)

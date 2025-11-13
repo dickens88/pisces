@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import request
 from flask_jwt_extended import jwt_required
 from flask_restful import Resource
@@ -63,6 +65,48 @@ class AlertChangeStatusView(Resource):
 
             AlertService.change_alert_status(alert_id, status, close_comment, close_reason)
             return {"message": "Alert status updated successfully"}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+
+class AlertCountBySourceView(Resource):
+
+    # @jwt_required()
+    def get(self):
+        start_date_str = request.args.get("start_date")
+        if not start_date_str:
+            return {"error_message": "start_date is required"}, 400
+
+        try:
+            start_date = datetime.fromisoformat(start_date_str)
+        except ValueError:
+            return {"error_message": "start_date must be in ISO 8601 format"}, 400
+
+        try:
+            data = AlertService.get_alert_count_by_product_name(start_date)
+            return {"data": data}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+
+class AlertCreateFromSecmasterView(Resource):
+
+    # @jwt_required()
+    def post(self):
+        payload = json.loads(request.data)
+        print(payload)
+        alert_id = payload.get("alert_id")
+        if not alert_id:
+            return {"error_message": "alert_id is required"}, 400
+
+        try:
+            result = AlertService.create_alert_from_secmaster(alert_id)
+            response_body = {"message": "Alert synchronized successfully"}
+            if result is not None:
+                response_body["data"] = result
+            return response_body, 201
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

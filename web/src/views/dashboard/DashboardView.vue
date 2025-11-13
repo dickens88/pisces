@@ -100,42 +100,30 @@
       <div class="flex flex-col gap-4 rounded-xl border border-[#324867]/50 p-6 bg-[#19222c]">
         <div class="flex justify-between items-center">
           <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.alertTypeStats') }}</p>
-          <div class="flex items-center gap-4 text-xs text-white/70">
-            <div class="flex items-center gap-2">
-              <div class="size-2.5 rounded-sm bg-primary/70"></div>
-              <span>{{ $t('dashboard.charts.manual') }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <div class="size-2.5 rounded-sm bg-primary"></div>
-              <span>{{ $t('dashboard.charts.auto') }}</span>
-            </div>
-          </div>
+          <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
         </div>
-        <div class="h-80 flex items-end gap-x-4 md:gap-x-6">
-          <template v-if="statistics.alertTypeStats && statistics.alertTypeStats.length > 0">
-            <div 
-              v-for="(stat, index) in statistics.alertTypeStats" 
-              :key="index"
-              class="flex-1 h-full flex flex-col items-center gap-2"
-            >
-              <div class="w-full flex-1 flex items-end">
-                <div class="w-full h-full flex flex-col justify-end rounded-t-sm hover:opacity-80 transition-opacity">
-                  <div 
-                    class="w-full bg-primary/70 rounded-t-sm"
-                    :style="{ height: stat.manual + '%' }"
-                  ></div>
-                  <div 
-                    class="w-full bg-primary rounded-t-sm"
-                    :style="{ height: stat.auto + '%' }"
-                  ></div>
-                </div>
-              </div>
-              <span class="text-xs text-white/60">{{ stat.name }}</span>
-            </div>
-          </template>
-          <div v-else class="w-full h-full flex items-center justify-center text-white/50 text-sm">
+        <div class="flex flex-col gap-1">
+          <span class="text-white/60 text-sm font-medium uppercase tracking-wide">{{ $t('common.totalAlerts') }}</span>
+          <span class="text-white text-3xl font-bold tracking-tight">{{ alertSourceTotal.toLocaleString() }}</span>
+        </div>
+        <div class="relative h-80">
+          <div 
+            v-if="alertSourceLoading"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div 
+            v-else-if="alertSourceValues.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
             {{ $t('dashboard.charts.noData') }}
           </div>
+          <div 
+            v-show="!alertSourceLoading && alertSourceValues.length > 0"
+            ref="alertSourceChartRef"
+            class="h-full w-full"
+          ></div>
         </div>
       </div>
 
@@ -295,13 +283,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { getDashboardStatistics, getRecentOpenVulnerabilities } from '@/api/dashboard'
-import { getAlerts } from '@/api/alerts'
+import { getAlerts, getAlertCountsBySource } from '@/api/alerts'
 import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
@@ -323,14 +312,6 @@ const statistics = ref({
   mttd: '0m 0s',
   mttdChange: 0,
   mttdTrend: 'down',
-  alertTypeStats: [
-    { name: 'IAM', manual: 75, auto: 40 },
-    { name: 'HSS', manual: 60, auto: 60 },
-    { name: 'NDR', manual: 90, auto: 30 },
-    { name: 'COP', manual: 50, auto: 55 },
-    { name: 'SA', manual: 70, auto: 45 },
-    { name: 'SIEM', manual: 85, auto: 80 }
-  ],
   aiAccuracy: [
     { name: 'IAM', accuracy: 99.8 },
     { name: 'HSS', accuracy: 99.5 },
@@ -361,6 +342,170 @@ const selectedTimeRange = ref('last24Hours')
  */
 const customTimeRange = ref(null)
 
+const alertSourceChartRef = ref(null)
+const alertSourceCategories = ref([])
+const alertSourceValues = ref([])
+const alertSourceTotal = ref(0)
+const alertSourceLoading = ref(false)
+
+let alertSourceChartInstance = null
+let alertSourceResizeListenerBound = false
+
+const formatDateForBackend = (date) => {
+  const isoString = date.toISOString()
+  return isoString.includes('.') ? isoString.split('.')[0] : isoString.replace('Z', '')
+}
+
+const handleAlertSourceResize = () => {
+  if (alertSourceChartInstance) {
+    alertSourceChartInstance.resize()
+  }
+}
+
+const ensureAlertSourceChart = () => {
+  if (!alertSourceChartInstance && alertSourceChartRef.value) {
+    alertSourceChartInstance = echarts.init(alertSourceChartRef.value)
+    if (!alertSourceResizeListenerBound) {
+      window.addEventListener('resize', handleAlertSourceResize)
+      alertSourceResizeListenerBound = true
+    }
+  }
+}
+
+const disposeAlertSourceChart = () => {
+  if (alertSourceChartInstance) {
+    alertSourceChartInstance.dispose()
+    alertSourceChartInstance = null
+  }
+  if (alertSourceResizeListenerBound) {
+    window.removeEventListener('resize', handleAlertSourceResize)
+    alertSourceResizeListenerBound = false
+  }
+}
+
+const updateAlertSourceChart = () => {
+  ensureAlertSourceChart()
+  if (!alertSourceChartInstance) {
+    return
+  }
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    grid: {
+      top: 30,
+      right: 24,
+      bottom: 50,
+      left: 56
+    },
+    xAxis: {
+      type: 'category',
+      data: alertSourceCategories.value,
+      axisLabel: {
+        color: '#cbd5f5',
+        rotate: alertSourceCategories.value.length > 5 ? 20 : 0
+      },
+      axisLine: {
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8' },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: false }
+    },
+    series: [
+      {
+        name: t('alerts.title'),
+        type: 'bar',
+        data: alertSourceValues.value,
+        barWidth: '45%',
+        itemStyle: {
+          borderRadius: [8, 8, 0, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#60a5fa' },
+            { offset: 0.7, color: '#3b82f6' },
+            { offset: 1, color: '#2563eb' }
+          ])
+        }
+      }
+    ]
+  }
+
+  alertSourceChartInstance.setOption(option, true)
+  alertSourceChartInstance.resize()
+}
+
+const getDashboardTimeRange = () => {
+  if (selectedTimeRange.value === 'customRange') {
+    if (customTimeRange.value && customTimeRange.value.length === 2) {
+      return {
+        start: new Date(customTimeRange.value[0]),
+        end: new Date(customTimeRange.value[1])
+      }
+    }
+    // Fallback to last 24 hours if custom range incomplete
+  }
+
+  const end = new Date()
+  const start = new Date(end)
+
+  switch (selectedTimeRange.value) {
+    case 'last3Days':
+      start.setDate(start.getDate() - 3)
+      break
+    case 'last7Days':
+      start.setDate(start.getDate() - 7)
+      break
+    case 'last30Days':
+      start.setDate(start.getDate() - 30)
+      break
+    case 'last3Months':
+      start.setMonth(start.getMonth() - 3)
+      break
+    default:
+      start.setHours(start.getHours() - 24)
+      break
+  }
+
+  return { start, end }
+}
+
+const loadAlertSourceStatistics = async () => {
+  alertSourceLoading.value = true
+  alertSourceTotal.value = 0
+  try {
+    const { start } = getDashboardTimeRange()
+    const response = await getAlertCountsBySource(formatDateForBackend(start))
+    const counts = response?.data || {}
+    const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
+    entries.sort((a, b) => b[1] - a[1])
+    alertSourceCategories.value = entries.map(([name]) => name)
+    alertSourceValues.value = entries.map(([, value]) => value)
+    alertSourceTotal.value = alertSourceValues.value.reduce((sum, value) => sum + value, 0)
+  } catch (error) {
+    console.error('Failed to load alert source statistics:', error)
+    alertSourceCategories.value = []
+    alertSourceValues.value = []
+    alertSourceTotal.value = 0
+  } finally {
+    alertSourceLoading.value = false
+    await nextTick()
+    updateAlertSourceChart()
+  }
+}
+
 /**
  * @brief 加载统计数据
  */
@@ -387,11 +532,6 @@ const loadStatistics = async () => {
       if (data.mttd !== undefined) statistics.value.mttd = data.mttd
       if (data.mttdChange !== undefined) statistics.value.mttdChange = data.mttdChange
       if (data.mttdTrend !== undefined) statistics.value.mttdTrend = data.mttdTrend
-      
-      // Update chart data (only update when there is valid data)
-      if (data.alertTypeStats && Array.isArray(data.alertTypeStats) && data.alertTypeStats.length > 0) {
-        statistics.value.alertTypeStats = data.alertTypeStats
-      }
       
       if (data.aiAccuracy && Array.isArray(data.aiAccuracy) && data.aiAccuracy.length > 0) {
         statistics.value.aiAccuracy = data.aiAccuracy
@@ -421,27 +561,7 @@ const loadStatistics = async () => {
  */
 const loadRecentAlerts = async () => {
   try {
-    // Calculate time range
-    const end = new Date()
-    const start = new Date()
-    
-    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      start.setTime(customTimeRange.value[0].getTime())
-      end.setTime(customTimeRange.value[1].getTime())
-    } else if (selectedTimeRange.value === 'last24Hours') {
-      start.setHours(start.getHours() - 24)
-    } else if (selectedTimeRange.value === 'last3Days') {
-      start.setDate(start.getDate() - 3)
-    } else if (selectedTimeRange.value === 'last7Days') {
-      start.setDate(start.getDate() - 7)
-    } else if (selectedTimeRange.value === 'last30Days') {
-      start.setDate(start.getDate() - 30)
-    } else if (selectedTimeRange.value === 'last3Months') {
-      start.setMonth(start.getMonth() - 3)
-    } else {
-      // Default 24 hours
-      start.setHours(start.getHours() - 24)
-    }
+    const { start, end } = getDashboardTimeRange()
     
     // Call /api/alerts endpoint, only get alerts with status 'open', limit to 5
     const response = await getAlerts({
@@ -498,7 +618,8 @@ const loadData = async () => {
   await Promise.all([
     loadStatistics(),
     loadRecentAlerts(),
-    loadRecentVulnerabilities()
+    loadRecentVulnerabilities(),
+    loadAlertSourceStatistics()
   ])
 }
 
@@ -582,6 +703,21 @@ const handleViewVulnerabilityDetail = (vuln) => {
  * @brief 组件挂载时加载数据
  */
 onMounted(() => {
+  ensureAlertSourceChart()
   loadData()
+})
+
+onBeforeUnmount(() => {
+  disposeAlertSourceChart()
+})
+
+const dashboardTimeRangeLabel = computed(() => {
+  if (selectedTimeRange.value === 'customRange') {
+    if (customTimeRange.value && customTimeRange.value.length === 2) {
+      return `${formatDateTime(customTimeRange.value[0])} ~ ${formatDateTime(customTimeRange.value[1])}`
+    }
+    return t('common.timeRange.customRange')
+  }
+  return t(`common.timeRange.${selectedTimeRange.value}`) || t('common.timeRange.last24Hours')
 })
 </script>

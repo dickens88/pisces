@@ -15,6 +15,7 @@
     "loading": "加载中...",
     "noComments": "暂无评论",
     "noData": "暂无数据",
+    "totalAlerts": "总告警数",
     "pagination": {
       "showing": "显示第 {start}-{end} 条，共 {total} 条",
       "previous": "上一页",

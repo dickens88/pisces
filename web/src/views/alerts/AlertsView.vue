@@ -29,25 +29,29 @@
           {{ $t('alerts.list.statistics.alertTypeStats') }}
         </p>
         <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
-          {{ statistics.totalAlerts?.toLocaleString() || 0 }}
+          {{ alertTypeChartTotal.toLocaleString() }}
         </p>
-        <div class="flex gap-1 items-center">
-          <p class="text-gray-400 text-sm font-normal leading-normal">
-            {{ $t('alerts.list.statistics.past7Days') }}
-          </p>
-          <p class="text-[#0bda5e] text-sm font-medium leading-normal flex items-center">
-            <span class="material-symbols-outlined" style="font-size: 16px;">arrow_upward</span>
-            +{{ statistics.trend }}%
-          </p>
-        </div>
-        <div class="grid min-h-[90px] grid-flow-col gap-6 grid-rows-[1fr_auto] items-end justify-items-center px-3 pt-4">
-          <template v-for="(stat, index) in statistics.typeStats" :key="index">
-            <div
-              class="bg-primary/30 hover:bg-primary/50 w-full rounded-t transition-colors"
-              :style="{ height: stat.value + '%' }"
-            ></div>
-            <p class="text-gray-400 text-xs font-medium">{{ stat.name }}</p>
-          </template>
+        <p class="text-gray-400 text-sm font-normal leading-normal">
+          {{ alertsTimeRangeLabel }}
+        </p>
+        <div class="relative h-40 w-full pt-2">
+          <div
+            v-if="alertTypeChartLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="alertTypeChartValues.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+          >
+            {{ $t('common.noData') }}
+          </div>
+          <div
+            v-show="!alertTypeChartLoading && alertTypeChartValues.length > 0"
+            ref="alertTypeChartRef"
+            class="h-full w-full"
+          ></div>
         </div>
       </div>
 
@@ -440,10 +444,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlerts, getAlertStatistics, batchCloseAlerts } from '@/api/alerts'
+import * as echarts from 'echarts'
+import { getAlerts, getAlertStatistics, batchCloseAlerts, getAlertCountsBySource } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
@@ -507,6 +512,167 @@ const createIncidentInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
 const showMoreMenu = ref(false)
 
+const alertTypeChartRef = ref(null)
+const alertTypeChartCategories = ref([])
+const alertTypeChartValues = ref([])
+const alertTypeChartLoading = ref(false)
+const alertTypeChartTotal = ref(0)
+
+let alertTypeChartInstance = null
+let alertTypeChartResizeBound = false
+
+const formatDateForBackend = (date) => {
+  const isoString = date.toISOString()
+  return isoString.includes('.') ? isoString.split('.')[0] : isoString.replace('Z', '')
+}
+
+const computeSelectedRange = () => {
+  if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
+    return {
+      start: new Date(customTimeRange.value[0]),
+      end: new Date(customTimeRange.value[1])
+    }
+  }
+
+  const end = new Date()
+  const start = new Date(end)
+
+  switch (selectedTimeRange.value) {
+    case 'last3Days':
+      start.setDate(start.getDate() - 3)
+      break
+    case 'last7Days':
+      start.setDate(start.getDate() - 7)
+      break
+    case 'last30Days':
+      start.setDate(start.getDate() - 30)
+      break
+    case 'last3Months':
+      start.setMonth(start.getMonth() - 3)
+      break
+    default:
+      start.setHours(start.getHours() - 24)
+      break
+  }
+
+  return { start, end }
+}
+
+const handleAlertTypeResize = () => {
+  if (alertTypeChartInstance) {
+    alertTypeChartInstance.resize()
+  }
+}
+
+const ensureAlertTypeChart = () => {
+  if (!alertTypeChartInstance && alertTypeChartRef.value) {
+    alertTypeChartInstance = echarts.init(alertTypeChartRef.value)
+    if (!alertTypeChartResizeBound) {
+      window.addEventListener('resize', handleAlertTypeResize)
+      alertTypeChartResizeBound = true
+    }
+  }
+}
+
+const disposeAlertTypeChart = () => {
+  if (alertTypeChartInstance) {
+    alertTypeChartInstance.dispose()
+    alertTypeChartInstance = null
+  }
+  if (alertTypeChartResizeBound) {
+    window.removeEventListener('resize', handleAlertTypeResize)
+    alertTypeChartResizeBound = false
+  }
+}
+
+const updateAlertTypeChart = () => {
+  ensureAlertTypeChart()
+  if (!alertTypeChartInstance) {
+    return
+  }
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    grid: {
+      top: 20,
+      right: 16,
+      bottom: 40,
+      left: 52
+    },
+    xAxis: {
+      type: 'category',
+      data: alertTypeChartCategories.value,
+      axisLabel: {
+        color: '#cbd5f5',
+        rotate: alertTypeChartCategories.value.length > 5 ? 20 : 0
+      },
+      axisLine: {
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8' },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: false }
+    },
+    series: [
+      {
+        name: t('alerts.title'),
+        type: 'bar',
+        data: alertTypeChartValues.value,
+        barWidth: '45%',
+        itemStyle: {
+          borderRadius: [8, 8, 0, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#60a5fa' },
+            { offset: 0.7, color: '#3b82f6' },
+            { offset: 1, color: '#2563eb' }
+          ])
+        }
+      }
+    ]
+  }
+
+  alertTypeChartInstance.setOption(option, true)
+  alertTypeChartInstance.resize()
+}
+
+const loadAlertTypeDistribution = async () => {
+  alertTypeChartLoading.value = true
+  alertTypeChartTotal.value = 0
+  try {
+    const range = computeSelectedRange()
+    const response = await getAlertCountsBySource(formatDateForBackend(range.start))
+    const counts = response?.data || {}
+    const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
+    entries.sort((a, b) => b[1] - a[1])
+    alertTypeChartCategories.value = entries.map(([name]) => name)
+    alertTypeChartValues.value = entries.map(([, value]) => value)
+    alertTypeChartTotal.value = alertTypeChartValues.value.reduce((sum, value) => sum + value, 0)
+  } catch (error) {
+    console.error('Failed to load alert type distribution:', error)
+    alertTypeChartCategories.value = []
+    alertTypeChartValues.value = []
+    alertTypeChartTotal.value = 0
+  } finally {
+    alertTypeChartLoading.value = false
+    await nextTick()
+    updateAlertTypeChart()
+  }
+}
+
 
 const mttdStages = [
   { name: 'Detection', percentage: 20 },
@@ -527,31 +693,10 @@ const loadAlerts = async () => {
       pageSize: pageSize.value
     }
     
-    // Add time parameters based on selected time range
-    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      params.startTime = customTimeRange.value[0].toISOString()
-      params.endTime = customTimeRange.value[1].toISOString()
-    } else {
-      const end = new Date()
-      const start = new Date()
-      
-      if (selectedTimeRange.value === 'last24Hours') {
-        start.setHours(start.getHours() - 24)
-      } else if (selectedTimeRange.value === 'last3Days') {
-        start.setDate(start.getDate() - 3)
-      } else if (selectedTimeRange.value === 'last7Days') {
-        start.setDate(start.getDate() - 7)
-      } else if (selectedTimeRange.value === 'last30Days') {
-        start.setDate(start.getDate() - 30)
-      } else if (selectedTimeRange.value === 'last3Months') {
-        start.setMonth(start.getMonth() - 3)
-      } else {
-        // Default 24 hours
-        start.setHours(start.getHours() - 24)
-      }
-      
-      params.startTime = start.toISOString()
-      params.endTime = end.toISOString()
+    const range = computeSelectedRange()
+    if (range) {
+      params.startTime = range.start.toISOString()
+      params.endTime = range.end.toISOString()
     }
     
     const response = await getAlerts(params)
@@ -854,6 +999,7 @@ const handleAlertCreated = () => {
   // Reload alert list after alert is created
   loadAlerts()
   loadStatistics()
+  loadAlertTypeDistribution()
 }
 
 const handleTimeRangeChange = (rangeKey) => {
@@ -861,6 +1007,7 @@ const handleTimeRangeChange = (rangeKey) => {
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
     loadAlerts()
+    loadAlertTypeDistribution()
   }
 }
 
@@ -868,6 +1015,7 @@ const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
     loadAlerts()
+    loadAlertTypeDistribution()
   }
 }
 
@@ -876,8 +1024,10 @@ watch([currentPage], () => {
 })
 
 onMounted(() => {
+  ensureAlertTypeChart()
   loadAlerts()
   loadStatistics()
+  loadAlertTypeDistribution()
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
 })
@@ -885,6 +1035,17 @@ onMounted(() => {
 onUnmounted(() => {
   // Remove click outside listener
   document.removeEventListener('click', handleClickOutside)
+  disposeAlertTypeChart()
+})
+
+const alertsTimeRangeLabel = computed(() => {
+  if (selectedTimeRange.value === 'customRange') {
+    if (customTimeRange.value && customTimeRange.value.length === 2) {
+      return `${formatDateTime(customTimeRange.value[0])} ~ ${formatDateTime(customTimeRange.value[1])}`
+    }
+    return t('common.timeRange.customRange')
+  }
+  return t(`common.timeRange.${selectedTimeRange.value}`) || t('common.timeRange.last24Hours')
 })
 </script>
 

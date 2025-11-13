@@ -186,6 +186,19 @@ export const getAlertStatistics = () => {
   return service.get('/alerts/statistics')
 }
 
+/**
+ * @brief 获取按数据源产品名称统计的告警数量
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @returns {Promise} 告警数量映射
+ */
+export const getAlertCountsBySource = (startDate) => {
+  const params = {}
+  if (startDate) {
+    params.start_date = startDate
+  }
+  return service.get('/alerts/data-source-count', { params })
+}
+
 // 批量关闭告警
 export const batchCloseAlerts = (params) => {
   return service.post('/alerts/batch-close', params)
