@@ -6,6 +6,19 @@
         {{ $t('dashboard.title') }}
       </h1>
       <div class="flex items-center gap-2">
+        <button
+          @click="handleRefresh"
+          :disabled="isRefreshing"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-9"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': isRefreshing }"
+          >
+            refresh
+          </span>
+        </button>
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
@@ -21,37 +34,37 @@
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
         <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.alertCount24h') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
-          {{ statistics.alertCount24h?.toLocaleString() || 0 }}
+          {{ alertCount24hTotal?.toLocaleString() || 0 }}
         </p>
         <p 
           :class="[
             'text-sm font-medium flex items-center gap-1',
-            statistics.alertCount24hTrend === 'up' ? 'text-red-400' : 'text-green-400'
+            alertCount24hTrend === 'up' ? 'text-red-400' : 'text-green-400'
           ]"
         >
           <span class="material-symbols-outlined text-base">
-            {{ statistics.alertCount24hTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
+            {{ alertCount24hTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
           </span>
-          {{ statistics.alertCount24hTrend === 'up' ? '+' : '' }}{{ statistics.alertCount24hChange }}%
+          {{ alertCount24hTrend === 'up' ? '+' : '' }}{{ alertCount24hChange }}%
         </p>
       </div>
 
       <!-- Incident count -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.incidentCount24h') }}</p>
+        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.incidentCount30d') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
-          {{ statistics.incidentCount24h?.toLocaleString() || 0 }}
+          {{ incidentCount30dTotal?.toLocaleString() || 0 }}
         </p>
         <p 
           :class="[
             'text-sm font-medium flex items-center gap-1',
-            statistics.incidentCount24hTrend === 'up' ? 'text-red-400' : 'text-green-400'
+            incidentCount30dTrend === 'up' ? 'text-red-400' : 'text-green-400'
           ]"
         >
           <span class="material-symbols-outlined text-base">
-            {{ statistics.incidentCount24hTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
+            {{ incidentCount30dTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
           </span>
-          {{ statistics.incidentCount24hTrend === 'up' ? '+' : '' }}{{ statistics.incidentCount24hChange }}%
+          {{ incidentCount30dTrend === 'up' ? '+' : '' }}{{ incidentCount30dChange }}%
         </p>
       </div>
 
@@ -97,12 +110,12 @@
     <!-- Charts area -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Alert type statistics -->
-      <div class="flex flex-col gap-4 rounded-xl border border-[#324867]/50 p-6 bg-[#19222c]">
-        <div class="flex justify-between items-center">
+      <div class="flex flex-col rounded-xl border border-[#324867]/50 bg-[#19222c] p-0">
+        <div class="flex justify-between items-center p-3 pt-2">
           <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.alertTypeStats') }}</p>
           <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
         </div>
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-1 px-3 pb-2">
           <span class="text-white/60 text-sm font-medium uppercase tracking-wide">{{ $t('common.totalAlerts') }}</span>
           <span class="text-white text-3xl font-bold tracking-tight">{{ alertSourceTotal.toLocaleString() }}</span>
         </div>
@@ -122,7 +135,8 @@
           <div 
             v-show="!alertSourceLoading && alertSourceValues.length > 0"
             ref="alertSourceChartRef"
-            class="h-full w-full"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
           ></div>
         </div>
       </div>
@@ -153,148 +167,19 @@
         </div>
       </div>
     </div>
-
-    <!-- Table area -->
-    <!-- Recent unclosed alerts -->
-    <div class="rounded-xl border border-[#324867]/50 bg-[#19222c] mb-6">
-      <div class="p-6">
-        <h3 class="text-white text-lg font-semibold">{{ $t('dashboard.tables.recentOpenAlerts') }}</h3>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-white/80">
-          <thead class="text-xs text-white/60 uppercase bg-[#101822]/30">
-            <tr>
-              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.createTime') }}</th>
-              <th class="px-6 py-3 text-left" scope="col" style="text-align: left;">{{ $t('alerts.list.alertTitle') }}</th>
-              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.riskLevel') }}</th>
-              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.status') }}</th>
-              <th class="px-6 py-3 text-left" scope="col">{{ $t('alerts.list.owner') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              v-for="alert in recentAlerts" 
-              :key="alert.id"
-              class="border-t border-[#324867]/50 hover:bg-white/5"
-            >
-              <td class="px-6 py-4">
-                {{ formatDateTime(alert.createTime || alert.create_time) }}
-              </td>
-              <td class="px-6 py-4 font-medium text-white/90 text-left" style="text-align: left;">
-                <button 
-                  @click="handleInvestigateAlert(alert)"
-                  class="text-primary hover:underline text-left"
-                  style="text-align: left;"
-                >
-                  {{ alert.title }}
-                </button>
-              </td>
-              <td class="px-6 py-4">
-                <span
-                  :class="[
-                    'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
-                    getRiskLevelClass(alert.riskLevel)
-                  ]"
-                  :title="$t(`common.severity.${alert.riskLevel}`)"
-                >
-                  {{ $t(`common.severity.${alert.riskLevel}`) }}
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <span
-                  :class="[
-                    'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
-                    getStatusClass(alert.status)
-                  ]"
-                  :title="$t(`alerts.list.${alert.status}`)"
-                >
-                  <span :class="['size-1.5 rounded-full', getStatusDotClass(alert.status)]"></span>
-                  {{ $t(`alerts.list.${alert.status}`) }}
-                </span>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex justify-center w-full">
-                  <UserAvatar :name="alert.owner" />
-                </div>
-              </td>
-            </tr>
-            <tr v-if="recentAlerts.length === 0">
-              <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                {{ $t('common.noData') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Recent unclosed vulnerabilities -->
-    <div class="rounded-xl border border-[#324867]/50 bg-[#19222c]">
-      <div class="p-6">
-        <h3 class="text-white text-lg font-semibold">{{ $t('dashboard.tables.recentOpenVulnerabilities') }}</h3>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-white/80">
-          <thead class="text-xs text-white/60 uppercase bg-[#101822]/30">
-            <tr>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.cvss') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.vulnerabilityName') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.affectedAsset') }}</th>
-              <th class="px-6 py-3" scope="col">{{ $t('dashboard.tables.discoveryTime') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr 
-              v-for="vuln in recentVulnerabilities" 
-              :key="vuln.id"
-              class="border-t border-[#324867]/50 hover:bg-white/5"
-            >
-              <td class="px-6 py-4">
-                <span 
-                  :class="[
-                    'inline-flex items-center gap-2 font-semibold',
-                    getCvssClass(vuln.cvssLevel)
-                  ]"
-                >
-                  {{ vuln.cvss }} {{ $t(`common.severity.${vuln.cvssLevel?.toLowerCase()}`) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 font-medium text-white/90">
-                <button 
-                  @click="handleViewVulnerabilityDetail(vuln)"
-                  class="text-primary hover:underline"
-                >
-                  {{ vuln.name }}
-                </button>
-              </td>
-              <td class="px-6 py-4">{{ vuln.affectedAsset }}</td>
-              <td class="px-6 py-4">{{ vuln.discoveryTime }}</td>
-            </tr>
-            <tr v-if="recentVulnerabilities.length === 0">
-              <td colspan="4" class="px-6 py-8 text-center text-gray-400">
-                {{ $t('common.noData') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
-import UserAvatar from '@/components/common/UserAvatar.vue'
-import { getDashboardStatistics, getRecentOpenVulnerabilities } from '@/api/dashboard'
-import { getAlerts, getAlertCountsBySource } from '@/api/alerts'
-import { formatDateTime } from '@/utils/dateTime'
+import { getDashboardStatistics } from '@/api/dashboard'
+import { getAlertCountsBySource, getAlertTrend } from '@/api/alerts'
+import { getIncidentTrend } from '@/api/incidents'
 
 const { t } = useI18n()
-const router = useRouter()
 
 /**
  * @brief 统计数据
@@ -322,15 +207,6 @@ const statistics = ref({
   ]
 })
 
-/**
- * @brief 最近未关闭的告警
- */
-const recentAlerts = ref([])
-
-/**
- * @brief 最近未关闭的漏洞
- */
-const recentVulnerabilities = ref([])
 
 /**
  * @brief 选中的时间范围
@@ -342,6 +218,11 @@ const selectedTimeRange = ref('last24Hours')
  */
 const customTimeRange = ref(null)
 
+/**
+ * @brief 是否正在刷新
+ */
+const isRefreshing = ref(false)
+
 const alertSourceChartRef = ref(null)
 const alertSourceCategories = ref([])
 const alertSourceValues = ref([])
@@ -350,6 +231,16 @@ const alertSourceLoading = ref(false)
 
 let alertSourceChartInstance = null
 let alertSourceResizeListenerBound = false
+
+// Alert Count 24h
+const alertCount24hTotal = ref(0)
+const alertCount24hChange = ref(0)
+const alertCount24hTrend = ref('down')
+
+// Incident Count 30d
+const incidentCount30dTotal = ref(0)
+const incidentCount30dChange = ref(0)
+const incidentCount30dTrend = ref('down')
 
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
@@ -383,11 +274,112 @@ const disposeAlertSourceChart = () => {
   }
 }
 
+const loadAlertCount24hData = async () => {
+  try {
+    const now = new Date()
+    const end24h = new Date(now)
+    const start24h = new Date(now)
+    start24h.setHours(start24h.getHours() - 24)
+    
+    const start48h = new Date(start24h)
+    start48h.setHours(start48h.getHours() - 24)
+
+    // Get last 24 hours data
+    const response24h = await getAlertTrend(
+      formatDateForBackend(start24h),
+      formatDateForBackend(end24h)
+    )
+    
+    // Get previous 24 hours data (24-48 hours ago)
+    const response48h = await getAlertTrend(
+      formatDateForBackend(start48h),
+      formatDateForBackend(start24h)
+    )
+
+    const data24h = response24h?.data || []
+    const data48h = response48h?.data || []
+
+    // Calculate total counts
+    const total24h = data24h.reduce((sum, item) => sum + (item.count || 0), 0)
+    const total48h = data48h.reduce((sum, item) => sum + (item.count || 0), 0)
+
+    alertCount24hTotal.value = total24h
+
+    // Calculate percentage change
+    if (total48h > 0) {
+      const change = ((total24h - total48h) / total48h) * 100
+      alertCount24hChange.value = Math.abs(change).toFixed(1)
+      alertCount24hTrend.value = change >= 0 ? 'up' : 'down'
+    } else {
+      alertCount24hChange.value = total24h > 0 ? '100.0' : '0.0'
+      alertCount24hTrend.value = total24h > 0 ? 'up' : 'down'
+    }
+
+  } catch (error) {
+    console.error('Failed to load alert count 24h data:', error)
+    alertCount24hTotal.value = 0
+    alertCount24hChange.value = 0
+    alertCount24hTrend.value = 'down'
+  }
+}
+
+const loadIncidentCount30dData = async () => {
+  try {
+    const now = new Date()
+    const end30d = new Date(now)
+    const start30d = new Date(now)
+    start30d.setDate(start30d.getDate() - 30)
+    
+    const start60d = new Date(start30d)
+    start60d.setDate(start60d.getDate() - 30)
+
+    // Get last 30 days data
+    const response30d = await getIncidentTrend(
+      formatDateForBackend(start30d),
+      formatDateForBackend(end30d)
+    )
+    
+    // Get previous 30 days data (30-60 days ago)
+    const response60d = await getIncidentTrend(
+      formatDateForBackend(start60d),
+      formatDateForBackend(start30d)
+    )
+
+    const data30d = response30d?.data || []
+    const data60d = response60d?.data || []
+
+    // Calculate total counts
+    const total30d = data30d.reduce((sum, item) => sum + (item.count || 0), 0)
+    const total60d = data60d.reduce((sum, item) => sum + (item.count || 0), 0)
+
+    incidentCount30dTotal.value = total30d
+
+    // Calculate percentage change
+    if (total60d > 0) {
+      const change = ((total30d - total60d) / total60d) * 100
+      incidentCount30dChange.value = Math.abs(change).toFixed(1)
+      incidentCount30dTrend.value = change >= 0 ? 'up' : 'down'
+    } else {
+      incidentCount30dChange.value = total30d > 0 ? '100.0' : '0.0'
+      incidentCount30dTrend.value = total30d > 0 ? 'up' : 'down'
+    }
+
+  } catch (error) {
+    console.error('Failed to load incident count 30d data:', error)
+    incidentCount30dTotal.value = 0
+    incidentCount30dChange.value = 0
+    incidentCount30dTrend.value = 'down'
+  }
+}
+
 const updateAlertSourceChart = () => {
   ensureAlertSourceChart()
   if (!alertSourceChartInstance) {
     return
   }
+
+  // Clear previous option to ensure new settings take effect
+  alertSourceChartInstance.clear()
 
   const option = {
     backgroundColor: 'transparent',
@@ -400,22 +392,26 @@ const updateAlertSourceChart = () => {
       padding: [10, 12]
     },
     grid: {
-      top: 30,
-      right: 24,
-      bottom: 50,
-      left: 56
+      top: 8,
+      right: 8,
+      bottom: 20,
+      left: 28,
+      containLabel: true
     },
     xAxis: {
       type: 'category',
       data: alertSourceCategories.value,
+      boundaryGap: true,
       axisLabel: {
         color: '#cbd5f5',
-        rotate: alertSourceCategories.value.length > 5 ? 20 : 0
+        rotate: alertSourceCategories.value.length > 5 ? 20 : 0,
+        margin: 2,
+        fontSize: 10
       },
       axisLine: {
         lineStyle: { color: '#334155' }
       },
-      axisTick: { show: false }
+      axisTick: { show: true, inside: true, alignWithLabel: true }
     },
     yAxis: {
       type: 'value',
@@ -444,7 +440,10 @@ const updateAlertSourceChart = () => {
   }
 
   alertSourceChartInstance.setOption(option, true)
-  alertSourceChartInstance.resize()
+  // Force resize to ensure grid changes take effect
+  setTimeout(() => {
+    alertSourceChartInstance.resize()
+  }, 0)
 }
 
 const getDashboardTimeRange = () => {
@@ -486,8 +485,8 @@ const loadAlertSourceStatistics = async () => {
   alertSourceLoading.value = true
   alertSourceTotal.value = 0
   try {
-    const { start } = getDashboardTimeRange()
-    const response = await getAlertCountsBySource(formatDateForBackend(start))
+    const { start, end } = getDashboardTimeRange()
+    const response = await getAlertCountsBySource(formatDateForBackend(start), formatDateForBackend(end))
     const counts = response?.data || {}
     const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
     entries.sort((a, b) => b[1] - a[1])
@@ -517,13 +516,8 @@ const loadStatistics = async () => {
       const data = response.data
       
       // Update basic statistics fields
-      if (data.alertCount24h !== undefined) statistics.value.alertCount24h = data.alertCount24h
-      if (data.alertCount24hChange !== undefined) statistics.value.alertCount24hChange = data.alertCount24hChange
-      if (data.alertCount24hTrend !== undefined) statistics.value.alertCount24hTrend = data.alertCount24hTrend
-      
-      if (data.incidentCount24h !== undefined) statistics.value.incidentCount24h = data.incidentCount24h
-      if (data.incidentCount24hChange !== undefined) statistics.value.incidentCount24hChange = data.incidentCount24hChange
-      if (data.incidentCount24hTrend !== undefined) statistics.value.incidentCount24hTrend = data.incidentCount24hTrend
+      // Note: alertCount24h is now handled by loadAlertCount24hData()
+      // Note: incidentCount30d is now handled by loadIncidentCount30dData()
       
       if (data.vulnerabilityCount !== undefined) statistics.value.vulnerabilityCount = data.vulnerabilityCount
       if (data.vulnerabilityCountChange !== undefined) statistics.value.vulnerabilityCountChange = data.vulnerabilityCountChange
@@ -540,12 +534,8 @@ const loadStatistics = async () => {
   } catch (error) {
     console.error('Failed to load statistics:', error)
     // Use default mock data when API call fails, but keep existing chart data
-    statistics.value.alertCount24h = 1258
-    statistics.value.alertCount24hChange = 12.5
-    statistics.value.alertCount24hTrend = 'up'
-    statistics.value.incidentCount24h = 1283594
-    statistics.value.incidentCount24hChange = -2.1
-    statistics.value.incidentCount24hTrend = 'down'
+    // Note: alertCount24h is now handled by loadAlertCount24hData()
+    // Note: incidentCount30d is now handled by loadIncidentCount30dData()
     statistics.value.vulnerabilityCount = 87
     statistics.value.vulnerabilityCountChange = -5
     statistics.value.vulnerabilityCountTrend = 'down'
@@ -556,40 +546,6 @@ const loadStatistics = async () => {
   }
 }
 
-/**
- * @brief 加载最近告警
- */
-const loadRecentAlerts = async () => {
-  try {
-    const { start, end } = getDashboardTimeRange()
-    
-    // Call /api/alerts endpoint, only get alerts with status 'open', limit to 5
-    const response = await getAlerts({
-      status: 'open',
-      page: 1,
-      pageSize: 5,
-      startTime: start.toISOString(),
-      endTime: end.toISOString()
-    })
-    
-    recentAlerts.value = response.data || []
-  } catch (error) {
-    console.error('Failed to load recent alerts:', error)
-    recentAlerts.value = []
-  }
-}
-
-/**
- * @brief 加载最近漏洞
- */
-const loadRecentVulnerabilities = async () => {
-  try {
-    const response = await getRecentOpenVulnerabilities({ limit: 3 })
-    recentVulnerabilities.value = response.data
-  } catch (error) {
-    console.error('Failed to load recent vulnerabilities:', error)
-  }
-}
 
 /**
  * @brief 处理时间范围变化
@@ -612,92 +568,33 @@ const handleCustomRangeChange = (range) => {
 }
 
 /**
+ * @brief 处理刷新
+ */
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  try {
+    await loadData()
+  } catch (error) {
+    console.error('Failed to refresh:', error)
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
+/**
  * @brief 加载所有数据
  */
 const loadData = async () => {
   await Promise.all([
     loadStatistics(),
-    loadRecentAlerts(),
-    loadRecentVulnerabilities(),
-    loadAlertSourceStatistics()
+    loadAlertSourceStatistics(),
+    loadAlertCount24hData(),
+    loadIncidentCount30dData()
   ])
 }
 
-/**
- * @brief 获取风险等级样式类（复用 AlertsView 的逻辑）
- * @param {String} level 风险等级
- * @return {String} CSS类名
- */
-const getRiskLevelClass = (level) => {
-  const classes = {
-    fatal: 'bg-red-950 text-red-200',
-    high: 'bg-red-900 text-red-300',
-    medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300',
-    tips: 'bg-gray-700 text-gray-300'
-  }
-  return classes[level] || classes.low
-}
-
-/**
- * @brief 获取状态样式类（复用 AlertsView 的逻辑）
- * @param {String} status 状态
- * @return {String} CSS类名
- */
-const getStatusClass = (status) => {
-  const classes = {
-    open: 'bg-primary/20 text-primary',
-    block: 'bg-yellow-500/20 text-yellow-400',
-    closed: 'bg-gray-500/20 text-gray-400'
-  }
-  return classes[status] || classes.open
-}
-
-/**
- * @brief 获取状态点样式类（复用 AlertsView 的逻辑）
- * @param {String} status 状态
- * @return {String} CSS类名
- */
-const getStatusDotClass = (status) => {
-  const classes = {
-    open: 'bg-primary',
-    block: 'bg-yellow-400',
-    closed: 'bg-gray-400'
-  }
-  return classes[status] || classes.open
-}
-
-/**
- * @brief 获取CVSS样式类
- * @param {String} level CVSS级别
- * @return {String} CSS类名
- */
-const getCvssClass = (level) => {
-  const classes = {
-    critical: 'text-red-400',
-    high: 'text-orange-400',
-    medium: 'text-yellow-400',
-    low: 'text-blue-400'
-  }
-  return classes[level] || 'text-gray-400'
-}
-
-/**
- * @brief 处理调查告警（复用 AlertsView 的逻辑）
- * @param {Object} alert 告警对象
- */
-const handleInvestigateAlert = (alert) => {
-  router.push({ path: `/alerts/${alert.id}`, replace: false })
-}
-
-/**
- * @brief 处理查看漏洞详情
- * @param {Object} vuln 漏洞对象
- */
-const handleViewVulnerabilityDetail = (vuln) => {
-  // TODO: 实现漏洞详情页面路由
-  console.log('View vulnerability detail:', vuln)
-}
 
 /**
  * @brief 组件挂载时加载数据
@@ -714,7 +611,9 @@ onBeforeUnmount(() => {
 const dashboardTimeRangeLabel = computed(() => {
   if (selectedTimeRange.value === 'customRange') {
     if (customTimeRange.value && customTimeRange.value.length === 2) {
-      return `${formatDateTime(customTimeRange.value[0])} ~ ${formatDateTime(customTimeRange.value[1])}`
+      const start = new Date(customTimeRange.value[0])
+      const end = new Date(customTimeRange.value[1])
+      return `${start.toLocaleDateString()} ~ ${end.toLocaleDateString()}`
     }
     return t('common.timeRange.customRange')
   }

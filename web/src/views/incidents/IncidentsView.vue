@@ -8,6 +8,19 @@
         </h1>
       </div>
       <div class="flex items-center gap-4">
+        <button
+          @click="handleRefresh"
+          :disabled="loadingIncidents"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': loadingIncidents }"
+          >
+            refresh
+          </span>
+        </button>
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
@@ -15,8 +28,16 @@
           @custom-range-change="handleCustomRangeChange"
         />
         <button
+          @click="handleCloseSelectedIncident"
+          :disabled="!canCloseSelectedIncident"
+          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">archive</span>
+          <span>{{ $t('incidents.detail.closeIncident') }}</span>
+        </button>
+        <button
           @click="showCreateDialog = true"
-          class="flex items-center gap-2 px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 transition-colors"
+          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
         >
           <span class="material-symbols-outlined text-base">add</span>
           <span>{{ $t('incidents.list.createIncident') }}</span>
@@ -159,7 +180,7 @@
         </span>
       </template>
       <template #cell-responsibleDepartment="{ value, item }">
-        {{ item.extend_properties?.dataspace_name || value || '-' }}
+        {{ item.responsible_dept || value || '-' }}
       </template>
       <template #cell-owner="{ value, item }">
         <div class="flex justify-center w-full">
@@ -175,6 +196,16 @@
       @close="showCreateDialog = false"
       @created="handleIncidentCreated"
     />
+
+    <!-- Close incident dialog -->
+    <CloseIncidentDialog
+      ref="closeDialogRef"
+      :visible="showCloseDialog"
+      :title="$t('incidents.detail.closeDialog.title')"
+      :confirm-message="$t('incidents.detail.closeDialog.confirmMessage')"
+      @close="closeCloseDialog"
+      @submit="handleCloseIncident"
+    />
   </div>
 </template>
 
@@ -184,12 +215,18 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getIncidents } from '@/api/incidents'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
+import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
+import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
+import axios from 'axios'
 
 const { t } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
 
 // Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
@@ -223,6 +260,10 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const showCreateDialog = ref(false)
+const showCloseDialog = ref(false)
+const isClosingIncident = ref(false)
+const closeDialogRef = ref(null)
+const closingIncidentId = ref(null)
 
 // Time range picker
 const selectedTimeRange = ref('last3Months')
@@ -269,6 +310,7 @@ const loadIncidents = async () => {
     
     // Build parameters in the format expected by the backend
     const params = {
+      action: 'list',
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
       time_range: timeRange,
@@ -285,6 +327,13 @@ const loadIncidents = async () => {
   } finally {
     loadingIncidents.value = false
   }
+}
+
+/**
+ * @brief 刷新事件列表
+ */
+const handleRefresh = async () => {
+  await loadIncidents()
 }
 
 /**
@@ -330,6 +379,34 @@ const handleSelect = (items) => {
 
 const handleSelectAll = (items) => {
   selectedIncidents.value = items.map(incident => incident.id)
+}
+
+/**
+ * @brief 计算是否可以关闭选中的事件
+ * @details 必须选中一个事件，且该事件未关闭
+ */
+const canCloseSelectedIncident = computed(() => {
+  if (selectedIncidents.value.length !== 1) {
+    return false
+  }
+  const selectedId = selectedIncidents.value[0]
+  const selectedIncident = incidents.value.find(inc => inc.id === selectedId)
+  if (!selectedIncident) {
+    return false
+  }
+  const status = (selectedIncident.handle_status || selectedIncident.status)?.toLowerCase()
+  return status !== 'closed'
+})
+
+/**
+ * @brief 处理关闭选中的事件
+ */
+const handleCloseSelectedIncident = () => {
+  if (!canCloseSelectedIncident.value) {
+    return
+  }
+  const selectedId = selectedIncidents.value[0]
+  openCloseDialog(selectedId)
 }
 
 const handlePageSizeChange = (newPageSize) => {
@@ -406,6 +483,77 @@ const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
     loadIncidents()
+  }
+}
+
+/**
+ * @brief 打开关闭事件对话框
+ */
+const openCloseDialog = (incidentId) => {
+  closingIncidentId.value = incidentId
+  showCloseDialog.value = true
+}
+
+/**
+ * @brief 关闭关闭事件对话框
+ */
+const closeCloseDialog = () => {
+  showCloseDialog.value = false
+  closingIncidentId.value = null
+}
+
+/**
+ * @brief 处理关闭事件
+ */
+const handleCloseIncident = async (data) => {
+  if (!closingIncidentId.value || isClosingIncident.value) {
+    return
+  }
+
+  try {
+    isClosingIncident.value = true
+    if (closeDialogRef.value) {
+      closeDialogRef.value.setSubmitting(true)
+    }
+    
+    // 构建请求体
+    const body = {
+      handle_status: 'Closed',
+      close_reason: data.close_reason,
+      close_comment: data.close_comment
+    }
+
+    // 调用 PUT /api/incidents/<incident_id> 接口
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = apiBaseURL ? `${apiBaseURL}/incidents/${closingIncidentId.value}` : `/api/incidents/${closingIncidentId.value}`
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    await axios.put(url, body, { headers })
+    
+    // 显示成功提示
+    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', '操作成功')
+    
+    // 关闭对话框
+    closeCloseDialog()
+    
+    // 重新加载事件列表
+    loadIncidents()
+  } catch (error) {
+    console.error('Failed to close incident:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
+  } finally {
+    isClosingIncident.value = false
+    if (closeDialogRef.value) {
+      closeDialogRef.value.setSubmitting(false)
+    }
   }
 }
 

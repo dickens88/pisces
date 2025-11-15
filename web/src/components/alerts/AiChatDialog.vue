@@ -14,10 +14,11 @@
       <div
         v-for="(aiItem, index) in aiData || []"
         :key="`ai-${index}`"
-        class="flex items-start gap-3"
+        class="flex items-start gap-3 min-w-0"
         :class="compact ? 'gap-3' : 'gap-4'"
       >
         <div
+          v-if="showAvatar"
           class="flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
           :class="compact ? 'h-8 w-8' : 'h-10 w-10'"
         >
@@ -26,7 +27,7 @@
             :class="compact ? 'text-xs' : 'text-sm'"
           >smart_toy</span>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <div class="flex items-baseline gap-2">
             <p 
               class="font-semibold text-white"
@@ -34,10 +35,10 @@
             >{{ aiItem.author || 'AI Agent' }}</p>
             <p 
               class="text-xs text-text-light"
-            >{{ aiItem.create_time || aiItem.time || '-' }}</p>
+            >{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
           </div>
           <div 
-            class="mt-1 text-[#c3d3e8] bg-[#2a3546] rounded-lg rounded-tl-none ai-chat__html"
+            class="mt-1 text-[#c3d3e8] bg-[#2a3546] rounded-lg rounded-tl-none ai-chat__html overflow-x-hidden break-words"
             :class="compact ? 'text-xs p-2' : 'text-sm p-3'"
             v-html="sanitizeHtml(aiItem.content || '')"
           ></div>
@@ -61,11 +62,11 @@
       :class="compact ? 'pt-4' : 'mt-6 pt-6'"
     >
       <div 
-        class="flex items-start gap-3"
+        class="flex items-start gap-3 min-w-0"
         :class="compact ? 'gap-3' : 'gap-4'"
       >
 
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <!-- 输入框容器 -->
           <div 
             class="relative border-2 border-[#3c4a60] bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
@@ -193,6 +194,7 @@
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DOMPurify from 'dompurify'
+import { formatDateTime } from '@/utils/dateTime'
 
 const props = defineProps({
   aiData: {
@@ -210,6 +212,10 @@ const props = defineProps({
   scrollToEdge: {
     type: Boolean,
     default: false
+  },
+  showAvatar: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -338,22 +344,40 @@ const sanitizeHtml = (html) => {
 </script>
 
 <style scoped>
+.ai-chat__html {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
 .ai-chat__html :deep(pre) {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.2);
   padding: 12px;
   border-radius: 6px;
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+  max-width: 100%;
   margin: 10px 0;
 }
 
 .ai-chat__html :deep(code) {
   font-family: 'Fira Code', 'Source Code Pro', monospace;
   font-size: 13px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .ai-chat__html :deep(b) {
   color: #e2e8f0;
+}
+
+.ai-chat__html :deep(p) {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 </style>
 

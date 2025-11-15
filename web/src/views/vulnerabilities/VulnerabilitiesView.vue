@@ -2,22 +2,31 @@
   <div class="w-full">
     <!-- Page title and actions -->
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em] min-w-72">
-        {{ $t('vulnerabilities.title') }}
-      </h1>
-      <div class="flex items-center gap-2">
+      <div class="flex min-w-72 flex-col gap-2">
+        <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+          {{ $t('vulnerabilities.title') }}
+        </h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <button
+          @click="handleRefresh"
+          :disabled="loadingVulnerabilities"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': loadingVulnerabilities }"
+          >
+            refresh
+          </span>
+        </button>
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
           @change="handleTimeRangeChange"
-          @customRangeChange="handleCustomRangeChange"
+          @custom-range-change="handleCustomRangeChange"
         />
-        <button
-          @click="handleExportReport"
-          class="flex items-center gap-2 px-4 py-2 h-10 text-sm text-white bg-[#233348] rounded-lg hover:bg-[#324867] transition-colors"
-        >
-          <span class="truncate">{{ $t('vulnerabilities.list.exportReport') }}</span>
-        </button>
       </div>
     </header>
 
@@ -108,46 +117,79 @@
       </div>
     </section>
 
-    <!-- Search and filter -->
-    <section class="flex flex-col gap-4 rounded-xl border border-[#324867] bg-[#111822] p-4 mb-6">
-      <div class="flex flex-wrap items-center justify-between gap-2 px-2 py-1">
-        <div class="flex items-center gap-2">
-          <div class="relative w-64">
-            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#92a9c9]">
-              search
-            </span>
+    <!-- Vulnerability list table -->
+    <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
+      <!-- Loading overlay -->
+      <div
+        v-if="loadingVulnerabilities"
+        class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+      >
+        <div class="flex flex-col items-center gap-4">
+          <div class="relative w-16 h-16">
+            <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+            <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+          </div>
+          <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
+        <div class="relative w-full max-w-sm">
+          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+            <div class="pointer-events-none flex items-center shrink-0">
+              <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
+            </div>
+            <!-- Search keyword tags -->
+            <div
+              v-for="(keyword, index) in searchKeywords"
+              :key="index"
+              class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
+            >
+              <span>{{ keyword }}</span>
+              <button
+                @click="removeKeyword(index)"
+                class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                type="button"
+                :aria-label="$t('common.delete')"
+              >
+                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+              </button>
+            </div>
+            <!-- Input field -->
             <input
-              v-model="searchQuery"
-              @input="handleSearch"
-              class="w-full h-10 rounded-lg border border-[#324867] bg-transparent pl-10 pr-4 text-white placeholder:text-[#92a9c9] focus:border-primary focus:ring-primary"
-              :placeholder="$t('vulnerabilities.list.searchPlaceholder')"
+              v-model="currentSearchInput"
+              @keydown.enter.prevent="addKeyword"
+              @input="handleSearchInput"
+              class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
+              :placeholder="searchKeywords.length === 0 ? $t('incidents.list.searchPlaceholder') : ''"
               type="text"
             />
           </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <select
+              v-model="statusFilter"
+              @change="handleFilter"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-[#233348] h-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            >
+              <option value="all">{{ $t('incidents.list.allStatus') }}</option>
+              <option value="Open">{{ $t('incidents.list.open') }}</option>
+              <option value="Block">{{ $t('incidents.list.block') }}</option>
+              <option value="Closed">{{ $t('incidents.list.closed') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
           <button
-            @click="showFilterDialog = !showFilterDialog"
-            class="flex items-center justify-center rounded-lg p-2 text-white hover:bg-[#233348] transition-colors"
+            :disabled="selectedVulnerabilities.length === 0"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
           >
-            <span class="material-symbols-outlined">filter_list</span>
-          </button>
-          <button
-            @click="handleDownload"
-            class="flex items-center justify-center rounded-lg p-2 text-white hover:bg-[#233348] transition-colors"
-          >
-            <span class="material-symbols-outlined">download</span>
+            <span class="material-symbols-outlined text-base">ios_share</span>
+            <span>{{ $t('incidents.list.export') }}</span>
           </button>
         </div>
-        <button
-          @click="showBatchOperateDialog = true"
-          :disabled="selectedVulnerabilities.length === 0"
-          class="flex items-center gap-2 px-4 py-2 h-10 text-sm text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">apps</span>
-          <span class="truncate">{{ $t('vulnerabilities.list.batchOperate') }}</span>
-        </button>
       </div>
-
-      <!-- Data table -->
       <DataTable
         ref="dataTableRef"
         :columns="columns"
@@ -165,34 +207,57 @@
         @select-all="handleSelectAll"
         @page-size-change="handlePageSizeChange"
       >
-        <template #cell-name="{ item }">
-          <div class="text-white font-normal">
-            {{ item.name }}
+        <template #cell-occurrenceTime="{ value, item }">
+          {{ formatDateTime(value || item?.arrive_time || item?.create_time || item?.occurrenceTime || item?.occurrence_time) }}
+        </template>
+        <template #cell-incidentName="{ item }">
+          <div class="flex items-center gap-2">
+            <button
+              @click.stop="openVulnerabilityDetailInNewWindow(item.id)"
+              class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+              :title="$t('incidents.list.openInNewWindow') || '在新窗口打开'"
+            >
+              <span class="material-symbols-outlined text-base">open_in_new</span>
+            </button>
+            <router-link
+              :to="`/vulnerabilities/${item.id}`"
+              class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+              :title="item.title || item.name"
+            >
+              {{ item.title || item.name }}
+            </router-link>
           </div>
         </template>
-        <template #cell-riskLevel="{ item }">
-          <span :class="getRiskLevelClass(item.riskLevel)">
-            {{ $t(`common.severity.${item.riskLevel?.toLowerCase()}`) }}
+        <template #cell-severity="{ item }">
+          <span
+            :class="[
+              'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
+              getSeverityClass(item.severity)
+            ]"
+            :title="$t(`common.severity.${item.severity?.toLowerCase()}`)"
+          >
+            {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
           </span>
-        </template>
-        <template #cell-affectedAsset="{ value }">
-          <span class="text-[#92a9c9]">{{ value }}</span>
-        </template>
-        <template #cell-firstDiscoveryTime="{ value }">
-          <span class="text-[#92a9c9]">{{ value }}</span>
         </template>
         <template #cell-status="{ item }">
-          <span :class="getStatusClass(item.status)">
-            {{ $t(`vulnerabilities.list.status.${item.status}`) }}
+          <span
+            :class="[
+              'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
+              getStatusClass(item.handle_status || item.status)
+            ]"
+            :title="getStatusText(item.handle_status || item.status)"
+          >
+            <span :class="['size-1.5 rounded-full', getStatusDotClass(item.handle_status || item.status)]"></span>
+            {{ getStatusText(item.handle_status || item.status) }}
           </span>
         </template>
-        <template #cell-action="{ item }">
-          <button
-            @click.stop="handleViewDetail(item)"
-            class="text-sm font-medium text-primary cursor-pointer hover:underline"
-          >
-            {{ $t('vulnerabilities.list.detail') }}
-          </button>
+        <template #cell-responsibleDepartment="{ value, item }">
+          {{ item.responsible_dept || value || '-' }}
+        </template>
+        <template #cell-owner="{ value, item }">
+          <div class="flex justify-center w-full">
+            <UserAvatar :name="item.owner || value || ''" />
+          </div>
         </template>
       </DataTable>
     </section>
@@ -202,95 +267,116 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { getIncidents } from '@/api/incidents'
 import { 
-  getVulnerabilities, 
   getVulnerabilityTrend, 
-  getVulnerabilityDepartmentDistribution,
-  exportVulnerabilityReport 
+  getVulnerabilityDepartmentDistribution
 } from '@/api/vulnerabilities'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import { formatDateTime } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
-// Define column configuration
+// Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
-  { key: 'name', label: t('vulnerabilities.list.nameCve') },
-  { key: 'riskLevel', label: t('vulnerabilities.list.riskLevel') },
-  { key: 'affectedAsset', label: t('vulnerabilities.list.affectedAsset') },
-  { key: 'firstDiscoveryTime', label: t('vulnerabilities.list.firstDiscoveryTime') },
-  { key: 'status', label: t('vulnerabilities.list.status') },
-  { key: 'action', label: t('vulnerabilities.list.action') }
+  { key: 'occurrenceTime', label: t('incidents.list.occurrenceTime') },
+  { key: 'incidentName', label: t('incidents.list.incidentName') },
+  { key: 'severity', label: t('incidents.list.severity') },
+  { key: 'status', label: t('incidents.list.status') },
+  { key: 'responsibleDepartment', label: t('incidents.list.responsibleDepartment') },
+  { key: 'owner', label: t('incidents.list.owner') }
 ])
 
 // Default column widths
 const defaultWidths = {
-  name: 400,
-  riskLevel: 120,
-  affectedAsset: 150,
-  firstDiscoveryTime: 150,
-  status: 100,
-  action: 100
+  occurrenceTime: 200,
+  incidentName: 400,
+  severity: 120,
+  status: 120,
+  responsibleDepartment: 150,
+  owner: 50
 }
 
 const vulnerabilities = ref([])
 const trendData = ref([])
 const departmentData = ref([])
 const dataTableRef = ref(null)
-const searchQuery = ref('')
+const loadingVulnerabilities = ref(false)
+const searchKeywords = ref([])
+const currentSearchInput = ref('')
+const severityFilter = ref('all')
+const statusFilter = ref('all')
 const selectedVulnerabilities = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const showFilterDialog = ref(false)
-const showBatchOperateDialog = ref(false)
-const showCreateScanDialog = ref(false)
 
 // Time range picker
-const selectedTimeRange = ref('last30Days')
+const selectedTimeRange = ref('last3Months')
 const customTimeRange = ref(null)
 
-// Load vulnerability list
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
 const loadVulnerabilities = async () => {
+  loadingVulnerabilities.value = true
   try {
-    const params = {
-      search: searchQuery.value,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }
-    
-    // Add time parameters based on selected time range
+    // Calculate time range (in days)
+    let timeRange = 1 // Default 1 day
     if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      params.startTime = customTimeRange.value[0].toISOString()
-      params.endTime = customTimeRange.value[1].toISOString()
+      // Custom time range: calculate day difference
+      const diffTime = Math.abs(customTimeRange.value[1] - customTimeRange.value[0])
+      timeRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
     } else {
-      const end = new Date()
-      const start = new Date()
-      
+      // Predefined time range
       if (selectedTimeRange.value === 'last24Hours') {
-        start.setHours(start.getHours() - 24)
+        timeRange = 1
       } else if (selectedTimeRange.value === 'last3Days') {
-        start.setDate(start.getDate() - 3)
+        timeRange = 3
       } else if (selectedTimeRange.value === 'last7Days') {
-        start.setDate(start.getDate() - 7)
+        timeRange = 7
       } else if (selectedTimeRange.value === 'last30Days') {
-        start.setDate(start.getDate() - 30)
+        timeRange = 30
       } else if (selectedTimeRange.value === 'last3Months') {
-        start.setMonth(start.getMonth() - 3)
-      } else {
-        // Default 30 days
-        start.setDate(start.getDate() - 30)
+        timeRange = 90
       }
-      
-      params.startTime = start.toISOString()
-      params.endTime = end.toISOString()
     }
     
-    const response = await getVulnerabilities(params)
-    vulnerabilities.value = response.data
-    total.value = response.total
+    // Build conditions array
+    const conditions = []
+    // Add search keyword conditions
+    searchKeywords.value.forEach(keyword => {
+      conditions.push({ title: keyword })
+    })
+    if (severityFilter.value && severityFilter.value !== 'all') {
+      conditions.push({ severity: severityFilter.value })
+    }
+    if (statusFilter.value && statusFilter.value !== 'all') {
+      conditions.push({ handle_status: statusFilter.value })
+    }
+    
+    // Build parameters in the format expected by the backend
+    // Add search_vulscan: true to indicate this is a vulnerability scan query
+    const params = {
+      action: 'list',
+      limit: pageSize.value,
+      offset: (currentPage.value - 1) * pageSize.value,
+      time_range: timeRange,
+      conditions: conditions,
+      search_vulscan: true
+    }
+    
+    const response = await getIncidents(params)
+    vulnerabilities.value = response.data || []
+    total.value = response.total || 0
   } catch (error) {
     console.error('Failed to load vulnerabilities:', error)
+    vulnerabilities.value = []
+    total.value = 0
+  } finally {
+    loadingVulnerabilities.value = false
   }
 }
 
@@ -314,17 +400,60 @@ const loadDepartmentData = async () => {
   }
 }
 
-const handleSearch = () => {
-  currentPage.value = 1
+/**
+ * @brief 刷新漏洞列表
+ */
+const handleRefresh = async () => {
+  await Promise.all([
+    loadVulnerabilities(),
+    loadTrendData(),
+    loadDepartmentData()
+  ])
+}
+
+/**
+ * @brief 添加搜索关键字
+ */
+const addKeyword = () => {
+  const keyword = currentSearchInput.value.trim()
+  if (keyword && !searchKeywords.value.includes(keyword)) {
+    searchKeywords.value.push(keyword)
+    currentSearchInput.value = ''
+    loadVulnerabilities()
+  }
+}
+
+/**
+ * @brief 删除搜索关键字
+ * @param {number} index - 要删除的关键字索引
+ */
+const removeKeyword = (index) => {
+  searchKeywords.value.splice(index, 1)
+  loadVulnerabilities()
+}
+
+/**
+ * @brief 处理搜索输入
+ * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
+ */
+const handleSearchInput = () => {
+  // If real-time search is needed, call loadVulnerabilities() here
+  // Currently only searches when adding/removing keywords
+}
+
+/**
+ * @brief 处理筛选器变化
+ */
+const handleFilter = () => {
   loadVulnerabilities()
 }
 
 const handleSelect = (items) => {
-  selectedVulnerabilities.value = items.map(vuln => vuln.id)
+  selectedVulnerabilities.value = items.map(vulnerability => vulnerability.id)
 }
 
 const handleSelectAll = (items) => {
-  selectedVulnerabilities.value = items.map(vuln => vuln.id)
+  selectedVulnerabilities.value = items.map(vulnerability => vulnerability.id)
 }
 
 const handlePageSizeChange = (newPageSize) => {
@@ -333,49 +462,61 @@ const handlePageSizeChange = (newPageSize) => {
   loadVulnerabilities()
 }
 
-const getRiskLevelClass = (riskLevel) => {
+const router = useRouter()
+
+const getSeverityClass = (severity) => {
+  const severityLower = (severity || '').toLowerCase()
   const classes = {
-    critical: 'inline-block rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-500',
-    high: 'inline-block rounded-full bg-orange-500/10 px-3 py-1 text-xs font-medium text-orange-500',
-    medium: 'inline-block rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-500',
-    low: 'inline-block rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-500'
+    high: 'text-white bg-[#E57373]',
+    medium: 'text-black bg-[#FFB74D]',
+    low: 'text-white bg-[#64B5F6]'
   }
-  return classes[riskLevel] || classes.low
+  return classes[severityLower] || classes.low
 }
 
 const getStatusClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
   const classes = {
-    pending: 'text-[#92a9c9]',
-    inProgress: 'text-yellow-500',
-    fixed: 'text-green-500',
-    ignored: 'text-[#92a9c9]'
+    open: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    block: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+    closed: 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
   }
-  return classes[status] || classes.pending
+  return classes[statusLower] || classes.open
 }
 
-const handleViewDetail = (item) => {
-  // TODO: 实现详情查看功能
-  console.log('View detail:', item)
-}
-
-const handleExportReport = async () => {
-  try {
-    await exportVulnerabilityReport({
-      timeRange: selectedTimeRange.value,
-      customRange: customTimeRange.value
-    })
-  } catch (error) {
-    console.error('Failed to export report:', error)
+const getStatusDotClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
+  const classes = {
+    open: 'bg-amber-400',
+    block: 'bg-yellow-400',
+    closed: 'bg-gray-400'
   }
+  return classes[statusLower] || classes.open
 }
 
-const handleDownload = () => {
-  handleExportReport()
+const getStatusText = (status) => {
+  if (!status) return t('incidents.list.open')
+  const statusLower = status.toLowerCase()
+  const statusMap = {
+    'open': t('incidents.list.open'),
+    'block': t('incidents.list.block'),
+    'closed': t('incidents.list.closed')
+  }
+  return statusMap[statusLower] || status
+}
+
+const openVulnerabilityDetailInNewWindow = (vulnerabilityId) => {
+  // Open vulnerability detail in a new window
+  const route = router.resolve({ path: `/vulnerabilities/${vulnerabilityId}` })
+  // Build complete URL
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
 }
 
 const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
+    // Load data based on selected time range
     loadVulnerabilities()
     loadTrendData()
     loadDepartmentData()
@@ -401,4 +542,5 @@ onMounted(() => {
   loadDepartmentData()
 })
 </script>
+
 

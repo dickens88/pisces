@@ -11,6 +11,7 @@
     "reset": "重置",
     "refresh": "刷新",
     "submit": "提交",
+    "send": "发送",
     "close": "关闭",
     "loading": "加载中...",
     "noComments": "暂无评论",
@@ -54,7 +55,8 @@
     "statistics": {
       "alertCount24h": "告警数量 (24小时)",
       "incidentCount24h": "事件数 (24小时)",
-      "vulnerabilityCount": "漏洞数 (未关闭)",
+      "incidentCount30d": "事件数 (30天)",
+      "vulnerabilityCount": "漏洞数",
       "mttd": "平均检测时间 (MTTD)"
     },
     "charts": {
@@ -167,7 +169,6 @@
       "threatIntelligence": "威胁情报",
       "unknownSource": "未知来源",
       "aiAgent": "AI智能体",
-      "comments": "评论",
       "alertInfo": "告警信息",
       "timestamp": "时间戳",
       "status": "状态",
@@ -178,6 +179,11 @@
       "created": "创建时间",
       "responseTime": "响应时间",
       "addComment": "添加评论...",
+      "comments": {
+        "title": "评论",
+        "postSuccess": "评论提交成功",
+        "postError": "评论提交失败，请稍后重试"
+      },
       "aiAgentPlaceholder": "向AI询问此告警...",
       "associatedEntities": "关联实体",
       "eventTimeline": "事件时间线",
@@ -199,7 +205,7 @@
     "list": {
       "severity": "严重等级",
       "incidentName": "事件名称",
-      "responsibleDepartment": "责任人部门",
+      "responsibleDepartment": "责任部门",
       "rootCause": "根因",
       "occurrenceTime": "发生时间",
       "status": "状态",
@@ -213,10 +219,10 @@
       "allStatus": "全部",
       "open": "打开",
       "block": "阻塞",
-      "pending": "待处理",
-      "inProgress": "处理中",
       "closed": "已关闭",
       "batchClose": "关闭事件",
+      "batchCloseSuccess": "成功关闭 {count} 个事件",
+      "batchCloseError": "批量关闭事件失败，请稍后重试",
       "batchCloseDialog": {
         "title": "批量关闭事件",
         "selectedCount": "已选中 {count} 条事件",
@@ -257,13 +263,14 @@
       "rootCauseWeakConfig": "弱配置",
       "rootCauseUnauthorizedApi": "未授权接口",
       "rootCauseHistoricalVulnerability": "历史漏洞",
+      "selectSeverity": "请选择严重程度",
       "currentStatus": "当前状态",
       "description": "事件描述",
       "descriptionPlaceholder": "请输入事件描述"
     },
     "detail": {
       "title": "事件详情",
-      "eventId": "事件ID",
+      "owner": "责任人",
       "createTime": "创建时间",
       "updateTime": "最后更新时间",
       "assign": "分配",
@@ -334,7 +341,9 @@
         "addComment": "添加评论...",
         "post": "发布",
         "attachFile": "附件",
-        "noComments": "暂无评论"
+        "noComments": "暂无评论",
+        "postSuccess": "评论提交成功",
+        "postError": "评论提交失败，请稍后重试"
       }
     }
   },
@@ -355,6 +364,40 @@
     "statistics": {
       "trend": "漏洞趋势统计",
       "departmentDistribution": "漏洞责任部门分布"
+    },
+    "detail": {
+      "overview": "概览",
+      "description": "描述",
+      "lifecycle": "漏洞生命周期",
+      "comments": "评论",
+      "discoveredTime": "发现时间",
+      "assignee": "负责人",
+      "assigneeDepartment": "负责人部门",
+      "riskLevel": "风险等级",
+      "rootCause": "根因",
+      "fixStatus": "修复状态",
+      "noDescription": "暂无描述",
+      "noComments": "暂无评论",
+      "addComment": "添加评论...",
+      "comment": "评论",
+      "changeStatus": "更改状态",
+      "assign": "分配",
+      "loadError": "加载漏洞详情失败",
+      "commentSuccess": "评论提交成功",
+      "commentError": "评论提交失败，请稍后重试",
+      "remediationVerified": "修复已验证",
+      "statusChanged": "状态已变更为'进行中'",
+      "assignedTo": "已分配给",
+      "vulnerabilityCreated": "漏洞已创建",
+      "justNow": "刚刚",
+      "minutesAgo": "分钟前",
+      "hoursAgo": "小时前",
+      "daysAgo": "天前",
+      "status": {
+        "patched": "已修复",
+        "open": "打开",
+        "inProgress": "进行中"
+      }
     }
   }
 }

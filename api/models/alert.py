@@ -48,12 +48,38 @@ class Alert(Base):
         }
 
     @classmethod
-    def save_alert(cls, payload: dict) -> dict:
-        """Create a new alert record in local DB."""
+    def upsert_alert(cls, payload: dict) -> dict:
+        """Insert or update an alert record in local DB by alert_id (upsert)."""
         session = Session()
         try:
-            alert = cls._build_alert_entity(payload)
-            session.add(alert)
+            alert_id = payload.get("id")
+            if not alert_id:
+                raise ValueError("alert_id is required for upsert")
+            
+            alert = session.query(cls).filter_by(alert_id=alert_id).first()
+            new_alert_entity = cls._build_alert_entity(payload)
+            
+            if alert:
+                # Update existing record
+                alert.create_time = new_alert_entity.create_time
+                alert.last_update_time = new_alert_entity.last_update_time
+                alert.close_time = new_alert_entity.close_time
+                alert.title = new_alert_entity.title
+                alert.description = new_alert_entity.description
+                alert.severity = new_alert_entity.severity
+                alert.handle_status = new_alert_entity.handle_status
+                alert.owner = new_alert_entity.owner
+                alert.creator = new_alert_entity.creator
+                alert.close_reason = new_alert_entity.close_reason
+                alert.close_comment = new_alert_entity.close_comment
+                alert.data_source_product_name = new_alert_entity.data_source_product_name
+                logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
+            else:
+                # Create new record
+                alert = new_alert_entity
+                session.add(alert)
+                logger.debug(f"Creating alert in local DB: alert_id={alert_id}")
+            
             session.commit()
             session.refresh(alert)
             return alert.to_dict()
@@ -63,6 +89,16 @@ class Alert(Base):
             raise
         finally:
             session.close()
+
+    @classmethod
+    def save_alert(cls, payload: dict) -> dict:
+        """Create a new alert record in local DB. (Deprecated: use upsert_alert instead)"""
+        return cls.upsert_alert(payload)
+
+    @classmethod
+    def update_alert(cls, payload: dict) -> dict:
+        """Update an existing alert record in local DB by alert_id. (Deprecated: use upsert_alert instead)"""
+        return cls.upsert_alert(payload)
 
     @staticmethod
     def _build_alert_entity(payload: dict):
@@ -110,6 +146,13 @@ class Alert(Base):
         if isinstance(description, (dict, list)):
             description = json.dumps(description)
 
+        # Handle data_source_product_name from different payload formats
+        data_source_product_name = None
+        if "data_source" in payload and isinstance(payload.get("data_source"), dict):
+            data_source_product_name = payload.get("data_source", {}).get("product_name")
+        elif "data_source_product_name" in payload:
+            data_source_product_name = payload.get("data_source_product_name")
+
         return Alert(
             alert_id=payload.get("id"),
             create_time=payload.get("create_time"),
@@ -123,5 +166,5 @@ class Alert(Base):
             creator=payload.get("creator"),
             close_reason=close_reason,
             close_comment=payload.get("close_comment"),
-            data_source_product_name=payload["data_source"]["product_name"],
+            data_source_product_name=data_source_product_name,
         )

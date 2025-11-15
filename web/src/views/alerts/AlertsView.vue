@@ -47,7 +47,7 @@
         <p class="text-gray-400 text-sm font-normal leading-normal">
           {{ alertsTimeRangeLabel }}
         </p>
-        <div class="relative h-40 w-full pt-2">
+        <div class="relative h-40 w-full">
           <div
             v-if="alertTypeChartLoading"
             class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
@@ -63,7 +63,8 @@
           <div
             v-show="!alertTypeChartLoading && alertTypeChartValues.length > 0"
             ref="alertTypeChartRef"
-            class="h-full w-full"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
           ></div>
         </div>
       </div>
@@ -91,44 +92,25 @@
             {{ statistics.alertTrend >= 0 ? '+' : '' }}{{ statistics.alertTrend }}%
           </p>
         </div>
-        <div class="flex min-h-[90px] flex-1 flex-col justify-end pt-4">
-          <svg
-            fill="none"
-            height="100%"
-            preserveAspectRatio="none"
-            viewBox="0 0 420 120"
-            width="100%"
-            xmlns="http://www.w3.org/2000/svg"
+        <div class="relative h-40 w-full">
+          <div
+            v-if="alertTrendChartLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
           >
-            <path
-              d="M0 87.2C15.5556 87.2 15.5556 16.8 31.1111 16.8C46.6667 16.8 46.6667 32.8 62.2222 32.8C77.7778 32.8 77.7778 74.4 93.3333 74.4C108.889 74.4 108.889 26.4 124.444 26.4C140 26.4 140 80.8 155.556 80.8C171.111 80.8 171.111 48.8 186.667 48.8C202.222 48.8 202.222 36 217.778 36C233.333 36 233.333 96.8 248.889 96.8C264.444 96.8 264.444 119.2 280 119.2C295.556 119.2 295.556 0.800003 311.111 0.800003C326.667 0.800003 326.667 64.8 342.222 64.8C357.778 64.8 357.778 103.2 373.333 103.2C388.889 103.2 388.889 20 404.444 20C420 20 420 20 420 20V120H0V87.2Z"
-              fill="url(#trend-gradient)"
-            ></path>
-            <path
-              d="M0 87.2C15.5556 87.2 15.5556 16.8 31.1111 16.8C46.6667 16.8 46.6667 32.8 62.2222 32.8C77.7778 32.8 77.7778 74.4 93.3333 74.4C108.889 74.4 108.889 26.4 124.444 26.4C140 26.4 140 80.8 155.556 80.8C171.111 80.8 171.111 48.8 186.667 48.8C202.222 48.8 202.222 36 217.778 36C233.333 36 233.333 96.8 248.889 96.8C264.444 96.8 264.444 119.2 280 119.2C295.556 119.2 295.556 0.800003 311.111 0.800003C326.667 0.800003 326.667 64.8 342.222 64.8C357.778 64.8 357.778 103.2 373.333 103.2C388.889 103.2 388.889 20 404.444 20"
-              stroke="#2b7cee"
-              stroke-linecap="round"
-              stroke-width="3"
-            ></path>
-            <defs>
-              <linearGradient
-                gradientUnits="userSpaceOnUse"
-                id="trend-gradient"
-                x1="210"
-                x2="210"
-                y1="0"
-                y2="120"
-              >
-                <stop stop-color="#2b7cee" stop-opacity="0.4"></stop>
-                <stop offset="1" stop-color="#2b7cee" stop-opacity="0"></stop>
-              </linearGradient>
-            </defs>
-          </svg>
-          <div class="flex justify-between mt-2">
-            <p v-for="day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" :key="day" class="text-gray-400 text-xs font-medium">
-              {{ day }}
-            </p>
+            {{ $t('common.loading') }}
           </div>
+          <div
+            v-else-if="alertTrendChartValues.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+          >
+            {{ $t('common.noData') }}
+          </div>
+          <div
+            v-show="!alertTrendChartLoading && alertTrendChartValues.length > 0"
+            ref="alertTrendChartRef"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
+          ></div>
         </div>
       </div>
 
@@ -243,7 +225,7 @@
             <span>{{ $t('alerts.list.associateIncident') }}</span>
           </button>
           <button
-            :disabled="selectedAlerts.length !== 1"
+            :disabled="selectedAlerts.length === 0"
             @click="openCreateIncidentDialog"
             class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
           >
@@ -360,6 +342,7 @@
     <CreateIncidentDialog
       :visible="showCreateIncidentDialog"
       :initial-data="createIncidentInitialData"
+      :alert-ids="selectedAlerts"
       @close="closeCreateIncidentDialog"
       @created="handleIncidentCreated"
     />
@@ -445,9 +428,10 @@
           </button>
           <button
             @click="handleBatchClose"
-            :disabled="!closeConclusion.category || !closeConclusion.notes.trim()"
-            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="!closeConclusion.category || !closeConclusion.notes.trim() || isBatchClosing"
+            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
+            <span v-if="isBatchClosing" class="material-symbols-outlined animate-spin text-base">sync</span>
             {{ $t('common.submit') }}
           </button>
         </div>
@@ -461,7 +445,7 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, getAlertCountsBySource, closeAlert } from '@/api/alerts'
+import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertTrend, closeAlert } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
@@ -470,8 +454,10 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
+const toast = useToast()
 
 
 
@@ -508,7 +494,20 @@ const statistics = ref({
 })
 const searchKeywords = ref([])
 const currentSearchInput = ref('')
-const statusFilter = ref('all')
+// 从localStorage读取保存的status筛选器设置，如果没有则默认为'all'
+const getStoredStatusFilter = () => {
+  try {
+    const stored = localStorage.getItem('alerts-status-filter')
+    // 验证存储的值是否有效
+    if (stored && ['all', 'open', 'block', 'closed'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read status filter from localStorage:', error)
+  }
+  return 'all'
+}
+const statusFilter = ref(getStoredStatusFilter())
 const selectedAlerts = ref([])
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -516,6 +515,7 @@ const total = ref(0)
 const selectedTimeRange = ref('last24Hours')
 const customTimeRange = ref(null)
 const showBatchCloseDialog = ref(false)
+const isBatchClosing = ref(false)
 const closeConclusion = ref({
   category: '',
   notes: ''
@@ -534,6 +534,14 @@ const alertTypeChartTotal = ref(0)
 
 let alertTypeChartInstance = null
 let alertTypeChartResizeBound = false
+
+const alertTrendChartRef = ref(null)
+const alertTrendChartDates = ref([])
+const alertTrendChartValues = ref([])
+const alertTrendChartLoading = ref(false)
+
+let alertTrendChartInstance = null
+let alertTrendChartResizeBound = false
 
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
@@ -578,6 +586,12 @@ const handleAlertTypeResize = () => {
   }
 }
 
+const handleAlertTrendResize = () => {
+  if (alertTrendChartInstance) {
+    alertTrendChartInstance.resize()
+  }
+}
+
 const ensureAlertTypeChart = () => {
   if (!alertTypeChartInstance && alertTypeChartRef.value) {
     alertTypeChartInstance = echarts.init(alertTypeChartRef.value)
@@ -599,11 +613,35 @@ const disposeAlertTypeChart = () => {
   }
 }
 
+const ensureAlertTrendChart = () => {
+  if (!alertTrendChartInstance && alertTrendChartRef.value) {
+    alertTrendChartInstance = echarts.init(alertTrendChartRef.value)
+    if (!alertTrendChartResizeBound) {
+      window.addEventListener('resize', handleAlertTrendResize)
+      alertTrendChartResizeBound = true
+    }
+  }
+}
+
+const disposeAlertTrendChart = () => {
+  if (alertTrendChartInstance) {
+    alertTrendChartInstance.dispose()
+    alertTrendChartInstance = null
+  }
+  if (alertTrendChartResizeBound) {
+    window.removeEventListener('resize', handleAlertTrendResize)
+    alertTrendChartResizeBound = false
+  }
+}
+
 const updateAlertTypeChart = () => {
   ensureAlertTypeChart()
   if (!alertTypeChartInstance) {
     return
   }
+
+  // Clear previous option to ensure new settings take effect
+  alertTypeChartInstance.clear()
 
   const option = {
     backgroundColor: 'transparent',
@@ -616,30 +654,36 @@ const updateAlertTypeChart = () => {
       padding: [10, 12]
     },
     grid: {
-      top: 20,
-      right: 16,
-      bottom: 40,
-      left: 52
+      top: 5,
+      right: 5,
+      bottom: 25,
+      left: 20,
+      containLabel: false
     },
     xAxis: {
       type: 'category',
       data: alertTypeChartCategories.value,
+      boundaryGap: true,
       axisLabel: {
         color: '#cbd5f5',
-        rotate: alertTypeChartCategories.value.length > 5 ? 20 : 0
+        rotate: alertTypeChartCategories.value.length > 5 ? 20 : 0,
+        margin: 8,
+        fontSize: 10
       },
       axisLine: {
+        show: true,
         lineStyle: { color: '#334155' }
       },
-      axisTick: { show: false }
+      axisTick: { show: true, inside: true, alignWithLabel: true }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#94a3b8' },
+      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
       splitLine: {
         lineStyle: { color: '#1f2a37' }
       },
-      axisLine: { show: false }
+      axisLine: { show: true, lineStyle: { color: '#334155' } },
+      axisTick: { show: true, inside: true }
     },
     series: [
       {
@@ -660,7 +704,10 @@ const updateAlertTypeChart = () => {
   }
 
   alertTypeChartInstance.setOption(option, true)
-  alertTypeChartInstance.resize()
+  // Force resize to ensure grid changes take effect
+  nextTick(() => {
+    alertTypeChartInstance.resize()
+  })
 }
 
 const loadAlertTypeDistribution = async () => {
@@ -668,7 +715,11 @@ const loadAlertTypeDistribution = async () => {
   alertTypeChartTotal.value = 0
   try {
     const range = computeSelectedRange()
-    const response = await getAlertCountsBySource(formatDateForBackend(range.start))
+    const response = await getAlertCountsBySource(
+      formatDateForBackend(range.start),
+      formatDateForBackend(range.end),
+      statusFilter.value
+    )
     const counts = response?.data || {}
     const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
     entries.sort((a, b) => b[1] - a[1])
@@ -684,6 +735,119 @@ const loadAlertTypeDistribution = async () => {
     alertTypeChartLoading.value = false
     await nextTick()
     updateAlertTypeChart()
+  }
+}
+
+const updateAlertTrendChart = () => {
+  ensureAlertTrendChart()
+  if (!alertTrendChartInstance) {
+    return
+  }
+
+  // Clear previous option to ensure new settings take effect
+  alertTrendChartInstance.clear()
+
+  // Format dates for display (show day of week or date)
+  const formatDateLabel = (dateStr) => {
+    const date = new Date(dateStr)
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    return dayNames[date.getDay()]
+  }
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    grid: {
+      top: 5,
+      right: 5,
+      bottom: 25,
+      left: 20,
+      containLabel: false
+    },
+    xAxis: {
+      type: 'category',
+      data: alertTrendChartDates.value.map(formatDateLabel),
+      boundaryGap: false,
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: 10
+      },
+      axisLine: {
+        show: true,
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: true, lineStyle: { color: '#334155' } },
+      axisTick: { show: true, inside: true }
+    },
+    series: [
+      {
+        name: t('alerts.title'),
+        type: 'line',
+        data: alertTrendChartValues.value,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: {
+          color: '#2b7cee',
+          width: 3
+        },
+        itemStyle: {
+          color: '#2b7cee'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(43, 124, 238, 0.4)' },
+            { offset: 1, color: 'rgba(43, 124, 238, 0)' }
+          ])
+        }
+      }
+    ]
+  }
+
+  alertTrendChartInstance.setOption(option, true)
+  // Force resize to ensure grid changes take effect
+  nextTick(() => {
+    alertTrendChartInstance.resize()
+  })
+}
+
+const loadAlertTrend = async () => {
+  alertTrendChartLoading.value = true
+  try {
+    const range = computeSelectedRange()
+    const response = await getAlertTrend(
+      formatDateForBackend(range.start),
+      formatDateForBackend(range.end)
+    )
+    const trendData = response?.data || []
+    alertTrendChartDates.value = trendData.map(item => item.date)
+    alertTrendChartValues.value = trendData.map(item => Number(item.count) || 0)
+    // Calculate total alert count from trend data
+    statistics.value.alertCount = alertTrendChartValues.value.reduce((sum, count) => sum + count, 0)
+  } catch (error) {
+    console.error('Failed to load alert trend:', error)
+    alertTrendChartDates.value = []
+    alertTrendChartValues.value = []
+    statistics.value.alertCount = 0
+  } finally {
+    alertTrendChartLoading.value = false
+    await nextTick()
+    updateAlertTrendChart()
   }
 }
 
@@ -743,7 +907,10 @@ const handleRefresh = async () => {
 const loadStatistics = async () => {
   try {
     const response = await getAlertStatistics()
-    statistics.value = response.data
+    // Merge response data instead of completely replacing to preserve alertCount set by loadAlertTrend
+    if (response && response.data) {
+      Object.assign(statistics.value, response.data)
+    }
   } catch (error) {
     console.error('Failed to load statistics:', error)
   }
@@ -781,7 +948,15 @@ const handleSearchInput = () => {
 }
 
 const handleFilter = () => {
+  // 保存status筛选器设置到localStorage
+  try {
+    localStorage.setItem('alerts-status-filter', statusFilter.value)
+  } catch (error) {
+    console.warn('Failed to save status filter to localStorage:', error)
+  }
   loadAlerts()
+  loadAlertTypeDistribution()  // Reload chart data when status filter changes
+  // Note: Alert trend chart doesn't use status filter, only time range
 }
 
 const handlePageSizeChange = () => {
@@ -910,28 +1085,31 @@ const closeBatchCloseDialog = () => {
 }
 
 const handleBatchClose = async () => {
-  if (!closeConclusion.value.category || !closeConclusion.value.notes.trim()) {
+  if (!closeConclusion.value.category || !closeConclusion.value.notes.trim() || isBatchClosing.value) {
+    return
+  }
+
+  if (selectedAlerts.value.length === 0) {
+    toast.warn('请至少选择一个告警', '提示')
     return
   }
 
   try {
-    // 遍历选中的告警，逐个调用关闭接口
-    const closeParams = {
-      category: closeConclusion.value.category,
-      notes: closeConclusion.value.notes.trim()
-    }
+    isBatchClosing.value = true
     
-    // 使用 Promise.all 并行调用所有接口，或者使用 for...of 串行调用
-    // 这里使用串行调用，以便更好地处理错误
-    for (const alertId of selectedAlerts.value) {
-      try {
-        await closeAlert(alertId, closeParams)
-      } catch (error) {
-        console.error(`Failed to close alert ${alertId}:`, error)
-        // 可以选择继续处理其他告警，或者中断整个流程
-        // 这里选择继续处理其他告警
-      }
-    }
+    // 调用批量关闭接口
+    await batchCloseAlertsByPut(
+      selectedAlerts.value,
+      closeConclusion.value.category,
+      closeConclusion.value.notes.trim()
+    )
+    
+    // 显示成功提示
+    toast.success(
+      t('alerts.list.batchCloseSuccess', { count: selectedAlerts.value.length }) || 
+      `成功关闭 ${selectedAlerts.value.length} 个告警`, 
+      '操作成功'
+    )
     
     // Close dialog and reset form
     closeBatchCloseDialog()
@@ -944,6 +1122,11 @@ const handleBatchClose = async () => {
     loadAlerts()
   } catch (error) {
     console.error('Failed to batch close alerts:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchCloseError') || '批量关闭告警失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
+  } finally {
+    isBatchClosing.value = false
   }
 }
 
@@ -972,40 +1155,36 @@ const handleAssociateIncidentSuccess = () => {
 }
 
 const openCreateIncidentDialog = () => {
-  if (selectedAlerts.value.length !== 1) {
-    console.warn('Please select exactly one alert')
-    return
+  // Find selected alerts
+  const selectedAlertObjects = alerts.value.filter(alert => selectedAlerts.value.includes(alert.id))
+
+  
+  // Use the first alert's data for initial form data
+  const firstAlert = selectedAlertObjects[0]
+  
+  // Use browser current time for occurrence time
+  const occurrenceTime = new Date()
+  
+  // Get title and description from first alert only
+  const incidentTitle = firstAlert.title || ''
+  
+  // Get description - handle both string and object types
+  let alertDescription = ''
+  if (firstAlert.aiAnalysis?.description) {
+    // If aiAnalysis.description exists, use it (convert to string if object)
+    alertDescription = typeof firstAlert.aiAnalysis.description === 'string' 
+      ? firstAlert.aiAnalysis.description 
+      : JSON.stringify(firstAlert.aiAnalysis.description)
+  } else if (firstAlert.description) {
+    // If description exists, use it (convert to string if object)
+    alertDescription = typeof firstAlert.description === 'string' 
+      ? firstAlert.description 
+      : JSON.stringify(firstAlert.description)
   }
   
-  // Find selected alert
-  const selectedAlert = alerts.value.find(alert => alert.id === selectedAlerts.value[0])
-  if (!selectedAlert) {
-    console.warn('Selected alert not found')
-    return
-  }
-  
-  // Parse alert creation time
-  let occurrenceTime = new Date()
-  try {
-    // Try to parse alert creation time
-    if (selectedAlert.createTime) {
-      occurrenceTime = new Date(selectedAlert.createTime)
-      // Use current time if parsing fails
-      if (isNaN(occurrenceTime.getTime())) {
-        occurrenceTime = new Date()
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to parse alert create time:', error)
-    occurrenceTime = new Date()
-  }
-  
-  // Get alert description (prefer aiAnalysis.description, otherwise use description)
-  const alertDescription = selectedAlert.aiAnalysis?.description || selectedAlert.description || ''
-  
-  // Set initial data
+  // Set initial data - use first alert's title and description, current time for occurrence
   createIncidentInitialData.value = {
-    title: selectedAlert.title || '',
+    title: incidentTitle,
     occurrenceTime: occurrenceTime,
     description: alertDescription
   }
@@ -1037,27 +1216,30 @@ const closeCreateAlertDialog = () => {
   showCreateAlertDialog.value = false
 }
 
-const handleAlertCreated = () => {
+const handleAlertCreated = async () => {
   // Reload alert list after alert is created
   loadAlerts()
-  loadStatistics()
+  await loadStatistics()
   loadAlertTypeDistribution()
+  await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
 }
 
-const handleTimeRangeChange = (rangeKey) => {
+const handleTimeRangeChange = async (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
     loadAlerts()
     loadAlertTypeDistribution()
+    await loadAlertTrend() // Ensure alertCount is updated when time range changes
   }
 }
 
-const handleCustomRangeChange = (newRange) => {
+const handleCustomRangeChange = async (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
     loadAlerts()
     loadAlertTypeDistribution()
+    await loadAlertTrend() // Ensure alertCount is updated when custom range changes
   }
 }
 
@@ -1065,11 +1247,13 @@ watch([currentPage], () => {
   loadAlerts()
 })
 
-onMounted(() => {
+onMounted(async () => {
   ensureAlertTypeChart()
+  ensureAlertTrendChart()
   loadAlerts()
-  loadStatistics()
+  await loadStatistics()
   loadAlertTypeDistribution()
+  await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
 })
@@ -1078,6 +1262,7 @@ onUnmounted(() => {
   // Remove click outside listener
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
+  disposeAlertTrendChart()
 })
 
 const alertsTimeRangeLabel = computed(() => {

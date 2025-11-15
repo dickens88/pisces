@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full relative">
+  <div class="w-full relative overflow-x-hidden">
     <!-- 加载遮罩层 -->
     <div
       v-if="loadingIncident"
@@ -16,13 +16,13 @@
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
-        <h1 class="text-white text-3xl font-black leading-tight tracking-tight">
+        <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
           {{ incident?.name }}
         </h1>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-base font-normal leading-normal">
           <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.eventId') }}:</span>
-            <span class="text-white">{{ incident?.eventId }}</span>
+            <span>{{ $t('incidents.detail.owner') }}:</span>
+            <span class="text-white">{{ incident?.owner }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
@@ -52,8 +52,21 @@
           <span class="truncate">{{ $t('incidents.detail.closeIncident') }}</span>
         </button>
         <button
+          @click="handleRefresh"
+          :disabled="loadingIncident"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': loadingIncident }"
+          >
+            refresh
+          </span>
+        </button>
+        <button
           @click="handleShare"
-          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
           :title="$t('incidents.detail.share') || 'Share'"
         >
           <span class="material-symbols-outlined text-base">share</span>
@@ -113,7 +126,7 @@
           {{ $t('incidents.detail.responsibleDepartment') }}
         </p>
         <p class="text-white text-xl font-bold leading-tight">
-          {{ incident?.extendProperties?.dataspace_name || '-' }}
+          {{ incident?.responsibleDept || '-' }}
         </p>
       </div>
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
@@ -203,44 +216,14 @@
             <h3 class="text-white font-bold text-lg">
               {{ $t('incidents.detail.overview.eventDescription') }}
             </h3>
-            <button
-              v-if="!isEditingDescription"
-              @click="handleStartEditDescription"
-              class="flex items-center justify-center size-8 rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
-              :title="$t('common.edit')"
-            >
-              <span class="material-symbols-outlined text-base">edit</span>
-            </button>
           </div>
-          <div v-if="!isEditingDescription">
-            <p class="text-slate-300 leading-relaxed whitespace-pre-wrap">
+          <div class="overflow-x-hidden">
+            <p class="text-slate-300 leading-relaxed whitespace-pre-wrap break-all event-description-text">
               {{ incident?.description || '-' }}
             </p>
             <p v-if="incident?.descriptionLastModified" class="text-slate-500 text-xs mt-3">
               {{ $t('incidents.detail.overview.lastModified') }} {{ formatLastModified(incident.descriptionLastModified) }} {{ $t('incidents.detail.overview.by') }} {{ incident.descriptionLastModifiedBy || '-' }}
             </p>
-          </div>
-          <div v-else class="flex flex-col gap-3">
-            <textarea
-              v-model="editingDescription"
-              class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-sm text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-none"
-              :placeholder="$t('incidents.detail.overview.eventDescription')"
-              rows="6"
-            ></textarea>
-            <div class="flex items-center gap-2 justify-end">
-              <button
-                @click="handleCancelEditDescription"
-                class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
-              >
-                <span>{{ $t('common.cancel') }}</span>
-              </button>
-              <button
-                @click="handleSaveDescription"
-                class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
-              >
-                <span>{{ $t('common.save') }}</span>
-              </button>
-            </div>
           </div>
         </div>
 
@@ -261,7 +244,7 @@
             :pagination="false"
           >
             <template #cell-createTime="{ value }">
-              {{ value }}
+              {{ formatDateTime(value) }}
             </template>
             <template #cell-alertTitle="{ item }">
               <div class="flex items-center gap-2">
@@ -304,6 +287,11 @@
                 {{ $t(`alerts.list.${item.status}`) }}
               </span>
             </template>
+            <template #cell-owner="{ value }">
+              <div class="flex justify-center w-full">
+                <UserAvatar :name="value" />
+              </div>
+            </template>
           </DataTable>
         </div>
       </div>
@@ -333,7 +321,7 @@
                     <p class="text-xs text-slate-400">{{ comment.time }}</p>
                   </div>
                   <div class="mt-2 text-slate-300 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                    <p class="text-sm leading-relaxed">{{ comment.content }}</p>
+                    <div class="text-sm leading-relaxed" v-html="sanitizeHtml(comment.content)"></div>
                   </div>
                 </div>
               </div>
@@ -345,29 +333,11 @@
 
           <!-- 评论输入框 -->
           <div class="p-4 border-t border-slate-700 bg-slate-800/80 rounded-b-lg">
-            <div class="relative">
-              <textarea
-                v-model="newComment"
-                class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 pr-28 text-sm text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-primary focus:border-primary transition-colors resize-none"
-                :placeholder="$t('incidents.detail.comments.addComment')"
-                rows="3"
-              ></textarea>
-              <div class="absolute right-3 bottom-3 flex items-center gap-2">
-                <button
-                  class="flex items-center justify-center size-8 rounded-md text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
-                  :title="$t('incidents.detail.comments.attachFile')"
-                >
-                  <span class="material-symbols-outlined text-lg">attach_file</span>
-                </button>
-                <button
-                  @click="handlePostComment"
-                  class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-9 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
-                >
-                  <span>{{ $t('incidents.detail.comments.post') }}</span>
-                  <span class="material-symbols-outlined text-lg">send</span>
-                </button>
-              </div>
-            </div>
+            <CommentInput
+              v-model="newComment"
+              :placeholder="$t('incidents.detail.comments.addComment')"
+              @submit="handlePostComment"
+            />
           </div>
         </div>
       </div>
@@ -382,79 +352,14 @@
     />
 
     <!-- 关闭事件对话框 -->
-    <div
-      v-if="showCloseDialog"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
-      @click.self="closeCloseDialog"
-    >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
-            {{ $t('incidents.detail.closeDialog.title') }}
-          </h2>
-          <button
-            @click="closeCloseDialog"
-            class="text-gray-400 hover:text-white transition-colors"
-          >
-            <span class="material-symbols-outlined text-base">close</span>
-          </button>
-        </div>
-
-        <!-- 提示信息 -->
-        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
-            {{ $t('incidents.detail.closeDialog.confirmMessage') }}
-          </p>
-        </div>
-
-        <!-- 结论分类下拉框 -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-white mb-2">
-            {{ $t('incidents.detail.closeDialog.conclusionCategory') }}
-          </label>
-          <select
-            v-model="closeConclusion.category"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
-          >
-            <option value="">{{ $t('incidents.detail.closeDialog.selectCategory') }}</option>
-            <option value="falsePositive">{{ $t('incidents.detail.closeDialog.categories.falsePositive') }}</option>
-            <option value="resolved">{{ $t('incidents.detail.closeDialog.categories.resolved') }}</option>
-            <option value="convertedToIncident">{{ $t('incidents.detail.closeDialog.categories.convertedToIncident') }}</option>
-            <option value="other">{{ $t('incidents.detail.closeDialog.categories.other') }}</option>
-          </select>
-        </div>
-
-        <!-- 调查结论输入框 -->
-        <div class="mb-6">
-          <label class="block text-sm font-medium text-white mb-2">
-            {{ $t('incidents.detail.closeDialog.conclusion') }}
-          </label>
-          <textarea
-            v-model="closeConclusion.notes"
-            rows="4"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-            :placeholder="$t('incidents.detail.closeDialog.conclusionPlaceholder')"
-          ></textarea>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="flex items-center justify-end gap-3">
-          <button
-            @click="closeCloseDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
-          >
-            {{ $t('common.cancel') }}
-          </button>
-          <button
-            @click="handleCloseIncident"
-            :disabled="!closeConclusion.category || !closeConclusion.notes.trim()"
-            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ $t('common.submit') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <CloseIncidentDialog
+      ref="closeDialogRef"
+      :visible="showCloseDialog"
+      :title="$t('incidents.detail.closeDialog.title')"
+      :confirm-message="$t('incidents.detail.closeDialog.confirmMessage')"
+      @close="closeCloseDialog"
+      @submit="handleCloseIncident"
+    />
 
     <!-- 编辑事件对话框 -->
     <EditIncidentDialog
@@ -482,29 +387,34 @@
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { getIncidentDetail, batchCloseIncidents } from '@/api/incidents'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
+import { getIncidentDetail, postComment } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
+import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
+import CommentInput from '@/components/common/CommentInput.vue'
 import { formatDateTime } from '@/utils/dateTime'
+import { useToast } from '@/composables/useToast'
+import DOMPurify from 'dompurify'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
 
 const incident = ref(null)
 const loadingIncident = ref(false)
 const activeTab = ref('overview')
 const newComment = ref('')
-const isEditingDescription = ref(false)
-const editingDescription = ref('')
 const selectedAlertId = ref(null)
 const showShareSuccess = ref(false)
 const showCloseDialog = ref(false)
-const closeConclusion = ref({
-  category: '',
-  notes: ''
-})
+const isClosingIncident = ref(false)
+const closeDialogRef = ref(null)
 const showEditDialog = ref(false)
 const editIncidentInitialData = ref(null)
 
@@ -519,7 +429,8 @@ const associatedAlertsColumns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
-  { key: 'status', label: t('alerts.list.status') }
+  { key: 'status', label: t('alerts.list.status') },
+  { key: 'owner', label: t('alerts.list.owner') }
 ])
 
 // 关联告警表格默认列宽
@@ -527,7 +438,8 @@ const associatedAlertsDefaultWidths = {
   createTime: 180,
   alertTitle: 400,
   riskLevel: 120,
-  status: 120
+  status: 120,
+  owner: 50
 }
 
 // 格式化关联告警数据，将事件详情的数据格式转换为告警管理页面的格式
@@ -535,14 +447,38 @@ const formattedAssociatedAlerts = computed(() => {
   if (!incident.value?.associatedAlerts) {
     return []
   }
-  return incident.value.associatedAlerts.map(alert => ({
-    id: alert.id,
-    createTime: alert.timestamp || '-',
-    title: alert.description || '-',
-    riskLevel: alert.severity || 'low', // severity 映射为 riskLevel
-    status: alert.status || 'open',
-    owner: '-' // 事件详情中的告警可能没有 owner 字段
-  }))
+  return incident.value.associatedAlerts.map(alert => {
+    // 转换 severity 为 riskLevel (需要转换为小写)
+    const severityMap = {
+      'Critical': 'fatal',
+      'High': 'high',
+      'Medium': 'medium',
+      'Low': 'low',
+      'Tips': 'tips'
+    }
+    const riskLevel = alert.severity 
+      ? (severityMap[alert.severity] || alert.severity.toLowerCase())
+      : 'low'
+    
+    // 转换 handle_status 为 status (需要转换为小写)
+    const statusMap = {
+      'Open': 'open',
+      'Block': 'block',
+      'Closed': 'closed'
+    }
+    const status = alert.handle_status
+      ? (statusMap[alert.handle_status] || alert.handle_status.toLowerCase())
+      : 'open'
+    
+    return {
+      id: alert.id,
+      createTime: alert.create_time || alert.createTime || '-',
+      title: alert.title || '-',
+      riskLevel: riskLevel,
+      status: status,
+      owner: alert.owner || '-'
+    }
+  })
 })
 
 const loadIncidentDetail = async () => {
@@ -564,7 +500,8 @@ const loadIncidentDetail = async () => {
       status: data.handle_status,
       severity: data.severity,
       owner: data.owner,
-      responsiblePerson: data.owner,
+      responsiblePerson: data.responsible_person || data.owner,
+      responsibleDept: data.responsible_dept || '',
       creator: data.creator,
       labels: data.labels,
       closeReason: data.close_reason,
@@ -580,7 +517,7 @@ const loadIncidentDetail = async () => {
       // 从评论生成时间线
       timeline: generateTimeline(data),
       // 关联告警（如果有）
-      associatedAlerts: data.associatedAlerts || []
+      associatedAlerts: data.associated_alerts || data.associatedAlerts || []
     }
   } catch (error) {
     console.error('Failed to load incident detail:', error)
@@ -726,52 +663,48 @@ const closeAlertDetail = () => {
   selectedAlertId.value = null
 }
 
-const handlePostComment = () => {
-  if (!newComment.value.trim()) return
-  
-  // TODO: 实现发布评论的逻辑
-  if (!incident.value.comments) {
-    incident.value.comments = []
+const handlePostComment = async ({ comment, files }) => {
+  if (!incident.value?.id) {
+    toast.error(t('incidents.detail.comments.postError') || '无法提交评论：事件ID不存在', '操作失败')
+    return
   }
   
-  incident.value.comments.push({
-    id: Date.now(),
-    author: 'Current User',
-    authorInitials: 'CU',
-    avatarColor: 'bg-blue-500',
-    time: 'Just now',
-    content: newComment.value
+  try {
+    const commentText = comment.trim()
+    if (!commentText) {
+      return
+    }
+    
+    // 调用 API 提交评论
+    await postComment(incident.value.id, commentText)
+    
+    // 清空输入框（组件会自动清空）
+    newComment.value = ''
+    
+    // TODO: 处理文件上传（如果需要）
+    if (files && files.length > 0) {
+      console.log('Files to upload:', files)
+      // 实现文件上传逻辑
+    }
+    
+    // 重新加载事件详情以获取最新评论
+    await loadIncidentDetail()
+    
+    // 显示成功提示
+    toast.success(t('incidents.detail.comments.postSuccess') || '评论提交成功', '操作成功')
+  } catch (error) {
+    console.error('Failed to post comment:', error)
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || '评论提交失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
+  }
+}
+
+const sanitizeHtml = (html) => {
+  if (!html || typeof html !== 'string') return ''
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ['br', 'strong', 'em', 'pre', 'code', 'b', 'i', 'u', 'p'],
+    ALLOWED_ATTR: []
   })
-  
-  newComment.value = ''
-}
-
-const handleStartEditDescription = () => {
-  editingDescription.value = incident.value?.description || ''
-  isEditingDescription.value = true
-}
-
-const handleCancelEditDescription = () => {
-  isEditingDescription.value = false
-  editingDescription.value = ''
-}
-
-const handleSaveDescription = async () => {
-  // TODO: 实现保存描述到后端的逻辑
-  if (incident.value) {
-    incident.value.description = editingDescription.value
-    // 更新最后修改时间和修改人
-    incident.value.descriptionLastModified = new Date().toISOString()
-    incident.value.descriptionLastModifiedBy = 'Current User' // TODO: 从用户上下文获取实际用户名
-  }
-  isEditingDescription.value = false
-  
-  // 这里可以添加 API 调用来保存描述
-  // try {
-  //   await updateIncidentDescription(route.params.id, editingDescription.value)
-  // } catch (error) {
-  //   console.error('Failed to save description:', error)
-  // }
 }
 
 const formatLastModified = (dateString) => {
@@ -967,38 +900,70 @@ const handleShare = async () => {
   }
 }
 
+/**
+ * @brief 刷新事件详情
+ */
+const handleRefresh = async () => {
+  await loadIncidentDetail()
+}
+
 const openCloseDialog = () => {
   showCloseDialog.value = true
 }
 
 const closeCloseDialog = () => {
   showCloseDialog.value = false
-  // 重置表单
-  closeConclusion.value = {
-    category: '',
-    notes: ''
-  }
 }
 
-const handleCloseIncident = async () => {
-  if (!closeConclusion.value.category || !closeConclusion.value.notes.trim()) {
+const handleCloseIncident = async (data) => {
+  if (isClosingIncident.value) {
     return
   }
 
   try {
-    await batchCloseIncidents({
-      incidentIds: [parseInt(route.params.id)],
-      category: closeConclusion.value.category,
-      notes: closeConclusion.value.notes.trim()
-    })
+    isClosingIncident.value = true
+    if (closeDialogRef.value) {
+      closeDialogRef.value.setSubmitting(true)
+    }
     
-    // 关闭对话框并重置表单
+    // 构建请求体
+    const body = {
+      handle_status: 'Closed',
+      close_reason: data.close_reason,
+      close_comment: data.close_comment
+    }
+
+    // 调用 PUT /api/incidents/<incident_id> 接口
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = apiBaseURL ? `${apiBaseURL}/incidents/${route.params.id}` : `/api/incidents/${route.params.id}`
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    await axios.put(url, body, { headers })
+    
+    // 显示成功提示
+    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', '操作成功')
+    
+    // 关闭对话框
     closeCloseDialog()
     
     // 重新加载事件详情
     await loadIncidentDetail()
   } catch (error) {
     console.error('Failed to close incident:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
+  } finally {
+    isClosingIncident.value = false
+    if (closeDialogRef.value) {
+      closeDialogRef.value.setSubmitting(false)
+    }
   }
 }
 
@@ -1011,15 +976,16 @@ const openEditDialog = () => {
   editIncidentInitialData.value = {
     title: incident.value.name || incident.value.title || '',
     category: incident.value.category || 'platform',
-    status: incident.value.status || 'open',
+    status: incident.value.status || 'Open',
     occurrenceTime: incident.value.occurrenceTime 
       ? (incident.value.occurrenceTime instanceof Date 
           ? incident.value.occurrenceTime 
           : new Date(incident.value.occurrenceTime))
       : new Date(),
     responsiblePerson: incident.value.responsiblePerson || '',
-    responsibleDepartment: incident.value.responsibleDepartment || '',
+    responsibleDepartment: incident.value.responsibleDept || '',
     rootCause: incident.value.rootCause || '',
+    severity: incident.value.severity || '',
     description: incident.value.description || ''
   }
   
@@ -1054,6 +1020,13 @@ onMounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 确保事件描述中的长链接能够自动换行，不会撑大页面 */
+.event-description-text {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 </style>
 

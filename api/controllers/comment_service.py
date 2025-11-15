@@ -29,3 +29,22 @@ class CommentService:
         resp.raise_for_status()
 
         return json.loads(resp.text)
+
+    @classmethod
+    def create_comment(cls, event_id, comment, owner):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/notes"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+        body = {
+            "type": "textMessage",
+            "content": comment,
+            "war_room_id": event_id,
+            "noteType": owner
+        }
+        body = json.dumps(body)
+
+        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
+
+        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        return json.loads(resp.text)

@@ -7,8 +7,8 @@ from flask_restful import Api
 
 from models import user
 from utils.common_utils import generate_random_string
-from views import auth_view, alert_view, incident_view, stats_view, callback_view
-from views import mock_alert_view, mock_dashboard_view, mock_incident_view, mock_vulnerability_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view
+from views import mock_dashboard_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -36,43 +36,22 @@ api.add_resource(auth_view.UserRefresh, '/refresh')
 api.add_resource(auth_view.UserView, '/user/password')
 api.add_resource(auth_view.UserManagement, '/user/management')
 
+api.add_resource(stats_view.AlertCountBySourceView, '/api/stats/alerts')
+
+api.add_resource(callback_view.CallbackMessageHandler, '/api/secmaster/callback')
+
 api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'])
 
-# please change the endpoint to /api/stats/alerts?chart=data-source-count
-api.add_resource(stats_view.AlertCountBySourceView, '/api/alerts/data-source-count')
+api.add_resource(incident_view.IncidentView, '/api/incidents', '/api/incidents/<incident_id>')
 
-# please change the endpoint to /api/secmaster/callback, the type can be explain in the body
-api.add_resource(callback_view.AlertCreateFromSecmasterView, '/api/alerts/secmaster/create')
+api.add_resource(incident_view.IncidentRelations, '/api/incidents/<incident_id>/relations')
 
-api.add_resource(incident_view.IncidentView, *['/api/incidents', '/api/incidents/<incident_id>'])
-
-# Mock API路由 - 告警相关
-api.add_resource(mock_alert_view.MockAlertStatisticsView, '/api/alerts/statistics')
-api.add_resource(mock_alert_view.MockBatchCloseAlertsView, '/api/alerts/batch-close')
-api.add_resource(mock_alert_view.MockOpenAlertView, '/api/alerts/<int:alert_id>/open')
-api.add_resource(mock_alert_view.MockAssociateAlertsToIncidentView, '/api/alerts/associate')
-api.add_resource(mock_alert_view.MockThreatIntelligenceView, '/api/alerts/<int:alert_id>/threat-intelligence')
-api.add_resource(mock_alert_view.MockAssociatedAlertsView, '/api/alerts/<int:alert_id>/associated')
-# api.add_resource(mock_alert_view.MockCreateAlertView, '/api/alerts/create')
-api.add_resource(mock_alert_view.MockUpdateAlertView, '/api/alerts/<int:alert_id>/update')
+api.add_resource(comment_view.CommentView, '/api/comments', '/api/comments/<comment_id>')
 
 # Mock API路由 - 仪表板相关
 api.add_resource(mock_dashboard_view.MockDashboardStatisticsView, '/api/dashboard/statistics')
 api.add_resource(mock_dashboard_view.MockRecentOpenAlertsView, '/api/dashboard/recent-alerts')
 api.add_resource(mock_dashboard_view.MockRecentOpenVulnerabilitiesView, '/api/dashboard/recent-vulnerabilities')
-
-# Mock API路由 - 事件相关
-api.add_resource(mock_incident_view.MockBatchCloseIncidentsView, '/api/incidents/batch-close')
-api.add_resource(mock_incident_view.MockCreateIncidentView, '/api/incidents/create')
-api.add_resource(mock_incident_view.MockUpdateIncidentView, '/api/incidents/<int:incident_id>/update')
-
-# Mock API路由 - 漏洞相关
-api.add_resource(mock_vulnerability_view.MockVulnerabilityListView, '/api/vulnerabilities')
-api.add_resource(mock_vulnerability_view.MockVulnerabilityDetailView, '/api/vulnerabilities/<int:vulnerability_id>')
-api.add_resource(mock_vulnerability_view.MockVulnerabilityTrendView, '/api/vulnerabilities/trend')
-api.add_resource(mock_vulnerability_view.MockVulnerabilityDepartmentDistributionView, '/api/vulnerabilities/department-distribution')
-api.add_resource(mock_vulnerability_view.MockBatchOperateVulnerabilitiesView, '/api/vulnerabilities/batch-operate')
-api.add_resource(mock_vulnerability_view.MockExportVulnerabilityReportView, '/api/vulnerabilities/export')
 
 
 if __name__ == '__main__':
@@ -85,4 +64,4 @@ if __name__ == '__main__':
     # scheduler.init_app(app)
     # scheduler.start()
 
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    app.run(debug=False, host='0.0.0.0', port=8080)

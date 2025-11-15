@@ -226,14 +226,41 @@ export const getAlertStatistics = () => {
 /**
  * @brief 获取按数据源产品名称统计的告警数量
  * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志，可选）
+ * @param {string} status - 状态过滤（可选）
  * @returns {Promise} 告警数量映射
  */
-export const getAlertCountsBySource = (startDate) => {
+export const getAlertCountsBySource = (startDate, endDate = null, status = null) => {
   const params = {}
   if (startDate) {
     params.start_date = startDate
   }
-  return service.get('/alerts/data-source-count', { params })
+  if (endDate) {
+    params.end_date = endDate
+  }
+  if (status && status !== 'all') {
+    params.status = status
+  }
+  return service.get('/stats/alerts?chart=data-source-count', { params })
+}
+
+/**
+ * @brief 获取告警趋势数据（按日期分组统计）
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @returns {Promise} 告警趋势数据数组，格式为 [{date: string, count: number}, ...]
+ */
+export const getAlertTrend = (startDate, endDate) => {
+  const params = {
+    chart: 'alert-trend'
+  }
+  if (startDate) {
+    params.start_date = startDate
+  }
+  if (endDate) {
+    params.end_date = endDate
+  }
+  return service.get('/stats/alerts', { params })
 }
 
 // 关闭单个告警
@@ -260,6 +287,36 @@ export const closeAlert = (alertId, params) => {
 // 批量关闭告警
 export const batchCloseAlerts = (params) => {
   return service.post('/alerts/batch-close', params)
+}
+
+/**
+ * @brief 批量关闭告警（使用 PUT /api/alerts 接口）
+ * @param {Array<number|string>} alertIds - 告警ID数组
+ * @param {string} closeReason - 关闭原因
+ * @param {string} closeComment - 关闭备注
+ * @returns {Promise} 返回批量关闭结果
+ */
+export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
+  // 将 category 映射到 close_reason
+  const reasonMap = {
+    'falsePositive': 'False detection',
+    'resolved': 'Resolved',
+    'repeated': 'Repeated',
+    'other': 'Other'
+  }
+  
+  const mappedCloseReason = reasonMap[closeReason] || closeReason || 'Other'
+  
+  const payload = {
+    batch_ids: alertIds,
+    data_object: {
+      handle_status: 'Closed',
+      close_reason: mappedCloseReason,
+      close_comment: closeComment || ''
+    }
+  }
+  
+  return service.put('/alerts', payload)
 }
 
 // 开启告警

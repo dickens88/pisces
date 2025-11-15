@@ -42,6 +42,12 @@ const routes = [
         name: 'Vulnerabilities',
         component: () => import('@/views/vulnerabilities/VulnerabilitiesView.vue'),
         meta: { title: '漏洞管理' }
+      },
+      {
+        path: 'vulnerabilities/:id',
+        name: 'VulnerabilityDetail',
+        component: () => import('@/views/vulnerabilities/VulnerabilitiesDetail.vue'),
+        meta: { title: '漏洞详情' }
       }
     ]
   }

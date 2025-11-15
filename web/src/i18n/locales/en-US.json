@@ -11,6 +11,7 @@
     "reset": "Reset",
     "refresh": "Refresh",
     "submit": "Submit",
+    "send": "Send",
     "close": "Close",
     "loading": "Loading...",
     "noComments": "No comments yet",
@@ -54,7 +55,8 @@
     "statistics": {
       "alertCount24h": "Alert Count (24h)",
       "incidentCount24h": "Incident Count (24h)",
-      "vulnerabilityCount": "Vulnerability Count (Open)",
+      "incidentCount30d": "Incident Count (30d)",
+      "vulnerabilityCount": "Vulnerability Count",
       "mttd": "Mean Time To Detect (MTTD)"
     },
     "charts": {
@@ -167,7 +169,6 @@
       "threatIntelligence": "Threat Intelligence",
       "unknownSource": "Unknown Source",
       "aiAgent": "AI Agent",
-      "comments": "Comments",
       "alertInfo": "Alert Information",
       "timestamp": "Timestamp",
       "status": "Status",
@@ -178,6 +179,11 @@
       "created": "Created",
       "responseTime": "TTR",
       "addComment": "Add a comment...",
+      "comments": {
+        "title": "Comments",
+        "postSuccess": "Comment posted successfully",
+        "postError": "Failed to post comment, please try again later"
+      },
       "aiAgentPlaceholder": "Ask AI about this alert...",
       "associatedEntities": "Associated Entities",
       "eventTimeline": "Event Timeline",
@@ -213,10 +219,10 @@
       "allStatus": "All",
       "open": "Open",
       "block": "Block",
-      "pending": "Pending",
-      "inProgress": "In Progress",
       "closed": "Closed",
       "batchClose": "Close Incident",
+      "batchCloseSuccess": "Successfully closed {count} incident(s)",
+      "batchCloseError": "Failed to batch close incidents, please try again later",
       "batchCloseDialog": {
         "title": "Batch Close Incidents",
         "selectedCount": "Selected {count} incident(s)",
@@ -257,13 +263,14 @@
       "rootCauseWeakConfig": "Weak Configuration",
       "rootCauseUnauthorizedApi": "Unauthorized API",
       "rootCauseHistoricalVulnerability": "Historical Vulnerability",
+      "selectSeverity": "Please select severity",
       "currentStatus": "Current Status",
       "description": "Description",
       "descriptionPlaceholder": "Please enter incident description"
     },
     "detail": {
       "title": "Incident Details",
-      "eventId": "Event ID",
+      "owner": "Owner",
       "createTime": "Create Time",
       "updateTime": "Last Updated",
       "assign": "Assign",
@@ -334,7 +341,9 @@
         "addComment": "Add a comment...",
         "post": "Post",
         "attachFile": "Attach File",
-        "noComments": "No comments yet"
+        "noComments": "No comments yet",
+        "postSuccess": "Comment posted successfully",
+        "postError": "Failed to post comment, please try again later"
       }
     }
   },
@@ -355,6 +364,40 @@
     "statistics": {
       "trend": "Vulnerability Trend Statistics",
       "departmentDistribution": "Vulnerability Department Distribution"
+    },
+    "detail": {
+      "overview": "Overview",
+      "description": "Description",
+      "lifecycle": "Vulnerability Lifecycle",
+      "comments": "Comments",
+      "discoveredTime": "Discovered Time",
+      "assignee": "Assignee",
+      "assigneeDepartment": "Assignee's Department",
+      "riskLevel": "Risk Level",
+      "rootCause": "Root Cause",
+      "fixStatus": "Fix Status",
+      "noDescription": "No description available.",
+      "noComments": "No comments yet.",
+      "addComment": "Add a comment...",
+      "comment": "Comment",
+      "changeStatus": "Change Status",
+      "assign": "Assign",
+      "loadError": "Failed to load vulnerability detail",
+      "commentSuccess": "Comment posted successfully",
+      "commentError": "Failed to post comment, please try again later",
+      "remediationVerified": "Remediation Verified",
+      "statusChanged": "Status changed to 'In Progress'",
+      "assignedTo": "Assigned to",
+      "vulnerabilityCreated": "Vulnerability Created",
+      "justNow": "just now",
+      "minutesAgo": "minutes ago",
+      "hoursAgo": "hours ago",
+      "daysAgo": "days ago",
+      "status": {
+        "patched": "Patched",
+        "open": "Open",
+        "inProgress": "In Progress"
+      }
     }
   }
 }

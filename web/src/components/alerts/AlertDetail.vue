@@ -180,13 +180,24 @@
                     :key="tab.key"
                     @click="activeTab = tab.key"
                     :class="[
-                      'shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition-colors',
+                      'shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition-colors flex items-center gap-2',
                       activeTab === tab.key
                         ? 'border-primary text-primary font-semibold'
                         : 'border-transparent text-text-light hover:border-text-dark hover:text-white'
                     ]"
                   >
-                    {{ $t(tab.label) }}
+                    <span>{{ $t(tab.label) }}</span>
+                    <span 
+                      v-if="getTabCount(tab.key) > 0" 
+                      :class="[
+                        'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-medium rounded-full',
+                        activeTab === tab.key
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-[#2a3546] text-text-light'
+                      ]"
+                    >
+                      {{ getTabCount(tab.key) }}
+                    </span>
                   </button>
                 </nav>
               </div>
@@ -227,7 +238,7 @@
 
                 <!-- Comments area -->
                 <div class="pt-4">
-                  <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.comments') }}</h3>
+                  <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.comments.title') }}</h3>
                   <div class="space-y-6">
                     <div
                       v-for="comment in alert?.comments || []"
@@ -241,7 +252,7 @@
                           <p class="text-xs text-text-light">{{ comment.time }}</p>
                         </div>
                         <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none">
-                          <div v-html="comment.content"></div>
+                          <div v-html="sanitizeHtml(comment.content)"></div>
                           <!-- Display attachments -->
                           <div v-if="comment.files && comment.files.length > 0" class="mt-3 flex flex-wrap gap-2">
                             <a
@@ -267,91 +278,11 @@
                   
                   <!-- Comment input -->
                   <div class="mt-6 pt-6 border-t border-border-dark">
-                    <div class="flex items-start gap-4">
-                      <UserAvatar name="Current User" class="w-10 h-10 shrink-0" />
-                      <div class="flex-1">
-                        <!-- Input container -->
-                        <div 
-                          class="relative rounded-xl border-2 border-[#3c4a60] bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
-                          :class="{ 
-                            'border-primary shadow-lg shadow-primary/20 drag-active': isDragging,
-                            'border-primary/50': isDragging
-                          }"
-                          @drop.prevent="handleDrop"
-                          @dragover.prevent="isDragging = true"
-                          @dragleave.prevent="isDragging = false"
-                        >
-                          <textarea
-                            v-model="newComment"
-                            class="w-full rounded-xl bg-transparent p-4 pr-32 text-white placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]"
-                            :placeholder="$t('alerts.detail.addComment') || 'Add a comment...'"
-                            rows="3"
-                            @input="handleTextareaInput"
-                          ></textarea>
-                          
-                          <!-- Toolbar -->
-                          <div class="absolute bottom-3 left-4 flex items-center gap-2">
-                            <!-- File upload button -->
-                            <label class="cursor-pointer">
-                              <input
-                                ref="fileInput"
-                                type="file"
-                                multiple
-                                class="hidden"
-                                @change="handleFileSelect"
-                              />
-                              <button
-                                type="button"
-                                class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200 group"
-                                title="Upload file"
-                              >
-                                <span class="material-symbols-outlined text-lg">attach_file</span>
-                              </button>
-                            </label>
-                            
-                            <!-- Emoji button (optional) -->
-                            <button
-                              type="button"
-                              class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200"
-                              title="Add emoji"
-                            >
-                              <span class="material-symbols-outlined text-lg">mood</span>
-                            </button>
-                          </div>
-                          
-                          <!-- Submit button -->
-                          <button
-                            @click="handleAddComment"
-                            :disabled="!canSubmit"
-                            class="absolute bottom-3 right-3 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
-                          >
-                            <span class="material-symbols-outlined text-base">send</span>
-                            <span>{{ $t('common.submit') || 'Send' }}</span>
-                          </button>
-                        </div>
-                        
-                        <!-- Uploaded files list -->
-                        <div v-if="uploadedFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
-                          <div
-                            v-for="(file, index) in uploadedFiles"
-                            :key="index"
-                            class="group relative flex items-center gap-2 rounded-lg bg-[#2a3546] border border-[#3c4a60] px-3 py-2 hover:bg-[#3c4a60] transition-colors"
-                          >
-                            <span class="material-symbols-outlined text-primary text-sm">
-                              {{ getFileIcon(file.type) }}
-                            </span>
-                            <span class="text-sm text-white max-w-[200px] truncate">{{ file.name }}</span>
-                            <span class="text-xs text-text-light">{{ formatFileSize(file.size) }}</span>
-                            <button
-                              @click="removeFile(index)"
-                              class="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <span class="material-symbols-outlined text-xs">close</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <CommentInput
+                      v-model="newComment"
+                      :placeholder="$t('alerts.detail.addComment') || 'Add a comment...'"
+                      @submit="handleAddComment"
+                    />
                   </div>
                   
                   <!-- 分割线 -->
@@ -422,7 +353,7 @@
                     <div class="flex-1">
                       <div class="flex items-baseline gap-2">
                         <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
-                        <p class="text-xs text-text-light">{{ aiItem.create_time || aiItem.time || '-' }}</p>
+                        <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
                       </div>
                       <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')">
                       </div>
@@ -554,16 +485,13 @@
               </div>
 
               <!-- Security Agent 页签内容 -->
-              <div v-if="rightSidebarTab === 'securityAgent'" class="flex flex-col flex-1 min-h-0 pl-6 pb-6">
-                <h3 class="text-base font-semibold text-white mb-4 flex-shrink-0 pr-6">{{ $t('alerts.detail.securityAgentTab') }}</h3>
+              <div v-if="rightSidebarTab === 'securityAgent'" class="flex flex-col flex-1 min-h-0 min-w-0 pl-6 pb-6 pr-6">
                 
-                <!-- 使用复用的 AI 对话框组件 -->
-                <div class="flex-1 min-h-0">
-                  <AiChatDialog
-                    :ai-data="alert?.ai || []"
-                    :compact="true"
+                <!-- Security Agent 聊天组件 -->
+                <div class="flex-1 min-h-0 min-w-0">
+                  <SecurityAgentChat
+                    :messages="alert?.ai || []"
                     :auto-scroll="true"
-                    :scroll-to-edge="true"
                     @send="handleRightSidebarAiSend"
                   />
                 </div>
@@ -653,6 +581,7 @@
     <CreateIncidentDialog
       :visible="showCreateIncidentDialog"
       :initial-data="createIncidentInitialData"
+      :alert-ids="currentAlertId ? [currentAlertId] : []"
       @close="closeCreateIncidentDialog"
       @created="handleIncidentCreated"
     />
@@ -692,14 +621,18 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, getAssociatedAlerts, closeAlert } from '@/api/alerts'
+import { postComment } from '@/api/comments'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
+import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import CommentInput from '@/components/common/CommentInput.vue'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   alertId: {
@@ -714,6 +647,7 @@ const emit = defineEmits(['close', 'closed', 'created'])
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+const toast = useToast()
 
 const visible = ref(false)
 const alert = ref(null)
@@ -725,9 +659,7 @@ const currentAlertId = computed(() => {
 })
 const activeTab = ref('overview')
 const newComment = ref('')
-const uploadedFiles = ref([])
-const fileInput = ref(null)
-const isDragging = ref(false)
+// Comment input is now handled by CommentInput component
 // AI 对话相关
 const newAiMessage = ref('')
 const uploadedAiFiles = ref([])
@@ -762,6 +694,32 @@ const tabs = [
   { key: 'threatIntelligence', label: 'alerts.detail.threatIntelligence' },
   { key: 'aiAgent', label: 'alerts.detail.aiAgent' }
 ]
+
+/**
+ * @brief 获取页签的计数
+ * @param {string} tabKey - 页签的key
+ * @returns {number} 该页签下的数据条数
+ */
+const getTabCount = (tabKey) => {
+  if (!alert.value) return 0
+  
+  switch (tabKey) {
+    case 'overview':
+      // Overview 页签显示 comments 的数量
+      return alert.value.comments?.length || 0
+    case 'associatedAlerts':
+      // Associated Alerts 页签显示关联告警的数量
+      return associatedAlerts.value?.length || 0
+    case 'threatIntelligence':
+      // Threat Intelligence 页签显示威胁情报的数量
+      return alert.value.intelligence?.length || 0
+    case 'aiAgent':
+      // AI Agent 页签显示 AI 分析结果的数量
+      return alert.value.ai?.length || 0
+    default:
+      return 0
+  }
+}
 
 const stripHtmlTags = (html = '') => {
   if (!html || typeof html !== 'string') return ''
@@ -867,7 +825,7 @@ const transformAlertDetailData = (apiData) => {
     id: comment.id || Date.now(),
     author: comment.author || 'Unknown',
     authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
-    time: comment.create_time || comment.time || '-',
+    time: formatDateTime(comment.create_time || comment.time),
     content: comment.content || ''
   }))
 
@@ -968,12 +926,8 @@ const loadAlertDetail = async () => {
     loadAssociatedAlerts()
   } catch (error) {
     console.error('Failed to load alert detail:', error)
-    // 如果是从路由访问，跳转回告警列表
-    if (route.params.id) {
-      router.push('/alerts')
-    } else {
-      emit('close')
-    }
+    // 加载失败时只触发 close 事件，不进行路由跳转
+    emit('close')
   } finally {
     // 确保加载状态在数据加载完成后才关闭
     isLoading.value = false
@@ -1023,12 +977,7 @@ const handleClose = async () => {
   visible.value = false
   
   setTimeout(() => {
-    // 如果是从路由访问，跳转回告警列表
-    if (route.params.id) {
-      router.push('/alerts')
-    } else {
-      emit('close')
-    }
+    emit('close')
   }, closeDelay)
 }
 
@@ -1268,47 +1217,7 @@ const handleRefresh = async () => {
   }
 }
 
-const canSubmit = computed(() => {
-  return newComment.value.trim().length > 0 || uploadedFiles.value.length > 0
-})
-
-const handleTextareaInput = () => {
-  // 可以在这里添加自动调整高度的逻辑
-}
-
-const handleFileSelect = (event) => {
-  const files = Array.from(event.target.files || [])
-  addFiles(files)
-  // 清空input，以便可以再次选择相同文件
-  if (fileInput.value) {
-    fileInput.value.value = ''
-  }
-}
-
-const handleDrop = (event) => {
-  isDragging.value = false
-  const files = Array.from(event.dataTransfer.files || [])
-  addFiles(files)
-}
-
-const addFiles = (files) => {
-  files.forEach(file => {
-    // 检查文件大小（限制为10MB）
-    if (file.size > 10 * 1024 * 1024) {
-      console.warn(`File ${file.name} is too large (max 10MB)`)
-      return
-    }
-    // 检查是否已存在
-    if (!uploadedFiles.value.find(f => f.name === file.name && f.size === file.size)) {
-      uploadedFiles.value.push(file)
-    }
-  })
-}
-
-const removeFile = (index) => {
-  uploadedFiles.value.splice(index, 1)
-}
-
+// File icon and size formatting functions (used for displaying existing comment files)
 const getFileIcon = (mimeType) => {
   if (!mimeType) return 'description'
   if (mimeType.startsWith('image/')) return 'image'
@@ -1329,32 +1238,40 @@ const formatFileSize = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
-const handleAddComment = () => {
-  if (!canSubmit.value) return
-  
-  // TODO: 实现添加评论的逻辑，包含文件上传
-  if (!alert.value.comments) {
-    alert.value.comments = []
+const handleAddComment = async ({ comment, files }) => {
+  if (!currentAlertId.value) {
+    toast.error(t('alerts.detail.comments.postError') || '无法提交评论：告警ID不存在', '操作失败')
+    return
   }
   
-  const commentData = {
-    id: Date.now(),
-    author: 'Current User',
-    authorInitials: 'CU',
-    time: 'Just now',
-    content: newComment.value,
-    files: uploadedFiles.value.map(file => ({
-      name: file.name,
-      size: file.size,
-      type: file.type
-    }))
+  try {
+    const commentText = comment.trim()
+    if (!commentText) {
+      return
+    }
+    
+    // 调用 API 提交评论
+    await postComment(currentAlertId.value, commentText)
+    
+    // 清空输入（组件会自动清空）
+    newComment.value = ''
+    
+    // TODO: 处理文件上传（如果需要）
+    if (files && files.length > 0) {
+      console.log('Files to upload:', files)
+      // 实现文件上传逻辑
+    }
+    
+    // 重新加载告警详情以获取最新评论
+    await loadAlertDetail()
+    
+    // 显示成功提示
+    toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', '操作成功')
+  } catch (error) {
+    console.error('Failed to post comment:', error)
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.detail.comments.postError') || '评论提交失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
   }
-  
-  alert.value.comments.unshift(commentData)
-  
-  // 清空输入
-  newComment.value = ''
-  uploadedFiles.value = []
 }
 
 // AI 对话相关方法

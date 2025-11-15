@@ -25,13 +25,25 @@
       </div>
 
       <!-- 事件列表 -->
-      <div class="flex-1 overflow-y-auto mb-4">
+      <div class="flex-1 overflow-y-auto mb-4 relative">
+        <!-- Loading overlay -->
+        <div
+          v-if="loadingIncidents"
+          class="absolute inset-0 bg-[#1e293b]/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-md"
+        >
+          <div class="flex flex-col items-center gap-4">
+            <div class="relative w-16 h-16">
+              <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+              <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+          </div>
+        </div>
         <div class="bg-[#1e293b] rounded-md border border-[#324867]">
           <table class="w-full text-sm text-left text-[#92a9c9]">
             <thead class="text-xs text-white uppercase bg-[#111822] sticky top-0">
               <tr>
                 <th class="px-4 py-3" scope="col" style="width: 50px;"></th>
-                <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.incidentId') }}</th>
                 <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.incidentTitle') }}</th>
                 <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.createTime') }}</th>
               </tr>
@@ -54,16 +66,15 @@
                     class="bg-transparent border-[#324867] text-primary focus:ring-primary"
                   />
                 </td>
-                <td class="px-4 py-3">{{ incident.id }}</td>
                 <td class="px-4 py-3">
-                  <div class="max-w-xs overflow-hidden text-ellipsis whitespace-nowrap" :title="incident.name">
-                    {{ incident.name }}
+                  <div class="max-w-xs break-words" :title="incident.title || incident.name">
+                    {{ incident.title || incident.name }}
                   </div>
                 </td>
-                <td class="px-4 py-3">{{ incident.occurrenceTime }}</td>
+                <td class="px-4 py-3">{{ formatDateTime(incident.occurrenceTime || incident.arrive_time || incident.create_time) }}</td>
               </tr>
-              <tr v-if="incidentsList.length === 0">
-                <td colspan="4" class="px-4 py-8 text-center text-gray-400">
+              <tr v-if="!loadingIncidents && incidentsList.length === 0">
+                <td colspan="3" class="px-4 py-8 text-center text-gray-400">
                   {{ $t('alerts.list.associateIncidentDialog.noIncidents') }}
                 </td>
               </tr>
@@ -131,9 +142,10 @@
         </button>
         <button
           @click="handleAssociate"
-          :disabled="!selectedIncidentId"
-          class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          :disabled="!selectedIncidentId || isAssociating"
+          class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
         >
+          <span v-if="isAssociating" class="material-symbols-outlined animate-spin text-base">sync</span>
           {{ $t('common.submit') }}
         </button>
       </div>
@@ -144,8 +156,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getIncidents } from '@/api/incidents'
-import { associateAlertsToIncident } from '@/api/alerts'
+import { getIncidents, associateAlertsToIncident } from '@/api/incidents'
+import { formatDateTime } from '@/utils/dateTime'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   visible: {
@@ -161,12 +174,15 @@ const props = defineProps({
 const emit = defineEmits(['close', 'associated'])
 
 const { t } = useI18n()
+const toast = useToast()
 
 const incidentsList = ref([])
 const selectedIncidentId = ref(null)
 const page = ref(1)
 const pageSize = ref(10)
 const incidentsTotal = ref(0)
+const loadingIncidents = ref(false)
+const isAssociating = ref(false)
 const totalPages = computed(() => Math.ceil(incidentsTotal.value / pageSize.value))
 
 // 计算要显示的页码数组
@@ -234,17 +250,28 @@ watch(() => props.visible, (newVal) => {
 })
 
 const loadIncidents = async () => {
+  loadingIncidents.value = true
   try {
-    const response = await getIncidents({
-      page: page.value,
-      pageSize: pageSize.value
-    })
-    incidentsList.value = response.data
-    incidentsTotal.value = response.total
+    // Build parameters in the format expected by the backend
+    const params = {
+      limit: pageSize.value,
+      offset: (page.value - 1) * pageSize.value,
+      time_range: 90, // Default to 3 months to show more incidents
+      conditions: [] // No filters, show all incidents
+    }
+    
+    const response = await getIncidents(params)
+    incidentsList.value = response.data || []
+    incidentsTotal.value = response.total || 0
   } catch (error) {
     console.error('Failed to load incidents:', error)
     incidentsList.value = []
     incidentsTotal.value = 0
+    // Show error toast
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.list.associateIncidentDialog.loadError') || '加载事件列表失败，请稍后重试'
+    toast.error(errorMessage, '加载失败')
+  } finally {
+    loadingIncidents.value = false
   }
 }
 
@@ -275,20 +302,26 @@ const handleClose = () => {
 }
 
 const handleAssociate = async () => {
-  if (!selectedIncidentId.value || props.alertIds.length === 0) {
+  if (!selectedIncidentId.value || props.alertIds.length === 0 || isAssociating.value) {
     return
   }
 
   try {
-    await associateAlertsToIncident({
-      alertIds: props.alertIds,
-      incidentId: selectedIncidentId.value
-    })
+    isAssociating.value = true
+    await associateAlertsToIncident(selectedIncidentId.value, props.alertIds)
+    
+    // Show success message
+    toast.success(t('alerts.list.associateIncidentDialog.success') || '关联事件成功', '操作成功')
     
     handleClose()
     emit('associated')
   } catch (error) {
     console.error('Failed to associate alerts to incident:', error)
+    // Show error toast
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.list.associateIncidentDialog.associateError') || '关联事件失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
+  } finally {
+    isAssociating.value = false
   }
 }
 </script>

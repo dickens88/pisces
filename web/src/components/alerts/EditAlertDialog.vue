@@ -177,6 +177,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { updateAlert } from '@/api/alerts'
+import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -199,6 +200,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'updated'])
 
 const { t, locale } = useI18n()
+const toast = useToast()
 
 const showPanel = ref(false)
 const isSubmitting = ref(false)
@@ -311,12 +313,17 @@ const handleSubmit = async () => {
 
     await updateAlert(props.alertId, alertData)
     
+    // 显示成功提示
+    toast.success(t('alerts.edit.success') || '告警更新成功', '操作成功')
+    
     // 触发更新成功事件
     emit('updated')
     handleClose()
   } catch (error) {
     console.error('Failed to update alert:', error)
-    // TODO: 显示错误提示
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.edit.error') || '告警更新失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
   } finally {
     isSubmitting.value = false
   }

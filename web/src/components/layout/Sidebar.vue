@@ -8,12 +8,13 @@
     <div class="flex flex-col gap-4">
       <!-- Logo和标题 -->
       <div class="flex items-center gap-3">
-        <div 
-          class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 flex-shrink-0"
-          style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCOBkqQyna6RaiQ7Pi4IHAio_mVba4O6BC2LKE3ILZpZR0zG6pkRfrua86wFIE9mgetUord3xZuqe7sVkeIuGruDVMShsTZTHcECA5jY9YTjlpSEXjIhD8600R4TXJveWrJCXIPWYF5RoSQJQE5x6qTuq2nz96_hR4TysTsP6lO6havPf7ykmCiBVbgtkCj-eRwAhFfSWOedlfBq7tuOchbtp_lKARKF-NFpMkAFpg2ul34Lr0IsB2flZ9blgJJwZDtUmUGQSbrHHDr");'
-        ></div>
+        <img 
+          src="/pisces_logo.png"
+          alt="Logo"
+          class="size-10 rounded-full object-contain flex-shrink-0 border border-gray-500/30"
+        />
         <div v-if="!appStore.sidebarCollapsed" class="flex flex-col">
-          <h1 class="text-white text-base font-medium leading-normal">SIEM Platform</h1>
+          <h1 class="text-white text-base font-medium leading-normal">Pisces Security</h1>
           <p class="text-gray-400 text-sm font-normal leading-normal">SOC Center</p>
         </div>
       </div>

@@ -76,10 +76,9 @@
                     required
                     class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
-                    <option value="open">{{ $t('incidents.list.open') }}</option>
-                    <option value="pending">{{ $t('incidents.list.pending') }}</option>
-                    <option value="inProgress">{{ $t('incidents.list.inProgress') }}</option>
-                    <option value="closed">{{ $t('incidents.list.closed') }}</option>
+                    <option value="Open">{{ $t('incidents.list.open') }}</option>
+                    <option value="Block">{{ $t('incidents.list.block') }}</option>
+                    <option value="Closed">{{ $t('incidents.list.closed') }}</option>
                   </select>
                 </div>
 
@@ -122,35 +121,55 @@
                 <!-- 责任部门 -->
                 <div>
                   <label class="block text-sm font-medium text-white mb-2">
-                    {{ $t('incidents.create.responsibleDepartment') }} <span class="text-red-400">*</span>
+                    {{ $t('incidents.create.responsibleDepartment') }}
                   </label>
                   <input
                     v-model="formData.responsibleDepartment"
                     type="text"
-                    required
                     class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                     :placeholder="$t('incidents.create.responsibleDepartmentPlaceholder')"
                   />
                 </div>
               </div>
 
-              <!-- 第四行：事件根因 - 独占一行 -->
-              <div>
-                <label class="block text-sm font-medium text-white mb-2">
-                  {{ $t('incidents.create.rootCause') }} <span class="text-red-400">*</span>
-                </label>
-                <select
-                  v-model="formData.rootCause"
-                  required
-                  class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
-                >
-                  <option value="">{{ $t('incidents.create.selectRootCause') }}</option>
-                  <option value="exposedPort">{{ $t('incidents.create.rootCauseExposedPort') }}</option>
-                  <option value="weakPassword">{{ $t('incidents.create.rootCauseWeakPassword') }}</option>
-                  <option value="weakConfig">{{ $t('incidents.create.rootCauseWeakConfig') }}</option>
-                  <option value="unauthorizedApi">{{ $t('incidents.create.rootCauseUnauthorizedApi') }}</option>
-                  <option value="historicalVulnerability">{{ $t('incidents.create.rootCauseHistoricalVulnerability') }}</option>
-                </select>
+              <!-- 第四行：事件根因和严重程度 -->
+              <div class="grid grid-cols-2 gap-4">
+                <!-- 事件根因 -->
+                <div>
+                  <label class="block text-sm font-medium text-white mb-2">
+                    {{ $t('incidents.create.rootCause') }}
+                  </label>
+                  <select
+                    v-model="formData.rootCause"
+                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="">{{ $t('incidents.create.selectRootCause') }}</option>
+                    <option value="exposedPort">{{ $t('incidents.create.rootCauseExposedPort') }}</option>
+                    <option value="weakPassword">{{ $t('incidents.create.rootCauseWeakPassword') }}</option>
+                    <option value="weakConfig">{{ $t('incidents.create.rootCauseWeakConfig') }}</option>
+                    <option value="unauthorizedApi">{{ $t('incidents.create.rootCauseUnauthorizedApi') }}</option>
+                    <option value="historicalVulnerability">{{ $t('incidents.create.rootCauseHistoricalVulnerability') }}</option>
+                  </select>
+                </div>
+
+                <!-- 严重程度 -->
+                <div>
+                  <label class="block text-sm font-medium text-white mb-2">
+                    {{ $t('incidents.detail.severity') }} <span class="text-red-400">*</span>
+                  </label>
+                  <select
+                    v-model="formData.severity"
+                    required
+                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                  >
+                    <option value="">{{ $t('incidents.create.selectSeverity') || '请选择严重程度' }}</option>
+                    <option value="Tips">{{ $t('common.severity.tips') }}</option>
+                    <option value="Low">{{ $t('common.severity.low') }}</option>
+                    <option value="Medium">{{ $t('common.severity.medium') }}</option>
+                    <option value="High">{{ $t('common.severity.high') }}</option>
+                    <option value="Fatal">{{ $t('common.severity.fatal') }}</option>
+                  </select>
+                </div>
               </div>
 
               <!-- 事件描述 - 独占一行 -->
@@ -196,10 +215,13 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createIncident } from '@/api/incidents'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
+import { associateAlertsToIncident } from '@/api/incidents'
 
 const props = defineProps({
   visible: {
@@ -209,12 +231,18 @@ const props = defineProps({
   initialData: {
     type: Object,
     default: null
+  },
+  alertIds: {
+    type: Array,
+    default: () => []
   }
 })
 
 const emit = defineEmits(['close', 'created'])
 
 const { t, locale } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
 
 const showPanel = ref(false)
 const isSubmitting = ref(false)
@@ -235,12 +263,49 @@ const getInitialFormData = () => {
     responsiblePerson: '',
     responsibleDepartment: '',
     rootCause: '',
-    status: 'open',
+    severity: '',
+    status: 'Open',
     description: ''
   }
 }
 
 const formData = ref(getInitialFormData())
+
+/**
+ * @brief 格式化时间为后端期望的格式：YYYY-MM-DDTHH:mm:ssZ+HHmm (例如: 2021-01-30T23:00:00Z+0800)
+ * @param {Date} date - 日期对象
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatDateTime = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  const offset = -date.getTimezoneOffset()
+  const oh = Math.floor(Math.abs(offset) / 60)
+  const om = Math.abs(offset) % 60
+  const sign = offset >= 0 ? '+' : '-'
+  return `${y}-${m}-${d}T${h}:${min}:${s}Z${sign}${String(oh).padStart(2, '0')}${String(om).padStart(2, '0')}`
+}
+
+/**
+ * @brief 将时间戳转换为后端期望的格式
+ * @param {Date|string|undefined} timestamp - 时间戳（Date对象、ISO字符串或undefined）
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTimestamp = (timestamp) => {
+  if (timestamp instanceof Date) {
+    return formatDateTime(timestamp)
+  } else if (typeof timestamp === 'string') {
+    const date = new Date(timestamp)
+    if (!isNaN(date.getTime())) {
+      return formatDateTime(date)
+    }
+  }
+  return formatDateTime(new Date())
+}
 
 // 监听 visible 变化，控制动画
 watch(() => props.visible, (newVal) => {
@@ -283,33 +348,84 @@ const handleClose = () => {
 const handleSubmit = async () => {
   if (isSubmitting.value) return
 
+  // 验证必填字段
+  if (!formData.value.severity || formData.value.severity.trim() === '') {
+    toast.error(t('incidents.create.severityRequired') || '请选择严重程度', '验证失败')
+    return
+  }
+
   try {
     isSubmitting.value = true
     
-    // 将日期对象转换为后端需要的 ISO 格式
-    const occurrenceTime = formData.value.occurrenceTime instanceof Date 
-      ? formData.value.occurrenceTime.toISOString()
-      : new Date(formData.value.occurrenceTime).toISOString()
+    // 如果有告警ID，说明是转事件操作，使用 convert action；否则是创建事件，使用 create action
+    const action = (props.alertIds && props.alertIds.length > 0) ? 'convert' : 'create'
     
-    const incidentData = {
+    // 构建符合 /api/incidents 接口格式的请求体
+    const body = {
+      action: action,
       title: formData.value.title,
-      category: formData.value.category,
-      status: formData.value.status,
-      occurrenceTime,
-      responsiblePerson: formData.value.responsiblePerson,
-      responsibleDepartment: formData.value.responsibleDepartment,
-      rootCause: formData.value.rootCause,
-      description: formData.value.description
+      description: formData.value.description,
+      create_time: formatTimestamp(formData.value.occurrenceTime),
+      severity: formData.value.severity,
+      resource_list: [{
+        owner: formData.value.responsiblePerson,
+        responsible_person: formData.value.responsiblePerson,
+        responsible_dept: formData.value.responsibleDepartment || '',
+        root_cause: formData.value.rootCause || '',
+        category: formData.value.category || ''
+      }]
+    }
+    
+    // 如果有告警ID，添加到请求体中
+    if (props.alertIds && props.alertIds.length > 0) {
+      body.ids = props.alertIds
     }
 
-    await createIncident(incidentData)
+    // 直接调用 /api/incidents 接口
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = apiBaseURL ? `${apiBaseURL}/incidents` : '/api/incidents'
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    const response = await axios.post(url, body, { headers })
+    
+    // 获取创建的事件ID
+    const incidentId = response?.data?.id || response?.data?.data?.id
+    
+    // 如果有选中的告警ID，自动关联到新创建的事件
+    if (incidentId && props.alertIds && props.alertIds.length > 0) {
+      try {
+        await associateAlertsToIncident(incidentId, props.alertIds)
+        toast.success(
+          t('incidents.create.success') || '事件创建成功，已关联告警', 
+          '操作成功'
+        )
+      } catch (associateError) {
+        console.error('Failed to associate alerts to incident:', associateError)
+        // 即使关联失败，也显示创建成功（因为事件已经创建）
+        toast.success(t('incidents.create.success') || '事件创建成功', '操作成功')
+        // 可选：显示关联失败的警告
+        const associateErrorMessage = associateError?.response?.data?.message || associateError?.message || '关联告警失败'
+        toast.warn(associateErrorMessage, '警告')
+      }
+    } else {
+      // 显示成功提示
+      toast.success(t('incidents.create.success') || '事件创建成功', '操作成功')
+    }
     
     // 触发创建成功事件
     emit('created')
     handleClose()
   } catch (error) {
     console.error('Failed to create incident:', error)
-    // TODO: 显示错误提示
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.create.error') || '事件创建失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
   } finally {
     isSubmitting.value = false
   }

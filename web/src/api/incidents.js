@@ -10,11 +10,6 @@ export const batchCloseIncidents = (params) => {
   return service.post('/incidents/batch-close', params)
 }
 
-// Create incident
-export const createIncident = (data) => {
-  return service.post('/incidents/create', data)
-}
-
 // Update incident
 export const updateIncident = (id, data) => {
   return service.put(`/incidents/${id}/update`, data)
@@ -23,5 +18,34 @@ export const updateIncident = (id, data) => {
 // Get incident detail
 export const getIncidentDetail = (id) => {
   return service.get(`/incidents/${id}`)
+}
+
+// Associate alerts to incident
+export const associateAlertsToIncident = (incidentId, alertIds) => {
+  return service.post(`/incidents/${incidentId}/relations`, {
+    ids: alertIds
+  })
+}
+
+// Post comment (imported from comments.js for backward compatibility)
+export { postComment } from './comments.js'
+
+/**
+ * @brief 获取事件趋势数据（按日期分组统计）
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @returns {Promise} 事件趋势数据数组，格式为 [{date: string, count: number}, ...]
+ */
+export const getIncidentTrend = (startDate, endDate) => {
+  const params = {
+    chart: 'incident-trend'
+  }
+  if (startDate) {
+    params.start_date = startDate
+  }
+  if (endDate) {
+    params.end_date = endDate
+  }
+  return service.get('/stats/alerts', { params })
 }
 

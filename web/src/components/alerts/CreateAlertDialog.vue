@@ -176,7 +176,9 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { createAlert } from '@/api/alerts'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -191,6 +193,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created'])
 
 const { t, locale } = useI18n()
+const toast = useToast()
+const authStore = useAuthStore()
 
 const showPanel = ref(false)
 const isSubmitting = ref(false)
@@ -216,6 +220,42 @@ const getInitialFormData = () => {
 }
 
 const formData = ref(getInitialFormData())
+
+/**
+ * @brief 格式化时间为后端期望的格式：YYYY-MM-DDTHH:mm:ssZ+HHmm (例如: 2021-01-30T23:00:00Z+0800)
+ * @param {Date} date - 日期对象
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatDateTime = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  const offset = -date.getTimezoneOffset()
+  const oh = Math.floor(Math.abs(offset) / 60)
+  const om = Math.abs(offset) % 60
+  const sign = offset >= 0 ? '+' : '-'
+  return `${y}-${m}-${d}T${h}:${min}:${s}Z${sign}${String(oh).padStart(2, '0')}${String(om).padStart(2, '0')}`
+}
+
+/**
+ * @brief 将时间戳转换为后端期望的格式
+ * @param {Date|string|undefined} timestamp - 时间戳（Date对象、ISO字符串或undefined）
+ * @returns {string} 格式化后的时间字符串
+ */
+const formatTimestamp = (timestamp) => {
+  if (timestamp instanceof Date) {
+    return formatDateTime(timestamp)
+  } else if (typeof timestamp === 'string') {
+    const date = new Date(timestamp)
+    if (!isNaN(date.getTime())) {
+      return formatDateTime(date)
+    }
+  }
+  return formatDateTime(new Date())
+}
 
 // 监听 visible 变化，控制动画
 watch(() => props.visible, (newVal) => {
@@ -245,26 +285,45 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
     
-    // createAlert 函数会自动处理时间格式转换
-    const alertData = {
+    // 构建符合 /api/incidents 接口格式的请求体
+    const body = {
+      action: 'create',
       title: formData.value.title,
-      riskLevel: formData.value.riskLevel,
-      status: formData.value.status,
-      owner: formData.value.owner,
-      creator: formData.value.owner, // 创建者默认为责任人
-      ruleName: formData.value.ruleName || undefined,
-      timestamp: formData.value.timestamp, // 直接传递 Date 对象，createAlert 会处理格式转换
-      description: formData.value.description
+      description: formData.value.description,
+      create_time: formatTimestamp(formData.value.timestamp),
+      resource_list: [{
+        owner: formData.value.owner,
+        responsible_person: formData.value.owner,
+        responsible_dept: '', // 表单中没有此字段，使用空字符串
+        root_cause: '', // 表单中没有此字段，使用空字符串
+        category: formData.value.ruleName || '' // 使用规则名称作为分类，如果没有则使用空字符串
+      }]
     }
 
-    await createAlert(alertData)
+    // 直接调用 /api/incidents 接口
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = apiBaseURL ? `${apiBaseURL}/incidents` : '/api/incidents'
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    await axios.post(url, body, { headers })
+    
+    // 显示成功提示
+    toast.success(t('alerts.create.success') || '告警创建成功', '操作成功')
     
     // 触发创建成功事件
     emit('created')
     handleClose()
   } catch (error) {
     console.error('Failed to create alert:', error)
-    // TODO: 显示错误提示
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.create.error') || '告警创建失败，请稍后重试'
+    toast.error(errorMessage, '操作失败')
   } finally {
     isSubmitting.value = false
   }

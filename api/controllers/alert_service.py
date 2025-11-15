@@ -6,7 +6,7 @@ import requests
 from controllers.comment_service import CommentService
 from utils.app_config import config
 from utils.common_utils import get_date_range
-from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, STUPID_SECMASTER_TEMPLATE1
+from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE
 from utils.logger_init import logger
 
 
@@ -59,12 +59,13 @@ class AlertService:
                 "close_reason": item['data_object'].get('close_reason'),
                 "is_auto_closed": item['data_object'].get('is_auto_closed'),
                 "title": item['data_object']['title'],
-                "owner": item['data_object']['owner'],
+                "owner": item['data_object'].get('owner'),
                 "severity": item['data_object']['severity'],
                 "close_comment": item['data_object'].get('close_comment'),
                 "creator": item['data_object']['creator'],
                 "ttr": item['data_object'].get('ttr'),
                 "extend_properties": item['data_object'].get('extend_properties', []),
+                "data_source_product_name": item['data_object']['data_source']['product_name'],
             }
             try:
                 row["description"] = json.loads(item['data_object']['description'])
@@ -132,7 +133,14 @@ class AlertService:
 
     @classmethod
     def close_alert(cls, alert_id, close_reason, comment):
-        """Close an alert with reason and comment."""
+        """
+        Close an alert with reason and comment.
+        close_reason:
+        误检 - False detection
+        已解决 - Resolved
+        重复 - Repeated
+        其他 - Other
+        """
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
@@ -147,6 +155,28 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
         resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp.raise_for_status()
+
+        return json.loads(resp.text)
+
+    @classmethod
+    def batch_close_alert(cls, alert_ids, close_reason, comment):
+        """Close a batch of alerts with reason and comment."""
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/batch-update"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {
+            "batch_ids": alert_ids,
+            "data_object": {
+                "handle_status": "Closed",
+                "close_reason": close_reason,
+                "close_comment": comment
+            }
+        }
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
+        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
         resp.raise_for_status()
 
         return json.loads(resp.text)
@@ -189,8 +219,8 @@ class AlertService:
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
-        STUPID_SECMASTER_TEMPLATE1.update(alert_data)
-        payload = {"data_object": STUPID_SECMASTER_TEMPLATE1}
+        SECMASTER_ALERT_TEMPLATE.update(alert_data)
+        payload = {"data_object": SECMASTER_ALERT_TEMPLATE}
         body = json.dumps(payload)
 
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
