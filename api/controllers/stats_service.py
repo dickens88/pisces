@@ -170,7 +170,8 @@ class StatisticsService:
                 )
                 .filter(
                     cast(Incident.create_time, DateTime) >= start_dt,
-                    cast(Incident.create_time, DateTime) <= end_dt
+                    cast(Incident.create_time, DateTime) <= end_dt,
+                    ~Incident.labels.like('%vulscan%')
                 )
             )
             
@@ -201,3 +202,255 @@ class StatisticsService:
                 current_date += timedelta(days=1)
             
             return complete_trend
+
+    @classmethod
+    def get_vulnerability_trend(cls, start_date, end_date):
+        """
+        Get vulnerability count grouped by date (day) between start_date and end_date.
+        Vulnerabilities are incidents where labels field contains 'vulscan'.
+        Returns a list of dictionaries with 'date' and 'count' keys.
+        """
+        # Parse dates
+        if isinstance(start_date, str):
+            start_dt = datetime.fromisoformat(start_date)
+        elif isinstance(start_date, datetime):
+            start_dt = start_date
+        else:
+            start_dt = start_date
+        
+        if isinstance(end_date, str):
+            end_dt = datetime.fromisoformat(end_date)
+        elif isinstance(end_date, datetime):
+            end_dt = end_date
+        else:
+            end_dt = end_date
+        
+        with Session() as session:
+            # Group by day: DATE(create_time)
+            # Filter incidents where labels contains 'vulscan'
+            query = (
+                session.query(
+                    func.date(cast(Incident.create_time, DateTime)).label('date'),
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    cast(Incident.create_time, DateTime) >= start_dt,
+                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.labels.like('%vulscan%')
+                )
+            )
+            
+            results = query.group_by(func.date(cast(Incident.create_time, DateTime))).order_by('date').all()
+            
+            # Convert results to list of dicts, ensure date format is YYYY-MM-DD
+            trend_data = []
+            for row in results:
+                date_obj = row.date
+                if isinstance(date_obj, str):
+                    date_str = date_obj
+                else:
+                    date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                trend_data.append({'date': date_str, 'count': row.count})
+            
+            # Fill in missing dates with 0 count
+            trend_dict = {item['date']: item['count'] for item in trend_data}
+            complete_trend = []
+            current_date = start_dt.date()
+            end_date_obj = end_dt.date()
+            
+            while current_date <= end_date_obj:
+                date_str = current_date.strftime('%Y-%m-%d')
+                complete_trend.append({
+                    'date': date_str,
+                    'count': trend_dict.get(date_str, 0)
+                })
+                current_date += timedelta(days=1)
+            
+            return complete_trend
+
+    @classmethod
+    def get_vulnerability_trend_by_severity(cls, start_date, end_date):
+        """
+        Get vulnerability count grouped by date (day) and severity between start_date and end_date.
+        Vulnerabilities are incidents where labels field contains 'vulscan'.
+        Returns a list of dictionaries with 'date', 'severity', and 'count' keys.
+        """
+        # Parse dates
+        if isinstance(start_date, str):
+            start_dt = datetime.fromisoformat(start_date)
+        elif isinstance(start_date, datetime):
+            start_dt = start_date
+        else:
+            start_dt = start_date
+        
+        if isinstance(end_date, str):
+            end_dt = datetime.fromisoformat(end_date)
+        elif isinstance(end_date, datetime):
+            end_dt = end_date
+        else:
+            end_dt = end_date
+        
+        with Session() as session:
+            # Group by day and severity: DATE(create_time), severity
+            # Filter incidents where labels contains 'vulscan'
+            query = (
+                session.query(
+                    func.date(cast(Incident.create_time, DateTime)).label('date'),
+                    Incident.severity.label('severity'),
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    cast(Incident.create_time, DateTime) >= start_dt,
+                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.labels.like('%vulscan%')
+                )
+            )
+            
+            results = query.group_by(
+                func.date(cast(Incident.create_time, DateTime)),
+                Incident.severity
+            ).order_by('date', 'severity').all()
+            
+            # Convert results to list of dicts, ensure date format is YYYY-MM-DD
+            # Normalize severity to capitalize first letter (e.g., 'high' -> 'High')
+            def normalize_severity(severity):
+                if not severity:
+                    return 'Unknown'
+                # Capitalize first letter, keep rest lowercase
+                return severity.capitalize() if severity else 'Unknown'
+            
+            trend_data = []
+            for row in results:
+                date_obj = row.date
+                if isinstance(date_obj, str):
+                    date_str = date_obj
+                else:
+                    date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                trend_data.append({
+                    'date': date_str,
+                    'severity': normalize_severity(row.severity),
+                    'count': row.count
+                })
+            
+            # Fill in missing dates and severities with 0 count
+            # Get all unique dates and severities
+            all_dates = set()
+            # Standard severity levels (capitalized)
+            all_severities = set(['Critical', 'High', 'Medium', 'Low', 'Unknown'])
+            current_date = start_dt.date()
+            end_date_obj = end_dt.date()
+            
+            while current_date <= end_date_obj:
+                date_str = current_date.strftime('%Y-%m-%d')
+                all_dates.add(date_str)
+                current_date += timedelta(days=1)
+            
+            # Add severities from actual data (already normalized)
+            for item in trend_data:
+                if item['severity']:
+                    all_severities.add(item['severity'])
+            
+            # Build a dictionary for quick lookup: {date: {severity: count}}
+            trend_dict = {}
+            for item in trend_data:
+                date = item['date']
+                severity = item['severity']
+                count = item['count']
+                if date not in trend_dict:
+                    trend_dict[date] = {}
+                trend_dict[date][severity] = count
+            
+            # Build complete trend data
+            complete_trend = []
+            for date in sorted(all_dates):
+                for severity in sorted(all_severities):
+                    count = trend_dict.get(date, {}).get(severity, 0)
+                    complete_trend.append({
+                        'date': date,
+                        'severity': severity,
+                        'count': count
+                    })
+            
+            return complete_trend
+
+    @classmethod
+    def get_vulnerability_department_distribution(cls, start_date, end_date):
+        """
+        Get vulnerability count grouped by responsible department between start_date and end_date.
+        Vulnerabilities are incidents where labels field contains 'vulscan'.
+        Returns a dictionary with department names as keys and counts as values.
+        """
+        # Parse dates
+        if isinstance(start_date, str):
+            start_dt = datetime.fromisoformat(start_date)
+        elif isinstance(start_date, datetime):
+            start_dt = start_date
+        else:
+            start_dt = start_date
+        
+        if isinstance(end_date, str):
+            end_dt = datetime.fromisoformat(end_date)
+        elif isinstance(end_date, datetime):
+            end_dt = end_date
+        else:
+            end_dt = end_date
+        
+        with Session() as session:
+            # Group by responsible_dept
+            # Filter incidents where labels contains 'vulscan'
+            query = (
+                session.query(
+                    Incident.responsible_dept,
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    cast(Incident.create_time, DateTime) >= start_dt,
+                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.labels.like('%vulscan%')
+                )
+                .group_by(Incident.responsible_dept)
+            )
+            
+            results = query.all()
+            
+            # Convert results to dictionary
+            # Handle None/null department names as 'Unknown' or empty string
+            distribution = {}
+            for row in results:
+                dept = row.responsible_dept if row.responsible_dept else 'Unknown'
+                distribution[dept] = row.count
+            
+            return distribution
+
+    @classmethod
+    def get_automation_closure_rate(cls):
+        """
+        Get automation closure rate statistics.
+        Returns:
+            dict with keys:
+                - total_closed: total number of closed alerts (handle_status='Closed')
+                - auto_closed: number of auto-closed alerts (is_auto_closed='AutoClosed')
+                - automation_rate: automation closure rate percentage (auto_closed / total_closed * 100)
+        """
+        with Session() as session:
+            # Count total closed alerts
+            total_closed = session.query(func.count(Alert.id)).filter(
+                Alert.handle_status == 'Closed'
+            ).scalar() or 0
+            
+            # Count auto-closed alerts
+            auto_closed = session.query(func.count(Alert.id)).filter(
+                Alert.handle_status == 'Closed',
+                Alert.is_auto_closed == 'AutoClosed'
+            ).scalar() or 0
+            
+            # Calculate automation rate
+            automation_rate = 0.0
+            if total_closed > 0:
+                automation_rate = round((auto_closed / total_closed) * 100, 1)
+            
+            return {
+                'total_closed': total_closed,
+                'auto_closed': auto_closed,
+                'automation_rate': automation_rate
+            }

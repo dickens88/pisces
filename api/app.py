@@ -8,7 +8,7 @@ from flask_restful import Api
 from models import user
 from utils.common_utils import generate_random_string
 from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view
-from views import mock_dashboard_view
+
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -41,17 +41,15 @@ api.add_resource(stats_view.AlertCountBySourceView, '/api/stats/alerts')
 api.add_resource(callback_view.CallbackMessageHandler, '/api/secmaster/callback')
 
 api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'])
+api.add_resource(alert_view.AlertStatisticsView, '/api/alerts/statistics')
 
 api.add_resource(incident_view.IncidentView, '/api/incidents', '/api/incidents/<incident_id>')
 
 api.add_resource(incident_view.IncidentRelations, '/api/incidents/<incident_id>/relations')
 
-api.add_resource(comment_view.CommentView, '/api/comments', '/api/comments/<comment_id>')
+api.add_resource(comment_view.CommentView, '/api/comments', '/api/comments/<event_id>')
 
-# Mock API路由 - 仪表板相关
-api.add_resource(mock_dashboard_view.MockDashboardStatisticsView, '/api/dashboard/statistics')
-api.add_resource(mock_dashboard_view.MockRecentOpenAlertsView, '/api/dashboard/recent-alerts')
-api.add_resource(mock_dashboard_view.MockRecentOpenVulnerabilitiesView, '/api/dashboard/recent-vulnerabilities')
+api.add_resource(comment_view.CommentDownloadView, '/api/comments/<comment_id>/download')
 
 
 if __name__ == '__main__':

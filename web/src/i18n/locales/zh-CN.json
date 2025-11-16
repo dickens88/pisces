@@ -57,6 +57,7 @@
       "incidentCount24h": "事件数 (24小时)",
       "incidentCount30d": "事件数 (30天)",
       "vulnerabilityCount": "漏洞数",
+      "vulnerabilityCount30d": "漏洞数 (30天)",
       "mttd": "平均检测时间 (MTTD)"
     },
     "charts": {
@@ -131,8 +132,10 @@
       "statistics": {
         "alertTypeStats": "告警类型统计",
         "alertTrend": "告警数量趋势",
-        "mttd": "MTTD (平均检测时间)",
-        "past7Days": "过去7天"
+        "automationClosureRate": "自动化关单率",
+        "past7Days": "过去7天",
+        "autoClosed": "自动关闭",
+        "totalAlerts": "总关闭数"
       },
       "createAlert": "新建告警"
     },

@@ -1,17 +1,14 @@
+import json
 from typing import List
 
 import requests
-import json
 
 from controllers.alert_service import AlertService
 from controllers.comment_service import CommentService
+from models.alert import Alert
 from utils.app_config import config
 from utils.common_utils import get_date_range
-from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, \
-    SECMASTER_INCIDENT_TEMPLATE
-from utils.logger_init import logger
-from utils.mysql_conn import Session
-from models.alert import Alert
+from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE
 
 
 class IncidentService:
@@ -48,7 +45,8 @@ class IncidentService:
 
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
         resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         data = json.loads(resp.text)
         result = []
@@ -100,7 +98,8 @@ class IncidentService:
 
         base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
         resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         data = json.loads(resp.text)
         item = data['data']
@@ -135,11 +134,21 @@ class IncidentService:
         row["owner"] = row["owner"] if row.get("owner") else row["creator"]
 
         # retrieve complete associated alert by id
+        # Try to get from database first, fallback to API if not found
         associated_alerts = []
         associated_ids = item['data_object'].get('alert_list', [])
         for alert_id in associated_ids:
-            alert = AlertService.retrieve_alert_by_id(alert_id)
-            associated_alerts.append(alert)
+            # Try to get from database first
+            db_alert = Alert.get_alert_by_id(alert_id)
+            if db_alert:
+                # Convert database record to API format
+                alert = cls._convert_db_alert_to_api_format(db_alert)
+                associated_alerts.append(alert)
+            else:
+                # Fallback to API if not found in database
+                alert = AlertService.retrieve_alert_by_id(alert_id)
+                associated_alerts.append(alert)
+
         # sort by create_time in descending order
         associated_alerts.sort(key=lambda x: x.get('create_time', ''), reverse=True)
         row["associated_alerts"] = associated_alerts
@@ -175,7 +184,8 @@ class IncidentService:
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
         resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         result = json.loads(resp.text)
         return result
@@ -189,17 +199,58 @@ class IncidentService:
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
 
         resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
         return json.loads(resp.text)
+
+    @staticmethod
+    def _convert_db_alert_to_api_format(db_alert: dict) -> dict:
+        """Convert database alert record to API format."""
+        # Parse description if it's a JSON string
+        description = db_alert.get('description')
+        if description and isinstance(description, str):
+            try:
+                description = json.loads(description)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        
+        return {
+            "id": db_alert.get('alert_id'),
+            "create_time": db_alert.get('create_time', '-'),
+            "update_time": db_alert.get('last_update_time', '-'),
+            "close_time": db_alert.get('close_time', '-'),
+            "handle_status": db_alert.get('handle_status', '-'),
+            "arrive_time": '-',  # Not stored in database
+            "labels": '-',  # Not stored in database
+            "close_reason": db_alert.get('close_reason'),
+            "is_auto_closed": db_alert.get('is_auto_closed'),
+            "title": db_alert.get('title', ''),
+            "owner": db_alert.get('owner'),
+            "severity": db_alert.get('severity', '-'),
+            "close_comment": db_alert.get('close_comment'),
+            "creator": db_alert.get('creator'),
+            "ttr": '-',  # Not stored in database
+            "data_source_product_name": db_alert.get('data_source_product_name'),
+            "description": description
+        }
 
     @staticmethod
     def _extract_info_from_comment(comment: dict):
         result = []
         for item in comment['data']:
             row = {
+                "id": item.get('id'),
                 "author": item['content']['come_from'],
                 "create_time": item['content']['occurred_time'],
                 "content": item["content"]["value"]
             }
+            
+            # Query file information by comment_id associated with id
+            if 'id' in item:
+                comment_id = str(item['id'])
+                file_info = CommentService.get_comment_file_info(comment_id)
+                if file_info:
+                    row["file"] = file_info
+            
             result.append(row)
         return result

@@ -42,7 +42,8 @@ class AlertService:
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
 
         resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         data = json.loads(resp.text)
         result = []
@@ -83,7 +84,8 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
         resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(f"[Alert] Fail to retrieve alert  {alert_id}. {resp.text}")
 
         data = json.loads(resp.text)
         item = data['data']
@@ -155,7 +157,8 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
         resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         return json.loads(resp.text)
 
@@ -177,7 +180,8 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
         resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         return json.loads(resp.text)
 
@@ -192,7 +196,8 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
         resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         return json.loads(resp.text)
 
@@ -209,7 +214,8 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
         resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         return json.loads(resp.text)
 
@@ -225,15 +231,11 @@ class AlertService:
 
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
         resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
-        resp.raise_for_status()
+        if resp.status_code > 300:
+            raise Exception(resp.text)
 
         result = json.loads(resp.text)
         return result
-
-    @classmethod
-    def associate_alert(cls, alert_id):
-        """Associate alert with related alerts."""
-        pass
 
     @staticmethod
     def _extract_info_from_comment(comment: dict):
@@ -246,10 +248,18 @@ class AlertService:
         }
         for item in comment['data']:
             row = {
+                "id": item['id'],
                 "author": item['content']['come_from'],
                 "create_time": item['content']['occurred_time'],
                 "content": item["content"]["value"]
             }
+            
+            # Query file information by comment_id associated with id
+            comment_id = str(item['id'])
+            file_info = CommentService.get_comment_file_info(comment_id)
+            if file_info:
+                row["file"] = file_info
+            
             content = row["content"]
             if "Intelligence Information" in content:
                 result["intelligence"].append(row)
@@ -278,21 +288,21 @@ class AlertService:
                 entity = {
                     "type": "ip",
                     "name": str(value),
-                    "from": "Source IP"
+                    "from": key_lower
                 }
                 entities.append(entity)
             elif "host" in key_lower:
                 entity = {
                     "type": "host",
                     "name": str(value),
-                    "from": "Host"
+                    "from": key_lower
                 }
                 entities.append(entity)
             elif "user" in key_lower:
                 entity = {
                     "type": "user",
                     "name": str(value),
-                    "from": "Target User"
+                    "from": key_lower
                 }
                 entities.append(entity)
 

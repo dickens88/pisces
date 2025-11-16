@@ -18,14 +18,16 @@ class Alert(Base):
     title = Column(Text())
     description = Column(Text())
 
-    severity = Column(Enum('TIPS', 'LOW', 'MEDIUM', 'HIGH', 'FATAL', name='severity_enum'), default='MEDIUM')
-    handle_status = Column(Enum('Open', 'Block', 'Closed', name='handle_status_enum'), default='Open')
+    severity = Column(String(10))
+    handle_status = Column(String(10))
 
     owner = Column(Text())
     creator = Column(Text())
 
     close_reason = Column(Enum('False positive', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
     close_comment = Column(Text())
+
+    is_auto_closed = Column(String(50))
 
     data_source_product_name = Column(Text())
 
@@ -44,6 +46,7 @@ class Alert(Base):
             "creator": self.creator,
             "close_reason": self.close_reason,
             "close_comment": self.close_comment,
+            "is_auto_closed": self.is_auto_closed,
             "data_source_product_name": self.data_source_product_name
         }
 
@@ -72,6 +75,7 @@ class Alert(Base):
                 alert.creator = new_alert_entity.creator
                 alert.close_reason = new_alert_entity.close_reason
                 alert.close_comment = new_alert_entity.close_comment
+                alert.is_auto_closed = new_alert_entity.is_auto_closed
                 alert.data_source_product_name = new_alert_entity.data_source_product_name
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
@@ -100,39 +104,29 @@ class Alert(Base):
         """Update an existing alert record in local DB by alert_id. (Deprecated: use upsert_alert instead)"""
         return cls.upsert_alert(payload)
 
+    @classmethod
+    def get_alert_by_id(cls, alert_id: str) -> dict:
+        """Get alert record from local DB by alert_id. Returns None if not found."""
+        session = Session()
+        try:
+            alert = session.query(cls).filter_by(alert_id=alert_id).first()
+            if alert:
+                return alert.to_dict()
+            return None
+        except Exception as ex:
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
     @staticmethod
     def _build_alert_entity(payload: dict):
         """Build Alert ORM instance from payload without persisting."""
-        severity_choices = set(Alert.__table__.columns['severity'].type.enums)
-        handle_status_choices = set(Alert.__table__.columns['handle_status'].type.enums)
-        close_reason_choices = set(Alert.__table__.columns['close_reason'].type.enums)
-
-        severity_default = 'MEDIUM'
-        handle_status_default = 'Open'
-
-        severity = payload.get("severity", severity_default)
-        if severity not in severity_choices:
-            if severity:
-                logger.warning(
-                    "Unsupported severity '%s' received for alert %s, defaulting to '%s'",
-                    severity,
-                    payload.get("id"),
-                    severity_default,
-                )
-            severity = severity_default
-
-        handle_status = payload.get("handle_status", handle_status_default)
-        if handle_status not in handle_status_choices:
-            if handle_status:
-                logger.warning(
-                    "Unsupported handle_status '%s' received for alert %s, defaulting to '%s'",
-                    handle_status,
-                    payload.get("id"),
-                    handle_status_default,
-                )
-            handle_status = handle_status_default
-
+        severity = payload.get("severity")
+        handle_status = payload.get("handle_status")
         close_reason = payload.get("close_reason")
+
+        close_reason_choices = set(Alert.__table__.columns['close_reason'].type.enums)
         if close_reason not in close_reason_choices:
             if close_reason:
                 logger.warning(
@@ -166,5 +160,6 @@ class Alert(Base):
             creator=payload.get("creator"),
             close_reason=close_reason,
             close_comment=payload.get("close_comment"),
+            is_auto_closed=payload.get("is_auto_closed"),
             data_source_product_name=data_source_product_name,
         )

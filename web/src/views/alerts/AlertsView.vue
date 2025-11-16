@@ -22,6 +22,7 @@
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
+          storage-key="alerts"
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
@@ -76,22 +77,9 @@
         <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
           {{ statistics.alertCount || 0 }}
         </p>
-        <div class="flex gap-1 items-center">
-          <p class="text-gray-400 text-sm font-normal leading-normal">
-            {{ $t('alerts.list.statistics.past7Days') }}
-          </p>
-          <p
-            :class="[
-              'text-sm font-medium leading-normal flex items-center',
-              statistics.alertTrend >= 0 ? 'text-[#fa6238]' : 'text-[#0bda5e]'
-            ]"
-          >
-            <span class="material-symbols-outlined" style="font-size: 16px;">
-              {{ statistics.alertTrend >= 0 ? 'arrow_upward' : 'arrow_downward' }}
-            </span>
-            {{ statistics.alertTrend >= 0 ? '+' : '' }}{{ statistics.alertTrend }}%
-          </p>
-        </div>
+        <p class="text-gray-400 text-sm font-normal leading-normal">
+          {{ alertsTimeRangeLabel }}
+        </p>
         <div class="relative h-40 w-full">
           <div
             v-if="alertTrendChartLoading"
@@ -116,30 +104,53 @@
 
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
-          {{ $t('alerts.list.statistics.mttd') }}
+          {{ $t('alerts.list.statistics.automationClosureRate') }}
         </p>
         <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
-          {{ statistics.mttd || '0 hours' }}
+          {{ statistics.automationRate || '0' }}%
         </p>
-        <div class="flex gap-1 items-center">
-          <p class="text-gray-400 text-sm font-normal leading-normal">
-            {{ $t('alerts.list.statistics.past7Days') }}
-          </p>
-          <p class="text-[#0bda5e] text-sm font-medium leading-normal flex items-center">
-            <span class="material-symbols-outlined" style="font-size: 16px;">arrow_upward</span>
-            +{{ statistics.mttdChange }} hours
-          </p>
-        </div>
-        <div class="grid min-h-[90px] gap-x-4 gap-y-4 grid-cols-[auto_1fr] items-center pt-4">
-          <template v-for="stage in mttdStages" :key="stage.name">
-            <p class="text-gray-400 text-xs font-medium">{{ stage.name }}</p>
-            <div class="h-2.5 w-full bg-[#233348] rounded-full">
+        <p class="text-gray-400 text-sm font-normal leading-normal">
+          {{ alertsTimeRangeLabel }}
+        </p>
+        <div class="relative h-40 w-full">
+          <div
+            v-if="automationRateLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="!statistics.totalClosed && !statistics.autoClosed"
+            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+          >
+            {{ $t('common.noData') }}
+          </div>
+          <div
+            v-show="!automationRateLoading && (statistics.totalClosed || statistics.autoClosed)"
+            class="absolute inset-0 flex flex-col justify-between py-3"
+          >
+            <!-- Progress bar -->
+            <div class="relative h-6 w-full bg-[#233348] rounded-full mt-4">
               <div
-                class="bg-primary h-2.5 rounded-full transition-all"
-                :style="{ width: stage.percentage + '%' }"
+                class="bg-primary h-6 rounded-full transition-all"
+                :style="{ width: (statistics.automationRate || 0) + '%' }"
               ></div>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white text-sm font-medium">{{ statistics.automationRate || '0' }}%</span>
+              </div>
             </div>
-          </template>
+            <!-- Two metrics -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.autoClosed') }}</p>
+                <p class="text-white text-2xl font-bold">{{ (statistics.autoClosed || 0).toLocaleString() }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.totalAlerts') }}</p>
+                <p class="text-white text-2xl font-bold">{{ (statistics.totalClosed || 0).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -488,11 +499,31 @@ const statistics = ref({
   trend: 0,
   alertCount: 0,
   alertTrend: 0,
-  mttd: '0 hours',
-  mttdChange: 0,
+  automationRate: 0,
+  automationRateChange: 0,
+  automationRateTrend: 'down',
+  totalClosed: 0,
+  autoClosed: 0,
   typeStats: []
 })
-const searchKeywords = ref([])
+
+// 从 localStorage 读取保存的搜索关键词
+const getStoredSearchKeywords = () => {
+  try {
+    const stored = localStorage.getItem('alerts-searchKeywords')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.every(k => typeof k === 'string')) {
+        return parsed
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read search keywords from localStorage:', error)
+  }
+  return []
+}
+
+const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
 // 从localStorage读取保存的status筛选器设置，如果没有则默认为'all'
 const getStoredStatusFilter = () => {
@@ -510,10 +541,58 @@ const getStoredStatusFilter = () => {
 const statusFilter = ref(getStoredStatusFilter())
 const selectedAlerts = ref([])
 const currentPage = ref(1)
-const pageSize = ref(10)
+
+// 从 localStorage 读取保存的分页大小
+const getStoredPageSize = () => {
+  try {
+    const stored = localStorage.getItem('alerts-pageSize')
+    if (stored) {
+      const size = Number(stored)
+      if (size && [10, 20, 50, 100].includes(size)) {
+        return size
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read page size from localStorage:', error)
+  }
+  return 10
+}
+
+const pageSize = ref(getStoredPageSize())
 const total = ref(0)
-const selectedTimeRange = ref('last24Hours')
-const customTimeRange = ref(null)
+
+// Time range picker
+// 从 localStorage 读取保存的时间范围
+const getStoredTimeRange = () => {
+  try {
+    const stored = localStorage.getItem('alerts-timeRange')
+    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read time range from localStorage:', error)
+  }
+  return 'last24Hours'
+}
+
+// 从 localStorage 读取保存的自定义时间范围
+const getStoredCustomRange = () => {
+  try {
+    const stored = localStorage.getItem('alerts-customTimeRange')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length === 2) {
+        return [new Date(parsed[0]), new Date(parsed[1])]
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read custom time range from localStorage:', error)
+  }
+  return null
+}
+
+const selectedTimeRange = ref(getStoredTimeRange())
+const customTimeRange = ref(getStoredCustomRange())
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
 const closeConclusion = ref({
@@ -542,6 +621,8 @@ const alertTrendChartLoading = ref(false)
 
 let alertTrendChartInstance = null
 let alertTrendChartResizeBound = false
+
+const automationRateLoading = ref(false)
 
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
@@ -747,11 +828,12 @@ const updateAlertTrendChart = () => {
   // Clear previous option to ensure new settings take effect
   alertTrendChartInstance.clear()
 
-  // Format dates for display (show day of week or date)
+  // Format dates for display (show date)
   const formatDateLabel = (dateStr) => {
     const date = new Date(dateStr)
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return dayNames[date.getDay()]
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    return `${month}/${day}`
   }
 
   const option = {
@@ -852,13 +934,6 @@ const loadAlertTrend = async () => {
 }
 
 
-const mttdStages = [
-  { name: 'Detection', percentage: 20 },
-  { name: 'Triage', percentage: 35 },
-  { name: 'Investigation', percentage: 80 },
-  { name: 'Containment', percentage: 50 }
-]
-
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 const loadAlerts = async () => {
@@ -905,14 +980,40 @@ const handleRefresh = async () => {
 }
 
 const loadStatistics = async () => {
+  automationRateLoading.value = true
   try {
     const response = await getAlertStatistics()
     // Merge response data instead of completely replacing to preserve alertCount set by loadAlertTrend
     if (response && response.data) {
-      Object.assign(statistics.value, response.data)
+      // Map API response fields to frontend statistics fields
+      if (response.data.automation_rate !== undefined) {
+        statistics.value.automationRate = response.data.automation_rate
+      }
+      if (response.data.total_closed !== undefined) {
+        statistics.value.totalClosed = response.data.total_closed
+      }
+      if (response.data.auto_closed !== undefined) {
+        statistics.value.autoClosed = response.data.auto_closed
+      }
+      // For now, set default trend values (can be enhanced later to calculate from historical data)
+      if (statistics.value.automationRateChange === 0) {
+        statistics.value.automationRateChange = 0
+        statistics.value.automationRateTrend = 'down'
+      }
     }
   } catch (error) {
     console.error('Failed to load statistics:', error)
+  } finally {
+    automationRateLoading.value = false
+  }
+}
+
+// 保存搜索关键词到 localStorage
+const saveSearchKeywords = () => {
+  try {
+    localStorage.setItem('alerts-searchKeywords', JSON.stringify(searchKeywords.value))
+  } catch (error) {
+    console.warn('Failed to save search keywords to localStorage:', error)
   }
 }
 
@@ -925,6 +1026,7 @@ const addKeyword = () => {
   if (keyword && !searchKeywords.value.includes(keyword)) {
     searchKeywords.value.push(keyword)
     currentSearchInput.value = ''
+    saveSearchKeywords()
     loadAlerts()
   }
 }
@@ -935,6 +1037,7 @@ const addKeyword = () => {
  */
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
+  saveSearchKeywords()
   loadAlerts()
 }
 
@@ -962,6 +1065,12 @@ const handleFilter = () => {
 const handlePageSizeChange = () => {
   pageSize.value = Number(pageSize.value) // Ensure it's a number type
   currentPage.value = 1 // Reset to first page
+  // 保存到 localStorage
+  try {
+    localStorage.setItem('alerts-pageSize', String(pageSize.value))
+  } catch (error) {
+    console.warn('Failed to save page size to localStorage:', error)
+  }
   loadAlerts()
 }
 

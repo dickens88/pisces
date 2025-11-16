@@ -11,8 +11,17 @@ export const getVulnerabilityTrend = (params = {}) => {
 }
 
 // Get vulnerability department distribution
-export const getVulnerabilityDepartmentDistribution = (params = {}) => {
-  return service.get('/vulnerabilities/department-distribution', { params })
+export const getVulnerabilityDepartmentDistribution = (startDate, endDate) => {
+  const params = {
+    chart: 'vulnerability-department-distribution'
+  }
+  if (startDate) {
+    params.start_date = startDate
+  }
+  if (endDate) {
+    params.end_date = endDate
+  }
+  return service.get('/stats/alerts', { params })
 }
 
 // Get vulnerability detail

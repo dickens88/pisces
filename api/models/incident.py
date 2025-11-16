@@ -19,8 +19,8 @@ class Incident(Base):
     title = Column(Text())
     description = Column(Text())
 
-    severity = Column(Enum('TIPS', 'LOW', 'MEDIUM', 'HIGH', 'FATAL', name='severity_enum'), default='MEDIUM')
-    handle_status = Column(Enum('Open', 'Block', 'Closed', name='handle_status_enum'), default='Open')
+    severity = Column(String(10))
+    handle_status = Column(String(10))
 
     owner = Column(Text())
     creator = Column(Text())
@@ -134,36 +134,11 @@ class Incident(Base):
     @staticmethod
     def _build_incident_entity(payload: dict):
         """Build Incident ORM instance from payload without persisting."""
-        severity_choices = set(Incident.__table__.columns['severity'].type.enums)
-        handle_status_choices = set(Incident.__table__.columns['handle_status'].type.enums)
-        close_reason_choices = set(Incident.__table__.columns['close_reason'].type.enums)
-
-        severity_default = 'MEDIUM'
-        handle_status_default = 'Open'
-
-        severity = payload.get("severity", severity_default)
-        if severity not in severity_choices:
-            if severity:
-                logger.warning(
-                    "Unsupported severity '%s' received for incident %s, defaulting to '%s'",
-                    severity,
-                    payload.get("id"),
-                    severity_default,
-                )
-            severity = severity_default
-
-        handle_status = payload.get("handle_status", handle_status_default)
-        if handle_status not in handle_status_choices:
-            if handle_status:
-                logger.warning(
-                    "Unsupported handle_status '%s' received for incident %s, defaulting to '%s'",
-                    handle_status,
-                    payload.get("id"),
-                    handle_status_default,
-                )
-            handle_status = handle_status_default
-
+        severity = payload.get("severity")
+        handle_status = payload.get("handle_status")
         close_reason = payload.get("close_reason")
+
+        close_reason_choices = set(Incident.__table__.columns['close_reason'].type.enums)
         if close_reason not in close_reason_choices:
             if close_reason:
                 logger.warning(

@@ -81,6 +81,10 @@ const props = defineProps({
   i18nPrefix: {
     type: String,
     default: 'common.timeRange'
+  },
+  storageKey: {
+    type: String,
+    default: null
   }
 })
 
@@ -88,9 +92,40 @@ const emit = defineEmits(['update:modelValue', 'change', 'customRangeChange'])
 
 const { locale, t } = useI18n()
 
-const selectedTimeRange = ref(props.modelValue)
+// 从 localStorage 读取保存的时间范围
+const getStoredTimeRange = () => {
+  if (!props.storageKey) return props.modelValue
+  try {
+    const stored = localStorage.getItem(`${props.storageKey}-timeRange`)
+    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read time range from localStorage:', error)
+  }
+  return props.modelValue
+}
+
+// 从 localStorage 读取保存的自定义时间范围
+const getStoredCustomRange = () => {
+  if (!props.storageKey) return props.customRange
+  try {
+    const stored = localStorage.getItem(`${props.storageKey}-customTimeRange`)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length === 2) {
+        return [new Date(parsed[0]), new Date(parsed[1])]
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read custom time range from localStorage:', error)
+  }
+  return props.customRange
+}
+
+const selectedTimeRange = ref(getStoredTimeRange())
 const showTimeRangeDropdown = ref(false)
-const customTimeRange = ref(props.customRange)
+const customTimeRange = ref(getStoredCustomRange())
 
 // 日期选择器的语言配置
 const datePickerLocale = computed(() => {
@@ -115,18 +150,38 @@ const getCurrentTimeRangeLabel = () => {
 const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   showTimeRangeDropdown.value = false
+  
+  // 保存到 localStorage
+  if (props.storageKey) {
+    try {
+      localStorage.setItem(`${props.storageKey}-timeRange`, rangeKey)
+    } catch (error) {
+      console.warn('Failed to save time range to localStorage:', error)
+    }
+  }
+  
   emit('update:modelValue', rangeKey)
   emit('change', rangeKey)
   
   if (rangeKey === 'customRange') {
-    // 初始化自定义时间范围为最近7天
-    const end = new Date()
-    const start = new Date()
-    start.setDate(start.getDate() - 7)
-    customTimeRange.value = [start, end]
+    // 如果已有保存的自定义时间范围，使用它；否则初始化自定义时间范围为最近7天
+    if (!customTimeRange.value || customTimeRange.value.length !== 2) {
+      const end = new Date()
+      const start = new Date()
+      start.setDate(start.getDate() - 7)
+      customTimeRange.value = [start, end]
+    }
     emit('customRangeChange', customTimeRange.value)
   } else {
     customTimeRange.value = null
+    // 清除自定义时间范围的缓存
+    if (props.storageKey) {
+      try {
+        localStorage.removeItem(`${props.storageKey}-customTimeRange`)
+      } catch (error) {
+        console.warn('Failed to remove custom time range from localStorage:', error)
+      }
+    }
     emit('customRangeChange', null)
   }
 }
@@ -143,17 +198,32 @@ const handleClickOutside = (event) => {
 // 监听自定义时间范围变化
 watch(customTimeRange, (newRange) => {
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
+    // 保存到 localStorage
+    if (props.storageKey) {
+      try {
+        const serialized = JSON.stringify([newRange[0].toISOString(), newRange[1].toISOString()])
+        localStorage.setItem(`${props.storageKey}-customTimeRange`, serialized)
+      } catch (error) {
+        console.warn('Failed to save custom time range to localStorage:', error)
+      }
+    }
     emit('customRangeChange', newRange)
   }
 })
 
 // 监听 props 变化
 watch(() => props.modelValue, (newValue) => {
-  selectedTimeRange.value = newValue
+  // 只有当新值与当前值不同时才更新（避免循环更新）
+  if (newValue !== selectedTimeRange.value) {
+    selectedTimeRange.value = newValue
+  }
 })
 
 watch(() => props.customRange, (newValue) => {
-  customTimeRange.value = newValue
+  // 只有当新值与当前值不同时才更新（避免循环更新）
+  if (JSON.stringify(newValue) !== JSON.stringify(customTimeRange.value)) {
+    customTimeRange.value = newValue
+  }
 })
 
 onMounted(() => {

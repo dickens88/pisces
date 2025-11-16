@@ -70,20 +70,20 @@
 
       <!-- Vulnerability count -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.vulnerabilityCount') }}</p>
+        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.vulnerabilityCount30d') }}</p>
         <p class="text-white text-3xl font-bold tracking-tight">
-          {{ statistics.vulnerabilityCount || 0 }}
+          {{ vulnerabilityCount30dTotal?.toLocaleString() || 0 }}
         </p>
         <p 
           :class="[
             'text-sm font-medium flex items-center gap-1',
-            statistics.vulnerabilityCountTrend === 'up' ? 'text-red-400' : 'text-green-400'
+            vulnerabilityCount30dTrend === 'up' ? 'text-red-400' : 'text-green-400'
           ]"
         >
           <span class="material-symbols-outlined text-base">
-            {{ statistics.vulnerabilityCountTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
+            {{ vulnerabilityCount30dTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
           </span>
-          {{ statistics.vulnerabilityCountTrend === 'up' ? '+' : '' }}{{ statistics.vulnerabilityCountChange }}
+          {{ vulnerabilityCount30dTrend === 'up' ? '+' : '' }}{{ vulnerabilityCount30dChange }}%
         </p>
       </div>
 
@@ -177,7 +177,7 @@ import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import { getDashboardStatistics } from '@/api/dashboard'
 import { getAlertCountsBySource, getAlertTrend } from '@/api/alerts'
-import { getIncidentTrend } from '@/api/incidents'
+import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
 
 const { t } = useI18n()
 
@@ -241,6 +241,11 @@ const alertCount24hTrend = ref('down')
 const incidentCount30dTotal = ref(0)
 const incidentCount30dChange = ref(0)
 const incidentCount30dTrend = ref('down')
+
+// Vulnerability Count 30d
+const vulnerabilityCount30dTotal = ref(0)
+const vulnerabilityCount30dChange = ref(0)
+const vulnerabilityCount30dTrend = ref('down')
 
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
@@ -369,6 +374,55 @@ const loadIncidentCount30dData = async () => {
     incidentCount30dTotal.value = 0
     incidentCount30dChange.value = 0
     incidentCount30dTrend.value = 'down'
+  }
+}
+
+const loadVulnerabilityCount30dData = async () => {
+  try {
+    const now = new Date()
+    const end30d = new Date(now)
+    const start30d = new Date(now)
+    start30d.setDate(start30d.getDate() - 30)
+    
+    const start60d = new Date(start30d)
+    start60d.setDate(start60d.getDate() - 30)
+
+    // Get last 30 days data
+    const response30d = await getVulnerabilityTrend(
+      formatDateForBackend(start30d),
+      formatDateForBackend(end30d)
+    )
+    
+    // Get previous 30 days data (30-60 days ago)
+    const response60d = await getVulnerabilityTrend(
+      formatDateForBackend(start60d),
+      formatDateForBackend(start30d)
+    )
+
+    const data30d = response30d?.data || []
+    const data60d = response60d?.data || []
+
+    // Calculate total counts
+    const total30d = data30d.reduce((sum, item) => sum + (item.count || 0), 0)
+    const total60d = data60d.reduce((sum, item) => sum + (item.count || 0), 0)
+
+    vulnerabilityCount30dTotal.value = total30d
+
+    // Calculate percentage change
+    if (total60d > 0) {
+      const change = ((total30d - total60d) / total60d) * 100
+      vulnerabilityCount30dChange.value = Math.abs(change).toFixed(1)
+      vulnerabilityCount30dTrend.value = change >= 0 ? 'up' : 'down'
+    } else {
+      vulnerabilityCount30dChange.value = total30d > 0 ? '100.0' : '0.0'
+      vulnerabilityCount30dTrend.value = total30d > 0 ? 'up' : 'down'
+    }
+
+  } catch (error) {
+    console.error('Failed to load vulnerability count 30d data:', error)
+    vulnerabilityCount30dTotal.value = 0
+    vulnerabilityCount30dChange.value = 0
+    vulnerabilityCount30dTrend.value = 'down'
   }
 }
 
@@ -518,10 +572,7 @@ const loadStatistics = async () => {
       // Update basic statistics fields
       // Note: alertCount24h is now handled by loadAlertCount24hData()
       // Note: incidentCount30d is now handled by loadIncidentCount30dData()
-      
-      if (data.vulnerabilityCount !== undefined) statistics.value.vulnerabilityCount = data.vulnerabilityCount
-      if (data.vulnerabilityCountChange !== undefined) statistics.value.vulnerabilityCountChange = data.vulnerabilityCountChange
-      if (data.vulnerabilityCountTrend !== undefined) statistics.value.vulnerabilityCountTrend = data.vulnerabilityCountTrend
+      // Note: vulnerabilityCount30d is now handled by loadVulnerabilityCount30dData()
       
       if (data.mttd !== undefined) statistics.value.mttd = data.mttd
       if (data.mttdChange !== undefined) statistics.value.mttdChange = data.mttdChange
@@ -536,9 +587,7 @@ const loadStatistics = async () => {
     // Use default mock data when API call fails, but keep existing chart data
     // Note: alertCount24h is now handled by loadAlertCount24hData()
     // Note: incidentCount30d is now handled by loadIncidentCount30dData()
-    statistics.value.vulnerabilityCount = 87
-    statistics.value.vulnerabilityCountChange = -5
-    statistics.value.vulnerabilityCountTrend = 'down'
+    // Note: vulnerabilityCount30d is now handled by loadVulnerabilityCount30dData()
     statistics.value.mttd = '12m 34s'
     statistics.value.mttdChange = -1.2
     statistics.value.mttdTrend = 'down'
@@ -591,7 +640,8 @@ const loadData = async () => {
     loadStatistics(),
     loadAlertSourceStatistics(),
     loadAlertCount24hData(),
-    loadIncidentCount30dData()
+    loadIncidentCount30dData(),
+    loadVulnerabilityCount30dData()
   ])
 }
 

@@ -24,6 +24,7 @@
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
+          storage-key="vulnerabilities"
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
@@ -35,42 +36,35 @@
       <!-- Vulnerability trend statistics -->
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
-          {{ $t('vulnerabilities.statistics.trend') }}
+          {{ $t('vulnerabilities.statistics.trend') || 'Vulnerability Trend Statistics' }}
         </p>
-        <div class="flex h-40 w-full flex-col justify-end">
-          <div class="grid h-full grid-cols-6 items-end gap-2">
-            <div
-              v-for="(data, index) in trendData"
-              :key="index"
-              class="flex h-full flex-col justify-end gap-px"
-            >
-              <div
-                :style="{ height: `${data.critical}%` }"
-                class="w-full bg-red-500"
-              ></div>
-              <div
-                :style="{ height: `${data.high}%` }"
-                class="w-full bg-orange-500"
-              ></div>
-              <div
-                :style="{ height: `${data.medium}%` }"
-                class="w-full bg-yellow-500"
-              ></div>
-              <div
-                :style="{ height: `${data.low}%` }"
-                class="w-full bg-blue-500"
-              ></div>
+        <div class="flex h-64 w-full flex-col justify-end relative">
+          <!-- Loading state -->
+          <div
+            v-if="vulnerabilityTrendChartLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-8 h-8">
+                <div class="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-400 text-xs">{{ $t('common.loading') || '加载中...' }}</p>
             </div>
           </div>
-          <div class="mt-2 grid grid-cols-6 text-center">
-            <p
-              v-for="(data, index) in trendData"
-              :key="index"
-              class="text-[13px] font-medium text-[#92a9c9]"
-            >
-              {{ data.month }}
-            </p>
+          <!-- Empty state -->
+          <div
+            v-else-if="vulnerabilityTrendChartDates.length === 0"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <p class="text-gray-400 text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
           </div>
+          <!-- Chart container -->
+          <div
+            v-show="!vulnerabilityTrendChartLoading && vulnerabilityTrendChartDates.length > 0"
+            ref="vulnerabilityTrendChartRef"
+            class="w-full h-full min-h-[200px]"
+          ></div>
         </div>
       </div>
 
@@ -79,40 +73,33 @@
         <p class="text-white text-base font-medium leading-normal">
           {{ $t('vulnerabilities.statistics.departmentDistribution') }}
         </p>
-        <div class="flex h-40 w-full flex-col justify-end">
-          <div class="grid h-full grid-cols-5 items-end gap-2">
-            <div
-              v-for="(data, index) in departmentData"
-              :key="index"
-              class="flex h-full flex-col justify-end gap-px"
-            >
-              <div
-                :style="{ height: `${data.critical}%` }"
-                class="w-full bg-red-500"
-              ></div>
-              <div
-                :style="{ height: `${data.high}%` }"
-                class="w-full bg-orange-500"
-              ></div>
-              <div
-                :style="{ height: `${data.medium}%` }"
-                class="w-full bg-yellow-500"
-              ></div>
-              <div
-                :style="{ height: `${data.low}%` }"
-                class="w-full bg-blue-500"
-              ></div>
+        <div class="flex h-64 w-full flex-col justify-end relative">
+          <!-- Loading state -->
+          <div
+            v-if="departmentChartLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-8 h-8">
+                <div class="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-400 text-xs">{{ $t('common.loading') || '加载中...' }}</p>
             </div>
           </div>
-          <div class="mt-2 grid grid-cols-5 text-center">
-            <p
-              v-for="(data, index) in departmentData"
-              :key="index"
-              class="text-xs font-medium text-[#92a9c9]"
-            >
-              {{ data.department }}
-            </p>
+          <!-- Empty state -->
+          <div
+            v-else-if="departmentChartData.length === 0"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <p class="text-gray-400 text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
           </div>
+          <!-- Chart container -->
+          <div
+            v-show="!departmentChartLoading && departmentChartData.length > 0"
+            ref="departmentChartRef"
+            class="w-full h-full min-h-[200px]"
+          ></div>
         </div>
       </div>
     </section>
@@ -265,10 +252,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { getIncidents } from '@/api/incidents'
+import * as echarts from 'echarts'
+import { getIncidents, getVulnerabilityTrendBySeverity } from '@/api/incidents'
 import { 
   getVulnerabilityTrend, 
   getVulnerabilityDepartmentDistribution
@@ -305,18 +293,96 @@ const trendData = ref([])
 const departmentData = ref([])
 const dataTableRef = ref(null)
 const loadingVulnerabilities = ref(false)
-const searchKeywords = ref([])
+
+// 从 localStorage 读取保存的搜索关键词
+const getStoredSearchKeywords = () => {
+  try {
+    const stored = localStorage.getItem('vulnerabilities-searchKeywords')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.every(k => typeof k === 'string')) {
+        return parsed
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read search keywords from localStorage:', error)
+  }
+  return []
+}
+
+const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
 const severityFilter = ref('all')
 const statusFilter = ref('all')
 const selectedVulnerabilities = ref([])
 const currentPage = ref(1)
-const pageSize = ref(10)
+
+// 从 localStorage 读取保存的分页大小
+const getStoredPageSize = () => {
+  try {
+    const stored = localStorage.getItem('vulnerabilities-pageSize')
+    if (stored) {
+      const size = Number(stored)
+      if (size && [10, 20, 50, 100].includes(size)) {
+        return size
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read page size from localStorage:', error)
+  }
+  return 10
+}
+
+const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 
 // Time range picker
-const selectedTimeRange = ref('last3Months')
-const customTimeRange = ref(null)
+// 从 localStorage 读取保存的时间范围
+const getStoredTimeRange = () => {
+  try {
+    const stored = localStorage.getItem('vulnerabilities-timeRange')
+    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read time range from localStorage:', error)
+  }
+  return 'last30Days'
+}
+
+// 从 localStorage 读取保存的自定义时间范围
+const getStoredCustomRange = () => {
+  try {
+    const stored = localStorage.getItem('vulnerabilities-customTimeRange')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length === 2) {
+        return [new Date(parsed[0]), new Date(parsed[1])]
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read custom time range from localStorage:', error)
+  }
+  return null
+}
+
+const selectedTimeRange = ref(getStoredTimeRange())
+const customTimeRange = ref(getStoredCustomRange())
+
+// Vulnerability trend chart
+const vulnerabilityTrendChartRef = ref(null)
+const vulnerabilityTrendChartDates = ref([])
+const vulnerabilityTrendChartData = ref({})
+const vulnerabilityTrendChartLoading = ref(false)
+let vulnerabilityTrendChartInstance = null
+let vulnerabilityTrendChartResizeBound = false
+
+// Department distribution chart
+const departmentChartRef = ref(null)
+const departmentChartData = ref([])
+const departmentChartLoading = ref(false)
+let departmentChartInstance = null
+let departmentChartResizeBound = false
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -380,7 +446,296 @@ const loadVulnerabilities = async () => {
   }
 }
 
-// Load trend data
+// Chart initialization and management
+const handleVulnerabilityTrendResize = () => {
+  if (vulnerabilityTrendChartInstance) {
+    vulnerabilityTrendChartInstance.resize()
+  }
+}
+
+const ensureVulnerabilityTrendChart = () => {
+  if (!vulnerabilityTrendChartInstance && vulnerabilityTrendChartRef.value) {
+    vulnerabilityTrendChartInstance = echarts.init(vulnerabilityTrendChartRef.value)
+    if (!vulnerabilityTrendChartResizeBound) {
+      window.addEventListener('resize', handleVulnerabilityTrendResize)
+      vulnerabilityTrendChartResizeBound = true
+    }
+  }
+}
+
+const disposeVulnerabilityTrendChart = () => {
+  if (vulnerabilityTrendChartInstance) {
+    vulnerabilityTrendChartInstance.dispose()
+    vulnerabilityTrendChartInstance = null
+  }
+  if (vulnerabilityTrendChartResizeBound) {
+    window.removeEventListener('resize', handleVulnerabilityTrendResize)
+    vulnerabilityTrendChartResizeBound = false
+  }
+}
+
+const updateVulnerabilityTrendChart = () => {
+  ensureVulnerabilityTrendChart()
+  if (!vulnerabilityTrendChartInstance) {
+    return
+  }
+
+  vulnerabilityTrendChartInstance.clear()
+
+  // Calculate time range to determine label format
+  const range = computeSelectedRange()
+  const daysDiff = Math.ceil((range.end - range.start) / (1000 * 60 * 60 * 24))
+  
+  // Format dates for display based on time range
+  const formatDateLabel = (dateStr, index) => {
+    const date = new Date(dateStr)
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const year = date.getFullYear()
+    
+    // Adjust format based on time range
+    if (daysDiff <= 30) {
+      // Show day: MM/DD
+      return `${month}/${day}`
+    } else if (daysDiff <= 90) {
+      // Show day: MM/DD (but with interval to reduce clutter)
+      return `${month}/${day}`
+    } else if (daysDiff <= 365) {
+      // Show month-day: MM/DD (but with interval)
+      // For longer ranges, show month abbreviation for first day of month
+      if (day === '01' || index === 0) {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        return `${monthNames[date.getMonth()]} ${day}`
+      }
+      return `${month}/${day}`
+    } else {
+      // Show year-month: YYYY-MM (for data spanning more than a year)
+      // Show month label on the 1st of each month, or first/last date
+      const isFirstOfMonth = day === '01'
+      const isFirstDate = index === 0
+      const isLastDate = index === vulnerabilityTrendChartDates.value.length - 1
+      
+      if (isFirstOfMonth) {
+        // For first of month, show YYYY-MM
+        return `${year}-${month}`
+      } else if (isFirstDate || isLastDate) {
+        // For first/last date, show full date
+        return `${year}-${month}-${day}`
+      } else {
+        // For other dates, show month/day but interval will control visibility
+        return `${month}/${day}`
+      }
+    }
+  }
+  
+  // Calculate interval for x-axis labels based on data points
+  const calculateLabelInterval = () => {
+    const dataPoints = vulnerabilityTrendChartDates.value.length
+    if (daysDiff <= 30) {
+      // Show every day if <= 30 days
+      return 0
+    } else if (daysDiff <= 90) {
+      // Show every 3-5 days (about 20 labels max)
+      return Math.max(0, Math.floor(dataPoints / 20))
+    } else if (daysDiff <= 365) {
+      // Show every week or so (about 15 labels max)
+      return Math.max(0, Math.floor(dataPoints / 15))
+    } else {
+      // Show monthly (about 12 labels max)
+      return Math.max(0, Math.floor(dataPoints / 12))
+    }
+  }
+  
+  const labelInterval = calculateLabelInterval()
+
+  // Severity colors mapping
+  const severityColors = {
+    'Critical': '#FF4D4F',
+    'High': '#FF7A45',
+    'Medium': '#FFA940',
+    'Low': '#1890FF',
+    'Unknown': '#8C8C8C'
+  }
+
+  // Severity order (exclude Unknown from legend)
+  const severityOrder = ['Critical', 'High', 'Medium', 'Low']
+
+  // Build series data for each severity (exclude Unknown)
+  const series = severityOrder
+    .filter(severity => vulnerabilityTrendChartData.value[severity])
+    .map(severity => ({
+      name: t(`common.severity.${severity.toLowerCase()}`) || severity,
+      type: 'line',
+      data: vulnerabilityTrendChartDates.value.map(date => {
+        return vulnerabilityTrendChartData.value[severity]?.[date] || 0
+      }),
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 4,
+      lineStyle: {
+        color: severityColors[severity] || severityColors['Unknown'],
+        width: 2
+      },
+      itemStyle: {
+        color: severityColors[severity] || severityColors['Unknown']
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: `${severityColors[severity] || severityColors['Unknown']}40` },
+          { offset: 1, color: `${severityColors[severity] || severityColors['Unknown']}00` }
+        ])
+      }
+    }))
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    legend: {
+      data: severityOrder
+        .filter(severity => severity !== 'Unknown' && vulnerabilityTrendChartData.value[severity])
+        .map(severity => t(`common.severity.${severity.toLowerCase()}`) || severity),
+      textStyle: {
+        color: '#94a3b8',
+        fontSize: 11
+      },
+      top: 5,
+      itemWidth: 12,
+      itemHeight: 8
+    },
+    grid: {
+      top: 40,
+      right: 10,
+      bottom: 30,
+      left: 40,
+      containLabel: false
+    },
+    xAxis: {
+      type: 'category',
+      data: vulnerabilityTrendChartDates.value.map((date, index) => formatDateLabel(date, index)),
+      boundaryGap: false,
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: 10,
+        rotate: daysDiff > 30 ? 45 : 0,
+        interval: labelInterval,
+        // Auto hide labels if too many
+        showMinLabel: true,
+        showMaxLabel: true
+      },
+      axisLine: {
+        show: true,
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: true, lineStyle: { color: '#334155' } },
+      axisTick: { show: true, inside: true }
+    },
+    series: series
+  }
+
+  vulnerabilityTrendChartInstance.setOption(option, true)
+  nextTick(() => {
+    vulnerabilityTrendChartInstance.resize()
+  })
+}
+
+// Format dates for backend (ISO format without Z)
+const formatDateForBackend = (date) => {
+  const isoString = date.toISOString()
+  return isoString.includes('.') ? isoString.split('.')[0] : isoString.replace('Z', '')
+}
+
+// Compute selected time range
+const computeSelectedRange = () => {
+  if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
+    return {
+      start: new Date(customTimeRange.value[0]),
+      end: new Date(customTimeRange.value[1])
+    }
+  }
+
+  const end = new Date()
+  const start = new Date(end)
+
+  switch (selectedTimeRange.value) {
+    case 'last24Hours':
+      start.setHours(start.getHours() - 24)
+      break
+    case 'last3Days':
+      start.setDate(start.getDate() - 3)
+      break
+    case 'last7Days':
+      start.setDate(start.getDate() - 7)
+      break
+    case 'last30Days':
+      start.setDate(start.getDate() - 30)
+      break
+    case 'last3Months':
+      start.setMonth(start.getMonth() - 3)
+      break
+    default:
+      start.setDate(start.getDate() - 30)
+      break
+  }
+
+  return { start, end }
+}
+
+// Load vulnerability trend data by severity
+const loadVulnerabilityTrendBySeverity = async () => {
+  vulnerabilityTrendChartLoading.value = true
+  try {
+    // Calculate date range from time picker
+    const range = computeSelectedRange()
+
+    const response = await getVulnerabilityTrendBySeverity(
+      formatDateForBackend(range.start),
+      formatDateForBackend(range.end)
+    )
+
+    const trendData = response?.data || []
+
+    // Extract unique dates
+    const dates = [...new Set(trendData.map(item => item.date))].sort()
+    vulnerabilityTrendChartDates.value = dates
+
+    // Group data by severity
+    const dataBySeverity = {}
+    trendData.forEach(item => {
+      const severity = item.severity || 'Unknown'
+      if (!dataBySeverity[severity]) {
+        dataBySeverity[severity] = {}
+      }
+      dataBySeverity[severity][item.date] = Number(item.count) || 0
+    })
+
+    vulnerabilityTrendChartData.value = dataBySeverity
+  } catch (error) {
+    console.error('Failed to load vulnerability trend by severity:', error)
+    vulnerabilityTrendChartDates.value = []
+    vulnerabilityTrendChartData.value = {}
+  } finally {
+    vulnerabilityTrendChartLoading.value = false
+    await nextTick()
+    updateVulnerabilityTrendChart()
+  }
+}
+
+// Load trend data (deprecated, kept for compatibility)
 const loadTrendData = async () => {
   try {
     const response = await getVulnerabilityTrend()
@@ -390,13 +745,166 @@ const loadTrendData = async () => {
   }
 }
 
+// Department distribution chart management
+const handleDepartmentChartResize = () => {
+  if (departmentChartInstance) {
+    departmentChartInstance.resize()
+  }
+}
+
+const ensureDepartmentChart = () => {
+  if (!departmentChartInstance && departmentChartRef.value) {
+    departmentChartInstance = echarts.init(departmentChartRef.value)
+    if (!departmentChartResizeBound) {
+      window.addEventListener('resize', handleDepartmentChartResize)
+      departmentChartResizeBound = true
+    }
+  }
+}
+
+const disposeDepartmentChart = () => {
+  if (departmentChartInstance) {
+    departmentChartInstance.dispose()
+    departmentChartInstance = null
+  }
+  if (departmentChartResizeBound) {
+    window.removeEventListener('resize', handleDepartmentChartResize)
+    departmentChartResizeBound = false
+  }
+}
+
+const updateDepartmentChart = () => {
+  ensureDepartmentChart()
+  if (!departmentChartInstance) {
+    return
+  }
+
+  departmentChartInstance.clear()
+
+  if (departmentChartData.value.length === 0) {
+    return
+  }
+
+  // Prepare data for Nightingale Chart
+  const chartData = departmentChartData.value.map(item => ({
+    name: item.name || 'Unknown',
+    value: item.value || 0
+  }))
+
+  // Color palette matching the theme
+  const colors = [
+    '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
+    '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95',
+    '#ec4899', '#db2777', '#be185d', '#9f1239', '#831843',
+    '#f59e0b', '#d97706', '#b45309', '#92400e', '#78350f'
+  ]
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    legend: {
+      orient: 'vertical',
+      left: 'left',
+      top: 'middle',
+      textStyle: {
+        color: '#94a3b8',
+        fontSize: 11
+      },
+      itemWidth: 12,
+      itemHeight: 8,
+      itemGap: 8
+    },
+    series: [
+      {
+        name: t('vulnerabilities.statistics.departmentDistribution') || 'Department Distribution',
+        type: 'pie',
+        radius: ['30%', '70%'],
+        center: ['60%', '50%'],
+        avoidLabelOverlap: false,
+        roseType: 'area',
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: '#111822',
+          borderWidth: 2
+        },
+        label: {
+          show: true,
+          formatter: '{b}\n{d}%',
+          color: '#e2e8f0',
+          fontSize: 10
+        },
+        labelLine: {
+          show: true,
+          length: 10,
+          length2: 5,
+          lineStyle: {
+            color: '#94a3b8'
+          }
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 12,
+            fontWeight: 'bold'
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          }
+        },
+        data: chartData,
+        color: colors
+      }
+    ]
+  }
+
+  departmentChartInstance.setOption(option, true)
+  nextTick(() => {
+    departmentChartInstance.resize()
+  })
+}
+
 // Load department distribution data
 const loadDepartmentData = async () => {
+  departmentChartLoading.value = true
   try {
-    const response = await getVulnerabilityDepartmentDistribution()
-    departmentData.value = response.data
+    // Calculate date range from time picker
+    const range = computeSelectedRange()
+
+    const response = await getVulnerabilityDepartmentDistribution(
+      formatDateForBackend(range.start),
+      formatDateForBackend(range.end)
+    )
+
+    const distribution = response?.data || {}
+    
+    // Convert dictionary to array format for chart
+    const entries = Object.entries(distribution)
+      .map(([name, value]) => ({
+        name: name || 'Unknown',
+        value: Number(value) || 0
+      }))
+      .filter(item => item.value > 0) // Filter out zero values
+      .sort((a, b) => b.value - a.value) // Sort by value descending
+
+    departmentChartData.value = entries
+    departmentData.value = entries // Keep for backward compatibility if needed
   } catch (error) {
     console.error('Failed to load department data:', error)
+    departmentChartData.value = []
+    departmentData.value = []
+  } finally {
+    departmentChartLoading.value = false
+    await nextTick()
+    updateDepartmentChart()
   }
 }
 
@@ -406,9 +914,18 @@ const loadDepartmentData = async () => {
 const handleRefresh = async () => {
   await Promise.all([
     loadVulnerabilities(),
-    loadTrendData(),
+    loadVulnerabilityTrendBySeverity(),
     loadDepartmentData()
   ])
+}
+
+// 保存搜索关键词到 localStorage
+const saveSearchKeywords = () => {
+  try {
+    localStorage.setItem('vulnerabilities-searchKeywords', JSON.stringify(searchKeywords.value))
+  } catch (error) {
+    console.warn('Failed to save search keywords to localStorage:', error)
+  }
 }
 
 /**
@@ -419,6 +936,7 @@ const addKeyword = () => {
   if (keyword && !searchKeywords.value.includes(keyword)) {
     searchKeywords.value.push(keyword)
     currentSearchInput.value = ''
+    saveSearchKeywords()
     loadVulnerabilities()
   }
 }
@@ -429,6 +947,7 @@ const addKeyword = () => {
  */
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
+  saveSearchKeywords()
   loadVulnerabilities()
 }
 
@@ -459,6 +978,12 @@ const handleSelectAll = (items) => {
 const handlePageSizeChange = (newPageSize) => {
   pageSize.value = newPageSize
   currentPage.value = 1
+  // 保存到 localStorage
+  try {
+    localStorage.setItem('vulnerabilities-pageSize', String(newPageSize))
+  } catch (error) {
+    console.warn('Failed to save page size to localStorage:', error)
+  }
   loadVulnerabilities()
 }
 
@@ -518,7 +1043,7 @@ const handleTimeRangeChange = (rangeKey) => {
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
     loadVulnerabilities()
-    loadTrendData()
+    loadVulnerabilityTrendBySeverity()
     loadDepartmentData()
   }
 }
@@ -527,7 +1052,7 @@ const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
     loadVulnerabilities()
-    loadTrendData()
+    loadVulnerabilityTrendBySeverity()
     loadDepartmentData()
   }
 }
@@ -538,8 +1063,15 @@ watch([currentPage, pageSize], () => {
 
 onMounted(() => {
   loadVulnerabilities()
-  loadTrendData()
+  loadVulnerabilityTrendBySeverity()
   loadDepartmentData()
+  ensureVulnerabilityTrendChart()
+  ensureDepartmentChart()
+})
+
+onBeforeUnmount(() => {
+  disposeVulnerabilityTrendChart()
+  disposeDepartmentChart()
 })
 </script>
 

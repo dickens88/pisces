@@ -49,3 +49,41 @@ export const getIncidentTrend = (startDate, endDate) => {
   return service.get('/stats/alerts', { params })
 }
 
+/**
+ * @brief 获取漏洞趋势数据（按日期分组统计）
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @returns {Promise} 漏洞趋势数据数组，格式为 [{date: string, count: number}, ...]
+ */
+export const getVulnerabilityTrend = (startDate, endDate) => {
+  const params = {
+    chart: 'vulnerability-trend'
+  }
+  if (startDate) {
+    params.start_date = startDate
+  }
+  if (endDate) {
+    params.end_date = endDate
+  }
+  return service.get('/stats/alerts', { params })
+}
+
+/**
+ * @brief 获取漏洞趋势数据（按日期和severity分组统计）
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @returns {Promise} 漏洞趋势数据数组，格式为 [{date: string, severity: string, count: number}, ...]
+ */
+export const getVulnerabilityTrendBySeverity = (startDate, endDate) => {
+  const params = {
+    chart: 'vulnerability-trend-by-severity'
+  }
+  if (startDate) {
+    params.start_date = startDate
+  }
+  if (endDate) {
+    params.end_date = endDate
+  }
+  return service.get('/stats/alerts', { params })
+}
+

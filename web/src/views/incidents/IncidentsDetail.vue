@@ -299,43 +299,9 @@
       <!-- Comments 标签页 -->
       <div v-if="activeTab === 'comments'" class="flex-grow">
         <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col h-[70vh] max-h-[800px]">
-          <!-- 评论列表 -->
-          <div class="flex-grow p-6 overflow-y-auto">
-            <div class="space-y-8">
-              <div
-                v-for="comment in incident?.comments || []"
-                :key="comment.id"
-                class="flex items-start gap-4"
-              >
-                <div
-                  :class="[
-                    'flex-shrink-0 size-10 rounded-full flex items-center justify-center font-bold text-white text-base',
-                    comment.avatarColor || 'bg-teal-500'
-                  ]"
-                >
-                  <span>{{ comment.authorInitials }}</span>
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-center justify-between">
-                    <p class="font-semibold text-white">{{ comment.author }}</p>
-                    <p class="text-xs text-slate-400">{{ comment.time }}</p>
-                  </div>
-                  <div class="mt-2 text-slate-300 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                    <div class="text-sm leading-relaxed" v-html="sanitizeHtml(comment.content)"></div>
-                  </div>
-                </div>
-              </div>
-              <div v-if="!incident?.comments || incident.comments.length === 0" class="text-slate-400 text-center py-8">
-                {{ $t('incidents.detail.comments.noComments') }}
-              </div>
-            </div>
-          </div>
-
-          <!-- 评论输入框 -->
-          <div class="p-4 border-t border-slate-700 bg-slate-800/80 rounded-b-lg">
-            <CommentInput
-              v-model="newComment"
-              :placeholder="$t('incidents.detail.comments.addComment')"
+          <div class="flex-grow p-6 overflow-hidden flex flex-col">
+            <CommentSection
+              :comments="incident?.comments || []"
               @submit="handlePostComment"
             />
           </div>
@@ -395,7 +361,7 @@ import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import CommentInput from '@/components/common/CommentInput.vue'
+import CommentSection from '@/components/common/CommentSection.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
@@ -557,7 +523,8 @@ const formatComments = (comments) => {
       avatarColor: avatarColor,
       time: formatDateTime(comment.create_time),
       content: comment.content,
-      create_time: comment.create_time
+      create_time: comment.create_time,
+      file: comment.file || null  // 保留文件信息
     }
   })
 }
@@ -671,21 +638,16 @@ const handlePostComment = async ({ comment, files }) => {
   
   try {
     const commentText = comment.trim()
-    if (!commentText) {
+    // 允许只有文件没有文本的情况
+    if (!commentText && (!files || files.length === 0)) {
       return
     }
     
-    // 调用 API 提交评论
-    await postComment(incident.value.id, commentText)
+    // 调用 API 提交评论（包含文件）
+    await postComment(incident.value.id, commentText, files || [])
     
     // 清空输入框（组件会自动清空）
     newComment.value = ''
-    
-    // TODO: 处理文件上传（如果需要）
-    if (files && files.length > 0) {
-      console.log('Files to upload:', files)
-      // 实现文件上传逻辑
-    }
     
     // 重新加载事件详情以获取最新评论
     await loadIncidentDetail()
@@ -706,6 +668,9 @@ const sanitizeHtml = (html) => {
     ALLOWED_ATTR: []
   })
 }
+
+// Note: File handling functions (getFileIcon, formatFileSize, openImageModal, downloadFile) 
+// have been moved to CommentSection component
 
 const formatLastModified = (dateString) => {
   if (!dateString) return ''

@@ -57,6 +57,7 @@
       "incidentCount24h": "Incident Count (24h)",
       "incidentCount30d": "Incident Count (30d)",
       "vulnerabilityCount": "Vulnerability Count",
+      "vulnerabilityCount30d": "Vulnerability Count (30d)",
       "mttd": "Mean Time To Detect (MTTD)"
     },
     "charts": {
@@ -131,8 +132,10 @@
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",
         "alertTrend": "Alert Trend",
-        "mttd": "MTTD (Mean Time To Detect)",
-        "past7Days": "Past 7 Days"
+        "automationClosureRate": "Automation Closure Rate",
+        "past7Days": "Past 7 Days",
+        "autoClosed": "Auto Closed",
+        "totalAlerts": "Total Closed"
       },
       "createAlert": "Create Alert"
     },
@@ -213,7 +216,7 @@
       "action": "Action",
       "viewDetail": "View Details",
       "openInNewWindow": "Open in New Window",
-      "searchPlaceholder": "Search incident name, responsible department, root cause...",
+      "searchPlaceholder": "Search keywords in the title",
       "severityLevel": "Severity Level",
       "allSeverity": "All",
       "allStatus": "All",

@@ -24,6 +24,7 @@
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
+          storage-key="incidents"
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
@@ -251,13 +252,47 @@ const defaultWidths = {
 const incidents = ref([])
 const dataTableRef = ref(null)
 const loadingIncidents = ref(false)
-const searchKeywords = ref([])
+
+// 从 localStorage 读取保存的搜索关键词
+const getStoredSearchKeywords = () => {
+  try {
+    const stored = localStorage.getItem('incidents-searchKeywords')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.every(k => typeof k === 'string')) {
+        return parsed
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read search keywords from localStorage:', error)
+  }
+  return []
+}
+
+const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
 const severityFilter = ref('all')
 const statusFilter = ref('all')
 const selectedIncidents = ref([])
 const currentPage = ref(1)
-const pageSize = ref(10)
+
+// 从 localStorage 读取保存的分页大小
+const getStoredPageSize = () => {
+  try {
+    const stored = localStorage.getItem('incidents-pageSize')
+    if (stored) {
+      const size = Number(stored)
+      if (size && [10, 20, 50, 100].includes(size)) {
+        return size
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read page size from localStorage:', error)
+  }
+  return 10
+}
+
+const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 const showCreateDialog = ref(false)
 const showCloseDialog = ref(false)
@@ -266,8 +301,37 @@ const closeDialogRef = ref(null)
 const closingIncidentId = ref(null)
 
 // Time range picker
-const selectedTimeRange = ref('last3Months')
-const customTimeRange = ref(null)
+// 从 localStorage 读取保存的时间范围
+const getStoredTimeRange = () => {
+  try {
+    const stored = localStorage.getItem('incidents-timeRange')
+    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read time range from localStorage:', error)
+  }
+  return 'last3Months'
+}
+
+// 从 localStorage 读取保存的自定义时间范围
+const getStoredCustomRange = () => {
+  try {
+    const stored = localStorage.getItem('incidents-customTimeRange')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length === 2) {
+        return [new Date(parsed[0]), new Date(parsed[1])]
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to read custom time range from localStorage:', error)
+  }
+  return null
+}
+
+const selectedTimeRange = ref(getStoredTimeRange())
+const customTimeRange = ref(getStoredCustomRange())
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -336,6 +400,15 @@ const handleRefresh = async () => {
   await loadIncidents()
 }
 
+// 保存搜索关键词到 localStorage
+const saveSearchKeywords = () => {
+  try {
+    localStorage.setItem('incidents-searchKeywords', JSON.stringify(searchKeywords.value))
+  } catch (error) {
+    console.warn('Failed to save search keywords to localStorage:', error)
+  }
+}
+
 /**
  * @brief 添加搜索关键字
  */
@@ -344,6 +417,7 @@ const addKeyword = () => {
   if (keyword && !searchKeywords.value.includes(keyword)) {
     searchKeywords.value.push(keyword)
     currentSearchInput.value = ''
+    saveSearchKeywords()
     loadIncidents()
   }
 }
@@ -354,6 +428,7 @@ const addKeyword = () => {
  */
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
+  saveSearchKeywords()
   loadIncidents()
 }
 
@@ -412,6 +487,12 @@ const handleCloseSelectedIncident = () => {
 const handlePageSizeChange = (newPageSize) => {
   pageSize.value = newPageSize
   currentPage.value = 1
+  // 保存到 localStorage
+  try {
+    localStorage.setItem('incidents-pageSize', String(newPageSize))
+  } catch (error) {
+    console.warn('Failed to save page size to localStorage:', error)
+  }
   loadIncidents()
 }
 

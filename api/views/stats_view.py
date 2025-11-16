@@ -55,6 +55,36 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_incident_trend(start_date, end_date)
                 return {"data": data}, 200
+            elif chart_name == "vulnerability-trend":
+                # For vulnerability trend chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for vulnerability-trend chart"}, 400
+                try:
+                    end_date = datetime.fromisoformat(end_date_str)
+                except ValueError:
+                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                data = StatisticsService.get_vulnerability_trend(start_date, end_date)
+                return {"data": data}, 200
+            elif chart_name == "vulnerability-trend-by-severity":
+                # For vulnerability trend by severity chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for vulnerability-trend-by-severity chart"}, 400
+                try:
+                    end_date = datetime.fromisoformat(end_date_str)
+                except ValueError:
+                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                data = StatisticsService.get_vulnerability_trend_by_severity(start_date, end_date)
+                return {"data": data}, 200
+            elif chart_name == "vulnerability-department-distribution":
+                # For vulnerability department distribution chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for vulnerability-department-distribution chart"}, 400
+                try:
+                    end_date = datetime.fromisoformat(end_date_str)
+                except ValueError:
+                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                data = StatisticsService.get_vulnerability_department_distribution(start_date, end_date)
+                return {"data": data}, 200
             else:
                 raise Exception("chart_name is invalid")
         except Exception as ex:

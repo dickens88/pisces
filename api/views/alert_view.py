@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
+from controllers.stats_service import StatisticsService
 from utils.logger_init import logger
 
 import json
@@ -68,6 +69,20 @@ class AlertView(Resource):
                 return {"data": result}, 200
             else:
                 raise Exception(f"The action {action} is not supported")
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+
+class AlertStatisticsView(Resource):
+    """View for alert statistics."""
+    
+    # @jwt_required()
+    def get(self):
+        """Get alert statistics including automation closure rate."""
+        try:
+            data = StatisticsService.get_automation_closure_rate()
+            return {"data": data}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

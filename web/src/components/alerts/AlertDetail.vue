@@ -238,52 +238,12 @@
 
                 <!-- Comments area -->
                 <div class="pt-4">
-                  <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.comments.title') }}</h3>
-                  <div class="space-y-6">
-                    <div
-                      v-for="comment in alert?.comments || []"
-                      :key="comment.id"
-                      class="flex items-start gap-4"
-                    >
-                      <UserAvatar :name="comment.author" class="w-10 h-10 shrink-0" />
-                      <div class="flex-1">
-                        <div class="flex items-baseline gap-2">
-                          <p class="font-semibold text-white">{{ comment.author }}</p>
-                          <p class="text-xs text-text-light">{{ comment.time }}</p>
-                        </div>
-                        <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none">
-                          <div v-html="sanitizeHtml(comment.content)"></div>
-                          <!-- Display attachments -->
-                          <div v-if="comment.files && comment.files.length > 0" class="mt-3 flex flex-wrap gap-2">
-                            <a
-                              v-for="(file, fileIndex) in comment.files"
-                              :key="fileIndex"
-                              href="#"
-                              class="inline-flex items-center gap-2 rounded-md bg-[#1e293b] border border-[#3c4a60] px-2.5 py-1.5 text-xs text-text-light hover:text-white hover:border-primary/50 transition-colors"
-                            >
-                              <span class="material-symbols-outlined text-primary text-sm">
-                                {{ getFileIcon(file.type) }}
-                              </span>
-                              <span class="max-w-[150px] truncate">{{ file.name }}</span>
-                              <span class="text-text-light/60">{{ formatFileSize(file.size) }}</span>
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div v-if="!alert?.comments || alert.comments.length === 0" class="text-text-light text-sm">
-                      {{ $t('common.noComments') || 'No comments yet' }}
-                    </div>
-                  </div>
-                  
-                  <!-- Comment input -->
-                  <div class="mt-6 pt-6 border-t border-border-dark">
-                    <CommentInput
-                      v-model="newComment"
-                      :placeholder="$t('alerts.detail.addComment') || 'Add a comment...'"
-                      @submit="handleAddComment"
-                    />
-                  </div>
+                  <CommentSection
+                    :comments="alert?.comments || []"
+                    :title="$t('alerts.detail.comments.title')"
+                    use-avatar-component
+                    @submit="handleAddComment"
+                  />
                   
                   <!-- 分割线 -->
                   <div class="mt-6 border-t border-border-dark"></div>
@@ -568,9 +528,15 @@
           </button>
           <button
             @click="handleBatchClose"
-            :disabled="!closeConclusion.category || !closeConclusion.notes.trim()"
-            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :disabled="!closeConclusion.category || !closeConclusion.notes.trim() || isClosing"
+            class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
+            <span
+              v-if="isClosing"
+              class="material-symbols-outlined text-base animate-spin"
+            >
+              refresh
+            </span>
             {{ $t('common.submit') }}
           </button>
         </div>
@@ -620,7 +586,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, openAlert, getAssociatedAlerts, closeAlert } from '@/api/alerts'
+import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert } from '@/api/alerts'
 import { postComment } from '@/api/comments'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
@@ -632,6 +598,7 @@ import { formatDateTime } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
+import CommentSection from '@/components/common/CommentSection.vue'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
@@ -673,6 +640,7 @@ const rightSidebarAiFiles = ref([])
 const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
 const showBatchCloseDialog = ref(false)
+const isClosing = ref(false)
 const closeConclusion = ref({
   category: '',
   notes: ''
@@ -826,7 +794,8 @@ const transformAlertDetailData = (apiData) => {
     author: comment.author || 'Unknown',
     authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
     time: formatDateTime(comment.create_time || comment.time),
-    content: comment.content || ''
+    content: comment.content || '',
+    file: comment.file || null  // 保留文件信息
   }))
 
   // 转换intelligence格式
@@ -936,24 +905,24 @@ const loadAlertDetail = async () => {
 
 /**
  * @brief 加载关联告警数据
- * @details 从API获取与当前告警相关的其他告警列表
+ * @details 从 historic 数据中提取关联告警列表
  */
 const loadAssociatedAlerts = async () => {
   if (!currentAlertId.value) return
 
   loadingAssociatedAlerts.value = true
   try {
-    let data = []
+    // 只使用 historic 数据，不调用其他接口
     if (alert.value?.historic?.length) {
-      data = transformHistoricEntries(alert.value.historic, alert.value?.id)
+      const data = transformHistoricEntries(alert.value.historic, alert.value?.id)
+      associatedAlerts.value = data
     } else {
-      const response = await getAssociatedAlerts(currentAlertId.value)
-      data = transformAssociatedAlertsResponse(response.data || [])
+      // 如果没有 historic 数据，使用空数组
+      associatedAlerts.value = []
     }
-    associatedAlerts.value = data
   } catch (error) {
     console.error('Failed to load associated alerts:', error)
-    associatedAlerts.value = transformHistoricEntries(alert.value?.historic || [], alert.value?.id)
+    associatedAlerts.value = []
   } finally {
     loadingAssociatedAlerts.value = false
   }
@@ -995,6 +964,8 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
+  // 重置加载状态
+  isClosing.value = false
 }
 
 const handleBatchClose = async () => {
@@ -1005,6 +976,9 @@ const handleBatchClose = async () => {
   if (!currentAlertId.value) {
     return
   }
+
+  // 设置加载状态
+  isClosing.value = true
 
   try {
     // 调用单个告警关闭接口
@@ -1023,6 +997,8 @@ const handleBatchClose = async () => {
     emit('closed')
   } catch (error) {
     console.error('Failed to close alert:', error)
+    // 发生错误时，保持对话框打开，但重置加载状态
+    isClosing.value = false
   }
 }
 
@@ -1217,26 +1193,8 @@ const handleRefresh = async () => {
   }
 }
 
-// File icon and size formatting functions (used for displaying existing comment files)
-const getFileIcon = (mimeType) => {
-  if (!mimeType) return 'description'
-  if (mimeType.startsWith('image/')) return 'image'
-  if (mimeType.startsWith('video/')) return 'video_file'
-  if (mimeType.startsWith('audio/')) return 'audio_file'
-  if (mimeType.includes('pdf')) return 'picture_as_pdf'
-  if (mimeType.includes('word') || mimeType.includes('document')) return 'description'
-  if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return 'table_chart'
-  if (mimeType.includes('zip') || mimeType.includes('archive')) return 'folder_zip'
-  return 'attach_file'
-}
-
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}
+// Note: File handling functions (getFileIcon, formatFileSize, openImageModal, downloadFile) 
+// have been moved to CommentSection component
 
 const handleAddComment = async ({ comment, files }) => {
   if (!currentAlertId.value) {
@@ -1246,21 +1204,16 @@ const handleAddComment = async ({ comment, files }) => {
   
   try {
     const commentText = comment.trim()
-    if (!commentText) {
+    // 允许只有文件没有文本的情况
+    if (!commentText && (!files || files.length === 0)) {
       return
     }
     
-    // 调用 API 提交评论
-    await postComment(currentAlertId.value, commentText)
+    // 调用 API 提交评论（包含文件）
+    await postComment(currentAlertId.value, commentText, files || [])
     
     // 清空输入（组件会自动清空）
     newComment.value = ''
-    
-    // TODO: 处理文件上传（如果需要）
-    if (files && files.length > 0) {
-      console.log('Files to upload:', files)
-      // 实现文件上传逻辑
-    }
     
     // 重新加载告警详情以获取最新评论
     await loadAlertDetail()
