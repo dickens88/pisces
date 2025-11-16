@@ -1,10 +1,10 @@
 <template>
-  <div class="comment-section flex flex-col h-full">
+  <div class="comment-section flex flex-col">
     <!-- 标题（可选） -->
     <h3 v-if="title" class="text-lg font-semibold mb-4 text-white shrink-0">{{ title }}</h3>
     
     <!-- 评论列表 -->
-    <div class="space-y-6 mb-6 flex-1 overflow-y-auto">
+    <div class="space-y-6 mb-6">
       <div
         v-for="comment in comments"
         :key="comment.id"

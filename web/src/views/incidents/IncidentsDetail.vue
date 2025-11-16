@@ -298,8 +298,8 @@
 
       <!-- Comments 标签页 -->
       <div v-if="activeTab === 'comments'" class="flex-grow">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col h-[70vh] max-h-[800px]">
-          <div class="flex-grow p-6 overflow-hidden flex flex-col">
+        <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col">
+          <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
               @submit="handlePostComment"
