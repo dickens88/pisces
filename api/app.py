@@ -30,11 +30,11 @@ def check_if_token_in_blacklist(jwt_header, decrypted_token):
     return user.RevokedTokenModel.is_jti_blacklisted(jti)
 
 
-api.add_resource(auth_view.UserLogin, '/login')
-api.add_resource(auth_view.UserLogoutAccess, '/logout')
-api.add_resource(auth_view.UserRefresh, '/refresh')
-api.add_resource(auth_view.UserView, '/user/password')
-api.add_resource(auth_view.UserManagement, '/user/management')
+api.add_resource(auth_view.UserLogin, '/api/login')
+api.add_resource(auth_view.UserLogoutAccess, '/api/logout')
+api.add_resource(auth_view.UserRefresh, '/api/refresh')
+api.add_resource(auth_view.UserView, '/api/user/password')
+api.add_resource(auth_view.UserManagement, '/api/user/management')
 
 api.add_resource(stats_view.AlertCountBySourceView, '/api/stats/alerts')
 

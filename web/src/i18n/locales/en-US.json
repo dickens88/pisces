@@ -16,6 +16,17 @@
     "loading": "Loading...",
     "noComments": "No comments yet",
     "noData": "No data available",
+    "login": {
+      "title": "Login",
+      "subtitle": "Security Management System",
+      "username": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "login": "Login",
+      "loggingIn": "Logging in...",
+      "footer": "© 2024 Pisces. All rights reserved."
+    },
     "totalAlerts": "Total Alerts",
     "pagination": {
       "showing": "Showing {start}-{end} of {total}",

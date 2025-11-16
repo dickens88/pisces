@@ -16,6 +16,17 @@
     "loading": "加载中...",
     "noComments": "暂无评论",
     "noData": "暂无数据",
+    "login": {
+      "title": "登录",
+      "subtitle": "安全管理系统",
+      "username": "用户名",
+      "usernamePlaceholder": "请输入用户名",
+      "password": "密码",
+      "passwordPlaceholder": "请输入密码",
+      "login": "登录",
+      "loggingIn": "登录中...",
+      "footer": "© 2024 Pisces. All rights reserved."
+    },
     "totalAlerts": "总告警数",
     "pagination": {
       "showing": "显示第 {start}-{end} 条，共 {total} 条",

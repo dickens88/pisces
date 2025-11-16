@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask import request
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 
 from controllers.stats_service import StatisticsService
@@ -9,7 +10,7 @@ from utils.logger_init import logger
 
 class AlertCountBySourceView(Resource):
 
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")

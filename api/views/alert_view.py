@@ -11,7 +11,7 @@ import json
 
 class AlertView(Resource):
 
-    # @jwt_required()
+    @jwt_required()
     def post(self, alert_id=None):
         data = json.loads(request.data or "{}")
         limit = int(data.get('limit', 50))
@@ -34,7 +34,7 @@ class AlertView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    # @jwt_required()
+    @jwt_required()
     def get(self, alert_id):
         try:
             data = AlertService.retrieve_alert_and_comments(alert_id)
@@ -43,7 +43,7 @@ class AlertView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    # @jwt_required
+    @jwt_required
     def put(self, alert_id=None):
         data = json.loads(request.data)
         action = data.get("action")
@@ -77,7 +77,7 @@ class AlertView(Resource):
 class AlertStatisticsView(Resource):
     """View for alert statistics."""
     
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         """Get alert statistics including automation closure rate."""
         try:

@@ -4,6 +4,7 @@ import os
 import re
 
 from flask import request, send_file
+from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
 from io import BytesIO
@@ -121,7 +122,7 @@ class CommentView(Resource):
         
         return True, file_data, file_type, None
 
-    # @jwt_required()
+    @jwt_required()
     def post(self, event_id=None):
         try:
             # Parse request data
@@ -182,7 +183,7 @@ class CommentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    # @jwt_required()
+    @jwt_required()
     def get(self, event_id=None, comment_id=None):
         try:
             if event_id:
@@ -197,9 +198,9 @@ class CommentView(Resource):
 
 
 class CommentDownloadView(Resource):
-    """评论文件下载视图"""
+    """For attachment download"""
     
-    # @jwt_required()
+    @jwt_required()
     def get(self, comment_id):
         try:
             # 根据 comment_id 获取单个评论（用于下载文件）

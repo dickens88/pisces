@@ -11,7 +11,7 @@ import json
 
 class IncidentView(Resource):
 
-    # @jwt_required()
+    @jwt_required()
     def post(self, incident_id=None):
         data = json.loads(request.data)
         limit = int(data.get('limit', 50))
@@ -67,7 +67,7 @@ class IncidentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    # @jwt_required()
+    @jwt_required()
     def put(self, incident_id):
         data = json.loads(request.data)
         try:
@@ -77,7 +77,7 @@ class IncidentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    # @jwt_required()
+    @jwt_required()
     def get(self, incident_id):
         try:
             data = IncidentService.retrieve_incident_by_id(incident_id)
@@ -89,7 +89,7 @@ class IncidentView(Resource):
 
 class IncidentRelations(Resource):
 
-    # @jwt_required()
+    @jwt_required()
     def post(self, incident_id):
         try:
             data = json.loads(request.data)

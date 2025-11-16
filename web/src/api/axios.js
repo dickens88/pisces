@@ -1,9 +1,10 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { config } from '@/config'
 
 // Create axios instance
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: config.apiBaseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -12,17 +13,20 @@ const service = axios.create({
 
 // Request interceptor
 service.interceptors.request.use(
-  config => {
+  requestConfig => {
     // Get token from store (for future SSO integration)
-    const authStore = useAuthStore()
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`
+    // 只有在启用认证时才添加 token
+    if (config.enableAuth) {
+      const authStore = useAuthStore()
+      if (authStore.token) {
+        requestConfig.headers.Authorization = `Bearer ${authStore.token}`
+      }
     }
     
     // Can add other request headers here, such as language settings
-    config.headers['Accept-Language'] = localStorage.getItem('locale') || 'zh-CN'
+    requestConfig.headers['Accept-Language'] = localStorage.getItem('locale') || 'zh-CN'
     
-    return config
+    return requestConfig
   },
   error => {
     console.error('Request error:', error)
@@ -52,9 +56,27 @@ service.interceptors.response.use(
       switch (error.response.status) {
         case 401:
           // Unauthorized, clear token and redirect to login page
-          const authStore = useAuthStore()
-          authStore.logout()
-          // Can add route redirect to login page here
+          // 只有在启用认证时才处理 401 错误
+          if (config.enableAuth) {
+            const authStore = useAuthStore()
+            authStore.logout()
+            // Redirect to login page
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login'
+            }
+          }
+          break
+        case 422:
+          // Unprocessable Entity, often used for invalid token or authentication errors
+          // 只有在启用认证时才处理 422 错误
+          if (config.enableAuth) {
+            const authStore = useAuthStore()
+            authStore.logout()
+            // Redirect to login page
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login'
+            }
+          }
           break
         case 403:
           console.error('Forbidden: Access denied')
