@@ -16,6 +16,7 @@
 
 ```
 SIEM/
+├── config.js             # 统一配置文件（构建时和运行时共用）
 ├── src/
 │   ├── api/              # API 接口
 │   │   ├── index.js      # Axios 配置和拦截器
@@ -46,7 +47,7 @@ SIEM/
 │   └── style.css         # 全局样式
 ├── index.html
 ├── package.json
-├── vite.config.js
+├── vite.config.js        # Vite 配置（引用 config.js）
 ├── tailwind.config.js
 └── postcss.config.js
 ```
@@ -101,13 +102,61 @@ npm run build
 npm run preview
 ```
 
+## 配置管理
+
+项目使用统一的配置文件 `config.js`（位于项目根目录）来管理所有配置项，确保构建时（`vite.config.js`）和运行时（各个组件文件）使用相同的配置逻辑。
+
+所有配置项都通过环境变量进行设置，配置文件会自动读取环境变量并提供默认值。
+
+在代码中，可以通过 `@config` 别名导入配置函数：
+```javascript
+import { getAppConfig } from '@config'
+const config = getAppConfig(import.meta.env, import.meta.env.PROD)
+```
+
 ## 环境变量
 
 创建 `.env` 文件配置环境变量：
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080/api
+# API 配置
+VITE_API_BASE_URL=/api
+VITE_API_TARGET=http://localhost:8080
+
+# 认证配置
+# 是否启用认证（默认：true）
+VITE_ENABLE_AUTH=true
+
+# 认证模式：'local' 使用pisces本地认证，'tianyan' 使用tianyan-web认证
+# 当设置为 'tianyan' 时，将关闭pisces的登录页面，401错误会重定向到tianyan-web登录页面
+VITE_AUTH_MODE=local
+
+# tianyan-web项目的基础URL（当VITE_AUTH_MODE为'tianyan'时使用）
+VITE_TIANYAN_WEB_BASE_URL=http://localhost:3000
 ```
+
+### 使用 tianyan-web 认证
+
+当需要复用 tianyan-web 项目的 JWT 认证时，需要配置以下内容：
+
+1. **前端配置**：在 `.env` 文件中设置：
+   ```env
+   VITE_AUTH_MODE=tianyan
+   VITE_TIANYAN_WEB_BASE_URL=http://tianyan-web-server:port
+   ```
+
+2. **后端配置**：设置环境变量 `JWT_SECRET_KEY`，使其与 tianyan-web 项目使用相同的 JWT secret key：
+   ```bash
+   export JWT_SECRET_KEY=your-shared-jwt-secret-key
+   ```
+
+3. **工作流程**：
+   - 当用户访问 pisces 项目但未登录时，会自动重定向到 tianyan-web 的登录页面
+   - 用户在 tianyan-web 登录后，tianyan-web 需要重定向回 pisces，并在 URL 参数中传递 token
+   - pisces 会自动从 URL 参数中读取 token 并保存到 localStorage
+   - 之后 pisces 使用该 token 访问 API 接口
+
+**注意**：使用 tianyan-web 认证模式时，pisces 的登录页面将被禁用，所有认证相关的操作都会重定向到 tianyan-web。
 
 ## 开发指南
 

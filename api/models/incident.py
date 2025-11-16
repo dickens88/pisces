@@ -1,5 +1,6 @@
 import json
-from sqlalchemy import Column, Integer, String, Text, Enum
+from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP
+from sqlalchemy.sql import func
 
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
@@ -12,7 +13,7 @@ class Incident(Base):
     incident_id = Column(Text())
 
     create_time = Column(String(40))
-    last_update_time = Column(String(40))
+    last_update_time = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     close_time = Column(String(40))
     arrive_time = Column(String(40))
 
@@ -85,7 +86,6 @@ class Incident(Base):
             if incident:
                 # Update existing record
                 incident.create_time = new_incident_entity.create_time
-                incident.last_update_time = new_incident_entity.last_update_time
                 incident.close_time = new_incident_entity.close_time
                 incident.arrive_time = new_incident_entity.arrive_time
                 incident.title = new_incident_entity.title
@@ -166,7 +166,7 @@ class Incident(Base):
         return Incident(
             incident_id=payload.get("id"),
             create_time=payload.get("create_time"),
-            last_update_time=payload.get("update_time"),
+            # last_update_time is automatically set by database
             close_time=payload.get("close_time") if payload.get("close_time") != '-' else None,
             arrive_time=payload.get("arrive_time"),
             title=payload.get("title"),

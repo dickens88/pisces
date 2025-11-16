@@ -6,9 +6,8 @@ from flask_jwt_extended import JWTManager
 from flask_restful import Api
 
 from models import user
-from utils.common_utils import generate_random_string
+from utils.app_config import config
 from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view
-
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -16,9 +15,11 @@ api = Api(app)
 
 # enable CORS
 CORS(app, resources={r'/*': {'origins': '*'}})
-app.config['JWT_SECRET_KEY'] = generate_random_string()
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=2)
-app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(minutes=130)
+
+
+app.config['JWT_SECRET_KEY'] = config.get('application.jwt_secret_key')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
+app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(minutes=60)
 
 jwt = JWTManager(app)
 app.config['JWT_BLOCKLIST_TOKEN_CHECKS'] = ['access']
@@ -30,26 +31,26 @@ def check_if_token_in_blacklist(jwt_header, decrypted_token):
     return user.RevokedTokenModel.is_jti_blacklisted(jti)
 
 
-api.add_resource(auth_view.UserLogin, '/api/login')
-api.add_resource(auth_view.UserLogoutAccess, '/api/logout')
-api.add_resource(auth_view.UserRefresh, '/api/refresh')
-api.add_resource(auth_view.UserView, '/api/user/password')
-api.add_resource(auth_view.UserManagement, '/api/user/management')
+api.add_resource(auth_view.UserLogin, '/login')
+api.add_resource(auth_view.UserLogoutAccess, '/logout')
+api.add_resource(auth_view.UserRefresh, '/refresh')
+api.add_resource(auth_view.UserView, '/user/password')
+api.add_resource(auth_view.UserManagement, '/user/management')
 
-api.add_resource(stats_view.AlertCountBySourceView, '/api/stats/alerts')
+api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
+
+api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
+api.add_resource(alert_view.AlertStatisticsView, '/alerts/statistics')
+
+api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident_id>')
+
+api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
+
+api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
+
+api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
 api.add_resource(callback_view.CallbackMessageHandler, '/api/secmaster/callback')
-
-api.add_resource(alert_view.AlertView, *['/api/alerts', '/api/alerts/<alert_id>'])
-api.add_resource(alert_view.AlertStatisticsView, '/api/alerts/statistics')
-
-api.add_resource(incident_view.IncidentView, '/api/incidents', '/api/incidents/<incident_id>')
-
-api.add_resource(incident_view.IncidentRelations, '/api/incidents/<incident_id>/relations')
-
-api.add_resource(comment_view.CommentView, '/api/comments', '/api/comments/<event_id>')
-
-api.add_resource(comment_view.CommentDownloadView, '/api/comments/<comment_id>/download')
 
 
 if __name__ == '__main__':

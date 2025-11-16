@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '@/layouts/MainLayout.vue'
 import { useAuthStore } from '@/stores/auth'
-import { config } from '@/config'
+import { getAppConfig } from '@config'
+const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
 const routes = [
   {
@@ -62,8 +63,10 @@ const routes = [
   }
 ]
 
+const base = import.meta.env.VITE_WEB_BASE_PATH || '/'
+
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(base),
   routes
 })
 
@@ -75,12 +78,29 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  // 如果使用tianyan-web认证模式，关闭pisces的登录页面
+  // 访问登录页面时重定向到tianyan-web登录页面
+  if (config.authMode === 'tianyan' && to.name === 'Login') {
+    const currentUrl = window.location.href
+    const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+    window.location.href = loginUrl
+    return
+  }
+
   const authStore = useAuthStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // 需要认证但未登录，重定向到登录页
-    next({ name: 'Login', query: { redirect: to.fullPath } })
+    // 需要认证但未登录
+    if (config.authMode === 'tianyan') {
+      // 使用tianyan-web认证，重定向到tianyan-web登录页面
+      const currentUrl = window.location.href
+      const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+      window.location.href = loginUrl
+    } else {
+      // 使用本地认证，重定向到本地登录页
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+    }
   } else if (to.name === 'Login' && authStore.isAuthenticated) {
     // 已登录但访问登录页，重定向到首页
     next('/')

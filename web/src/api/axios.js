@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { config } from '@/config'
+import { getAppConfig } from '@config'
+const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
 // Create axios instance
 const service = axios.create({
@@ -11,16 +12,54 @@ const service = axios.create({
   }
 })
 
+// 从cookie读取指定名称的cookie值
+function getCookie(name) {
+  const cookies = document.cookie.split(';')
+  for (let cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=')
+    if (cookieName === name) {
+      return decodeURIComponent(cookieValue)
+    }
+  }
+  return null
+}
+
 // Request interceptor
 service.interceptors.request.use(
   requestConfig => {
-    // Get token from store (for future SSO integration)
-    // 只有在启用认证时才添加 token
-    if (config.enableAuth) {
-      const authStore = useAuthStore()
-      if (authStore.token) {
-        requestConfig.headers.Authorization = `Bearer ${authStore.token}`
+    // 无论配置如何，都尝试从cookie读取token（因为cookie是最可靠的来源）
+    const cookieToken = getCookie('access_token')
+    const authStore = useAuthStore()
+    let token = null
+    
+    // 优先从cookie读取（无论什么模式，cookie都是最可靠的）
+    if (cookieToken) {
+      token = cookieToken
+      authStore.setToken(token)
+    } else {
+      // 如果cookie中没有，尝试其他来源
+      // 1. 从URL参数读取
+      const urlParams = new URLSearchParams(window.location.search)
+      const tokenFromUrl = urlParams.get('token')
+      if (tokenFromUrl) {
+        token = tokenFromUrl
+        authStore.setToken(token)
+      } else {
+        // 2. 从store读取
+        token = authStore.token
+        if (!token) {
+          // 3. 从localStorage读取
+          token = localStorage.getItem('token')
+          if (token) {
+            authStore.setToken(token)
+          }
+        }
       }
+    }
+    
+    // 如果找到了token，添加到请求头
+    if (token) {
+      requestConfig.headers.Authorization = `Bearer ${token}`
     }
     
     // Can add other request headers here, such as language settings
@@ -60,9 +99,17 @@ service.interceptors.response.use(
           if (config.enableAuth) {
             const authStore = useAuthStore()
             authStore.logout()
-            // Redirect to login page
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login'
+            
+            // 如果使用tianyan-web认证模式，重定向到tianyan-web登录页面
+            if (config.authMode === 'tianyan') {
+              const currentUrl = window.location.href
+              const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+              window.location.href = loginUrl
+            } else {
+              // 使用本地认证，重定向到本地登录页面
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login'
+              }
             }
           }
           break
@@ -72,9 +119,17 @@ service.interceptors.response.use(
           if (config.enableAuth) {
             const authStore = useAuthStore()
             authStore.logout()
-            // Redirect to login page
-            if (window.location.pathname !== '/login') {
-              window.location.href = '/login'
+            
+            // 如果使用tianyan-web认证模式，重定向到tianyan-web登录页面
+            if (config.authMode === 'tianyan') {
+              const currentUrl = window.location.href
+              const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+              window.location.href = loginUrl
+            } else {
+              // 使用本地认证，重定向到本地登录页面
+              if (window.location.pathname !== '/login') {
+                window.location.href = '/login'
+              }
             }
           }
           break

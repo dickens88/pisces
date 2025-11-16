@@ -24,6 +24,7 @@
       "password": "密码",
       "passwordPlaceholder": "请输入密码",
       "login": "登录",
+      "logout": "登出",
       "loggingIn": "登录中...",
       "footer": "© 2024 Pisces. All rights reserved."
     },

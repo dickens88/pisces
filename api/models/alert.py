@@ -1,5 +1,6 @@
 import json
-from sqlalchemy import Column, Integer, String, Text, Enum
+from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP
+from sqlalchemy.sql import func
 
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
@@ -12,7 +13,7 @@ class Alert(Base):
     alert_id = Column(Text())
 
     create_time = Column(String(40))
-    last_update_time = Column(String(40))
+    last_update_time = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
     close_time = Column(String(40))
 
     title = Column(Text())
@@ -65,7 +66,6 @@ class Alert(Base):
             if alert:
                 # Update existing record
                 alert.create_time = new_alert_entity.create_time
-                alert.last_update_time = new_alert_entity.last_update_time
                 alert.close_time = new_alert_entity.close_time
                 alert.title = new_alert_entity.title
                 alert.description = new_alert_entity.description
@@ -150,7 +150,7 @@ class Alert(Base):
         return Alert(
             alert_id=payload.get("id"),
             create_time=payload.get("create_time"),
-            last_update_time=payload.get("update_time"),
+            # last_update_time is automatically set by database
             close_time=payload.get("close_time"),
             title=payload.get("title"),
             description=description,

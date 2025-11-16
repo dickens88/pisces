@@ -38,9 +38,39 @@
       </div>
       
       <!-- 用户信息 -->
-      <div class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#1a2332] transition-colors">
-        <UserAvatar :name="userName" />
-        <span class="text-white text-sm font-medium">{{ userName || 'Guest' }}</span>
+      <div class="relative group" ref="userMenuButtonRef">
+        <button
+          @click.stop="showUserMenu = !showUserMenu"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#1a2332] transition-colors"
+        >
+          <UserAvatar :name="userName || 'Guest'" />
+          <span class="text-white text-sm font-medium">{{ userName || 'Guest' }}</span>
+          <span class="material-symbols-outlined text-sm text-white/60 transition-transform duration-200" :class="{ 'rotate-180': showUserMenu }">expand_more</span>
+        </button>
+        
+        <!-- 用户菜单 -->
+        <div
+          v-if="showUserMenu"
+          ref="userMenuRef"
+          class="absolute right-0 mt-2 w-40 bg-[#1a2332] border border-[#324867] rounded-lg shadow-xl overflow-hidden z-50"
+        >
+          <button
+            v-if="!isAuthenticated"
+            @click="handleLogin"
+            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-base">login</span>
+            <span>{{ $t('common.login.login') }}</span>
+          </button>
+          <button
+            v-if="isAuthenticated"
+            @click="handleLogout"
+            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2"
+          >
+            <span class="material-symbols-outlined text-base">logout</span>
+            <span>{{ $t('common.login.logout') }}</span>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -49,8 +79,10 @@
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { getAppConfig } from '@config'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const props = defineProps({
@@ -61,16 +93,25 @@ const props = defineProps({
 })
 
 const { locale } = useI18n()
+const router = useRouter()
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
 const currentLocale = ref(locale.value)
 const showLanguageMenu = ref(false)
+const showUserMenu = ref(false)
 const languageMenuRef = ref(null)
 const languageButtonRef = ref(null)
+const userMenuRef = ref(null)
+const userMenuButtonRef = ref(null)
 
 const userName = computed(() => {
   return authStore.user?.username || ''
+})
+
+const isAuthenticated = computed(() => {
+  return authStore.isAuthenticated
 })
 
 const selectLanguage = (lang) => {
@@ -80,14 +121,50 @@ const selectLanguage = (lang) => {
   showLanguageMenu.value = false
 }
 
+const handleLogin = () => {
+  showUserMenu.value = false
+  if (config.authMode === 'tianyan') {
+    // 使用tianyan-web认证，重定向到tianyan-web登录页面
+    const currentUrl = window.location.href
+    const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+    window.location.href = loginUrl
+  } else {
+    // 使用本地认证，跳转到本地登录页
+    router.push({ name: 'Login' })
+  }
+}
+
+const handleLogout = async () => {
+  showUserMenu.value = false
+  authStore.logout()
+  if (config.authMode === 'tianyan') {
+    // 使用tianyan-web认证，重定向到tianyan-web登录页面
+    const loginUrl = `${config.tianyanWebBaseURL}/login`
+    window.location.href = loginUrl
+  } else {
+    // 使用本地认证，跳转到本地登录页
+    router.push({ name: 'Login' })
+  }
+}
+
 // 点击外部关闭菜单
 const handleClickOutside = (event) => {
+  // 关闭语言菜单
   if (showLanguageMenu.value && 
       languageButtonRef.value && 
       !languageButtonRef.value.contains(event.target) &&
       languageMenuRef.value && 
       !languageMenuRef.value.contains(event.target)) {
     showLanguageMenu.value = false
+  }
+  
+  // 关闭用户菜单
+  if (showUserMenu.value && 
+      userMenuButtonRef.value && 
+      !userMenuButtonRef.value.contains(event.target) &&
+      userMenuRef.value && 
+      !userMenuRef.value.contains(event.target)) {
+    showUserMenu.value = false
   }
 }
 

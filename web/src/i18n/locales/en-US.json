@@ -24,6 +24,7 @@
       "password": "Password",
       "passwordPlaceholder": "Enter your password",
       "login": "Login",
+      "logout": "Logout",
       "loggingIn": "Logging in...",
       "footer": "© 2024 Pisces. All rights reserved."
     },
