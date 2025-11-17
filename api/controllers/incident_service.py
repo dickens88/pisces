@@ -71,6 +71,7 @@ class IncidentService:
                 "is_auto_closed": item['data_object'].get('is_auto_closed'),
                 "title": item['data_object']['title'],
                 "owner": item['data_object'].get('owner'),
+                "actor": item['data_object'].get('actor'),
                 "severity": item['data_object']['severity'],
                 "close_comment": item['data_object'].get('close_comment'),
                 "creator": item['data_object']['creator'],
@@ -85,7 +86,7 @@ class IncidentService:
                 row['root_cause'] = extra_info.get('root_cause')
                 row['category'] = extra_info.get('category')
 
-            row["owner"] = row["owner"] if row.get("owner") else row["creator"]
+            row["actor"] = row["actor"] if row.get("actor") else row["creator"]
             result.append(row)
 
         return result, total
@@ -131,7 +132,7 @@ class IncidentService:
             row['root_cause'] = extra_info.get('root_cause')
             row['category'] = extra_info.get('category')
 
-        row["owner"] = row["owner"] if row.get("owner") else row["creator"]
+        row["actor"] = row["actor"] if row.get("actor") else row["creator"]
 
         # retrieve complete associated alert by id
         # Try to get from database first, fallback to API if not found
