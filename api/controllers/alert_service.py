@@ -68,7 +68,7 @@ class AlertService:
                 "ttr": item['data_object'].get('ttr'),
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
             }
-
+            row["owner"] = row["actor"] if row["actor"] else row["owner"]
             result.append(row)
 
         return result, total
@@ -106,6 +106,7 @@ class AlertService:
             "ttr": item['data_object'].get('ttr'),
             "data_source_product_name": item['data_object']['data_source']['product_name'],
         }
+        alert_content["owner"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
         try:
             alert_content["description"] = json.loads(item['data_object']['description'])
         except Exception as ex:
@@ -126,10 +127,7 @@ class AlertService:
 
         # extract key data object from alert description
         alert["entities"] = cls._extract_entities_from_alert(alert["description"])
-        alert["timeline"] = [
-            {"time": alert["create_time"], "event": "Alert Triggered"},
-            {"time": alert["close_time"], "event": "Close Alert"}
-        ]
+        alert["timeline"] = cls._extract_timeline_from_alert(alert)
         return alert
 
     @classmethod
@@ -312,3 +310,27 @@ class AlertService:
                 entities.append(entity)
 
         return entities
+
+    @staticmethod
+    def _extract_timeline_from_alert(alert: dict):
+        """Extract timeline from alert description."""
+        events = [
+            {"time": alert["create_time"], "event": "Alert Triggered"},
+            {"time": alert["close_time"], "event": "Close Alert"}
+        ]
+
+        for intel in alert["intelligence"]:
+            events.append({"time": intel["create_time"], "event": "Add Intelligence"})
+
+        for ai in alert["ai"]:
+            events.append({"time": ai["create_time"], "event": "AI Analysis"})
+
+        for ai in alert["historic"]:
+            events.append({"time": ai["create_time"], "event": "Find Similar Alerts"})
+
+        for ai in alert["comments"]:
+            events.append({"time": ai["create_time"], "event": "Add Comment"})
+
+        sorted_events = sorted(events, key=lambda x: str(x.get("time", "")))
+
+        return sorted_events

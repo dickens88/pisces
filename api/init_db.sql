@@ -1,129 +1,96 @@
--- ============================================
--- Pisces 数据库初始化脚本
--- ============================================
+CREATE TABLE `t_app_user` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+  `username` varchar(128) DEFAULT NULL COMMENT '用户名',
+  `password` varchar(256) DEFAULT NULL COMMENT '密码（SHA256加密）',
+  `enabled` int DEFAULT NULL COMMENT '是否启用：1-启用，0-禁用',
+  `group` varchar(256) DEFAULT 'default' COMMENT '用户组',
+  `last_update_time` datetime DEFAULT NULL COMMENT '最后更新时间',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='应用用户表';
 
--- 创建数据库（如果不存在）
--- CREATE DATABASE IF NOT EXISTS pisces CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- USE pisces;
+CREATE TABLE `t_comments` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '自增主键',
+  `event_id` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '事件ID（告警ID或事件ID）',
+  `comment_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '评论ID（唯一键，关联外部评论系统）',
+  `owner` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '评论所有者',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `message` text COLLATE utf8mb4_unicode_ci COMMENT '评论内容',
+  `file_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件类型（MIME类型，如 image/jpeg）',
+  `file_obj` longblob COMMENT '文件二进制数据',
+  `file_name` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `last_update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_comment_id` (`comment_id`),
+  KEY `idx_event_id` (`event_id`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论表';
 
--- ============================================
--- 1. 用户表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_app_user` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '用户ID',
-    `username` VARCHAR(128) DEFAULT NULL COMMENT '用户名',
-    `password` VARCHAR(256) DEFAULT NULL COMMENT '密码（SHA256加密）',
-    `enabled` INT(11) DEFAULT NULL COMMENT '是否启用：1-启用，0-禁用',
-    `group` VARCHAR(256) DEFAULT 'default' COMMENT '用户组',
-    `last_update_time` DATETIME DEFAULT NULL COMMENT '最后更新时间',
-    `create_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-    PRIMARY KEY (`id`),
-    KEY `idx_username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='应用用户表';
 
--- ============================================
--- 2. 撤销的Token表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_revoked_tokens` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
-    `jti` VARCHAR(120) DEFAULT NULL COMMENT 'JWT Token ID',
-    PRIMARY KEY (`id`),
-    KEY `idx_jti` (`jti`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='撤销的Token表';
+CREATE TABLE `t_incidents` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `incident_id` varchar(40) DEFAULT NULL COMMENT '事件唯一ID',
+  `create_time` varchar(40) DEFAULT NULL COMMENT '创建时间，ISO8601含时区',
+  `last_update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `close_time` varchar(40) DEFAULT NULL COMMENT '关闭时间，ISO8601含时区',
+  `arrive_time` varchar(40) DEFAULT NULL COMMENT '到达时间，ISO8601含时区',
+  `title` text COMMENT '标题',
+  `description` text COMMENT '描述',
+  `severity` enum('TIPS','LOW','MEDIUM','HIGH','FATAL') DEFAULT 'MEDIUM' COMMENT '严重程度',
+  `handle_status` enum('Open','Block','Closed') DEFAULT 'Open' COMMENT '处理状态',
+  `owner` tinytext COMMENT '负责人',
+  `creator` tinytext COMMENT '创建人',
+  `responsible_person` tinytext COMMENT '责任人',
+  `responsible_dept` tinytext COMMENT '责任部门',
+  `close_reason` enum('False positive','Resolved','Repeated','Other') DEFAULT NULL COMMENT '关闭原因',
+  `close_comment` text COMMENT '关闭备注',
+  `labels` text COMMENT '标签（多个标签用逗号分隔）',
+  `root_cause` text COMMENT '根本原因',
+  `category` tinytext COMMENT '分类',
+  `ttd` varchar(40) DEFAULT NULL COMMENT '检测时间（Time To Detect）',
+  `is_auto_closed` varchar(10) DEFAULT NULL COMMENT '是否自动关闭',
+  `extend_properties` text COMMENT '扩展属性（JSON格式）',
+  PRIMARY KEY (`id`),
+  KEY `idx_incident_id` (`incident_id`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='事件表';
 
--- ============================================
--- 3. 告警表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_alerts` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '告警ID',
-    `alert_id` TEXT COMMENT '告警唯一标识',
-    `create_time` VARCHAR(40) DEFAULT NULL COMMENT '创建时间',
-    `last_update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `close_time` VARCHAR(40) DEFAULT NULL COMMENT '关闭时间',
-    `title` TEXT COMMENT '告警标题',
-    `description` TEXT COMMENT '告警描述',
-    `severity` VARCHAR(10) DEFAULT NULL COMMENT '严重程度',
-    `handle_status` VARCHAR(10) DEFAULT NULL COMMENT '处理状态',
-    `owner` TEXT COMMENT '负责人',
-    `creator` TEXT COMMENT '创建人',
-    `close_reason` ENUM('False positive', 'Resolved', 'Repeated', 'Other') DEFAULT NULL COMMENT '关闭原因',
-    `close_comment` TEXT COMMENT '关闭备注',
-    `is_auto_closed` VARCHAR(50) DEFAULT NULL COMMENT '是否自动关闭',
-    `data_source_product_name` TEXT COMMENT '数据源产品名称',
-    PRIMARY KEY (`id`),
-    KEY `idx_alert_id` (`alert_id`(191)),
-    KEY `idx_severity` (`severity`),
-    KEY `idx_handle_status` (`handle_status`),
-    KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='告警表';
 
--- ============================================
--- 4. 事件表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_incidents` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '事件ID',
-    `incident_id` TEXT COMMENT '事件唯一标识',
-    `create_time` VARCHAR(40) DEFAULT NULL COMMENT '创建时间',
-    `last_update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    `close_time` VARCHAR(40) DEFAULT NULL COMMENT '关闭时间',
-    `arrive_time` VARCHAR(40) DEFAULT NULL COMMENT '到达时间',
-    `title` TEXT COMMENT '事件标题',
-    `description` TEXT COMMENT '事件描述',
-    `severity` VARCHAR(10) DEFAULT NULL COMMENT '严重程度',
-    `handle_status` VARCHAR(10) DEFAULT NULL COMMENT '处理状态',
-    `owner` TEXT COMMENT '负责人',
-    `creator` TEXT COMMENT '创建人',
-    `responsible_person` TEXT COMMENT '责任人',
-    `responsible_dept` TEXT COMMENT '责任部门',
-    `close_reason` ENUM('False positive', 'Resolved', 'Repeated', 'Other') DEFAULT NULL COMMENT '关闭原因',
-    `close_comment` TEXT COMMENT '关闭备注',
-    `labels` TEXT COMMENT '标签（逗号分隔）',
-    `root_cause` TEXT COMMENT '根本原因',
-    `category` TEXT COMMENT '分类',
-    `ttd` VARCHAR(40) DEFAULT NULL COMMENT '处理时间（Time to Detect）',
-    `is_auto_closed` VARCHAR(10) DEFAULT NULL COMMENT '是否自动关闭',
-    `extend_properties` TEXT COMMENT '扩展属性（JSON格式）',
-    PRIMARY KEY (`id`),
-    KEY `idx_incident_id` (`incident_id`(191)),
-    KEY `idx_severity` (`severity`),
-    KEY `idx_handle_status` (`handle_status`),
-    KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='事件表';
+CREATE TABLE `t_revoked_tokens` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT 'ID',
+  `jti` varchar(120) DEFAULT NULL COMMENT 'JWT Token ID',
+  PRIMARY KEY (`id`),
+  KEY `idx_jti` (`jti`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='已撤销的JWT令牌表';
 
--- ============================================
--- 5. 评论表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_comments` (
-    `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT '评论ID',
-    `event_id` VARCHAR(255) DEFAULT NULL COMMENT '关联的事件ID（告警或事件）',
-    `comment_id` VARCHAR(255) NOT NULL COMMENT '评论唯一标识',
-    `owner` VARCHAR(255) DEFAULT NULL COMMENT '评论人',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `message` TEXT COMMENT '评论内容',
-    `file_type` VARCHAR(100) DEFAULT NULL COMMENT '附件类型',
-    `file_name` VARCHAR(500) DEFAULT NULL COMMENT '附件文件名',
-    `file_obj` LONGBLOB COMMENT '附件文件内容',
-    `last_update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_comment_id` (`comment_id`),
-    KEY `idx_event_id` (`event_id`),
-    KEY `idx_owner` (`owner`),
-    KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论表';
 
--- ============================================
--- 6. 系统配置表
--- ============================================
-CREATE TABLE IF NOT EXISTS `t_system_config` (
-    `id` BIGINT(20) NOT NULL AUTO_INCREMENT COMMENT '配置ID',
-    `key_name` VARCHAR(200) DEFAULT NULL COMMENT '配置键名',
-    `key_value` VARCHAR(500) DEFAULT NULL COMMENT '配置值',
-    `last_update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
-    PRIMARY KEY (`id`),
-    UNIQUE KEY `uk_key_name` (`key_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统配置表';
+CREATE TABLE `t_system_config` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+  `key_name` varchar(200) DEFAULT NULL COMMENT '配置键名',
+  `key_value` varchar(500) DEFAULT NULL COMMENT '配置值',
+  `last_update_time` datetime DEFAULT NULL COMMENT '最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_key_name` (`key_name`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统配置表';
 
--- ============================================
--- 初始化数据（可选）
--- ============================================
 
+CREATE TABLE `t_alerts` (
+  `id` int NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `alert_id` varchar(40) DEFAULT NULL COMMENT '告警唯一ID',
+  `create_time` varchar(40) DEFAULT NULL COMMENT '创建时间，ISO8601含时区',
+  `last_update_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `close_time` varchar(40) DEFAULT NULL COMMENT '关闭时间，ISO8601含时区',
+  `title` text COMMENT '标题',
+  `description` text COMMENT '描述',
+  `severity` varchar(10) NOT NULL COMMENT '严重程度',
+  `handle_status` varchar(10) NOT NULL COMMENT '处理状态',
+  `owner` tinytext COMMENT '负责人',
+  `creator` tinytext COMMENT '创建人',
+  `close_reason` enum('False positive','Resolved','Repeated','Other') DEFAULT NULL COMMENT '关闭原因',
+  `close_comment` text COMMENT '关闭备注',
+  `data_source_product_name` tinytext COMMENT '数据源产品名',
+  `is_auto_closed` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `alert_id_UNIQUE` (`alert_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=936 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='告警表';

@@ -42,7 +42,7 @@ class IncidentView(Resource):
                 }
                 """
                 # add a label for incident
-                data["owner"] = username
+                data["actor"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
                 result = IncidentService.create_incident(data)
                 return {"data": data, "total": result}, 201
@@ -53,7 +53,7 @@ class IncidentView(Resource):
                     raise Exception("ids parameter is required")
 
                 # 1. create an incident
-                data["owner"] = username
+                data["actor"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
                 incident = IncidentService.create_incident(data)
                 incident_id = incident["data"]["data_object"]["id"]
