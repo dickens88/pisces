@@ -1,4 +1,4 @@
-from sqlalchemy import cast, DateTime, func
+from sqlalchemy import cast, DateTime, func, case
 from datetime import datetime, timedelta
 
 from models.alert import Alert
@@ -421,6 +421,71 @@ class StatisticsService:
                 distribution[dept] = row.count
             
             return distribution
+
+    @classmethod
+    def get_ai_accuracy_by_model(cls, start_date, end_date, limit=10):
+        """
+        Calculate AI decision accuracy per model between start_date and end_date.
+        Only includes alerts with non-null model_name and is_ai_decision_correct.
+        Returns at most `limit` models sorted by accuracy (desc).
+        """
+        if not start_date or not end_date:
+            raise ValueError("start_date and end_date are required")
+
+        if isinstance(start_date, str):
+            start_dt = datetime.fromisoformat(start_date)
+        elif isinstance(start_date, datetime):
+            start_dt = start_date
+        else:
+            start_dt = start_date
+
+        if isinstance(end_date, str):
+            end_dt = datetime.fromisoformat(end_date)
+        elif isinstance(end_date, datetime):
+            end_dt = end_date
+        else:
+            end_dt = end_date
+
+        with Session() as session:
+            query = (
+                session.query(
+                    Alert.model_name.label('model_name'),
+                    func.count(Alert.id).label('total'),
+                    func.sum(
+                        case(
+                            (Alert.is_ai_decision_correct == True, 1),
+                            else_=0
+                        )
+                    ).label('correct')
+                )
+                .filter(
+                    cast(Alert.create_time, DateTime) >= start_dt,
+                    cast(Alert.create_time, DateTime) <= end_dt,
+                    Alert.model_name.isnot(None),
+                    Alert.model_name != '',
+                    Alert.is_ai_decision_correct.isnot(None),
+                )
+                .group_by(Alert.model_name)
+            )
+
+            results = query.all()
+
+        stats = []
+        for row in results:
+            total = row.total or 0
+            if total == 0:
+                continue
+            correct = row.correct or 0
+            accuracy = round((correct / total) * 100, 1)
+            stats.append({
+                'model_name': row.model_name,
+                'accuracy': accuracy,
+                'correct': int(correct),
+                'total': int(total)
+            })
+
+        stats.sort(key=lambda item: item['accuracy'], reverse=True)
+        return stats[:max(0, limit or 10)]
 
     @classmethod
     def get_automation_closure_rate(cls):

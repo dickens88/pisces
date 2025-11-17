@@ -1,7 +1,8 @@
 import json
-from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP, Boolean
 from sqlalchemy.sql import func
 
+from controllers.ai_decision_service import AiDecisionService
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
 
@@ -25,12 +26,16 @@ class Alert(Base):
     owner = Column(Text())
     creator = Column(Text())
 
-    close_reason = Column(Enum('False positive', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
+    close_reason = Column(Enum('False detection', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
     close_comment = Column(Text())
 
     is_auto_closed = Column(String(50))
 
     data_source_product_name = Column(Text())
+
+    model_name = Column(String(50))
+
+    is_ai_decision_correct = Column(Boolean(), default = None)
 
     def to_dict(self):
         return {
@@ -76,6 +81,8 @@ class Alert(Base):
                 alert.close_comment = new_alert_entity.close_comment
                 alert.is_auto_closed = new_alert_entity.is_auto_closed
                 alert.data_source_product_name = new_alert_entity.data_source_product_name
+                alert.model_name = new_alert_entity.model_name
+                alert.is_ai_decision_correct = new_alert_entity.is_ai_decision_correct
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -136,6 +143,11 @@ class Alert(Base):
             close_reason = None
 
         description = payload.get("description")
+        model_name = description.get("model_name")
+        logger.debug("The value of model_name is: %s", model_name)
+        is_ai_decision_correct = None
+        if handle_status == "Closed":
+            is_ai_decision_correct = AiDecisionService.evaluate_ai_decision(payload)
         if isinstance(description, (dict, list)):
             description = json.dumps(description)
 
@@ -161,4 +173,6 @@ class Alert(Base):
             close_comment=payload.get("close_comment"),
             is_auto_closed=payload.get("is_auto_closed"),
             data_source_product_name=data_source_product_name,
+            model_name=model_name,
+            is_ai_decision_correct = is_ai_decision_correct,
         )

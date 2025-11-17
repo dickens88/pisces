@@ -14,7 +14,9 @@ class AlertCountBySourceView(Resource):
     def get(self, username=None):
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")
-        chart_name = request.args.get("chart")
+        chart_name_raw = request.args.get("chart")
+        chart_name = (chart_name_raw or "").strip()
+        chart_name_normalized = chart_name.lower()
         status = request.args.get("status")  # Get status filter parameter
 
         if not start_date_str:
@@ -26,7 +28,7 @@ class AlertCountBySourceView(Resource):
             return {"error_message": "start_date must be in ISO 8601 format"}, 400
 
         try:
-            if chart_name == "data-source-count":
+            if chart_name_normalized == "data-source-count":
                 # end_date is optional for data-source-count chart
                 end_date = None
                 if end_date_str:
@@ -36,7 +38,7 @@ class AlertCountBySourceView(Resource):
                         return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_alert_count_by_product_name(start_date, end_date=end_date, status=status)
                 return {"data": data}, 200
-            elif chart_name == "alert-trend":
+            elif chart_name_normalized == "alert-trend":
                 # For trend chart, end_date is required
                 if not end_date_str:
                     return {"error_message": "end_date is required for alert-trend chart"}, 400
@@ -46,7 +48,7 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_alert_trend(start_date, end_date)
                 return {"data": data}, 200
-            elif chart_name == "incident-trend":
+            elif chart_name_normalized == "incident-trend":
                 # For incident trend chart, end_date is required
                 if not end_date_str:
                     return {"error_message": "end_date is required for incident-trend chart"}, 400
@@ -56,7 +58,7 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_incident_trend(start_date, end_date)
                 return {"data": data}, 200
-            elif chart_name == "vulnerability-trend":
+            elif chart_name_normalized == "vulnerability-trend":
                 # For vulnerability trend chart, end_date is required
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-trend chart"}, 400
@@ -66,7 +68,7 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_vulnerability_trend(start_date, end_date)
                 return {"data": data}, 200
-            elif chart_name == "vulnerability-trend-by-severity":
+            elif chart_name_normalized == "vulnerability-trend-by-severity":
                 # For vulnerability trend by severity chart, end_date is required
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-trend-by-severity chart"}, 400
@@ -76,7 +78,7 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_vulnerability_trend_by_severity(start_date, end_date)
                 return {"data": data}, 200
-            elif chart_name == "vulnerability-department-distribution":
+            elif chart_name_normalized == "vulnerability-department-distribution":
                 # For vulnerability department distribution chart, end_date is required
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-department-distribution chart"}, 400
@@ -85,6 +87,23 @@ class AlertCountBySourceView(Resource):
                 except ValueError:
                     return {"error_message": "end_date must be in ISO 8601 format"}, 400
                 data = StatisticsService.get_vulnerability_department_distribution(start_date, end_date)
+                return {"data": data}, 200
+            elif chart_name_normalized in (
+                "ai-model-accuracy",
+                "ai_model_accuracy",
+                "aiaccuracy",
+                "ai-accuracy",
+            ):
+                if not end_date_str:
+                    return {"error_message": "end_date is required for ai-model-accuracy chart"}, 400
+
+                try:
+                    end_date = datetime.fromisoformat(end_date_str)
+                except ValueError:
+                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+
+                limit = request.args.get("limit", default=10, type=int)
+                data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10)
                 return {"data": data}, 200
             else:
                 raise Exception("chart_name is invalid")

@@ -142,28 +142,30 @@
       </div>
 
       <!-- AI accuracy rate -->
-      <div class="flex flex-col gap-4 rounded-xl border border-[#324867]/50 p-6 bg-[#19222c]">
-        <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
-        <div class="h-80 flex items-end gap-x-4 md:gap-x-6">
-          <template v-if="statistics.aiAccuracy && statistics.aiAccuracy.length > 0">
-            <div 
-              v-for="(item, index) in statistics.aiAccuracy" 
-              :key="index"
-              class="flex-1 h-full flex flex-col items-center gap-2 relative"
-            >
-              <span class="text-xs font-semibold absolute -top-5 text-primary">{{ item.accuracy }}%</span>
-              <div class="w-full flex-1 flex items-end">
-                <div 
-                  class="w-full h-full bg-primary rounded-t-sm hover:opacity-80 transition-opacity"
-                  :style="{ height: item.accuracy + '%' }"
-                ></div>
-              </div>
-              <span class="text-xs text-white/60">{{ item.name }}</span>
-            </div>
-          </template>
-          <div v-else class="w-full h-full flex items-center justify-center text-white/50 text-sm">
+      <div class="flex flex-col rounded-xl border border-[#324867]/50 bg-[#19222c] p-0">
+        <div class="flex justify-between items-center p-3 pt-2">
+          <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
+          <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
+        </div>
+        <div class="relative h-80">
+          <div 
+            v-if="aiAccuracyLoading"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div 
+            v-else-if="aiAccuracyData.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
             {{ $t('dashboard.charts.noData') }}
           </div>
+          <div 
+            v-show="!aiAccuracyLoading && aiAccuracyData.length > 0"
+            ref="aiAccuracyChartRef"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
+          ></div>
         </div>
       </div>
     </div>
@@ -176,7 +178,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import { getDashboardStatistics } from '@/api/dashboard'
-import { getAlertCountsBySource, getAlertTrend } from '@/api/alerts'
+import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel } from '@/api/alerts'
 import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
 
 const { t } = useI18n()
@@ -196,15 +198,7 @@ const statistics = ref({
   vulnerabilityCountTrend: 'down',
   mttd: '0m 0s',
   mttdChange: 0,
-  mttdTrend: 'down',
-  aiAccuracy: [
-    { name: 'IAM', accuracy: 99.8 },
-    { name: 'HSS', accuracy: 99.5 },
-    { name: 'NDR', accuracy: 98.2 },
-    { name: 'COP', accuracy: 99.1 },
-    { name: 'SA', accuracy: 97.5 },
-    { name: 'SIEM', accuracy: 99.9 }
-  ]
+  mttdTrend: 'down'
 })
 
 
@@ -232,6 +226,12 @@ const alertSourceLoading = ref(false)
 let alertSourceChartInstance = null
 let alertSourceResizeListenerBound = false
 
+const aiAccuracyChartRef = ref(null)
+const aiAccuracyData = ref([])
+const aiAccuracyLoading = ref(false)
+let aiAccuracyChartInstance = null
+let aiAccuracyResizeListenerBound = false
+
 // Alert Count 24h
 const alertCount24hTotal = ref(0)
 const alertCount24hChange = ref(0)
@@ -258,12 +258,28 @@ const handleAlertSourceResize = () => {
   }
 }
 
+const handleAiAccuracyResize = () => {
+  if (aiAccuracyChartInstance) {
+    aiAccuracyChartInstance.resize()
+  }
+}
+
 const ensureAlertSourceChart = () => {
   if (!alertSourceChartInstance && alertSourceChartRef.value) {
     alertSourceChartInstance = echarts.init(alertSourceChartRef.value)
     if (!alertSourceResizeListenerBound) {
       window.addEventListener('resize', handleAlertSourceResize)
       alertSourceResizeListenerBound = true
+    }
+  }
+}
+
+const ensureAiAccuracyChart = () => {
+  if (!aiAccuracyChartInstance && aiAccuracyChartRef.value) {
+    aiAccuracyChartInstance = echarts.init(aiAccuracyChartRef.value)
+    if (!aiAccuracyResizeListenerBound) {
+      window.addEventListener('resize', handleAiAccuracyResize)
+      aiAccuracyResizeListenerBound = true
     }
   }
 }
@@ -276,6 +292,17 @@ const disposeAlertSourceChart = () => {
   if (alertSourceResizeListenerBound) {
     window.removeEventListener('resize', handleAlertSourceResize)
     alertSourceResizeListenerBound = false
+  }
+}
+
+const disposeAiAccuracyChart = () => {
+  if (aiAccuracyChartInstance) {
+    aiAccuracyChartInstance.dispose()
+    aiAccuracyChartInstance = null
+  }
+  if (aiAccuracyResizeListenerBound) {
+    window.removeEventListener('resize', handleAiAccuracyResize)
+    aiAccuracyResizeListenerBound = false
   }
 }
 
@@ -500,6 +527,105 @@ const updateAlertSourceChart = () => {
   }, 0)
 }
 
+const updateAiAccuracyChart = () => {
+  ensureAiAccuracyChart()
+  if (!aiAccuracyChartInstance) {
+    return
+  }
+
+  aiAccuracyChartInstance.clear()
+
+  const categories = aiAccuracyData.value.map((item) => item.name)
+  const accuracies = aiAccuracyData.value.map((item) => item.accuracy)
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12],
+      formatter: (params) => {
+        if (!params || params.length === 0) {
+          return ''
+        }
+        const dataIndex = params[0].dataIndex
+        const dataPoint = aiAccuracyData.value[dataIndex]
+        if (!dataPoint) {
+          return `${params[0].name}: ${params[0].value}%`
+        }
+        return `
+          <div style="min-width:140px">
+            <div style="font-weight:600;margin-bottom:4px;">${dataPoint.name}</div>
+            <div>Accuracy: ${dataPoint.accuracy}%</div>
+            <div>Correct: ${dataPoint.correct}/${dataPoint.total}</div>
+          </div>
+        `
+      }
+    },
+    grid: {
+      top: 16,
+      left: 36,
+      right: 16,
+      bottom: 36,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: categories,
+      axisLabel: {
+        color: '#cbd5f5',
+        rotate: categories.length > 5 ? 20 : 0,
+        fontSize: 10,
+        margin: 8
+      },
+      axisLine: {
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: {
+        show: true,
+        inside: true,
+        alignWithLabel: true
+      }
+    },
+    yAxis: {
+      type: 'value',
+      max: 100,
+      axisLabel: {
+        color: '#94a3b8',
+        formatter: '{value}%'
+      },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: false }
+    },
+    series: [
+      {
+        name: t('dashboard.charts.aiAccuracy'),
+        type: 'bar',
+        data: accuracies,
+        barWidth: '45%',
+        itemStyle: {
+          borderRadius: [8, 8, 0, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#34d399' },
+            { offset: 0.7, color: '#10b981' },
+            { offset: 1, color: '#059669' }
+          ])
+        }
+      }
+    ]
+  }
+
+  aiAccuracyChartInstance.setOption(option, true)
+  setTimeout(() => {
+    aiAccuracyChartInstance?.resize()
+  }, 0)
+}
+
 const getDashboardTimeRange = () => {
   if (selectedTimeRange.value === 'customRange') {
     if (customTimeRange.value && customTimeRange.value.length === 2) {
@@ -559,6 +685,32 @@ const loadAlertSourceStatistics = async () => {
   }
 }
 
+const loadAiAccuracyStatistics = async () => {
+  aiAccuracyLoading.value = true
+  try {
+    const { start, end } = getDashboardTimeRange()
+    const response = await getAiAccuracyByModel(
+      formatDateForBackend(start),
+      formatDateForBackend(end),
+      10
+    )
+    const data = response?.data || []
+    aiAccuracyData.value = data.map((item) => ({
+      name: item.model_name || item.model || 'Unknown',
+      accuracy: Number(item.accuracy) || 0,
+      correct: item.correct || 0,
+      total: item.total || 0
+    }))
+  } catch (error) {
+    console.error('Failed to load AI accuracy statistics:', error)
+    aiAccuracyData.value = []
+  } finally {
+    aiAccuracyLoading.value = false
+    await nextTick()
+    updateAiAccuracyChart()
+  }
+}
+
 /**
  * @brief 加载统计数据
  */
@@ -577,10 +729,6 @@ const loadStatistics = async () => {
       if (data.mttd !== undefined) statistics.value.mttd = data.mttd
       if (data.mttdChange !== undefined) statistics.value.mttdChange = data.mttdChange
       if (data.mttdTrend !== undefined) statistics.value.mttdTrend = data.mttdTrend
-      
-      if (data.aiAccuracy && Array.isArray(data.aiAccuracy) && data.aiAccuracy.length > 0) {
-        statistics.value.aiAccuracy = data.aiAccuracy
-      }
     }
   } catch (error) {
     console.error('Failed to load statistics:', error)
@@ -641,7 +789,8 @@ const loadData = async () => {
     loadAlertSourceStatistics(),
     loadAlertCount24hData(),
     loadIncidentCount30dData(),
-    loadVulnerabilityCount30dData()
+    loadVulnerabilityCount30dData(),
+    loadAiAccuracyStatistics()
   ])
 }
 
@@ -651,11 +800,13 @@ const loadData = async () => {
  */
 onMounted(() => {
   ensureAlertSourceChart()
+  ensureAiAccuracyChart()
   loadData()
 })
 
 onBeforeUnmount(() => {
   disposeAlertSourceChart()
+  disposeAiAccuracyChart()
 })
 
 const dashboardTimeRangeLabel = computed(() => {

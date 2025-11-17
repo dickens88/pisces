@@ -263,6 +263,28 @@ export const getAlertTrend = (startDate, endDate) => {
   return service.get('/stats/alerts', { params })
 }
 
+/**
+ * @brief 获取按模型统计的AI准确率
+ * @param {string} startDate - ISO格式的开始时间（不带Z标志）
+ * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {number} limit - 返回的模型数量上限（默认10）
+ * @returns {Promise} AI准确率数据数组
+ */
+export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
+  if (!startDate || !endDate) {
+    throw new Error('startDate and endDate are required for AI accuracy statistics')
+  }
+
+  const params = {
+    chart: 'ai-model-accuracy',
+    start_date: startDate,
+    end_date: endDate,
+    limit
+  }
+
+  return service.get('/stats/alerts', { params })
+}
+
 // 关闭单个告警
 export const closeAlert = (alertId, params) => {
   // 将 category 映射到 close_reason
