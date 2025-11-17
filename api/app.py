@@ -7,7 +7,7 @@ from flask_restful import Api
 
 from models import user
 from utils.app_config import config
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -51,6 +51,8 @@ api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
 api.add_resource(callback_view.CallbackMessageHandler, '/api/secmaster/callback')
+
+api.add_resource(admin.SystemInfo, '/system/info')
 
 
 if __name__ == '__main__':

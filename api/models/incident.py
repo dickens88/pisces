@@ -43,14 +43,13 @@ class Incident(Base):
         if self.extend_properties:
             try:
                 extend_properties = json.loads(self.extend_properties)
-            except:
+            except Exception:
                 extend_properties = self.extend_properties
 
         return {
             "id": self.id,
             "incident_id": self.incident_id,
             "create_time": self.create_time,
-            "last_update_time": self.last_update_time,
             "close_time": self.close_time,
             "arrive_time": self.arrive_time,
             "title": self.title,

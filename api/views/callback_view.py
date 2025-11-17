@@ -11,7 +11,6 @@ from utils.logger_init import logger
 
 class CallbackMessageHandler(Resource):
 
-    # @jwt_required()
     def post(self):
         payload = json.loads(request.data)
         event_id = payload.get("event_id")

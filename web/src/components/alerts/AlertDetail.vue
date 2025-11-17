@@ -990,10 +990,8 @@ const handleBatchClose = async () => {
     // 关闭对话框并重置表单
     closeBatchCloseDialog()
     
-    // 关闭详情面板
-    handleClose()
+    await loadAlertDetail()
     
-    // 触发刷新事件，让父组件知道需要刷新列表
     emit('closed')
   } catch (error) {
     console.error('Failed to close alert:', error)

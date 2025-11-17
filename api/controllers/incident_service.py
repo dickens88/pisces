@@ -244,6 +244,8 @@ class IncidentService:
                 "create_time": item['content']['occurred_time'],
                 "content": item["content"]["value"]
             }
+            owner = CommentService.extract_owner_from_content(row["content"])
+            row["author"] = owner if owner else row["author"]
             
             # Query file information by comment_id associated with id
             if 'id' in item:

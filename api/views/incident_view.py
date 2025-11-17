@@ -1,18 +1,18 @@
+import json
+
 from flask import request
-from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
 from controllers.incident_service import IncidentService
+from utils.jwt_helper import auth_required
 from utils.logger_init import logger
-
-import json
 
 
 class IncidentView(Resource):
 
-    @jwt_required()
-    def post(self, incident_id=None):
+    @auth_required
+    def post(self, username=None, incident_id=None):
         data = json.loads(request.data)
         limit = int(data.get('limit', 50))
         offset = int(data.get('offset', 0))
@@ -42,6 +42,7 @@ class IncidentView(Resource):
                 }
                 """
                 # add a label for incident
+                data["owner"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
                 result = IncidentService.create_incident(data)
                 return {"data": data, "total": result}, 201
@@ -52,6 +53,7 @@ class IncidentView(Resource):
                     raise Exception("ids parameter is required")
 
                 # 1. create an incident
+                data["owner"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
                 incident = IncidentService.create_incident(data)
                 incident_id = incident["data"]["data_object"]["id"]
@@ -60,15 +62,18 @@ class IncidentView(Resource):
                 IncidentService.associate_alerts_to_incident(incident_id, ids)
 
                 # 3. close alerts with comment
-                result = AlertService.batch_close_alert(alert_ids=ids, close_reason="Resolved", comment="Associate alerts to incident: " + incident_id)
+                result = AlertService.batch_close_alert(alert_ids=ids,
+                                                        close_reason="Resolved",
+                                                        comment="Associate alerts to incident: " + incident_id,
+                                                        owner=username)
 
                 return {"data": data, "total": result}, 201
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    @jwt_required()
-    def put(self, incident_id):
+    @auth_required
+    def put(self, username=None, incident_id=None):
         data = json.loads(request.data)
         try:
             result = IncidentService.update_incident(data, incident_id)
@@ -77,8 +82,8 @@ class IncidentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    @jwt_required()
-    def get(self, incident_id):
+    @auth_required
+    def get(self, username=None, incident_id=None):
         try:
             data = IncidentService.retrieve_incident_by_id(incident_id)
             return {"data": data}, 200
@@ -89,8 +94,8 @@ class IncidentView(Resource):
 
 class IncidentRelations(Resource):
 
-    @jwt_required()
-    def post(self, incident_id):
+    @auth_required
+    def post(self, username=None, incident_id=None):
         try:
             data = json.loads(request.data)
             ids = data.get('ids')

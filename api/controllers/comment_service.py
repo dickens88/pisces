@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 
 import requests
 
@@ -37,9 +38,9 @@ class CommentService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "type": "textMessage",
-            "content": comment,
+            "content": f"【@{owner}】: {comment}",
             "war_room_id": event_id,
-            "noteType": owner
+            "note_type": "pisces"
         }
         body = json.dumps(body)
 
@@ -55,6 +56,17 @@ class CommentService:
     def get_comment_by_comment_id(cls, comment_id):
         """根据 comment_id 查询本地数据库中的评论记录"""
         return Comment.get_by_comment_id(comment_id)
+
+    @staticmethod
+    def extract_owner_from_content(content):
+        if not isinstance(content, str):
+            return None
+
+        match = re.search(r'【@([^】]+)】', content)
+        if match:
+            return match.group(1).strip()
+
+        return None
 
     @staticmethod
     def get_comment_file_info(comment_id: str) -> dict:

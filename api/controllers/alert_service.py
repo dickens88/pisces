@@ -61,17 +61,14 @@ class AlertService:
                 "is_auto_closed": item['data_object'].get('is_auto_closed'),
                 "title": item['data_object']['title'],
                 "owner": item['data_object'].get('owner'),
+                "actor": item['data_object']['actor'],
                 "severity": item['data_object']['severity'],
                 "close_comment": item['data_object'].get('close_comment'),
                 "creator": item['data_object']['creator'],
                 "ttr": item['data_object'].get('ttr'),
-                "extend_properties": item['data_object'].get('extend_properties', []),
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
             }
-            try:
-                row["description"] = json.loads(item['data_object']['description'])
-            except Exception as ex:
-                logger.error(ex)
+
             result.append(row)
 
         return result, total
@@ -102,6 +99,7 @@ class AlertService:
             "is_auto_closed": item['data_object'].get('is_auto_closed'),
             "title": item['data_object']['title'],
             "owner": item['data_object']['owner'],
+            "actor": item['data_object']['actor'],
             "severity": item['data_object']['severity'],
             "close_comment": item['data_object'].get('close_comment'),
             "creator": item['data_object']['creator'],
@@ -111,6 +109,7 @@ class AlertService:
         try:
             alert_content["description"] = json.loads(item['data_object']['description'])
         except Exception as ex:
+            alert_content["description"] = item['data_object']['description']
             logger.error(ex)
         return alert_content
 
@@ -134,7 +133,7 @@ class AlertService:
         return alert
 
     @classmethod
-    def close_alert(cls, alert_id, close_reason, comment):
+    def close_alert(cls, alert_id, close_reason, comment, owner=None):
         """
         Close an alert with reason and comment.
         close_reason:
@@ -150,9 +149,11 @@ class AlertService:
             "data_object": {
                 "handle_status": "Closed",
                 "close_reason": close_reason,
-                "close_comment": comment
+                "close_comment": f"【@{owner}】: {comment}"
             }
         }
+        if owner:
+            payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
         base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
@@ -163,7 +164,7 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def batch_close_alert(cls, alert_ids, close_reason, comment):
+    def batch_close_alert(cls, alert_ids, close_reason, comment, owner="-"):
         """Close a batch of alerts with reason and comment."""
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/batch-update"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
@@ -173,9 +174,11 @@ class AlertService:
             "data_object": {
                 "handle_status": "Closed",
                 "close_reason": close_reason,
-                "close_comment": comment
+                "close_comment": f"【@{owner}】: {comment}"
             }
         }
+        if owner:
+            payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
         base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
@@ -253,6 +256,8 @@ class AlertService:
                 "create_time": item['content']['occurred_time'],
                 "content": item["content"]["value"]
             }
+            owner = CommentService.extract_owner_from_content(row["content"])
+            row["author"] = owner if owner else row["author"]
             
             # Query file information by comment_id associated with id
             comment_id = str(item['id'])

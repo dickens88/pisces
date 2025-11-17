@@ -1,16 +1,15 @@
 import json
-import uuid
 import os
-import re
+import uuid
+from io import BytesIO
 
 from flask import request, send_file
-from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from werkzeug.utils import secure_filename
-from io import BytesIO
 
 from controllers.comment_service import CommentService
 from models.comment import Comment
+from utils.jwt_helper import auth_required
 from utils.logger_init import logger
 
 # 文件大小限制：500KB
@@ -122,22 +121,20 @@ class CommentView(Resource):
         
         return True, file_data, file_type, None
 
-    @jwt_required()
-    def post(self, event_id=None):
+    @auth_required
+    def post(self, username=None, event_id=None):
         try:
             # Parse request data
             if 'file' in request.files:
                 # Multipart form data (with file)
                 event_id = request.form.get('event_id')
                 comment = request.form.get('comment', '')
-                owner = request.form.get('owner', 'charles liu')
                 file = request.files['file']
             else:
                 # JSON data (text only)
                 data = json.loads(request.data)
                 event_id = data['event_id']
                 comment = data['comment']
-                owner = data.get('owner', 'charles liu')
                 file = None
             
             if not event_id:
@@ -156,7 +153,7 @@ class CommentView(Resource):
                 file_name = sanitized_filename
             
             # Step 1: Create comment via external API
-            result = CommentService.create_comment(event_id=event_id, comment=comment, owner=owner)
+            result = CommentService.create_comment(event_id=event_id, comment=comment, owner=username)
             
             # Step 2: Extract comment_id from response
             comment_id = self._extract_comment_id(result)
@@ -170,7 +167,7 @@ class CommentView(Resource):
                 Comment.create_comment(
                     event_id=event_id,
                     comment_id=comment_id,
-                    owner=owner,
+                    owner=username,
                     message=comment,
                     file_type=file_type,
                     file_name=file_name,
@@ -183,8 +180,8 @@ class CommentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    @jwt_required()
-    def get(self, event_id=None, comment_id=None):
+    @auth_required
+    def get(self, username=None, event_id=None, comment_id=None):
         try:
             if event_id:
                 # 获取事件的所有评论
@@ -200,8 +197,8 @@ class CommentView(Resource):
 class CommentDownloadView(Resource):
     """For attachment download"""
     
-    @jwt_required()
-    def get(self, comment_id):
+    @auth_required
+    def get(self, username=None, comment_id=None):
         try:
             # 根据 comment_id 获取单个评论（用于下载文件）
             db_comment = CommentService.get_comment_by_comment_id(comment_id)

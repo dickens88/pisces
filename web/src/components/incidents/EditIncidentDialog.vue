@@ -3,12 +3,10 @@
     <div
       v-if="visible"
       class="fixed inset-0 z-50 flex items-center justify-end"
-      @click.self="handleClose"
     >
       <!-- 遮罩层 -->
       <div 
         class="fixed inset-0 bg-black/50"
-        @click="handleClose"
       ></div>
       
       <!-- 编辑事件面板 - 有滑入动画 -->

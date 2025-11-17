@@ -37,7 +37,6 @@ class Alert(Base):
             "id": self.id,
             "alert_id": self.alert_id,
             "create_time": self.create_time,
-            "last_update_time": self.last_update_time,
             "close_time": self.close_time,
             "title": self.title,
             "description": self.description,

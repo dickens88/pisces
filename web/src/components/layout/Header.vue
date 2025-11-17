@@ -43,8 +43,9 @@
           @click.stop="showUserMenu = !showUserMenu"
           class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#1a2332] transition-colors"
         >
-          <UserAvatar :name="userName || 'Guest'" />
-          <span class="text-white text-sm font-medium">{{ userName || 'Guest' }}</span>
+          <!-- 已登录但用户名尚未加载时，不再显示 Guest，而是暂时留空 -->
+          <UserAvatar :name="displayName" />
+          <span class="text-white text-sm font-medium">{{ displayName }}</span>
           <span class="material-symbols-outlined text-sm text-white/60 transition-transform duration-200" :class="{ 'rotate-180': showUserMenu }">expand_more</span>
         </button>
         
@@ -52,12 +53,29 @@
         <div
           v-if="showUserMenu"
           ref="userMenuRef"
-          class="absolute right-0 mt-2 w-40 bg-[#1a2332] border border-[#324867] rounded-lg shadow-xl overflow-hidden z-50"
+          class="absolute right-0 mt-2 w-56 bg-[#0b1220] border border-[#1f2937] rounded-xl shadow-xl overflow-hidden z-50"
         >
+          <!-- 关于：左侧图标+文字，右侧版本号+状态点 -->
+          <button
+            @click="openAbout"
+            class="w-full px-4 py-2.5 text-sm text-white hover:bg-[#111827] transition-colors flex items-center"
+          >
+            <div class="flex items-center gap-2 flex-1">
+              <span class="material-symbols-outlined text-base text-white/80">info</span>
+              <span>About</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-white/70">{{ systemVersion || '-' }}</span>
+              <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
+            </div>
+          </button>
+
+          <div class="border-t border-[#1f2937]" />
+
           <button
             v-if="!isAuthenticated"
             @click="handleLogin"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2"
+            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#111827] transition-colors flex items-center gap-2"
           >
             <span class="material-symbols-outlined text-base">login</span>
             <span>{{ $t('common.login.login') }}</span>
@@ -65,10 +83,66 @@
           <button
             v-if="isAuthenticated"
             @click="handleLogout"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2"
+            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#111827] transition-colors flex items-center gap-2"
           >
             <span class="material-symbols-outlined text-base">logout</span>
             <span>{{ $t('common.login.logout') }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About 弹窗（参考 Dify 样式） -->
+    <div
+      v-if="showAboutDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md pt-8 pb-4 px-8 relative text-center">
+        <button
+          class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+          @click="showAboutDialog = false"
+        >
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+
+        <!-- Logo / 产品名 -->
+        <div class="mb-2">
+          <div class="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 overflow-hidden">
+            <!-- 使用站点自定义 Logo -->
+            <img
+              src="/pisces_logo.png"
+              alt="Pisces Logo"
+              class="h-10 w-10 object-contain"
+            >
+          </div>
+          <h3 class="text-xl font-semibold text-slate-900 tracking-tight">
+            Pisces
+          </h3>
+          <p class="text-sm text-slate-500 mt-1">
+            Version {{ systemVersion || '-' }}
+          </p>
+        </div>
+
+        <!-- 版权与链接信息 -->
+        <div class="mt-4 space-y-1 text-xs text-slate-500">
+          <div>© {{ new Date().getFullYear() }} Pisces Platform.</div>
+          <div class="space-x-2">
+            <a href="javascript:void(0)" class="text-sky-500 hover:underline">Privacy Policy</a>
+            <span class="text-slate-400">•</span>
+            <a href="javascript:void(0)" class="text-sky-500 hover:underline">Terms of Service</a>
+          </div>
+        </div>
+
+        <!-- 底部提示和按钮 -->
+        <div class="mt-6 flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+          <span>
+            Pisces {{ systemVersion || '-' }} is the latest version available.
+          </span>
+          <button
+            class="ml-4 inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            type="button"
+          >
+            Changelog
           </button>
         </div>
       </div>
@@ -82,6 +156,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { getSystemInfo } from '@/api/system'
 import { getAppConfig } from '@config'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 
@@ -101,10 +176,12 @@ const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 const currentLocale = ref(locale.value)
 const showLanguageMenu = ref(false)
 const showUserMenu = ref(false)
+const showAboutDialog = ref(false)
 const languageMenuRef = ref(null)
 const languageButtonRef = ref(null)
 const userMenuRef = ref(null)
 const userMenuButtonRef = ref(null)
+const systemVersion = ref('')
 
 const userName = computed(() => {
   return authStore.user?.username || ''
@@ -113,6 +190,21 @@ const userName = computed(() => {
 const isAuthenticated = computed(() => {
   return authStore.isAuthenticated
 })
+
+// 展示用姓名：
+// - 未登录：显示 Guest
+// - 已登录但用户名尚未从接口返回：显示空字符串（避免先变 Guest 再变 admin 的闪烁）
+const displayName = computed(() => {
+  if (!isAuthenticated.value) {
+    return 'Guest'
+  }
+  return userName.value || ''
+})
+
+const openAbout = () => {
+  showAboutDialog.value = true
+  showUserMenu.value = false
+}
 
 const selectLanguage = (lang) => {
   currentLocale.value = lang
@@ -172,6 +264,25 @@ onMounted(() => {
   currentLocale.value = appStore.locale
   locale.value = appStore.locale
   document.addEventListener('click', handleClickOutside)
+
+  // 获取当前登录用户信息（用户名等），用于在 Header 显示
+  // 仅在已认证且启用认证的情况下调用
+  if (config.enableAuth && authStore.token) {
+    getSystemInfo()
+      .then((res) => {
+        if (res && res.data) {
+          if (res.data.username) {
+            authStore.setUser({ username: res.data.username })
+          }
+          if (res.data.version) {
+            systemVersion.value = res.data.version
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load system info:', err)
+      })
+  }
 })
 
 onUnmounted(() => {
