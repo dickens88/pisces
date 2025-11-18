@@ -286,6 +286,7 @@
                       v-for="edge in displayGraphEdges"
                       :key="edge.id"
                       :d="edge.path"
+                      fill="none"
                       :class="[
                         'graph-edge',
                         {
@@ -1805,18 +1806,18 @@ onMounted(() => {
   stroke: #64748b;
   stroke-opacity: 0.25;
   stroke-width: 1.4;
-  transition: all 0.2s ease;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
 }
 
 .event-graph-svg .graph-edge:hover {
   stroke-opacity: 0.9;
-  stroke-width: 3.2;
+  stroke-width: 2.8;
 }
 
 .event-graph-svg .graph-edge--active {
   stroke: #38bdf8;
   stroke-opacity: 0.85;
-  stroke-width: 3;
+  stroke-width: 2.6;
 }
 
 .event-graph-svg .graph-edge--related {
@@ -1824,7 +1825,7 @@ onMounted(() => {
 }
 
 .event-graph-svg .graph-edge--dimmed {
-  opacity: 0.18;
+  opacity: 0.2;
 }
 
 .event-graph-svg .graph-node circle {
