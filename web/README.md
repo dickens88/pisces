@@ -124,7 +124,7 @@ VITE_API_BASE_URL=/api
 VITE_API_TARGET=http://localhost:8080
 
 # 前端基础路径（如部署在子路径或指定完整URL）
-VITE_WEB_BASE_URL=https://huntingportal.dearcharles.cn/pisces
+VITE_WEB_BASE_PATH=https://huntingportal.dearcharles.cn/pisces
 
 # 认证配置
 # 是否启用认证（默认：true）

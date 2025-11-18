@@ -6,12 +6,7 @@ import { getAppConfig } from './config.js'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const config = getAppConfig(env, mode === 'production')
-  // Extract path from VITE_WEB_BASE_URL (should be a path like /pisces, not full URL)
-  const webBaseUrl = env.VITE_WEB_BASE_URL || '/'
-  // If it's a full URL, extract the path; otherwise use as-is
-  const baseUrl = webBaseUrl.startsWith('http') 
-    ? new URL(webBaseUrl).pathname || '/'
-    : webBaseUrl
+  const baseUrl = env.VITE_WEB_BASE_PATH || '/'
   
   return {
     base: baseUrl,

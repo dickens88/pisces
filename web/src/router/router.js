@@ -64,7 +64,7 @@ const routes = [
 ]
 
 const getRouterBase = () => {
-  const raw = import.meta.env.VITE_WEB_BASE_URL
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
   if (!raw || raw === '/') return '/'
   return raw.startsWith('/') ? raw : `/${raw}`
 }
