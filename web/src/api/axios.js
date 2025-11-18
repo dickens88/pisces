@@ -1,4 +1,5 @@
 import axios from 'axios'
+import router from '@/router/router'
 import { useAuthStore } from '@/stores/auth'
 import { getAppConfig } from '@config'
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
@@ -73,6 +74,37 @@ service.interceptors.request.use(
   }
 )
 
+function redirectToLogin() {
+  // Tianyan mode still relies on external login page
+  if (config.authMode === 'tianyan') {
+    const currentUrl = window.location.href
+    const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+    window.location.href = loginUrl
+    return
+  }
+
+  const currentRoute = router.currentRoute?.value
+  const isAlreadyOnLogin = currentRoute?.name === 'Login' || window.location.pathname === '/login'
+
+  if (isAlreadyOnLogin) {
+    return
+  }
+
+  const query =
+    currentRoute && currentRoute.fullPath ? { redirect: currentRoute.fullPath } : undefined
+
+  router
+    .replace({
+      name: 'Login',
+      ...(query ? { query } : {})
+    })
+    .catch(() => {
+      // Fallback to hard navigation if router navigation fails
+      const resolved = router.resolve({ name: 'Login', ...(query ? { query } : {}) })
+      window.location.href = resolved.href
+    })
+}
+
 // Response interceptor
 service.interceptors.response.use(
   response => {
@@ -94,43 +126,12 @@ service.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Unauthorized, clear token and redirect to login page
-          // 只有在启用认证时才处理 401 错误
-          if (config.enableAuth) {
-            const authStore = useAuthStore()
-            authStore.logout()
-            
-            // 如果使用tianyan-web认证模式，重定向到tianyan-web登录页面
-            if (config.authMode === 'tianyan') {
-              const currentUrl = window.location.href
-              const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
-              window.location.href = loginUrl
-            } else {
-              // 使用本地认证，重定向到本地登录页面
-              if (window.location.pathname !== '/login') {
-                window.location.href = '/login'
-              }
-            }
-          }
-          break
         case 422:
-          // Unprocessable Entity, often used for invalid token or authentication errors
-          // 只有在启用认证时才处理 422 错误
+          // Unauthorized / invalid token, clear token and redirect to login page
           if (config.enableAuth) {
             const authStore = useAuthStore()
             authStore.logout()
-            
-            // 如果使用tianyan-web认证模式，重定向到tianyan-web登录页面
-            if (config.authMode === 'tianyan') {
-              const currentUrl = window.location.href
-              const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
-              window.location.href = loginUrl
-            } else {
-              // 使用本地认证，重定向到本地登录页面
-              if (window.location.pathname !== '/login') {
-                window.location.href = '/login'
-              }
-            }
+            redirectToLogin()
           }
           break
         case 403:
