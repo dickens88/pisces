@@ -1,0 +1,520 @@
+{
+  "nodes": [
+    {
+      "id": "sectool_soc001-bandwidth-0730",
+      "labels": ["sectool_soc001-bandwidth-0730"],
+      "properties": {
+        "entity_id": "sectool_soc001-bandwidth-0730",
+        "entity_type": "host",
+        "description": "Host located in cn-north-9, linked to tenant HIS_shennong with IPs 116.204.90.86 and 192.168.0.25.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055753,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "116.204.90.86",
+      "labels": ["116.204.90.86"],
+      "properties": {
+        "entity_id": "116.204.90.86",
+        "entity_type": "ip",
+        "description": "EIP on tenant side for HIS_shennong, involved in accessing a suspicious OBS bucket.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055741,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.89.44.195",
+      "labels": ["100.89.44.195"],
+      "properties": {
+        "entity_id": "100.89.44.195",
+        "entity_type": "ip",
+        "description": "Tenant-side FIP associated with malicious tenant hwstaff_pub_pentest and abnormal remoteConsole API calls.",
+        "source_id": "chunk-15a19329d91f6080e0fce214e85a19a3",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055745,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "110.41.111.195",
+      "labels": ["110.41.111.195"],
+      "properties": {
+        "entity_id": "110.41.111.195",
+        "entity_type": "ip",
+        "description": "IP associated with hwstaff_pub_pentest that attempted remote console calls and returned 403.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055748,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "hwstaff_pub_pentest",
+      "labels": ["hwstaff_pub_pentest"],
+      "properties": {
+        "entity_id": "hwstaff_pub_pentest",
+        "entity_type": "tenant",
+        "description": "Malicious tenant (V3) responsible for abnormal API calls targeting management containers.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055748,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "op_svc_mgmt_container1",
+      "labels": ["op_svc_mgmt_container1"],
+      "properties": {
+        "entity_id": "op_svc_mgmt_container1",
+        "entity_type": "tenant",
+        "description": "Carrier tenant (V4) providing MGS-Management service and targeted by abnormal remote console calls.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055748,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "hwstaff_hybrid_pentest",
+      "labels": ["hwstaff_hybrid_pentest"],
+      "properties": {
+        "entity_id": "hwstaff_hybrid_pentest",
+        "entity_type": "tenant",
+        "description": "Internal tenant owned by Zhang Jiade, mapped to host 100.88.203.136.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055743,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.88.203.136",
+      "labels": ["100.88.203.136"],
+      "properties": {
+        "entity_id": "100.88.203.136",
+        "entity_type": "ip",
+        "description": "Host IP located in China-Hong Kong, tagged as Huawei Cloud internal tenant asset.",
+        "source_id": "chunk-e44ef00c0a6868a682486abd3cff349d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055751,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "sa_ops_user1",
+      "labels": ["sa_ops_user1"],
+      "properties": {
+        "entity_id": "sa_ops_user1",
+        "entity_type": "userid",
+        "description": "IAM sub-account belonging to op_svc_mgmt_container1, described as Hu Tianshuo 00536693.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055748,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Hu Tianshuo 00536693",
+      "labels": ["Hu Tianshuo 00536693"],
+      "properties": {
+        "entity_id": "Hu Tianshuo 00536693",
+        "entity_type": "user",
+        "description": "Owner description of sub-account sa_ops_user1, contact hutianshuo@huawei.com.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055753,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "autohhhf1c41ef4fe1bff5b3f41c5485b133c0d",
+      "labels": ["autohhhf1c41ef4fe1bff5b3f41c5485b133c0d"],
+      "properties": {
+        "entity_id": "autohhhf1c41ef4fe1bff5b3f41c5485b133c0d",
+        "entity_type": "other",
+        "description": "Suspicious OBS bucket owned by hwstaff_pub_redteam and accessed by 116.204.90.86.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055741,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "OBS_Malware_Access",
+      "labels": ["OBS_Malware_Access"],
+      "properties": {
+        "entity_id": "OBS_Malware_Access",
+        "entity_type": "alert",
+        "description": "High severity alert: IP 116.204.90.86 accessed suspicious OBS bucket autohhhf1c41ef4fe1bff5b3f41c5485b133c0d.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055741,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Abnormal Call Account Alert",
+      "labels": ["Abnormal Call Account Alert"],
+      "properties": {
+        "entity_id": "Abnormal Call Account Alert",
+        "entity_type": "alert",
+        "description": "High-level alert for abnormal API calls from malicious IPs against op_svc_mgmt_container1.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055748,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "CTS Abnormal Operation Alert",
+      "labels": ["CTS Abnormal Operation Alert"],
+      "properties": {
+        "entity_id": "CTS Abnormal Operation Alert",
+        "entity_type": "alert",
+        "description": "Alert for abnormal remoteConsole execution detected by Cloud Trace Service.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055749,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Event 91819026-a148-4eaf-b14d-c204297d31ab",
+      "labels": ["Event 91819026-a148-4eaf-b14d-c204297d31ab"],
+      "properties": {
+        "entity_id": "Event 91819026-a148-4eaf-b14d-c204297d31ab",
+        "entity_type": "event",
+        "description": "Low-level alert event describing abnormal API calls targeting op_svc_mgmt_container1.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055749,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "remoteConsole",
+      "labels": ["remoteConsole"],
+      "properties": {
+        "entity_id": "remoteConsole",
+        "entity_type": "operation",
+        "description": "Operation to access server remote consoles, flagged as abnormal.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055754,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Console.huaweicloud.com",
+      "labels": ["Console.huaweicloud.com"],
+      "properties": {
+        "entity_id": "Console.huaweicloud.com",
+        "entity_type": "domain",
+        "description": "Primary management domain targeted by scan and remote console attempts.",
+        "source_id": "chunk-e44ef00c0a6868a682486abd3cff349d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055751,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "MGS-Management",
+      "labels": ["MGS-Management"],
+      "properties": {
+        "entity_id": "MGS-Management",
+        "entity_type": "service",
+        "description": "Service owned by op_svc_mgmt_container1, exposed via management APIs.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055747,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Dongguan Xingyun",
+      "labels": ["Dongguan Xingyun"],
+      "properties": {
+        "entity_id": "Dongguan Xingyun",
+        "entity_type": "service",
+        "description": "Service name associated with the malicious tenant hwstaff_pub_pentest.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055747,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "cn-south-4",
+      "labels": ["cn-south-4"],
+      "properties": {
+        "entity_id": "cn-south-4",
+        "entity_type": "region",
+        "description": "Region where malicious operations from hwstaff_pub_pentest originated.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055749,
+        "truncate": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "116.204.90.86-autohhhf1c41ef4fe1bff5b3f41c5485b133c0d",
+      "type": "DIRECTED",
+      "source": "116.204.90.86",
+      "target": "autohhhf1c41ef4fe1bff5b3f41c5485b133c0d",
+      "properties": {
+        "weight": 1,
+        "description": "IP 116.204.90.86 accessed the suspicious OBS bucket.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055757,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "116.204.90.86-OBS_Malware_Access",
+      "type": "DIRECTED",
+      "source": "116.204.90.86",
+      "target": "OBS_Malware_Access",
+      "properties": {
+        "weight": 1,
+        "description": "Alert triggered by access from 116.204.90.86.",
+        "source_id": "chunk-b649f6b4bfd13296fa17d1a0c5c47db8",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055758,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "sectool_soc001-bandwidth-0730-116.204.90.86",
+      "type": "DIRECTED",
+      "source": "sectool_soc001-bandwidth-0730",
+      "target": "116.204.90.86",
+      "properties": {
+        "weight": 1,
+        "description": "Host sectool_soc001-bandwidth-0730 uses IP 116.204.90.86.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055753,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "hwstaff_pub_pentest-Dongguan Xingyun",
+      "type": "DIRECTED",
+      "source": "hwstaff_pub_pentest",
+      "target": "Dongguan Xingyun",
+      "properties": {
+        "weight": 1,
+        "description": "Tenant hwstaff_pub_pentest is associated with service Dongguan Xingyun.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055783,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "hwstaff_pub_pentest-cn-south-4",
+      "type": "DIRECTED",
+      "source": "hwstaff_pub_pentest",
+      "target": "cn-south-4",
+      "properties": {
+        "weight": 1,
+        "description": "Malicious tenant operates primarily from the cn-south-4 region.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055769,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.89.44.195-hwstaff_pub_pentest",
+      "type": "DIRECTED",
+      "source": "100.89.44.195",
+      "target": "hwstaff_pub_pentest",
+      "properties": {
+        "weight": 3,
+        "description": "IP address attributed to the malicious tenant hwstaff_pub_pentest.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055768,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.89.44.195-op_svc_mgmt_container1",
+      "type": "DIRECTED",
+      "source": "100.89.44.195",
+      "target": "op_svc_mgmt_container1",
+      "properties": {
+        "weight": 2,
+        "description": "Malicious API calls from 100.89.44.195 targeted op_svc_mgmt_container1.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055769,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "op_svc_mgmt_container1-sa_ops_user1",
+      "type": "DIRECTED",
+      "source": "op_svc_mgmt_container1",
+      "target": "sa_ops_user1",
+      "properties": {
+        "weight": 3,
+        "description": "Tenant owns and authenticates the sub-account sa_ops_user1.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055770,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "sa_ops_user1-Hu Tianshuo 00536693",
+      "type": "DIRECTED",
+      "source": "sa_ops_user1",
+      "target": "Hu Tianshuo 00536693",
+      "properties": {
+        "weight": 1,
+        "description": "Sub-account described as Hu Tianshuo 00536693.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055774,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.89.44.195-remoteConsole",
+      "type": "DIRECTED",
+      "source": "100.89.44.195",
+      "target": "remoteConsole",
+      "properties": {
+        "weight": 1,
+        "description": "Malicious IP executed remoteConsole operations.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055786,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "remoteConsole-Console.huaweicloud.com",
+      "type": "DIRECTED",
+      "source": "remoteConsole",
+      "target": "Console.huaweicloud.com",
+      "properties": {
+        "weight": 1,
+        "description": "Operation targeted the console management domain.",
+        "source_id": "chunk-e44ef00c0a6868a682486abd3cff349d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055781,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "100.89.44.195-Abnormal Call Account Alert",
+      "type": "DIRECTED",
+      "source": "100.89.44.195",
+      "target": "Abnormal Call Account Alert",
+      "properties": {
+        "weight": 1,
+        "description": "Alert triggered by abnormal calls from 100.89.44.195.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055776,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "Abnormal Call Account Alert-Event 91819026-a148-4eaf-b14d-c204297d31ab",
+      "type": "DIRECTED",
+      "source": "Abnormal Call Account Alert",
+      "target": "Event 91819026-a148-4eaf-b14d-c204297d31ab",
+      "properties": {
+        "weight": 1,
+        "description": "Event captured the abnormal API call details.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055775,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "110.41.111.195-hwstaff_pub_pentest",
+      "type": "DIRECTED",
+      "source": "110.41.111.195",
+      "target": "hwstaff_pub_pentest",
+      "properties": {
+        "weight": 2,
+        "description": "Additional malicious IP associated with the pentest tenant.",
+        "source_id": "chunk-bf889be68c312005f4b59f01b5aee530",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055773,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "110.41.111.195-Abnormal Call Account Alert",
+      "type": "DIRECTED",
+      "source": "110.41.111.195",
+      "target": "Abnormal Call Account Alert",
+      "properties": {
+        "weight": 1,
+        "description": "Alert also captured activity from 110.41.111.195.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055775,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "hwstaff_hybrid_pentest-100.88.203.136",
+      "type": "DIRECTED",
+      "source": "hwstaff_hybrid_pentest",
+      "target": "100.88.203.136",
+      "properties": {
+        "weight": 1,
+        "description": "Tenant hwstaff_hybrid_pentest owns host 100.88.203.136.",
+        "source_id": "chunk-e44ef00c0a6868a682486abd3cff349d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055783,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "MGS-Management-op_svc_mgmt_container1",
+      "type": "DIRECTED",
+      "source": "MGS-Management",
+      "target": "op_svc_mgmt_container1",
+      "properties": {
+        "weight": 1,
+        "description": "Service MGS-Management is delivered by op_svc_mgmt_container1.",
+        "source_id": "chunk-1924034c6c42ff54f9cf48c562f4c0b2",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055784,
+        "truncate": ""
+      }
+    },
+    {
+      "id": "CTS Abnormal Operation Alert-remoteConsole",
+      "type": "DIRECTED",
+      "source": "CTS Abnormal Operation Alert",
+      "target": "remoteConsole",
+      "properties": {
+        "weight": 1,
+        "description": "CTS alert triggered by abnormal remote console operations.",
+        "source_id": "chunk-d743c3495ce722c80302a003fd0a5f5d",
+        "file_path": "cn_alert.txt",
+        "created_at": 1763055772,
+        "truncate": ""
+      }
+    }
+  ],
+  "is_truncated": false
+}
+
