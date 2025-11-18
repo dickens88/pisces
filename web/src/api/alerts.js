@@ -2,34 +2,53 @@ import service from './axios.js'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
+const API_SEVERITY_TO_CLIENT_MAP = {
+  'Fatal': 'fatal',
+  'High': 'high',
+  'Medium': 'medium',
+  'Low': 'low',
+  'Tips': 'tips'
+}
+
+const CLIENT_SEVERITY_TO_API_MAP = {
+  'fatal': 'Fatal',
+  'high': 'High',
+  'medium': 'Medium',
+  'low': 'Low',
+  'tips': 'Tips'
+}
+
+const API_STATUS_TO_CLIENT_MAP = {
+  'Open': 'open',
+  'Block': 'block',
+  'Closed': 'closed'
+}
+
+const CLIENT_STATUS_TO_API_MAP = {
+  'open': 'Open',
+  'block': 'Block',
+  'closed': 'Closed'
+}
+
+const CLOSE_REASON_CATEGORY_MAP = {
+  'falsePositive': 'False detection',
+  'resolved': 'Resolved',
+  'repeated': 'Repeated',
+  'other': 'Other'
+}
+
 /**
  * @brief 转换API返回的告警数据为前端期望的格式
  * @param {Object} apiAlert - API返回的告警对象
  * @returns {Object} 转换后的告警对象
  */
 const transformAlertData = (apiAlert) => {
-  // Convert severity to riskLevel (Fatal/High/Medium/Low/Tips -> fatal/high/medium/low/tips)
-  const severityMap = {
-    'Fatal': 'fatal',
-    'High': 'high',
-    'Medium': 'medium',
-    'Low': 'low',
-    'Tips': 'tips'
-  }
-  
-  // Convert handle_status to status (Open/Block/Closed -> open/block/closed)
-  const statusMap = {
-    'Open': 'open',
-    'Block': 'block',
-    'Closed': 'closed'
-  }
-  
   return {
     id: apiAlert.id,
     createTime: apiAlert.create_time || apiAlert.createTime,
     title: apiAlert.title,
-    riskLevel: severityMap[apiAlert.severity] || apiAlert.severity?.toLowerCase() || 'medium',
-    status: statusMap[apiAlert.handle_status] || apiAlert.handle_status?.toLowerCase() || 'open',
+    riskLevel: API_SEVERITY_TO_CLIENT_MAP[apiAlert.severity] || apiAlert.severity?.toLowerCase() || 'medium',
+    status: API_STATUS_TO_CLIENT_MAP[apiAlert.handle_status] || apiAlert.handle_status?.toLowerCase() || 'open',
     owner: apiAlert.owner,
     // Keep original fields for detail page use
     severity: apiAlert.severity,
@@ -79,13 +98,8 @@ const buildConditions = (searchKeywords, status) => {
   
   // Add status condition
   if (status && status !== 'all') {
-    const statusMap = {
-      'open': 'Open',
-      'block': 'Block',
-      'closed': 'Closed'
-    }
     conditions.push({
-      'handle_status': statusMap[status] || status
+      'handle_status': CLIENT_STATUS_TO_API_MAP[status] || status
     })
   }
   
@@ -288,14 +302,7 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
 // 关闭单个告警
 export const closeAlert = (alertId, params) => {
   // 将 category 映射到 close_reason
-  const reasonMap = {
-    'falsePositive': 'False detection',
-    'resolved': 'Resolved',
-    'repeated': 'Repeated',
-    'other': 'Other'
-  }
-  
-  const closeReason = reasonMap[params.category] || params.category || 'Other'
+  const closeReason = CLOSE_REASON_CATEGORY_MAP[params.category] || params.category || 'Other'
   
   return service.put(`/alerts/${alertId}`, {
     action: 'close',
@@ -320,14 +327,7 @@ export const batchCloseAlerts = (params) => {
  */
 export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
   // 将 category 映射到 close_reason
-  const reasonMap = {
-    'falsePositive': 'False detection',
-    'resolved': 'Resolved',
-    'repeated': 'Repeated',
-    'other': 'Other'
-  }
-  
-  const mappedCloseReason = reasonMap[closeReason] || closeReason || 'Other'
+  const mappedCloseReason = CLOSE_REASON_CATEGORY_MAP[closeReason] || closeReason || 'Other'
   
   const payload = {
     batch_ids: alertIds,
@@ -374,29 +374,14 @@ export const getAssociatedAlerts = (alertId) => {
  * @returns {Promise} 返回创建的告警数据
  */
 export const createAlert = (data) => {
-  // 将前端字段映射为后端期望的格式
-  const severityMap = {
-    'fatal': 'Fatal',
-    'high': 'High',
-    'medium': 'Medium',
-    'low': 'Low',
-    'tips': 'TIPS'
-  }
-  
-  const statusMap = {
-    'open': 'Open',
-    'block': 'Block',
-    'closed': 'Closed'
-  }
-  
   // 构建请求体，符合后端期望的格式
   const requestBody = {
     action: 'create',
     data: {
       title: data.title,
       create_time: formatTimestamp(data.timestamp),
-      severity: severityMap[data.riskLevel] || data.riskLevel || 'Medium',
-      handle_status: statusMap[data.status] || data.status || 'Open',
+      severity: CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium',
+      handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
       owner: data.owner,
       creator: data.creator || data.owner || 'System',
       rule_name: data.ruleName || '',
@@ -421,29 +406,14 @@ export const createAlert = (data) => {
  * @returns {Promise} 返回更新的告警数据
  */
 export const updateAlert = (alertId, data) => {
-  // 将前端字段映射为后端期望的格式
-  const severityMap = {
-    'fatal': 'Fatal',
-    'high': 'High',
-    'medium': 'Medium',
-    'low': 'Low',
-    'tips': 'TIPS'
-  }
-  
-  const statusMap = {
-    'open': 'Open',
-    'block': 'Block',
-    'closed': 'Closed'
-  }
-  
   // 构建请求体，符合后端期望的格式，与创建告警类似但 action 为 'update'
   const requestBody = {
     action: 'update',
     data: {
       title: data.title,
       create_time: formatTimestamp(data.timestamp),
-      severity: severityMap[data.riskLevel] || data.riskLevel || 'Medium',
-      handle_status: statusMap[data.status] || data.status || 'Open',
+      severity: CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium',
+      handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
       owner: data.owner,
       rule_name: data.ruleName || '',
       description: data.description

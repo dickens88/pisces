@@ -6,10 +6,10 @@ import { getAppConfig } from './config.js'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const config = getAppConfig(env, mode === 'production')
-  const basePath = env.VITE_WEB_BASE_PATH || '/'
+  const baseUrl = env.VITE_WEB_BASE_URL || '/'
   
   return {
-    base: basePath,
+    base: baseUrl,
     plugins: [vue()],
     resolve: {
       alias: {

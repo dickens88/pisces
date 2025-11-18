@@ -63,7 +63,13 @@ const routes = [
   }
 ]
 
-const base = import.meta.env.VITE_WEB_BASE_PATH || '/'
+const getRouterBase = () => {
+  const raw = import.meta.env.VITE_WEB_BASE_URL
+  if (!raw || raw === '/') return '/'
+  return raw.startsWith('/') ? raw : `/${raw}`
+}
+
+const base = getRouterBase()
 
 const router = createRouter({
   history: createWebHistory(base),
