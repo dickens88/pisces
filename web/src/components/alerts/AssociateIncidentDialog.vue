@@ -254,6 +254,7 @@ const loadIncidents = async () => {
   try {
     // Build parameters in the format expected by the backend
     const params = {
+      action: 'list',
       limit: pageSize.value,
       offset: (page.value - 1) * pageSize.value,
       time_range: 90, // Default to 3 months to show more incidents
