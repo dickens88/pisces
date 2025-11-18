@@ -61,7 +61,7 @@ class AlertService:
                 "is_auto_closed": item['data_object'].get('is_auto_closed'),
                 "title": item['data_object']['title'],
                 "owner": item['data_object'].get('owner'),
-                "actor": item['data_object']['actor'],
+                "actor": item['data_object'].get('actor'),
                 "severity": item['data_object']['severity'],
                 "close_comment": item['data_object'].get('close_comment'),
                 "creator": item['data_object']['creator'],
@@ -99,7 +99,7 @@ class AlertService:
             "is_auto_closed": item['data_object'].get('is_auto_closed'),
             "title": item['data_object']['title'],
             "owner": item['data_object']['owner'],
-            "actor": item['data_object']['actor'],
+            "actor": item['data_object'].get('actor'),
             "severity": item['data_object']['severity'],
             "close_comment": item['data_object'].get('close_comment'),
             "creator": item['data_object']['creator'],
@@ -109,6 +109,9 @@ class AlertService:
         alert_content["owner"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
         try:
             alert_content["description"] = json.loads(item['data_object']['description'])
+            # standard model_name field
+            model_name = alert_content["description"].get("model_name")
+            alert_content["description"]["model_name"] = model_name if model_name else alert_content["description"]["modelname"]
         except Exception as ex:
             alert_content["description"] = item['data_object']['description']
             logger.error(ex)

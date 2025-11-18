@@ -33,7 +33,10 @@
             <p class="text-xs shrink-0 text-slate-400">{{ comment.time }}</p>
           </div>
           <div class="mt-2 text-sm leading-relaxed text-slate-300 bg-slate-800 p-3 rounded-lg border border-slate-700">
-            <div v-html="sanitizeHtml(comment.content)"></div>
+            <div 
+              v-html="sanitizeHtml(comment.content)"
+              class="comment-content"
+            ></div>
             
             <!-- Display file attachments from backend -->
             <div v-if="comment.file" class="mt-3">
@@ -252,6 +255,19 @@ defineExpose({
 </script>
 
 <style scoped>
-/* 组件样式 */
+/* Ensure long comment text wraps inside the bubble instead of overflowing */
+.comment-content {
+  white-space: pre-wrap;          /* keep line breaks, wrap long lines */
+  word-wrap: break-word;          /* legacy name */
+  overflow-wrap: anywhere;        /* modern name, handles very long tokens/URLs */
+}
+
+/* Ensure <pre> / <code> blocks inside comments also wrap instead of overflowing */
+.comment-content :deep(pre),
+.comment-content :deep(code) {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
 </style>
 

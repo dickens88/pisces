@@ -472,16 +472,19 @@ class StatisticsService:
 
         stats = []
         for row in results:
-            total = row.total or 0
+            total_raw = row.total or 0
+            correct_raw = row.correct or 0
+
+            total = int(total_raw)
             if total == 0:
                 continue
-            correct = row.correct or 0
-            accuracy = round((correct / total) * 100, 1)
+            correct = int(correct_raw)
+            accuracy = round((correct / total) * 100.0, 1)
             stats.append({
                 'model_name': row.model_name,
-                'accuracy': accuracy,
-                'correct': int(correct),
-                'total': int(total)
+                'accuracy': float(accuracy),
+                'correct': correct,
+                'total': total
             })
 
         stats.sort(key=lambda item: item['accuracy'], reverse=True)
