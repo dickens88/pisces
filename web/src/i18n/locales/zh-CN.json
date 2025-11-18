@@ -316,19 +316,55 @@
       },
       "tabs": {
         "overview": "概览",
-        "timeline": "时间线与告警",
+        "eventGraph": "攻击图谱",
         "attackChain": "攻击链",
         "comments": "评论"
       },
-      "timeline": {
-        "title": "时间线",
-        "incidentCreated": "事件已创建",
-        "incidentCreatedDesc": "事件已创建",
-        "alertConverted": "告警转换为事件",
-        "severityChanged": "严重等级已更改",
-        "ownerChanged": "责任人已更改",
-        "incidentClosed": "事件已关闭",
-        "incidentClosedDesc": "事件已关闭"
+      "eventGraph": {
+        "title": "攻击图谱",
+        "summaryTitle": "事件概要",
+        "summaryParagraph1": "将可疑租户、远程控制尝试与恶意存储桶统一在同一图谱中，帮助运营团队在数秒内洞察跨租户影响。",
+        "summaryParagraph2": "攻击图谱关联了{nodes}个实体与{edges}条关系，覆盖{alerts}条告警与{ips}个IP资产，加速定位与处置路径。",
+        "filterPlaceholder": "过滤图谱实体…",
+        "selectorPlaceholder": "显示全部实体",
+        "controls": {
+          "zoomIn": "放大",
+          "zoomOut": "缩小",
+          "reset": "重置视图",
+          "fullscreen": "全屏",
+          "download": "下载图谱",
+          "refresh": "刷新图谱"
+        },
+        "nodeDetail": {
+          "title": "节点详情",
+          "id": "ID",
+          "labels": "标签",
+          "entityType": "实体类型",
+          "properties": "属性",
+          "relations": "关联",
+          "neighborLabel": "关联节点：",
+          "copy": "复制",
+          "prune": "移除节点",
+          "close": "关闭"
+        },
+        "legendLabels": {
+          "host": "主机",
+          "ip": "IP",
+          "domain": "域名",
+          "operation": "操作",
+          "user": "用户",
+          "tenant": "租户",
+          "alert": "告警",
+          "service": "服务",
+          "other": "实体"
+        },
+        "incidentCreated": "图谱引擎初始化",
+        "incidentCreatedDesc": "初始主机与租户侧FIP已写入攻击图谱。",
+        "alertConverted": "告警写入图谱",
+        "severityChanged": "图谱严重度调整",
+        "ownerChanged": "攻击图谱所有权更新",
+        "incidentClosed": "图谱调查关闭",
+        "incidentClosedDesc": "攻击图谱在处置完成后已归档。"
       },
       "attackChain": {
         "title": "攻击链",

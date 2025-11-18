@@ -316,19 +316,55 @@
       },
       "tabs": {
         "overview": "Overview",
-        "timeline": "Timeline & Alerts",
+        "eventGraph": "Event Graph Intelligence",
         "attackChain": "Attack Chain",
         "comments": "Comments"
       },
-      "timeline": {
-        "title": "Timeline",
-        "incidentCreated": "Incident Created",
-        "incidentCreatedDesc": "Incident has been created",
-        "alertConverted": "Alert Converted to Incident",
-        "severityChanged": "Severity Changed",
-        "ownerChanged": "Owner Changed",
-        "incidentClosed": "Incident Closed",
-        "incidentClosedDesc": "Incident has been closed"
+      "eventGraph": {
+        "title": "Event Graph Intelligence",
+        "summaryTitle": "Event Summary",
+        "summaryParagraph1": "Correlate suspicious tenants, remote console attempts, and malware storage buckets into a single context so ops teams can reason about cross-tenant impact in seconds.",
+        "summaryParagraph2": "Event Graph Intelligence correlates {nodes} entities and {edges} relationships, including {alerts} alerts and {ips} IP assets, to accelerate containment and response.",
+        "filterPlaceholder": "Filter entities…",
+        "selectorPlaceholder": "Show all entities",
+        "controls": {
+          "zoomIn": "Zoom In",
+          "zoomOut": "Zoom Out",
+          "reset": "Reset position",
+          "fullscreen": "Fullscreen",
+          "download": "Download graph",
+          "refresh": "Refresh graph"
+        },
+        "nodeDetail": {
+          "title": "Node Detail",
+          "id": "ID",
+          "labels": "Labels",
+          "entityType": "Entity Type",
+          "properties": "Properties",
+          "relations": "Relations",
+          "neighborLabel": "Neigh:",
+          "copy": "Copy",
+          "prune": "Remove node",
+          "close": "Close"
+        },
+        "legendLabels": {
+          "host": "Host",
+          "ip": "IP",
+          "domain": "Domain",
+          "operation": "Operation",
+          "user": "User",
+          "tenant": "Tenant",
+          "alert": "Alert",
+          "service": "Service",
+          "other": "Entity"
+        },
+        "incidentCreated": "Correlation Seed Created",
+        "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
+        "alertConverted": "Alert Enriched in Graph",
+        "severityChanged": "Graph Severity Updated",
+        "ownerChanged": "Graph Ownership Updated",
+        "incidentClosed": "Graph Investigation Closed",
+        "incidentClosedDesc": "Event graph was archived after mitigation."
       },
       "attackChain": {
         "title": "Attack Chain",

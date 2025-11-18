@@ -160,50 +160,252 @@
 
     <!-- 标签页内容 -->
     <div class="mt-6 flex-grow">
-      <!-- 时间线 -->
-      <div v-if="activeTab === 'timeline'" class="bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-col h-[600px] lg:h-auto">
-        <h3 class="text-white font-bold text-lg mb-4">
-          {{ $t('incidents.detail.timeline.title') }}
-        </h3>
-        <div class="flex-grow relative overflow-y-auto pr-2">
-          <div
-            v-for="(event, index) in incident?.timeline || []"
-            :key="index"
-            class="flex gap-4"
-          >
-            <div class="flex flex-col items-center">
-              <div
-                :class="[
-                  'flex items-center justify-center size-8 rounded-full',
-                  getTimelineIconBgClass(event.severity)
-                ]"
-              >
-                <span
-                  :class="[
-                    'material-symbols-outlined text-base',
-                    getTimelineIconColorClass(event.severity)
-                  ]"
-                >
-                  {{ event.icon }}
-                </span>
+      <!-- Event Graph Intelligence -->
+      <div v-if="activeTab === 'eventGraph'" class="space-y-6">
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-3">
+          <h3 class="text-white font-bold text-lg">
+            {{ $t('incidents.detail.eventGraph.summaryTitle') }}
+          </h3>
+          <p class="text-slate-300 leading-relaxed">
+            {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+          </p>
+          <p class="text-slate-300 leading-relaxed">
+            {{
+              $t('incidents.detail.eventGraph.summaryParagraph2', {
+                nodes: eventGraphStats.totalNodes,
+                edges: eventGraphStats.totalEdges,
+                alerts: eventGraphStats.alertNodes,
+                ips: eventGraphStats.ipNodes
+              })
+            }}
+          </p>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
+          <div class="flex flex-col lg:flex-row min-h-[640px]">
+            <div class="flex-1 relative bg-[#0f172a]">
+              <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
+                <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
+                  <div class="flex flex-col md:flex-row gap-4 flex-1 w-full">
+                    <div class="relative w-full md:w-64 flex items-center bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-3 pr-3 h-11">
+                      <span class="material-symbols-outlined text-slate-400 text-base mr-2">search</span>
+                      <input
+                        v-model="graphSearchQuery"
+                        type="text"
+                        class="w-full bg-transparent text-sm focus:ring-0 focus:outline-none placeholder:text-slate-500"
+                        :placeholder="$t('incidents.detail.eventGraph.filterPlaceholder')"
+                      />
+                    </div>
+                    <div class="relative w-full md:w-64">
+                      <select
+                        v-model="highlightedEntity"
+                        class="w-full h-11 bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-4 pr-10 text-sm focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
+                      >
+                        <option value="">
+                          {{
+                            graphEntityOptions.length
+                              ? $t('incidents.detail.eventGraph.selectorPlaceholder')
+                              : $t('common.noData')
+                          }}
+                        </option>
+                        <option
+                          v-for="option in graphEntityOptions"
+                          :key="option.id"
+                          :value="option.id"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-base">expand_more</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-lg px-1 h-11">
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.zoomIn')">
+                      <span class="material-symbols-outlined text-base">zoom_in</span>
+                    </button>
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.zoomOut')">
+                      <span class="material-symbols-outlined text-base">zoom_out</span>
+                    </button>
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.reset')">
+                      <span class="material-symbols-outlined text-base">center_focus_strong</span>
+                    </button>
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.fullscreen')">
+                      <span class="material-symbols-outlined text-base">fullscreen</span>
+                    </button>
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.download')">
+                      <span class="material-symbols-outlined text-base">download</span>
+                    </button>
+                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.refresh')">
+                      <span class="material-symbols-outlined text-base">refresh</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div
-                v-if="index < (incident?.timeline?.length || 0) - 1"
-                class="w-px h-full bg-slate-700 my-2"
-              ></div>
+              <div class="absolute inset-y-0 left-0 p-4 flex items-center z-10 pointer-events-none">
+                <div class="pointer-events-auto flex items-start" @click.stop>
+                  <div class="flex flex-col gap-1.5 text-[11px] uppercase tracking-wide">
+                    <button
+                      v-for="entry in legendEntries"
+                      :key="entry.key"
+                      type="button"
+                      class="legend-entry"
+                      :class="{ 'legend-entry--active': legendFlashKey === entry.key }"
+                      @click.stop="handleLegendClick(entry.key)"
+                    >
+                      <span class="legend-entry__dot" :style="{ backgroundColor: entry.color }"></span>
+                      <span class="legend-entry__label">{{ entry.label }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="w-full h-full" @click="handleGraphBackgroundClick">
+                <svg ref="graphSvgRef" class="w-full h-full event-graph-svg" viewBox="0 0 1000 640">
+                  <defs>
+                    <radialGradient id="grad-rose">
+                      <stop offset="0%" stop-color="#fda4af" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.12" />
+                    </radialGradient>
+                    <radialGradient id="grad-cyan">
+                      <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.12" />
+                    </radialGradient>
+                    <radialGradient id="grad-emerald">
+                      <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#10b981" stop-opacity="0.12" />
+                    </radialGradient>
+                    <radialGradient id="grad-amber">
+                      <stop offset="0%" stop-color="#fcd34d" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.12" />
+                    </radialGradient>
+                    <radialGradient id="grad-violet">
+                      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.45" />
+                      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.12" />
+                    </radialGradient>
+                  </defs>
+                  <g>
+                    <path
+                      v-for="edge in displayGraphEdges"
+                      :key="edge.id"
+                      :d="edge.path"
+                      :class="[
+                        'graph-edge',
+                        {
+                          'graph-edge--active': isEdgeActive(edge),
+                          'graph-edge--related': isEdgeRelated(edge),
+                          'graph-edge--dimmed': isEdgeDimmed(edge)
+                        }
+                      ]"
+                      @click.stop
+                      @mouseenter.stop="handleEdgeHover(edge.id)"
+                      @mouseleave.stop="handleEdgeHover('')"
+                    />
+                  </g>
+                  <g>
+                    <g
+                      v-for="node in displayGraphNodes"
+                      :key="node.id"
+                      :transform="`translate(${node.x}, ${node.y})`"
+                      :class="[
+                        'graph-node cursor-pointer',
+                        {
+                          'graph-node--active': isNodeActive(node.id),
+                          'graph-node--related': isNodeRelated(node.id),
+                          'graph-node--dimmed': isNodeDimmed(node.id)
+                        }
+                      ]"
+                      role="button"
+                      tabindex="0"
+                      @click.stop="handleNodeClick(node.id)"
+                      @keyup.enter.stop="handleNodeClick(node.id)"
+                      @mouseenter.stop="handleNodeHover(node.id)"
+                      @mouseleave.stop="handleNodeHover('')"
+                      @pointerdown.stop="(event) => handleNodePointerDown(event, node)"
+                    >
+                      <circle :r="getNodeRadius(node)" :fill="getNodeFill(node)" />
+                      <text class="graph-node__label" dominant-baseline="middle" text-anchor="middle">
+                        {{ formatNodeLabel(node) }}
+                      </text>
+                    </g>
+                  </g>
+                </svg>
+              </div>
             </div>
-            <div class="pb-8 flex-1">
-              <p class="text-sm text-slate-400">{{ event.time }}</p>
-              <p class="font-medium text-white">{{ event.title }}</p>
-              <p class="text-sm text-slate-300 mt-1">{{ event.description }}</p>
-              <a
-                v-if="event.alertId"
-                @click="openAlertDetail(event.alertId)"
-                class="text-primary text-sm font-semibold mt-2 inline-block cursor-pointer hover:underline"
-              >
-                View Alert #{{ event.alertId }}
-              </a>
-            </div>
+            <Transition name="fade">
+              <div v-if="selectedGraphNode" class="flex w-full lg:w-auto">
+                <div
+                  class="hidden lg:block node-detail-resize-handle"
+                  @pointerdown="startNodeDetailResize"
+                ></div>
+                <aside
+                  class="w-full lg:w-auto bg-slate-950/80 border-t lg:border-t-0 lg:border-l border-slate-800 p-5 flex flex-col"
+                  :style="nodeDetailPaneStyle"
+                >
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-white font-bold text-lg">{{ $t('incidents.detail.eventGraph.nodeDetail.title') }}</h3>
+                    <div class="flex items-center space-x-1">
+                      <button class="detail-action-btn" :title="$t('incidents.detail.eventGraph.nodeDetail.copy')" @click="copySelectedNode">
+                        <span class="material-symbols-outlined text-sm">content_copy</span>
+                      </button>
+                      <button class="detail-action-btn" :title="$t('incidents.detail.eventGraph.nodeDetail.prune')" @click="pruneSelectedNode">
+                        <span class="material-symbols-outlined text-sm">content_cut</span>
+                      </button>
+                      <button class="detail-action-btn" :title="$t('incidents.detail.eventGraph.nodeDetail.close')" @click="clearSelectedNode">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex-1 overflow-y-auto pr-1 space-y-5">
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+                      <div class="flex flex-col gap-1">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.id') }}</p>
+                        <p class="text-sm text-slate-200 break-all">{{ selectedGraphNode.id }}</p>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.labels') }}</p>
+                        <p class="text-sm text-slate-200">{{ selectedGraphNode.labels?.join(', ') }}</p>
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}</p>
+                        <p class="text-sm text-slate-200">{{ selectedGraphNode.properties?.entity_type }}</p>
+                      </div>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                      <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.properties') }}</h3>
+                      <div v-if="selectedNodeProperties.length" class="space-y-3 text-sm text-slate-200">
+                        <div
+                          v-for="([key, value], index) in selectedNodeProperties"
+                          :key="`${key}-${index}`"
+                          class="flex flex-col gap-0.5"
+                        >
+                          <p class="text-xs uppercase text-slate-500 tracking-wide">{{ key }}</p>
+                          <p class="font-mono text-slate-200 break-all">{{ value }}</p>
+                        </div>
+                      </div>
+                      <p v-else class="text-xs text-slate-500">
+                        {{ $t('common.noData') || 'No data available' }}
+                      </p>
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                      <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.relations') }}</h3>
+                      <div v-if="selectedNodeRelations.length" class="space-y-2">
+                      <button
+                        v-for="relation in selectedNodeRelations"
+                        :key="`${relation.direction}-${relation.neighbor}`"
+                        type="button"
+                        class="text-sm text-slate-200 text-left"
+                        @click="handleRelationClick(relation.neighbor)"
+                      >
+                          {{ $t('incidents.detail.eventGraph.nodeDetail.neighborLabel') }}
+                        <span class="neighbor-link">{{ relation.neighborLabel }}</span>
+                      </button>
+                      </div>
+                      <p v-else class="text-xs text-slate-500">
+                        {{ $t('common.noData') || 'No data available' }}
+                      </p>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </Transition>
           </div>
         </div>
       </div>
@@ -350,7 +552,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, nextTick, computed, watch, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -365,6 +567,31 @@ import CommentSection from '@/components/common/CommentSection.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
+import eventGraphSample from '@/data/eventGraphSample.json'
+
+const ENTITY_COLOR_GRADIENT = {
+  host: 'grad-rose',
+  ip: 'grad-cyan',
+  domain: 'grad-emerald',
+  operation: 'grad-amber',
+  user: 'grad-violet',
+  tenant: 'grad-violet',
+  alert: 'grad-rose',
+  service: 'grad-emerald',
+  other: 'grad-cyan'
+}
+
+const ENTITY_COLOR_SOLID = {
+  host: '#fda4af',
+  ip: '#67e8f9',
+  domain: '#6ee7b7',
+  operation: '#fcd34d',
+  user: '#c4b5fd',
+  tenant: '#c4b5fd',
+  alert: '#fda4af',
+  service: '#6ee7b7',
+  other: '#60a5fa'
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -384,9 +611,567 @@ const closeDialogRef = ref(null)
 const showEditDialog = ref(false)
 const editIncidentInitialData = ref(null)
 
+const eventGraphData = ref({
+  nodes: eventGraphSample?.nodes || [],
+  edges: eventGraphSample?.edges || []
+})
+const graphSearchQuery = ref('')
+const highlightedEntity = ref('')
+const selectedGraphNodeId = ref('')
+const hoveredNodeId = ref('')
+const hoveredEdgeId = ref('')
+const prunedNodeIds = ref(new Set())
+const nodePositions = ref({})
+const draggingNodeId = ref('')
+const dragOffset = ref({ x: 0, y: 0 })
+const graphSvgRef = ref(null)
+const legendFlashKey = ref('')
+const legendFlashTimer = ref(null)
+const nodeDetailWidth = ref(320)
+const resizingNodeDetail = ref(false)
+const resizeStartX = ref(0)
+const initialNodeDetailWidth = ref(320)
+
+const baseGraphNodes = computed(() => {
+  const availableNodes = (eventGraphData.value.nodes || []).filter((node) => !prunedNodeIds.value.has(node.id))
+  const count = Math.min(availableNodes.length, 14)
+  if (!count) {
+    return []
+  }
+  const radiusX = 280
+  const radiusY = 200
+  return availableNodes.slice(0, count).map((node, index) => {
+    const angle = (index / count) * Math.PI * 2 - Math.PI / 2
+    return {
+      ...node,
+      x: 500 + Math.cos(angle) * radiusX,
+      y: 320 + Math.sin(angle) * radiusY
+    }
+  })
+})
+
+const displayGraphNodes = computed(() => {
+  const overrides = nodePositions.value || {}
+  return baseGraphNodes.value.map((node) => {
+    const override = overrides[node.id]
+    if (!override) {
+      return node
+    }
+    return {
+      ...node,
+      x: override.x,
+      y: override.y
+    }
+  })
+})
+
+const displayGraphEdges = computed(() => {
+  const nodesById = Object.fromEntries(displayGraphNodes.value.map((node) => [node.id, node]))
+  return (eventGraphData.value.edges || [])
+    .filter((edge) => nodesById[edge.source] && nodesById[edge.target])
+    .slice(0, 24)
+    .map((edge) => {
+      const positioned = {
+        ...edge,
+        id: edge.id || `${edge.source}-${edge.target}`,
+        x1: nodesById[edge.source].x,
+        y1: nodesById[edge.source].y,
+        x2: nodesById[edge.target].x,
+        y2: nodesById[edge.target].y
+      }
+      return {
+        ...positioned,
+        path: buildEdgePath(positioned)
+      }
+    })
+})
+
+const selectedGraphNode = computed(() => {
+  if (!selectedGraphNodeId.value) {
+    return null
+  }
+  return displayGraphNodes.value.find((node) => node.id === selectedGraphNodeId.value) || null
+})
+
+const graphEntityOptions = computed(() =>
+  displayGraphNodes.value.map((node) => ({
+    id: node.id,
+    label: `${(node.properties?.entity_type || 'entity').toUpperCase()} • ${node.id}`
+  }))
+)
+
+const nodeLabelMap = computed(() => {
+  const map = {}
+  ;(eventGraphData.value.nodes || []).forEach((node) => {
+    map[node.id] = node.labels?.[0] || node.properties?.entity_id || node.id
+  })
+  return map
+})
+
+const nodeTypeMap = computed(() => {
+  const map = {}
+  ;(eventGraphData.value.nodes || []).forEach((node) => {
+    map[node.id] = (node.properties?.entity_type || 'entity').toLowerCase()
+  })
+  return map
+})
+
+const legendEntries = computed(() => {
+  const seen = new Set()
+  const entries = []
+  displayGraphNodes.value.forEach((node) => {
+    const type = (node.properties?.entity_type || 'entity').toLowerCase()
+    if (seen.has(type)) {
+      return
+    }
+    seen.add(type)
+    entries.push({
+      key: type,
+      label: t(`incidents.detail.eventGraph.legendLabels.${type}`, type),
+      color: ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+    })
+  })
+  return entries
+})
+
+const eventGraphStats = computed(() => {
+  const nodes = eventGraphData.value.nodes || []
+  const edges = eventGraphData.value.edges || []
+  const ipNodes = nodes.filter((node) => node.properties?.entity_type === 'ip').length
+  const alertNodes = nodes.filter((node) => node.properties?.entity_type === 'alert').length
+  const tenantNodes = nodes.filter((node) => node.properties?.entity_type === 'tenant').length
+  return {
+    totalNodes: nodes.length,
+    totalEdges: edges.length,
+    ipNodes,
+    alertNodes,
+    tenantNodes
+  }
+})
+
+const selectedNodeProperties = computed(() => {
+  if (!selectedGraphNode.value) {
+    return []
+  }
+  const properties = selectedGraphNode.value.properties || {}
+  const preferredKeys = ['description', 'entity_type', 'entity_id', 'file_path', 'source_id', 'created_at']
+  const orderedEntries = []
+  preferredKeys.forEach((key) => {
+    if (properties[key]) {
+      orderedEntries.push([key, properties[key]])
+    }
+  })
+  Object.entries(properties).forEach(([key, value]) => {
+    if (!orderedEntries.find(([existingKey]) => existingKey === key)) {
+      orderedEntries.push([key, value])
+    }
+  })
+  return orderedEntries.slice(0, 6)
+})
+
+const selectedNodeRelations = computed(() => {
+  if (!selectedGraphNode.value) {
+    return []
+  }
+  const id = selectedGraphNode.value.id
+  const related = displayGraphEdges.value.filter((edge) => edge.source === id || edge.target === id)
+  return related.slice(0, 5).map((edge) => {
+    const neighborId = edge.source === id ? edge.target : edge.source
+    return {
+      direction: edge.source === id ? 'outbound' : 'inbound',
+      neighbor: neighborId,
+      neighborLabel: nodeLabelMap.value[neighborId] || neighborId
+    }
+  })
+})
+
+const filteredNodeIds = computed(() => {
+  const nodes = displayGraphNodes.value
+  const query = graphSearchQuery.value.trim().toLowerCase()
+  if (!query) {
+    return new Set(nodes.map((node) => node.id))
+  }
+  return new Set(
+    nodes
+      .filter((node) => {
+        const description = (node.properties?.description || '').toLowerCase()
+        return (
+          node.id.toLowerCase().includes(query) ||
+          node.labels?.some((label) => label.toLowerCase().includes(query)) ||
+          description.includes(query)
+        )
+      })
+      .map((node) => node.id)
+  )
+})
+
+const relatedNodeIds = computed(() => {
+  const set = new Set()
+  if (selectedGraphNodeId.value) {
+    set.add(selectedGraphNodeId.value)
+    displayGraphEdges.value.forEach((edge) => {
+      if (edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value) {
+        set.add(edge.source)
+        set.add(edge.target)
+      }
+    })
+  }
+  return set
+})
+
+const handleNodeClick = (nodeId, { temporaryHighlight = false } = {}) => {
+  if (selectedGraphNodeId.value === nodeId) {
+    selectedGraphNodeId.value = ''
+    return
+  }
+  selectedGraphNodeId.value = nodeId
+  highlightedEntity.value = nodeId
+  if (temporaryHighlight) {
+    setTimeout(() => {
+      if (selectedGraphNodeId.value === nodeId) {
+        selectedGraphNodeId.value = ''
+      }
+      if (highlightedEntity.value === nodeId) {
+        highlightedEntity.value = ''
+      }
+    }, 800)
+  }
+}
+
+const handleNodeHover = (nodeId) => {
+  hoveredNodeId.value = nodeId
+}
+
+const getNodeFill = (node) => {
+  const type = (node.properties?.entity_type || 'other').toLowerCase()
+  return `url(#${ENTITY_COLOR_GRADIENT[type] || ENTITY_COLOR_GRADIENT.other})`
+}
+
+const getNodeRadius = (node) => {
+  const type = node.properties?.entity_type
+  if (type === 'ip') return 22
+  if (type === 'tenant' || type === 'service') return 20
+  if (type === 'alert') return 18
+  return 16
+}
+
+const formatNodeLabel = (node) => {
+  const label = node.labels?.[0] || node.id || node.properties?.entity_type || 'entity'
+  return label.length > 12 ? `${label.slice(0, 11)}…` : label
+}
+
+const hoveredEdgeNodes = computed(() => {
+  if (!hoveredEdgeId.value) {
+    return new Set()
+  }
+  const edge = displayGraphEdges.value.find((edgeItem) => edgeItem.id === hoveredEdgeId.value)
+  if (!edge) {
+    return new Set()
+  }
+  return new Set([edge.source, edge.target])
+})
+
+const isNodeActive = (nodeId) => selectedGraphNodeId.value === nodeId
+const isNodeRelated = (nodeId) => {
+  if (legendFlashKey.value && nodeTypeMap.value[nodeId] === legendFlashKey.value) {
+    return true
+  }
+  if (hoveredEdgeNodes.value.has(nodeId) || hoveredNodeId.value === nodeId) {
+    return true
+  }
+  return relatedNodeIds.value.has(nodeId)
+}
+const isNodeDimmed = (nodeId) => {
+  const searchActive = !!graphSearchQuery.value.trim()
+  const selectionActive = !!selectedGraphNodeId.value
+  const dimBySearch = searchActive && !filteredNodeIds.value.has(nodeId)
+  const dimBySelection = selectionActive && !relatedNodeIds.value.has(nodeId)
+  const dimByHover =
+    !selectionActive &&
+    hoveredEdgeNodes.value.size &&
+    !hoveredEdgeNodes.value.has(nodeId) &&
+    hoveredNodeId.value !== nodeId
+  const dimByLegend =
+    legendFlashKey.value &&
+    nodeTypeMap.value[nodeId] !== legendFlashKey.value
+  return dimBySearch || dimBySelection || dimByHover || dimByLegend
+}
+
+const isEdgeActive = (edge) =>
+  !!selectedGraphNodeId.value &&
+  (edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value)
+
+const isEdgeRelated = (edge) => {
+  if (
+    legendFlashKey.value &&
+    (nodeTypeMap.value[edge.source] === legendFlashKey.value ||
+      nodeTypeMap.value[edge.target] === legendFlashKey.value)
+  ) {
+    return true
+  }
+  if (hoveredEdgeId.value && edge.id === hoveredEdgeId.value) {
+    return true
+  }
+  if (hoveredNodeId.value) {
+    return edge.source === hoveredNodeId.value || edge.target === hoveredNodeId.value
+  }
+  if (selectedGraphNodeId.value) {
+    return edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value
+  }
+  return false
+}
+
+const isEdgeDimmed = (edge) => {
+  const searchActive = !!graphSearchQuery.value.trim()
+  const selectionActive = !!selectedGraphNodeId.value
+  const dimBySearch =
+    searchActive && !filteredNodeIds.value.has(edge.source) && !filteredNodeIds.value.has(edge.target)
+  const dimBySelection =
+    selectionActive &&
+    edge.source !== selectedGraphNodeId.value &&
+    edge.target !== selectedGraphNodeId.value &&
+    (!hoveredNodeId.value || (edge.source !== hoveredNodeId.value && edge.target !== hoveredNodeId.value))
+  const dimByHover =
+    !selectionActive &&
+    hoveredEdgeNodes.value.size &&
+    !hoveredEdgeNodes.value.has(edge.source) &&
+    !hoveredEdgeNodes.value.has(edge.target) &&
+    hoveredEdgeId.value !== edge.id &&
+    (!hoveredNodeId.value || (edge.source !== hoveredNodeId.value && edge.target !== hoveredNodeId.value))
+  const dimByLegend =
+    legendFlashKey.value &&
+    nodeTypeMap.value[edge.source] !== legendFlashKey.value &&
+    nodeTypeMap.value[edge.target] !== legendFlashKey.value
+  return dimBySearch || dimBySelection || dimByHover || dimByLegend
+}
+
+const copySelectedNode = async () => {
+  if (!selectedGraphNode.value || typeof navigator === 'undefined' || !navigator.clipboard) {
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(selectedGraphNode.value, null, 2))
+  } catch (error) {
+    console.error('Failed to copy node detail', error)
+  }
+}
+
+const pruneSelectedNode = () => {
+  if (!selectedGraphNodeId.value) {
+    return
+  }
+  const next = new Set(prunedNodeIds.value)
+  next.add(selectedGraphNodeId.value)
+  prunedNodeIds.value = next
+  selectedGraphNodeId.value = ''
+  highlightedEntity.value = ''
+}
+
+const clearSelectedNode = () => {
+  selectedGraphNodeId.value = ''
+  highlightedEntity.value = ''
+  hoveredNodeId.value = ''
+  hoveredEdgeId.value = ''
+}
+
+function buildEdgePath({ x1, y1, x2, y2 }) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const bend = Math.max(-120, Math.min(120, dx * 0.4))
+  const cx1 = x1 + dx * 0.33
+  const cy1 = y1 + dy * 0.33 - bend
+  const cx2 = x1 + dx * 0.66
+  const cy2 = y1 + dy * 0.66 + bend
+  return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`
+}
+
+const handleEdgeHover = (edgeId) => {
+  hoveredEdgeId.value = edgeId
+}
+
+const handleGraphBackgroundClick = () => {
+  if (draggingNodeId.value || resizingNodeDetail.value) {
+    return
+  }
+  clearSelectedNode()
+}
+
+const handleLegendClick = (key) => {
+  if (!key) {
+    return
+  }
+  legendFlashKey.value = key
+  if (legendFlashTimer.value) {
+    clearTimeout(legendFlashTimer.value)
+  }
+  legendFlashTimer.value = setTimeout(() => {
+    legendFlashKey.value = ''
+    legendFlashTimer.value = null
+  }, 800)
+}
+
+const handleRelationClick = (neighborId) => {
+  if (!neighborId) {
+    return
+  }
+  handleNodeClick(neighborId)
+}
+
+const getSvgCoordinates = (event) => {
+  const svg = graphSvgRef.value
+  if (!svg) {
+    return { x: 0, y: 0 }
+  }
+  const rect = svg.getBoundingClientRect()
+  const viewBox = svg.viewBox.baseVal
+  const scaleX = viewBox.width / rect.width
+  const scaleY = viewBox.height / rect.height
+  return {
+    x: (event.clientX - rect.left) * scaleX + viewBox.x,
+    y: (event.clientY - rect.top) * scaleY + viewBox.y
+  }
+}
+
+const handleNodePointerDown = (event, node) => {
+  if (event.button !== 0) {
+    return
+  }
+  event.preventDefault()
+  const coords = getSvgCoordinates(event)
+  draggingNodeId.value = node.id
+  dragOffset.value = {
+    x: coords.x - node.x,
+    y: coords.y - node.y
+  }
+  window.addEventListener('pointermove', handlePointerMove)
+  window.addEventListener('pointerup', handlePointerUp)
+}
+
+const handlePointerMove = (event) => {
+  if (!draggingNodeId.value) {
+    return
+  }
+  event.preventDefault()
+  const coords = getSvgCoordinates(event)
+  nodePositions.value = {
+    ...nodePositions.value,
+    [draggingNodeId.value]: {
+      x: coords.x - dragOffset.value.x,
+      y: coords.y - dragOffset.value.y
+    }
+  }
+}
+
+const handlePointerUp = () => {
+  draggingNodeId.value = ''
+  dragOffset.value = { x: 0, y: 0 }
+  window.removeEventListener('pointermove', handlePointerMove)
+  window.removeEventListener('pointerup', handlePointerUp)
+}
+
+const startNodeDetailResize = (event) => {
+  if (event.button !== 0) {
+    return
+  }
+  event.preventDefault()
+  resizingNodeDetail.value = true
+  resizeStartX.value = event.clientX
+  initialNodeDetailWidth.value = nodeDetailWidth.value
+  window.addEventListener('pointermove', handleNodeDetailResize)
+  window.addEventListener('pointerup', stopNodeDetailResize)
+}
+
+const handleNodeDetailResize = (event) => {
+  if (!resizingNodeDetail.value) {
+    return
+  }
+  const delta = resizeStartX.value - event.clientX
+  nodeDetailWidth.value = Math.min(520, Math.max(260, initialNodeDetailWidth.value + delta))
+}
+
+const stopNodeDetailResize = () => {
+  if (!resizingNodeDetail.value) {
+    return
+  }
+  resizingNodeDetail.value = false
+  window.removeEventListener('pointermove', handleNodeDetailResize)
+  window.removeEventListener('pointerup', stopNodeDetailResize)
+}
+
+const nodeDetailPaneStyle = computed(() => ({
+  width: '100%',
+  maxWidth: `${Math.round(nodeDetailWidth.value)}px`
+}))
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointermove', handlePointerMove)
+  window.removeEventListener('pointerup', handlePointerUp)
+  window.removeEventListener('pointermove', handleNodeDetailResize)
+  window.removeEventListener('pointerup', stopNodeDetailResize)
+  if (legendFlashTimer.value) {
+    clearTimeout(legendFlashTimer.value)
+  }
+})
+
+watch(
+  baseGraphNodes,
+  (nodes) => {
+    if (!nodes.length) {
+      selectedGraphNodeId.value = ''
+      highlightedEntity.value = ''
+      nodePositions.value = {}
+      return
+    }
+    if (!nodes.some((node) => node.id === selectedGraphNodeId.value)) {
+      selectedGraphNodeId.value = ''
+    }
+    const validIds = new Set(nodes.map((node) => node.id))
+    const nextPositions = { ...nodePositions.value }
+    Object.keys(nextPositions).forEach((id) => {
+      if (!validIds.has(id)) {
+        delete nextPositions[id]
+      }
+    })
+    nodePositions.value = nextPositions
+  },
+  { immediate: true }
+)
+
+watch(
+  displayGraphNodes,
+  (nodes) => {
+    if (
+      legendFlashKey.value &&
+      !nodes.some((node) => (node.properties?.entity_type || 'entity').toLowerCase() === legendFlashKey.value)
+    ) {
+      legendFlashKey.value = ''
+    }
+  },
+  { immediate: true }
+)
+
+watch(highlightedEntity, (value) => {
+  if (!value) {
+    return
+  }
+  if (displayGraphNodes.value.some((node) => node.id === value)) {
+    selectedGraphNodeId.value = value
+  }
+})
+
+watch(graphSearchQuery, () => {
+  if (
+    selectedGraphNodeId.value &&
+    !filteredNodeIds.value.has(selectedGraphNodeId.value) &&
+    graphSearchQuery.value
+  ) {
+    selectedGraphNodeId.value = ''
+  }
+})
+
 const tabs = [
   { key: 'overview', label: 'incidents.detail.tabs.overview' },
-  { key: 'timeline', label: 'incidents.detail.tabs.timeline' },
+  { key: 'eventGraph', label: 'incidents.detail.tabs.eventGraph' },
   { key: 'comments', label: 'incidents.detail.tabs.comments' }
 ]
 
@@ -540,8 +1325,8 @@ const generateTimeline = (data) => {
     timeline.push({
       time: formatDateTime(data.create_time),
       rawTime: data.create_time,
-      title: t('incidents.detail.timeline.incidentCreated'),
-      description: t('incidents.detail.timeline.incidentCreatedDesc'),
+      title: t('incidents.detail.eventGraph.incidentCreated'),
+      description: t('incidents.detail.eventGraph.incidentCreatedDesc'),
       icon: 'event',
       severity: data.severity?.toLowerCase() || 'low'
     })
@@ -557,7 +1342,7 @@ const generateTimeline = (data) => {
         timeline.push({
           time: formatDateTime(comment.create_time),
           rawTime: comment.create_time,
-          title: t('incidents.detail.timeline.alertConverted'),
+          title: t('incidents.detail.eventGraph.alertConverted'),
           description: content,
           icon: 'transform',
           severity: 'medium'
@@ -567,7 +1352,7 @@ const generateTimeline = (data) => {
         timeline.push({
           time: formatDateTime(comment.create_time),
           rawTime: comment.create_time,
-          title: t('incidents.detail.timeline.severityChanged'),
+          title: t('incidents.detail.eventGraph.severityChanged'),
           description: content,
           icon: 'priority',
           severity: severityMatch ? severityMatch[1].toLowerCase() : 'low'
@@ -576,7 +1361,7 @@ const generateTimeline = (data) => {
         timeline.push({
           time: formatDateTime(comment.create_time),
           rawTime: comment.create_time,
-          title: t('incidents.detail.timeline.ownerChanged'),
+          title: t('incidents.detail.eventGraph.ownerChanged'),
           description: content,
           icon: 'person',
           severity: 'low'
@@ -585,7 +1370,7 @@ const generateTimeline = (data) => {
         timeline.push({
           time: formatDateTime(comment.create_time),
           rawTime: comment.create_time,
-          title: t('incidents.detail.timeline.incidentClosed'),
+          title: t('incidents.detail.eventGraph.incidentClosed'),
           description: content,
           icon: 'archive',
           severity: 'low'
@@ -599,8 +1384,8 @@ const generateTimeline = (data) => {
     timeline.push({
       time: formatDateTime(data.close_time),
       rawTime: data.close_time,
-      title: t('incidents.detail.timeline.incidentClosed'),
-      description: data.close_comment || t('incidents.detail.timeline.incidentClosedDesc'),
+      title: t('incidents.detail.eventGraph.incidentClosed'),
+      description: data.close_comment || t('incidents.detail.eventGraph.incidentClosedDesc'),
       icon: 'check_circle',
       severity: 'low'
     })
@@ -992,6 +1777,162 @@ onMounted(() => {
   word-break: break-all;
   overflow-wrap: anywhere;
   max-width: 100%;
+}
+
+.graph-control-btn {
+  padding: 0.35rem;
+  border-radius: 0.375rem;
+  color: #cbd5f5;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.graph-control-btn:hover {
+  color: #fff;
+  background-color: rgba(71, 85, 105, 0.6);
+}
+
+.graph-control-btn:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.event-graph-svg .graph-edge {
+  stroke: #64748b;
+  stroke-opacity: 0.25;
+  stroke-width: 1.4;
+  transition: all 0.2s ease;
+}
+
+.event-graph-svg .graph-edge:hover {
+  stroke-opacity: 0.9;
+  stroke-width: 3.2;
+}
+
+.event-graph-svg .graph-edge--active {
+  stroke: #38bdf8;
+  stroke-opacity: 0.85;
+  stroke-width: 3;
+}
+
+.event-graph-svg .graph-edge--related {
+  stroke-opacity: 0.6;
+}
+
+.event-graph-svg .graph-edge--dimmed {
+  opacity: 0.18;
+}
+
+.event-graph-svg .graph-node circle {
+  stroke: rgba(148, 163, 184, 0.4);
+  stroke-width: 1.5;
+  transition: transform 0.2s ease, stroke 0.2s ease, fill-opacity 0.2s ease, opacity 0.2s ease;
+}
+
+.graph-node__label {
+  fill: rgba(255, 255, 255, 0.85);
+  font-size: 10px;
+  pointer-events: none;
+  text-transform: none;
+}
+
+.graph-node--active circle {
+  stroke: #60a5fa;
+  stroke-width: 2.4;
+}
+
+.graph-node--related circle {
+  stroke: #fbbf24;
+  stroke-width: 2;
+}
+
+.graph-node--dimmed {
+  opacity: 0.35;
+}
+
+.graph-node:not(.graph-node--dimmed) circle:hover {
+  transform: scale(1.08);
+}
+
+.neighbor-link {
+  color: #60a5fa;
+  font-weight: 600;
+  text-decoration: underline;
+  display: inline-block;
+  padding: 0.1rem 0;
+}
+
+.neighbor-link:hover {
+  color: #93c5fd;
+}
+
+.legend-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.65rem;
+  transition: color 0.2s ease;
+}
+
+.legend-entry__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  display: inline-flex;
+}
+
+.legend-entry--active {
+  color: #ffffff;
+}
+
+.legend-entry:hover {
+  color: #e2e8f0;
+}
+
+.legend-entry__label {
+  pointer-events: none;
+}
+
+.node-detail-resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: linear-gradient(to bottom, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
+  position: relative;
+}
+
+.node-detail-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 60px;
+  background-color: rgba(148, 163, 184, 0.35);
+  transform: translate(-50%, -50%);
+}
+
+.detail-action-btn {
+  color: #94a3b8;
+  padding: 0.4rem;
+  border-radius: 0.35rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.detail-action-btn:hover:not(:disabled) {
+  color: #fff;
+  background-color: rgba(71, 85, 105, 0.6);
+}
+
+.detail-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 </style>
 
