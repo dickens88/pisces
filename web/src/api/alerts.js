@@ -1,6 +1,4 @@
 import service from './axios.js'
-import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
 
 const API_SEVERITY_TO_CLIENT_MAP = {
   'Fatal': 'fatal',
@@ -192,23 +190,10 @@ export const getAlerts = async (params = {}) => {
     conditions
   }
   
-  // Use axios to directly call /alerts, forwarded to backend by vite proxy
-  // In development, vite proxy will forward /alerts to http://localhost:8080/alerts
-  // In production, need to configure nginx or use full URL
+  // Use the configured axios service instance which has the correct baseURL
+  // The service instance already handles authentication via interceptors
   try {
-    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
-    const url = apiBaseURL ? `${apiBaseURL}/alerts` : '/alerts'
-    
-    // Get authentication token
-    const authStore = useAuthStore()
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    if (authStore.token) {
-      headers['Authorization'] = `Bearer ${authStore.token}`
-    }
-    
-    const response = await axios.post(url, requestBody, { headers })
+    const response = await service.post('/alerts', requestBody)
     
     // Transform response data
     const transformedData = {
