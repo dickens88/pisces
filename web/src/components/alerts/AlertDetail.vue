@@ -1420,8 +1420,15 @@ const getStatusDotClass = (status) => {
 
 // 生成告警URL
 const getAlertUrl = () => {
-  const baseUrl = window.location.origin
-  return `${baseUrl}/alerts/${currentAlertId.value}`
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  let basePath = '/'
+  if (raw && raw !== '/') {
+    basePath = raw.startsWith('/') ? raw : `/${raw}`
+    // Remove trailing slash if present
+    basePath = basePath.replace(/\/$/, '')
+  }
+  const origin = window.location.origin
+  return `${origin}${basePath}/alerts/${currentAlertId.value}`
 }
 
 // 分享告警（复制标题和链接到剪切板）

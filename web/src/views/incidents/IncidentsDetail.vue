@@ -1606,9 +1606,16 @@ const getTimelineIconColorClass = (severity) => {
  * @return {string} 事件的完整URL
  */
 const getIncidentUrl = () => {
-  const baseUrl = window.location.origin
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  let basePath = '/'
+  if (raw && raw !== '/') {
+    basePath = raw.startsWith('/') ? raw : `/${raw}`
+    // Remove trailing slash if present
+    basePath = basePath.replace(/\/$/, '')
+  }
+  const origin = window.location.origin
   const incidentId = route.params.id
-  return `${baseUrl}/incidents/${incidentId}`
+  return `${origin}${basePath}/incidents/${incidentId}`
 }
 
 /**
