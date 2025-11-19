@@ -358,6 +358,21 @@
           "service": "服务",
           "other": "实体"
         },
+        "graphStatus": {
+          "ready": "图谱已就绪",
+          "processing": "图谱生成中",
+          "missing": "图谱缺失",
+          "error": "图谱生成失败",
+          "disabled": "图谱功能未启用",
+          "skipped": "图谱暂不展示"
+        },
+        "summaryUnavailable": "图谱数据尚未准备完毕，已自动触发 LightRAG 构建，请稍后刷新查看。",
+        "summaryPlaceholder": "将事件详情与关联告警上传至 LightRAG，可自动生成端到端攻击关系图。",
+        "refreshStatus": "刷新图谱状态",
+        "refreshError": "刷新图谱状态失败，请稍后重试。",
+        "regenerateGraph": "重新生成图谱",
+        "regenerateSuccess": "已开始重新生成图谱，请稍后刷新查看结果。",
+        "regenerateError": "图谱重新生成失败，请稍后重试。",
         "incidentCreated": "图谱引擎初始化",
         "incidentCreatedDesc": "初始主机与租户侧FIP已写入攻击图谱。",
         "alertConverted": "告警写入图谱",
