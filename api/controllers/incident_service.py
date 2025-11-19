@@ -19,7 +19,7 @@ class IncidentService:
     project_id = config.get('application.secmaster.project_id')
     workspace_id = config.get('application.secmaster.workspace_id')
 
-    VULSCAN_LABEL = "vulscan"
+    VULSCAN_LABEL = "vulscan_riskscan"
     _graph_job_lock = Lock()
     _graph_jobs = set()
 
@@ -123,6 +123,7 @@ class IncidentService:
             "title": item['data_object']['title'],
             "severity": item['data_object']['severity'],
             "close_comment": item['data_object'].get('close_comment'),
+            "actor": item['data_object'].get('actor'),
             "creator": item['data_object']['creator'],
             "ttd": item['data_object'].get('ttr'),
             "description": item['data_object'].get('description'),

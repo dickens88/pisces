@@ -108,6 +108,7 @@
       "riskLevel": "Risk Level",
       "status": "Status",
       "owner": "Owner",
+      "actor": "Actor",
       "searchPlaceholder": "Enter keyword and press Enter to search title...",
       "allStatus": "All Status",
       "open": "Open",
@@ -225,6 +226,7 @@
       "occurrenceTime": "Occurrence Time",
       "status": "Status",
       "owner": "Owner",
+      "actor": "Actor",
       "action": "Action",
       "viewDetail": "View Details",
       "openInNewWindow": "Open in New Window",
@@ -432,25 +434,37 @@
       "departmentDistribution": "Vulnerability Department Distribution"
     },
     "detail": {
+      "title": "Title",
       "overview": "Overview",
       "description": "Description",
       "lifecycle": "Vulnerability Lifecycle",
       "comments": "Comments",
       "discoveredTime": "Discovered Time",
+      "createTime": "Create Time",
+      "updateTime": "Update Time",
       "assignee": "Assignee",
       "assigneeDepartment": "Assignee's Department",
       "riskLevel": "Risk Level",
       "rootCause": "Root Cause",
       "fixStatus": "Fix Status",
+      "statusLabel": "Status",
+      "responsibleDepartment": "Responsible Department",
+      "responsiblePerson": "Responsible Person",
       "noDescription": "No description available.",
       "noComments": "No comments yet.",
       "addComment": "Add a comment...",
       "comment": "Comment",
+      "edit": "Edit",
+      "closeVulnerability": "Close Vulnerability",
+      "share": "Share",
+      "shareSuccess": "Copied to clipboard",
       "changeStatus": "Change Status",
       "assign": "Assign",
       "loadError": "Failed to load vulnerability detail",
       "commentSuccess": "Comment posted successfully",
       "commentError": "Failed to post comment, please try again later",
+      "closeSuccess": "Vulnerability closed successfully",
+      "closeError": "Failed to close vulnerability, please try again later",
       "remediationVerified": "Remediation Verified",
       "statusChanged": "Status changed to 'In Progress'",
       "assignedTo": "Assigned to",
@@ -459,11 +473,45 @@
       "minutesAgo": "minutes ago",
       "hoursAgo": "hours ago",
       "daysAgo": "days ago",
+      "tabs": {
+        "overview": "Overview",
+        "comments": "Comments"
+      },
+      "closeDialog": {
+        "title": "Close Vulnerability",
+        "confirmMessage": "Are you sure you want to close this vulnerability?",
+        "conclusionCategory": "Conclusion Category",
+        "selectCategory": "Please select a category",
+        "categories": {
+          "falsePositive": "False Positive",
+          "resolved": "Resolved",
+          "convertedToIncident": "Converted to Incident",
+          "other": "Other"
+        },
+        "conclusion": "Investigation Conclusion",
+        "conclusionPlaceholder": "Please enter investigation conclusion..."
+      },
       "status": {
         "patched": "Patched",
         "open": "Open",
         "inProgress": "In Progress"
       }
+    },
+    "edit": {
+      "title": "Edit Vulnerability",
+      "titlePlaceholder": "Please enter vulnerability title",
+      "selectSeverity": "Please select risk level",
+      "ownerPlaceholder": "Please enter owner",
+      "departmentPlaceholder": "Please enter responsible department",
+      "rootCausePlaceholder": "Please enter root cause",
+      "descriptionPlaceholder": "Please enter vulnerability description",
+      "success": "Vulnerability updated successfully",
+      "error": "Failed to update vulnerability, please try again later"
+    },
+    "create": {
+      "title": "Create Vulnerability",
+      "success": "Vulnerability created successfully",
+      "error": "Failed to create vulnerability, please try again later"
     }
   }
 }

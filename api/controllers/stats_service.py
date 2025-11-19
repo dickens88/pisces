@@ -468,26 +468,36 @@ class StatisticsService:
         return stats[:max(0, limit or 10)]
 
     @classmethod
-    def get_automation_closure_rate(cls):
+    def get_automation_closure_rate(cls, start_date, end_date):
         """
-        Get automation closure rate statistics.
+        Get automation closure rate statistics between start_date and end_date.
         Returns:
             dict with keys:
                 - total_closed: total number of closed alerts (handle_status='Closed')
                 - auto_closed: number of auto-closed alerts (is_auto_closed='AutoClosed')
                 - automation_rate: automation closure rate percentage (auto_closed / total_closed * 100)
         """
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        
         with Session() as session:
-            # Count total closed alerts
-            total_closed = session.query(func.count(Alert.id)).filter(
-                Alert.handle_status == 'Closed'
-            ).scalar() or 0
-            
-            # Count auto-closed alerts
-            auto_closed = session.query(func.count(Alert.id)).filter(
+            # Count total closed alerts within date range
+            query_total = session.query(func.count(Alert.id)).filter(
                 Alert.handle_status == 'Closed',
-                Alert.is_auto_closed == 'AutoClosed'
-            ).scalar() or 0
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str
+            )
+            total_closed = query_total.scalar() or 0
+            
+            # Count auto-closed alerts within date range
+            query_auto = session.query(func.count(Alert.id)).filter(
+                Alert.handle_status == 'Closed',
+                Alert.is_auto_closed == 'AutoClosed',
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str
+            )
+            auto_closed = query_auto.scalar() or 0
             
             # Calculate automation rate
             automation_rate = 0.0

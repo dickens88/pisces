@@ -130,8 +130,21 @@
                 </div>
               </div>
 
-              <!-- 第四行：事件根因和严重程度 -->
-              <div class="grid grid-cols-2 gap-4">
+              <!-- 第四行：Actor、事件根因和严重程度 -->
+              <div class="grid grid-cols-3 gap-4">
+                <!-- Actor -->
+                <div>
+                  <label class="block text-sm font-medium text-white mb-2">
+                    {{ $t('incidents.detail.actor') }}
+                  </label>
+                  <input
+                    v-model="formData.actor"
+                    type="text"
+                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    :placeholder="$t('incidents.detail.actor') || '请输入调查员'"
+                  />
+                </div>
+
                 <!-- 事件根因 -->
                 <div>
                   <label class="block text-sm font-medium text-white mb-2">
@@ -258,6 +271,7 @@ const getInitialFormData = () => {
     occurrenceTime: now,
     responsiblePerson: '',
     responsibleDepartment: '',
+    actor: '',
     rootCause: '',
     severity: '',
     status: 'Open',
@@ -322,6 +336,7 @@ const fillFormData = () => {
     
     formData.value.responsiblePerson = props.initialData.responsiblePerson || ''
     formData.value.responsibleDepartment = props.initialData.responsibleDepartment || ''
+    formData.value.actor = props.initialData.actor || ''
     formData.value.rootCause = props.initialData.rootCause || ''
     formData.value.severity = props.initialData.severity || ''
     formData.value.description = props.initialData.description || ''
@@ -372,6 +387,7 @@ const handleSubmit = async () => {
       description: formData.value.description,
       create_time: formatTimestamp(formData.value.occurrenceTime),
       severity: formData.value.severity || '',
+      actor: formData.value.actor || '',
       resource_list: [{
         owner: formData.value.responsiblePerson,
         responsible_person: formData.value.responsiblePerson,

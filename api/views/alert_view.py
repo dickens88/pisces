@@ -2,7 +2,6 @@ from flask import request
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
-from controllers.stats_service import StatisticsService
 from utils.jwt_helper import auth_required
 from utils.logger_init import logger
 
@@ -90,16 +89,3 @@ class AlertView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-
-class AlertStatisticsView(Resource):
-    """View for alert statistics."""
-    
-    @auth_required
-    def get(self, username=None):
-        """Get alert statistics including automation closure rate."""
-        try:
-            data = StatisticsService.get_automation_closure_rate()
-            return {"data": data}, 200
-        except Exception as ex:
-            logger.exception(ex)
-            return {"error_message": str(ex)}, 500

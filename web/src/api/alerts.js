@@ -57,6 +57,7 @@ const transformAlertData = (apiAlert) => {
     riskLevel: API_SEVERITY_TO_CLIENT_MAP[apiAlert.severity] || apiAlert.severity?.toLowerCase() || 'medium',
     status: API_STATUS_TO_CLIENT_MAP[apiAlert.handle_status] || apiAlert.handle_status?.toLowerCase() || 'open',
     owner: apiAlert.owner,
+    actor: apiAlert.actor,
     // Keep original fields for detail page use
     severity: apiAlert.severity,
     handle_status: apiAlert.handle_status,
@@ -222,9 +223,19 @@ export const getAlertDetail = (id) => {
   return service.get(`/alerts/${id}`)
 }
 
-// 获取统计数据
-export const getAlertStatistics = () => {
-  return service.get('/alerts/statistics')
+/**
+ * @brief 获取自动化关闭率统计
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} 返回自动化关闭率统计数据
+ */
+export const getAlertStatistics = (startDate, endDate) => {
+  const params = {
+    chart: 'automation-closure-rate'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
 }
 
 const setDateParam = (params, key, value) => {

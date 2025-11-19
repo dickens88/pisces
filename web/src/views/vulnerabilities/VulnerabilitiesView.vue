@@ -28,6 +28,13 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
+        <button
+          @click="showCreateDialog = true"
+          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
+        >
+          <span class="material-symbols-outlined text-base">add</span>
+          <span>{{ $t('vulnerabilities.create.title') }}</span>
+        </button>
       </div>
     </header>
 
@@ -223,7 +230,7 @@
             ]"
             :title="$t(`common.severity.${item.severity?.toLowerCase()}`)"
           >
-            {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
+            {{ severityToNumber(item.severity) || '-' }}
           </span>
         </template>
         <template #cell-status="{ item }">
@@ -248,6 +255,13 @@
         </template>
       </DataTable>
     </section>
+
+    <!-- Create vulnerability dialog -->
+    <CreateVulnerabilityDialog
+      :visible="showCreateDialog"
+      @close="showCreateDialog = false"
+      @created="handleVulnerabilityCreated"
+    />
   </div>
 </template>
 
@@ -264,7 +278,9 @@ import {
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
+import { severityToNumber } from '@/utils/severity'
 
 const { t } = useI18n()
 
@@ -293,6 +309,7 @@ const trendData = ref([])
 const departmentData = ref([])
 const dataTableRef = ref(null)
 const loadingVulnerabilities = ref(false)
+const showCreateDialog = ref(false)
 
 // 从 localStorage 读取保存的搜索关键词
 const getStoredSearchKeywords = () => {
@@ -1040,6 +1057,13 @@ const handleCustomRangeChange = (newRange) => {
     loadVulnerabilityTrendBySeverity()
     loadDepartmentData()
   }
+}
+
+const handleVulnerabilityCreated = () => {
+  // 刷新漏洞列表
+  loadVulnerabilities()
+  loadVulnerabilityTrendBySeverity()
+  loadDepartmentData()
 }
 
 watch([currentPage, pageSize], () => {

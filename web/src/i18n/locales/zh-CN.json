@@ -108,6 +108,7 @@
       "riskLevel": "风险等级",
       "status": "状态",
       "owner": "责任人",
+      "actor": "调查员",
       "searchPlaceholder": "输入关键字后按回车搜索标题...",
       "allStatus": "所有状态",
       "open": "打开",
@@ -225,6 +226,7 @@
       "occurrenceTime": "发生时间",
       "status": "状态",
       "owner": "责任人",
+      "actor": "调查员",
       "action": "操作",
       "viewDetail": "查看详情",
       "openInNewWindow": "在新窗口打开",
@@ -286,6 +288,7 @@
     "detail": {
       "title": "事件详情",
       "owner": "责任人",
+      "actor": "调查员",
       "createTime": "创建时间",
       "updateTime": "最后更新时间",
       "assign": "分配",
@@ -432,25 +435,38 @@
       "departmentDistribution": "漏洞责任部门分布"
     },
     "detail": {
+      "title": "标题",
       "overview": "概览",
       "description": "描述",
       "lifecycle": "漏洞生命周期",
       "comments": "评论",
       "discoveredTime": "发现时间",
+      "createTime": "创建时间",
+      "updateTime": "更新时间",
       "assignee": "负责人",
+      "actor": "调查员",
       "assigneeDepartment": "负责人部门",
       "riskLevel": "风险等级",
       "rootCause": "根因",
       "fixStatus": "修复状态",
+      "statusLabel": "状态",
+      "responsibleDepartment": "责任部门",
+      "responsiblePerson": "责任人",
       "noDescription": "暂无描述",
       "noComments": "暂无评论",
       "addComment": "添加评论...",
       "comment": "评论",
+      "edit": "编辑",
+      "closeVulnerability": "关闭漏洞",
+      "share": "分享",
+      "shareSuccess": "已复制到剪切板",
       "changeStatus": "更改状态",
       "assign": "分配",
       "loadError": "加载漏洞详情失败",
       "commentSuccess": "评论提交成功",
       "commentError": "评论提交失败，请稍后重试",
+      "closeSuccess": "漏洞关闭成功",
+      "closeError": "漏洞关闭失败，请稍后重试",
       "remediationVerified": "修复已验证",
       "statusChanged": "状态已变更为'进行中'",
       "assignedTo": "已分配给",
@@ -459,11 +475,45 @@
       "minutesAgo": "分钟前",
       "hoursAgo": "小时前",
       "daysAgo": "天前",
+      "tabs": {
+        "overview": "概览",
+        "comments": "评论"
+      },
+      "closeDialog": {
+        "title": "关闭漏洞",
+        "confirmMessage": "请确认是否关闭此漏洞？",
+        "conclusionCategory": "结论分类",
+        "selectCategory": "请选择分类",
+        "categories": {
+          "falsePositive": "误报",
+          "resolved": "已解决",
+          "convertedToIncident": "转事件",
+          "other": "其他"
+        },
+        "conclusion": "调查结论",
+        "conclusionPlaceholder": "请输入调查结论..."
+      },
       "status": {
         "patched": "已修复",
         "open": "打开",
         "inProgress": "进行中"
       }
+    },
+    "edit": {
+      "title": "编辑漏洞",
+      "titlePlaceholder": "请输入漏洞标题",
+      "selectSeverity": "请选择风险等级",
+      "ownerPlaceholder": "请输入责任人",
+      "departmentPlaceholder": "请输入责任部门",
+      "rootCausePlaceholder": "请输入根因",
+      "descriptionPlaceholder": "请输入漏洞描述",
+      "success": "漏洞更新成功",
+      "error": "漏洞更新失败，请稍后重试"
+    },
+    "create": {
+      "title": "创建漏洞",
+      "success": "漏洞创建成功",
+      "error": "漏洞创建失败，请稍后重试"
     }
   }
 }

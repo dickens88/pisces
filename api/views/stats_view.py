@@ -32,7 +32,19 @@ class AlertCountBySourceView(Resource):
             return {"error_message": f"Invalid start_date format: {str(e)}"}, 400
 
         try:
-            if chart_name_normalized == "data-source-count":
+            if chart_name_normalized == "automation-closure-rate":
+                # For automation-closure-rate chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for automation-closure-rate chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_automation_closure_rate(start_date, end_date)
+                return {"data": data}, 200
+            elif chart_name_normalized == "data-source-count":
                 # end_date is optional for data-source-count chart
                 end_date = None
                 if end_date_str:

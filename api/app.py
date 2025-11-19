@@ -42,9 +42,9 @@ api.add_resource(auth_view.UserManagement, '/user/management')
 api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
 api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
-api.add_resource(alert_view.AlertStatisticsView, '/alerts/statistics')
 
 api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident_id>')
+api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabilities/<incident_id>', endpoint='vulnerabilityview')
 
 api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
 

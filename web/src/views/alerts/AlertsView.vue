@@ -982,7 +982,11 @@ const handleRefresh = async () => {
 const loadStatistics = async () => {
   automationRateLoading.value = true
   try {
-    const response = await getAlertStatistics()
+    const range = computeSelectedRange()
+    const response = await getAlertStatistics(
+      range.start,
+      range.end
+    )
     // Merge response data instead of completely replacing to preserve alertCount set by loadAlertTrend
     if (response && response.data) {
       // Map API response fields to frontend statistics fields
@@ -1327,28 +1331,39 @@ const closeCreateAlertDialog = () => {
 
 const handleAlertCreated = async () => {
   // Reload alert list after alert is created
-  loadAlerts()
-  await loadStatistics()
-  loadAlertTypeDistribution()
-  await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
+  // These can run in parallel as they don't depend on each other
+  await Promise.all([
+    loadAlerts(),
+    loadStatistics(),
+    loadAlertTypeDistribution()
+  ])
+  await loadAlertTrend() // Load after others to ensure alertCount is set correctly
 }
 
 const handleTimeRangeChange = async (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
-    loadAlerts()
-    loadAlertTypeDistribution()
-    await loadAlertTrend() // Ensure alertCount is updated when time range changes
+    // These can run in parallel as they don't depend on each other
+    await Promise.all([
+      loadAlerts(),
+      loadStatistics(), // Load automation closure rate statistics with new time range
+      loadAlertTypeDistribution()
+    ])
+    await loadAlertTrend() // Load after others to ensure alertCount is updated when time range changes
   }
 }
 
 const handleCustomRangeChange = async (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
-    loadAlerts()
-    loadAlertTypeDistribution()
-    await loadAlertTrend() // Ensure alertCount is updated when custom range changes
+    // These can run in parallel as they don't depend on each other
+    await Promise.all([
+      loadAlerts(),
+      loadStatistics(), // Load automation closure rate statistics with new time range
+      loadAlertTypeDistribution()
+    ])
+    await loadAlertTrend() // Load after others to ensure alertCount is updated when custom range changes
   }
 }
 

@@ -188,6 +188,11 @@
           <UserAvatar :name="item.owner || value || ''" />
         </div>
       </template>
+      <template #cell-actor="{ value, item }">
+        <div class="flex justify-center w-full">
+          <UserAvatar :name="item.actor || value || ''" />
+        </div>
+      </template>
       </DataTable>
     </section>
 
@@ -236,7 +241,8 @@ const columns = computed(() => [
   { key: 'severity', label: t('incidents.list.severity') },
   { key: 'status', label: t('incidents.list.status') },
   { key: 'responsibleDepartment', label: t('incidents.list.responsibleDepartment') },
-  { key: 'owner', label: t('incidents.list.owner') }
+  { key: 'owner', label: t('incidents.list.owner') },
+  { key: 'actor', label: t('incidents.list.actor') }
 ])
 
 // Default column widths
@@ -246,7 +252,8 @@ const defaultWidths = {
   severity: 120,
   status: 120,
   responsibleDepartment: 150,
-  owner: 50
+  owner: 50,
+  actor: 50
 }
 
 const incidents = ref([])

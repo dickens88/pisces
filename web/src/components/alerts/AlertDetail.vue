@@ -1438,7 +1438,8 @@ const getAlertUrl = () => {
     basePath = basePath.replace(/\/$/, '')
   }
   const origin = window.location.origin
-  return `${origin}${basePath}/alerts/${currentAlertId.value}`
+  const path = basePath === '/' ? '/alerts' : `${basePath}/alerts`
+  return `${origin}${path}/${currentAlertId.value}`
 }
 
 // 分享告警（复制标题和链接到剪切板）

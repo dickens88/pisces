@@ -21,8 +21,8 @@
         </h1>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-base font-normal leading-normal">
           <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.owner') }}:</span>
-            <span class="text-white">{{ incident?.owner }}</span>
+            <span>{{ $t('incidents.detail.actor') }}:</span>
+            <span class="text-white">{{ incident?.actor }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
@@ -1391,6 +1391,7 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       status: data.handle_status,
       severity: data.severity,
       owner: data.owner,
+      actor: data.actor,
       responsiblePerson: data.responsible_person || data.owner,
       responsibleDept: data.responsible_dept || '',
       creator: data.creator,
@@ -1760,7 +1761,8 @@ const getIncidentUrl = () => {
   }
   const origin = window.location.origin
   const incidentId = route.params.id
-  return `${origin}${basePath}/incidents/${incidentId}`
+  const path = basePath === '/' ? '/incidents' : `${basePath}/incidents`
+  return `${origin}${path}/${incidentId}`
 }
 
 /**
@@ -1935,6 +1937,7 @@ const openEditDialog = () => {
       : new Date(),
     responsiblePerson: incident.value.responsiblePerson || '',
     responsibleDepartment: incident.value.responsibleDept || '',
+    actor: incident.value.actor || '',
     rootCause: incident.value.rootCause || '',
     severity: incident.value.severity || '',
     description: incident.value.description || ''
