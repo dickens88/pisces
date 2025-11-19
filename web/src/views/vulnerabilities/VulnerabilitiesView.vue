@@ -264,7 +264,7 @@ import {
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 
 const { t } = useI18n()
 
@@ -389,26 +389,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 const loadVulnerabilities = async () => {
   loadingVulnerabilities.value = true
   try {
-    // Calculate time range (in days)
-    let timeRange = 1 // Default 1 day
-    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      // Custom time range: calculate day difference
-      const diffTime = Math.abs(customTimeRange.value[1] - customTimeRange.value[0])
-      timeRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
-    } else {
-      // Predefined time range
-      if (selectedTimeRange.value === 'last24Hours') {
-        timeRange = 1
-      } else if (selectedTimeRange.value === 'last3Days') {
-        timeRange = 3
-      } else if (selectedTimeRange.value === 'last7Days') {
-        timeRange = 7
-      } else if (selectedTimeRange.value === 'last30Days') {
-        timeRange = 30
-      } else if (selectedTimeRange.value === 'last3Months') {
-        timeRange = 90
-      }
-    }
+    const range = computeSelectedRange()
     
     // Build conditions array
     const conditions = []
@@ -429,9 +410,13 @@ const loadVulnerabilities = async () => {
       action: 'list',
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
-      time_range: timeRange,
-      conditions: conditions,
+      conditions,
       search_vulscan: true
+    }
+
+    if (range) {
+      params.start_time = formatDateTimeWithOffset(range.start)
+      params.end_time = formatDateTimeWithOffset(range.end)
     }
     
     const response = await getIncidents(params)

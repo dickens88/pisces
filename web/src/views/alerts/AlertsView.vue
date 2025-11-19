@@ -948,8 +948,8 @@ const loadAlerts = async () => {
     
     const range = computeSelectedRange()
     if (range) {
-      params.startTime = range.start.toISOString()
-      params.endTime = range.end.toISOString()
+      params.startTime = range.start
+      params.endTime = range.end
     }
     
     const response = await getAlerts(params)

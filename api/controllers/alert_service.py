@@ -5,7 +5,6 @@ import requests
 
 from controllers.comment_service import CommentService
 from utils.app_config import config
-from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE
 from utils.logger_init import logger
 
@@ -16,9 +15,8 @@ class AlertService:
     workspace_id = config.get('application.secmaster.workspace_id')
 
     @classmethod
-    def list_alerts(cls, conditions: List, time_range=1, limit=50, offset=1):
+    def list_alerts(cls, conditions: List, limit=50, offset=1, start_time=None, end_time=None):
         """Search and list alerts with conditions."""
-        from_date, to_date = get_date_range(time_range)
 
         conditions, logics = build_conditions_and_logics(conditions)
 
@@ -33,8 +31,8 @@ class AlertService:
                 "conditions": conditions,
                 "logics": logics
             },
-            "from_date": from_date,
-            "to_date": to_date
+            "from_date": start_time,
+            "to_date": end_time
         }
         body = json.dumps(body)
 

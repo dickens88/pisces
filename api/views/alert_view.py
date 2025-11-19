@@ -16,13 +16,23 @@ class AlertView(Resource):
         data = json.loads(request.data or "{}")
         limit = int(data.get('limit', 50))
         offset = int(data.get('offset', 0))
-        time_range = int(data.get('time_range', 1))
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
         conditions = data.get('conditions', [])
         action = data.get('action')
 
         try:
             if action == 'list':
-                data, total = AlertService.list_alerts(conditions, time_range, limit, offset)
+                if not start_time or not end_time:
+                    return {"error_message": "start_time and end_time are required"}, 400
+
+                data, total = AlertService.list_alerts(
+                    conditions,
+                    limit=limit,
+                    offset=offset,
+                    start_time=start_time,
+                    end_time=end_time
+                )
                 return {"data": data, "total": total}, 200
             elif action == 'create':
                 # 从 data 中获取告警数据

@@ -9,7 +9,9 @@ conditions = [
     {"handle_status": ""},
     {"title": ""}
 ]
-# alerts, total = AlertService.list_alerts(conditions, time_range=1, limit=50, offset=0)
+# alerts, total = AlertService.list_alerts(conditions, limit=50, offset=0,
+#                                         start_time="2024-01-01T00:00:00Z+0800",
+#                                         end_time="2024-01-02T00:00:00Z+0800")
 #
 # alert_id = alerts[0]["id"]
 #
@@ -18,7 +20,9 @@ conditions = [
 # print(saved_alert)
 
 
-# incidents, total = IncidentService.list_incidents(conditions, time_range=30, limit=50, offset=0)
+# incidents, total = IncidentService.list_incidents(conditions, limit=50, offset=0,
+#                                                  start_time="2024-01-01T00:00:00Z+0800",
+#                                                  end_time="2024-02-01T00:00:00Z+0800")
 # print(incidents)
 #
 # content = IncidentService.retrieve_incident_by_id("7936425c-0ca9-4152-a526-a7fec119f05d")
