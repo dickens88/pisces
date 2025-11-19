@@ -27,6 +27,10 @@ export const associateAlertsToIncident = (incidentId, alertIds) => {
   })
 }
 
+export const regenerateIncidentGraph = (incidentId) => {
+  return service.post(`/incidents/${incidentId}/graph`)
+}
+
 // Post comment (imported from comments.js for backward compatibility)
 export { postComment } from './comments.js'
 

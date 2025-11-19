@@ -162,14 +162,50 @@
     <div class="mt-6 flex-grow">
       <!-- Event Graph Intelligence -->
       <div v-if="activeTab === 'eventGraph'" class="space-y-6">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-3">
-          <h3 class="text-white font-bold text-lg">
-            {{ $t('incidents.detail.eventGraph.summaryTitle') }}
-          </h3>
-          <p class="text-slate-300 leading-relaxed">
-            {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4 relative overflow-hidden">
+          <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 class="text-white font-bold text-lg">
+                {{ $t('incidents.detail.eventGraph.summaryTitle') }}
+              </h3>
+              <p class="text-slate-400 text-sm">
+                {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+              </p>
+            </div>
+            <div class="flex items-center gap-2 md:justify-end">
+              <button
+                type="button"
+                class="graph-status-btn"
+                :class="graphStatusClass"
+                disabled
+              >
+                <span class="material-symbols-outlined text-base">{{ graphStatusIcon }}</span>
+                <span>{{ graphStatusLabel }}</span>
+              </button>
+              <button
+                type="button"
+                class="graph-icon-btn"
+                :class="{ 'graph-icon-btn--loading': isRefreshingGraph }"
+                :disabled="isRefreshingGraph"
+                :title="$t('incidents.detail.eventGraph.refreshStatus')"
+                @click="handleRefreshGraphStatus"
+              >
+                <span class="material-symbols-outlined text-lg">
+                  {{ isRefreshingGraph ? 'progress_activity' : 'refresh' }}
+                </span>
+                <span class="sr-only">{{ $t('incidents.detail.eventGraph.refreshStatus') }}</span>
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="incident?.graphSummary"
+            class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
+            v-html="graphSummaryHtml"
+          ></div>
+          <p v-else class="text-slate-500 leading-relaxed">
+            {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
           </p>
-          <p class="text-slate-300 leading-relaxed">
+          <p class="text-slate-400 text-sm">
             {{
               $t('incidents.detail.eventGraph.summaryParagraph2', {
                 nodes: eventGraphStats.totalNodes,
@@ -179,9 +215,21 @@
               })
             }}
           </p>
+          <button
+            type="button"
+            class="graph-regenerate-fab"
+            :class="{ 'graph-regenerate-fab--loading': isRegeneratingGraph }"
+            :disabled="isRegeneratingGraph"
+            @click="handleRegenerateGraph"
+          >
+            <span class="material-symbols-outlined text-base">
+              {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
+            </span>
+            <span>{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
+          </button>
         </div>
         <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
-          <div class="flex flex-col lg:flex-row min-h-[640px]">
+          <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[640px]">
             <div class="flex-1 relative bg-[#0f172a]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
@@ -392,7 +440,7 @@
                         v-for="relation in selectedNodeRelations"
                         :key="`${relation.direction}-${relation.neighbor}`"
                         type="button"
-                        class="text-sm text-slate-200 text-left"
+                        class="block w-full text-left text-sm text-slate-200 py-0.5"
                         @click="handleRelationClick(relation.neighbor)"
                       >
                           {{ $t('incidents.detail.eventGraph.nodeDetail.neighborLabel') }}
@@ -407,6 +455,18 @@
                 </aside>
               </div>
             </Transition>
+          </div>
+          <div
+            v-else
+            class="min-h-[420px] flex flex-col items-center justify-center gap-3 text-center p-10 text-slate-400"
+          >
+            <span class="material-symbols-outlined text-5xl text-slate-600">hub</span>
+            <p class="text-base font-medium">
+              {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
+            </p>
+            <p class="text-sm text-slate-500 max-w-2xl">
+              {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+            </p>
           </div>
         </div>
       </div>
@@ -558,7 +618,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { getIncidentDetail, postComment } from '@/api/incidents'
+import { getIncidentDetail, postComment, regenerateIncidentGraph } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -568,7 +628,7 @@ import CommentSection from '@/components/common/CommentSection.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
-import eventGraphSample from '@/data/eventGraphSample.json'
+import { marked } from 'marked'
 
 const ENTITY_COLOR_GRADIENT = {
   host: 'grad-rose',
@@ -612,10 +672,11 @@ const closeDialogRef = ref(null)
 const showEditDialog = ref(false)
 const editIncidentInitialData = ref(null)
 
-const eventGraphData = ref({
-  nodes: eventGraphSample?.nodes || [],
-  edges: eventGraphSample?.edges || []
+const createEmptyGraphData = () => ({
+  nodes: [],
+  edges: []
 })
+const eventGraphData = ref(createEmptyGraphData())
 const graphSearchQuery = ref('')
 const highlightedEntity = ref('')
 const selectedGraphNodeId = ref('')
@@ -632,6 +693,38 @@ const nodeDetailWidth = ref(320)
 const resizingNodeDetail = ref(false)
 const resizeStartX = ref(0)
 const initialNodeDetailWidth = ref(320)
+const isRefreshingGraph = ref(false)
+const isRegeneratingGraph = ref(false)
+
+const parseGraphData = (rawData) => {
+  if (!rawData) {
+    return createEmptyGraphData()
+  }
+  let parsed = rawData
+  if (typeof rawData === 'string') {
+    try {
+      parsed = JSON.parse(rawData)
+    } catch (error) {
+      console.warn('Failed to parse graph data string', error)
+      return createEmptyGraphData()
+    }
+  }
+  return {
+    nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
+    edges: Array.isArray(parsed.edges) ? parsed.edges : []
+  }
+}
+
+const loadGraphData = (rawData) => {
+  const parsed = parseGraphData(rawData)
+  eventGraphData.value = parsed
+  selectedGraphNodeId.value = ''
+  highlightedEntity.value = ''
+  hoveredNodeId.value = ''
+  hoveredEdgeId.value = ''
+  prunedNodeIds.value = new Set()
+  nodePositions.value = {}
+}
 
 const baseGraphNodes = computed(() => {
   const availableNodes = (eventGraphData.value.nodes || []).filter((node) => !prunedNodeIds.value.has(node.id))
@@ -700,6 +793,49 @@ const graphEntityOptions = computed(() =>
     label: `${(node.properties?.entity_type || 'entity').toUpperCase()} • ${node.id}`
   }))
 )
+
+const hasGraphData = computed(() => (eventGraphData.value.nodes || []).length > 0)
+const graphStatus = computed(() => incident.value?.graphStatus || 'missing')
+const graphStatusLabel = computed(() =>
+  t(`incidents.detail.eventGraph.graphStatus.${graphStatus.value}`, graphStatus.value)
+)
+const graphStatusIcon = computed(() => {
+  if (graphStatus.value === 'ready') {
+    return 'task_alt'
+  }
+  if (graphStatus.value === 'processing') {
+    return 'progress_activity'
+  }
+  if (graphStatus.value === 'error') {
+    return 'error'
+  }
+  return 'motion_photos_paused'
+})
+const graphStatusClass = computed(() => {
+  if (graphStatus.value === 'ready') {
+    return 'text-emerald-300 bg-emerald-500/10 border border-emerald-500/20'
+  }
+  if (graphStatus.value === 'processing') {
+    return 'text-sky-200 bg-sky-500/10 border border-sky-500/20'
+  }
+  if (graphStatus.value === 'error') {
+    return 'text-red-300 bg-red-500/10 border border-red-500/20'
+  }
+  return 'text-amber-200 bg-amber-500/10 border border-amber-500/20'
+})
+
+const graphSummaryHtml = computed(() => {
+  if (!incident.value?.graphSummary) {
+    return ''
+  }
+  try {
+    const rendered = marked.parse(incident.value.graphSummary)
+    return DOMPurify.sanitize(rendered)
+  } catch (error) {
+    console.error('Failed to render graph summary markdown', error)
+    return DOMPurify.sanitize(incident.value.graphSummary)
+  }
+})
 
 const nodeLabelMap = computed(() => {
   const map = {}
@@ -1233,12 +1369,15 @@ const formattedAssociatedAlerts = computed(() => {
   })
 })
 
-const loadIncidentDetail = async () => {
-  loadingIncident.value = true
+const loadIncidentDetail = async ({ silent = false } = {}) => {
+  if (!silent) {
+    loadingIncident.value = true
+  }
   try {
     const incidentId = route.params.id
     const response = await getIncidentDetail(incidentId)
     const data = response.data
+    const graphPayload = parseGraphData(data.graph_data)
     
     // 格式化数据，将后端字段映射到前端使用的字段
     incident.value = {
@@ -1269,13 +1408,19 @@ const loadIncidentDetail = async () => {
       // 从评论生成时间线
       timeline: generateTimeline(data),
       // 关联告警（如果有）
-      associatedAlerts: data.associated_alerts || data.associatedAlerts || []
+      associatedAlerts: data.associated_alerts || data.associatedAlerts || [],
+      graphData: graphPayload,
+      graphSummary: data.graph_summary || '',
+      graphStatus: data.graph_status || (graphPayload.nodes.length ? 'ready' : 'missing')
     }
+    loadGraphData(graphPayload)
   } catch (error) {
     console.error('Failed to load incident detail:', error)
     router.push('/incidents')
   } finally {
-    loadingIncident.value = false
+    if (!silent) {
+      loadingIncident.value = false
+    }
   }
 }
 
@@ -1665,6 +1810,54 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
+const handleRefreshGraphStatus = async () => {
+  if (isRefreshingGraph.value) {
+    return
+  }
+  try {
+    isRefreshingGraph.value = true
+    await loadIncidentDetail({ silent: true })
+  } catch (error) {
+    console.error('Failed to refresh graph status:', error)
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.message ||
+      t('incidents.detail.eventGraph.refreshError') ||
+      'Failed to refresh graph status'
+    toast.error(errorMessage, 'Error')
+  } finally {
+    isRefreshingGraph.value = false
+  }
+}
+
+const handleRegenerateGraph = async () => {
+  if (isRegeneratingGraph.value) {
+    return
+  }
+  try {
+    isRegeneratingGraph.value = true
+    await regenerateIncidentGraph(route.params.id)
+    if (incident.value) {
+      incident.value.graphStatus = 'processing'
+      incident.value.graphSummary = ''
+    }
+    loadGraphData(createEmptyGraphData())
+    toast.success(t('incidents.detail.eventGraph.regenerateSuccess') || 'Graph regeneration started', 'Success')
+    await loadIncidentDetail({ silent: true })
+  } catch (error) {
+    console.error('Failed to regenerate graph:', error)
+    const errorMessage =
+      error?.response?.data?.error_message ||
+      error?.response?.data?.message ||
+      error?.message ||
+      t('incidents.detail.eventGraph.regenerateError') ||
+      'Failed to regenerate graph'
+    toast.error(errorMessage, 'Error')
+  } finally {
+    isRegeneratingGraph.value = false
+  }
+}
+
 const openCloseDialog = () => {
   showCloseDialog.value = true
 }
@@ -1941,6 +2134,199 @@ onMounted(() => {
 .detail-action-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.graph-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.graph-status-btn:disabled {
+  opacity: 0.9;
+  cursor: not-allowed;
+}
+
+.graph-icon-btn {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+}
+
+.graph-icon-btn:hover:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.65);
+  background: rgba(148, 163, 184, 0.32);
+}
+
+.graph-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.graph-icon-btn--loading {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.graph-regenerate-fab {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.15);
+  color: #fecaca;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.25s ease;
+}
+
+.graph-regenerate-fab:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.85);
+  background: rgba(248, 113, 113, 0.3);
+  color: #fee2e2;
+}
+
+.graph-regenerate-fab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.graph-regenerate-fab--loading {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.prose :deep(p) {
+  margin-bottom: 0.5rem;
+}
+
+.prose :deep(ul) {
+  list-style: disc;
+  margin-left: 1.25rem;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+.graph-icon-btn {
+  position: relative;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease;
+}
+
+.graph-icon-btn:hover:not(:disabled) {
+  border-color: rgba(148, 163, 184, 0.65);
+  background: rgba(148, 163, 184, 0.32);
+}
+
+.graph-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.graph-icon-btn--loading {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.graph-icon-btn--regenerate {
+  border-color: rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.15);
+  color: #fecaca;
+}
+
+.graph-icon-btn--regenerate:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.9);
+  background: rgba(248, 113, 113, 0.3);
+  color: #fee2e2;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.prose :deep(p) {
+  margin-bottom: 0.5rem;
+}
+
+.prose :deep(ul) {
+  list-style: disc;
+  margin-left: 1.25rem;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+  }
+}
+.prose :deep(p) {
+  margin-bottom: 0.5rem;
+}
+
+.prose :deep(ul) {
+  list-style: disc;
+  margin-left: 1.25rem;
 }
 </style>
 

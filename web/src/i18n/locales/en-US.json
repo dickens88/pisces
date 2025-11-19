@@ -358,6 +358,21 @@
           "service": "Service",
           "other": "Entity"
         },
+        "graphStatus": {
+          "ready": "Graph Ready",
+          "processing": "Generating Graph",
+          "missing": "Graph Missing",
+          "error": "Graph Failed",
+          "disabled": "Graph Disabled",
+          "skipped": "Graph Skipped"
+        },
+        "summaryUnavailable": "Graph data is not ready yet. LightRAG was triggered to build it automatically. Please refresh later.",
+        "summaryPlaceholder": "Upload incident details and associated alerts to LightRAG to visualize end-to-end relationships.",
+        "refreshStatus": "Refresh Status",
+        "refreshError": "Unable to refresh graph status, please try again later.",
+        "regenerateGraph": "Regenerate Graph",
+        "regenerateSuccess": "Graph regeneration started. Refresh later to view updates.",
+        "regenerateError": "Failed to regenerate graph, please try again.",
         "incidentCreated": "Correlation Seed Created",
         "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
         "alertConverted": "Alert Enriched in Graph",

@@ -24,7 +24,7 @@ class CallbackMessageHandler(Resource):
                     Alert.upsert_alert(result)
 
             elif event_type == "incident":
-                result = IncidentService.retrieve_incident_by_id(event_id)
+                result = IncidentService.retrieve_incident_by_id(event_id, include_graph=False)
                 if action in ("create", "update"):
                     Incident.upsert_incident(result)
 

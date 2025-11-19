@@ -46,6 +46,8 @@ api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident
 
 api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
 
+api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
+
 api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')

@@ -111,3 +111,18 @@ class IncidentRelations(Resource):
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
+
+
+class IncidentGraphView(Resource):
+
+    @auth_required
+    def post(self, username=None, incident_id=None):
+        try:
+            scheduled = IncidentService.regenerate_graph(incident_id)
+            if scheduled:
+                return {"message": "Graph regeneration started"}, 202
+            else:
+                return {"message": "Graph generation already in progress"}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500

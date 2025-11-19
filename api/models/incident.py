@@ -1,5 +1,6 @@
 import json
 from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP
+from sqlalchemy.dialects.mysql import LONGTEXT
 from sqlalchemy.sql import func
 
 from utils.logger_init import logger
@@ -39,10 +40,13 @@ class Incident(Base):
     is_auto_closed = Column(String(10))
     extend_properties = Column(Text())
     alert_list = Column(Text())
+    graph_data = Column(LONGTEXT())
+    graph_summary = Column(Text())
 
     def to_dict(self):
         extend_properties = parse_json_field(self.extend_properties)
         alert_list = parse_json_field(self.alert_list)
+        graph_data = parse_json_field(self.graph_data)
 
         return {
             "id": self.id,
@@ -66,7 +70,9 @@ class Incident(Base):
             "ttd": self.ttd,
             "is_auto_closed": self.is_auto_closed,
             "extend_properties": extend_properties,
-            "alert_list": alert_list
+            "alert_list": alert_list,
+            "graph_data": graph_data,
+            "graph_summary": self.graph_summary
         }
 
     @classmethod
@@ -102,6 +108,7 @@ class Incident(Base):
                 incident.ttd = new_incident_entity.ttd
                 incident.is_auto_closed = new_incident_entity.is_auto_closed
                 incident.extend_properties = new_incident_entity.extend_properties
+                incident.alert_list = new_incident_entity.alert_list
                 logger.debug(f"Updating incident in local DB: incident_id={incident_id}")
             else:
                 # Create new record
@@ -128,6 +135,73 @@ class Incident(Base):
     def update_incident(cls, payload: dict) -> dict:
         """Update an existing incident record in local DB by incident_id. (Deprecated: use upsert_incident instead)"""
         return cls.upsert_incident(payload)
+
+    @classmethod
+    def get_by_incident_id(cls, incident_id: str):
+        session = Session()
+        try:
+            return session.query(cls).filter_by(incident_id=incident_id).first()
+        finally:
+            session.close()
+
+    @classmethod
+    def get_graph_bundle(cls, incident_id: str):
+        session = Session()
+        try:
+            record = session.query(cls.graph_data, cls.graph_summary).filter_by(incident_id=incident_id).first()
+            if not record:
+                return None
+            return {
+                "graph_data": parse_json_field(record.graph_data),
+                "graph_summary": record.graph_summary
+            }
+        finally:
+            session.close()
+
+    @classmethod
+    def update_graph_bundle(cls, incident_id: str, graph_data=None, graph_summary=None):
+        session = Session()
+        try:
+            incident = session.query(cls).filter_by(incident_id=incident_id).first()
+            if not incident:
+                incident = cls(incident_id=incident_id)
+                session.add(incident)
+
+            if graph_data is not None:
+                if isinstance(graph_data, (dict, list)):
+                    incident.graph_data = json.dumps(graph_data, ensure_ascii=False)
+                else:
+                    incident.graph_data = graph_data
+
+            if graph_summary is not None:
+                incident.graph_summary = graph_summary
+
+            session.commit()
+            session.refresh(incident)
+            return incident.to_dict()
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
+    @classmethod
+    def clear_graph_bundle(cls, incident_id: str):
+        session = Session()
+        try:
+            incident = session.query(cls).filter_by(incident_id=incident_id).first()
+            if not incident:
+                return
+            incident.graph_data = None
+            incident.graph_summary = None
+            session.commit()
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
 
     @staticmethod
     def _build_incident_entity(payload: dict):

@@ -1,11 +1,14 @@
 import json
+from threading import Lock, Thread
 from typing import List
 
 import requests
 
 from controllers.alert_service import AlertService
+from controllers.event_graph_service import EventGraphService, EventGraphGenerationError
 from controllers.comment_service import CommentService
 from models.alert import Alert
+from models.incident import Incident
 from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE
@@ -18,6 +21,8 @@ class IncidentService:
     workspace_id = config.get('application.secmaster.workspace_id')
 
     VULSCAN_LABEL = "vulscan"
+    _graph_job_lock = Lock()
+    _graph_jobs = set()
 
     @classmethod
     def list_incidents(cls, conditions: List, time_range=1, limit=50, offset=1, search_vulscan=False):
@@ -94,7 +99,7 @@ class IncidentService:
 
 
     @classmethod
-    def retrieve_incident_by_id(cls, incident_id):
+    def retrieve_incident_by_id(cls, incident_id, *, include_graph=True):
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
@@ -160,6 +165,34 @@ class IncidentService:
 
         # retrieve comments by current alert ID
         row["comments"] = cls._extract_info_from_comment(CommentService.retrieve_comments(incident_id))
+
+        # Persist or update the incident snapshot locally so we can attach graph metadata.
+        try:
+            Incident.upsert_incident(row)
+        except Exception as exc:
+            logger.warning("[Incident] Failed to sync incident %s locally: %s", incident_id, exc)
+
+        if include_graph:
+            graph_bundle = Incident.get_graph_bundle(incident_id)
+            graph_data = graph_bundle.get("graph_data") if graph_bundle else None
+            graph_summary = graph_bundle.get("graph_summary") if graph_bundle else None
+
+            if graph_data:
+                graph_status = "ready"
+            else:
+                if EventGraphService.is_configured():
+                    graph_status = "processing"
+                    cls._schedule_graph_generation(incident_id, row, associated_alerts, force=False)
+                else:
+                    graph_status = "disabled"
+
+            row["graph_data"] = graph_data
+            row["graph_summary"] = graph_summary
+            row["graph_status"] = graph_status
+        else:
+            row["graph_data"] = None
+            row["graph_summary"] = None
+            row["graph_status"] = "skipped"
         return row
 
     @classmethod
@@ -261,3 +294,45 @@ class IncidentService:
             
             result.append(row)
         return result
+
+    @classmethod
+    def _schedule_graph_generation(cls, incident_id: str, incident_payload: dict, associated_alerts: List[dict], force: bool = False):
+        if not EventGraphService.is_configured():
+            return False
+
+        with cls._graph_job_lock:
+            if incident_id in cls._graph_jobs:
+                return False
+            cls._graph_jobs.add(incident_id)
+
+        if force:
+            try:
+                Incident.clear_graph_bundle(incident_id)
+            except Exception as exc:
+                logger.warning("[EventGraph] Failed to clear existing graph cache for %s: %s", incident_id, exc)
+
+        payload_copy = json.loads(json.dumps(incident_payload))
+        alerts_copy = json.loads(json.dumps(associated_alerts))
+
+        def worker():
+            try:
+                graph_data, graph_summary = EventGraphService.generate_graph_bundle(payload_copy, alerts_copy)
+                Incident.update_graph_bundle(incident_id, graph_data=graph_data, graph_summary=graph_summary)
+                logger.info("[EventGraph] Stored graph data for incident %s", incident_id)
+            except EventGraphGenerationError as exc:
+                logger.warning("[EventGraph] Failed to build graph for incident %s: %s", incident_id, exc)
+            except Exception:
+                logger.exception("[EventGraph] Unexpected error while building graph for incident %s", incident_id)
+            finally:
+                with cls._graph_job_lock:
+                    cls._graph_jobs.discard(incident_id)
+
+        thread = Thread(target=worker, daemon=True)
+        thread.start()
+        return True
+
+    @classmethod
+    def regenerate_graph(cls, incident_id: str) -> bool:
+        payload = cls.retrieve_incident_by_id(incident_id, include_graph=False)
+        associated_alerts = payload.get("associated_alerts", [])
+        return cls._schedule_graph_generation(incident_id, payload, associated_alerts, force=True)
