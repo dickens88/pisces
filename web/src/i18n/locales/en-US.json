@@ -190,7 +190,7 @@
       "ruleName": "Rule Name",
       "owner": "Owner",
       "unassigned": "Unassigned",
-      "model": "Model",
+      "actor": "Actor",
       "created": "Created",
       "responseTime": "TTR",
       "addComment": "Add a comment...",

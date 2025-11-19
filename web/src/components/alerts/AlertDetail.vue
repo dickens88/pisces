@@ -156,8 +156,8 @@
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.model') }}:</span>
-                    <span class="font-mono text-white">{{ alert.ruleName || '-' }}</span>
+                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.actor') }}:</span>
+                    <span class="font-mono text-white">{{ alert.actor || '-' }}</span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
@@ -594,7 +594,7 @@ import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, calculateTTR } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
@@ -787,6 +787,12 @@ const transformAlertDetailData = (apiData) => {
     ? apiData.description
     : {}
   const extendProperties = apiData.extend_properties || {}
+  const computedTtr = calculateTTR(
+    apiData.create_time || apiData.createTime,
+    apiData.close_time || apiData.closeTime,
+    apiData.handle_status
+  )
+  const normalizedTtr = computedTtr === '-' && apiData.ttr ? apiData.ttr : computedTtr
 
   // 转换comments格式
   const comments = (apiData.comments || []).map(comment => ({
@@ -821,11 +827,14 @@ const transformAlertDetailData = (apiData) => {
     label: entity.from || entity.label || ''
   }))
 
-  // 转换timeline格式
-  const timeline = (apiData.timeline || []).map(event => ({
-    time: event.time || '-',
-    event: event.event || ''
-  }))
+  // 转换timeline格式（时间使用本地时区显示）
+  const timeline = (apiData.timeline || []).map(event => {
+    const formattedTime = formatDateTime(event.time || event.timestamp)
+    return {
+      time: formattedTime !== '-' ? formattedTime : (event.time || '-'),
+      event: event.event || ''
+    }
+  })
 
   // 从description中提取字段（只有当description是对象时才尝试访问属性）
   const descriptionObj = typeof description === 'object' && description !== null ? description : {}
@@ -842,6 +851,7 @@ const transformAlertDetailData = (apiData) => {
     handle_status: apiData.handle_status || 'Open',
     status: statusMap[apiData.handle_status] || apiData.handle_status?.toLowerCase() || 'open',
     owner: apiData.owner || '',
+    actor: apiData.actor || apiData.owner || '',
     creator: apiData.creator || '',
     createTime: apiData.create_time || apiData.createTime,
     updateTime: apiData.update_time || apiData.updateTime,
@@ -852,7 +862,7 @@ const transformAlertDetailData = (apiData) => {
     close_reason: apiData.close_reason,
     is_auto_closed: apiData.is_auto_closed,
     close_comment: apiData.close_comment,
-    ttr: apiData.ttr,
+    responseTime: normalizedTtr,
     ttd: apiData.ttd,
     description: description,
     extend_properties: extendProperties,

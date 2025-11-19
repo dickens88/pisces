@@ -1,24 +1,30 @@
 from sqlalchemy import cast, DateTime, func, case
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from models.alert import Alert
 from models.incident import Incident
 from utils.mysql_conn import Session
+from utils.common_utils import format_utc_datetime_to_db_string
 
 
 class StatisticsService:
     @classmethod
     def get_alert_count_by_product_name(cls, start_date, end_date=None, status=None):
         """Get alert count grouped by product name between start_date and end_date, optionally filtered by status."""
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        
         with Session() as session:
+            # Use string comparison since database stores time as string
             query = (
                 session.query(Alert.data_source_product_name, func.count(Alert.id))
-                .filter(cast(Alert.create_time, DateTime) >= start_date)
+                .filter(Alert.create_time >= start_date_str)
             )
             
             # Add end_date filter if provided
-            if end_date:
-                query = query.filter(cast(Alert.create_time, DateTime) <= end_date)
+            if end_date_str:
+                query = query.filter(Alert.create_time <= end_date_str)
             
             # Add status filter if provided
             # Convert frontend status (lowercase) to database format (capitalized)
@@ -43,45 +49,56 @@ class StatisticsService:
         If time range <= 24 hours, group by hour; otherwise group by day.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Parse dates
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
-        else:
-            start_dt = start_date
-        
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
-        else:
-            end_dt = end_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
         
         # Calculate time difference in hours
+        if start_date.tzinfo:
+            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
+        else:
+            start_dt = start_date
+        if end_date.tzinfo:
+            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
+        else:
+            end_dt = end_date
+        
         time_diff = (end_dt - start_dt).total_seconds() / 3600
         
         with Session() as session:
             # If time range <= 24 hours, group by hour; otherwise group by day
             if time_diff <= 24:
-                # Group by hour: DATE_FORMAT(create_time, '%Y-%m-%d %H:00:00')
+                # Group by hour: extract date and hour from string format
+                # Database format: YYYY-MM-DDTHH:mm:ss.SSSZ+0000
                 query = (
                     session.query(
-                        func.date_format(cast(Alert.create_time, DateTime), '%Y-%m-%d %H:00:00').label('date'),
+                        func.concat(
+                            func.substring(Alert.create_time, 1, 10),
+                            ' ',
+                            func.substring(Alert.create_time, 12, 2),
+                            ':00:00'
+                        ).label('date'),
                         func.count(Alert.id).label('count')
                     )
                     .filter(
-                        cast(Alert.create_time, DateTime) >= start_dt,
-                        cast(Alert.create_time, DateTime) <= end_dt
+                        Alert.create_time >= start_date_str,
+                        Alert.create_time <= end_date_str
                     )
                 )
                 
-                results = query.group_by(func.date_format(cast(Alert.create_time, DateTime), '%Y-%m-%d %H:00:00')).order_by('date').all()
+                results = query.group_by(
+                    func.concat(
+                        func.substring(Alert.create_time, 1, 10),
+                        ' ',
+                        func.substring(Alert.create_time, 12, 2),
+                        ':00:00'
+                    )
+                ).order_by('date').all()
                 
                 # Convert results to list of dicts
                 trend_data = []
                 for row in results:
-                    date_str = row.date if isinstance(row.date, str) else row.date.strftime('%Y-%m-%d %H:00:00')
+                    date_str = row.date if isinstance(row.date, str) else str(row.date)
                     trend_data.append({'date': date_str, 'count': row.count})
                 
                 # Fill in missing hours with 0 count
@@ -100,28 +117,24 @@ class StatisticsService:
                 
                 return complete_trend
             else:
-                # Group by day: DATE(create_time)
+                # Group by day: extract date from string format
                 query = (
                     session.query(
-                        func.date(cast(Alert.create_time, DateTime)).label('date'),
+                        func.substring(Alert.create_time, 1, 10).label('date'),
                         func.count(Alert.id).label('count')
                     )
                     .filter(
-                        cast(Alert.create_time, DateTime) >= start_dt,
-                        cast(Alert.create_time, DateTime) <= end_dt
+                        Alert.create_time >= start_date_str,
+                        Alert.create_time <= end_date_str
                     )
                 )
                 
-                results = query.group_by(func.date(cast(Alert.create_time, DateTime))).order_by('date').all()
+                results = query.group_by(func.substring(Alert.create_time, 1, 10)).order_by('date').all()
                 
                 # Convert results to list of dicts, ensure date format is YYYY-MM-DD
                 trend_data = []
                 for row in results:
-                    date_obj = row.date
-                    if isinstance(date_obj, str):
-                        date_str = date_obj
-                    else:
-                        date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                    date_str = row.date if isinstance(row.date, str) else str(row.date)
                     trend_data.append({'date': date_str, 'count': row.count})
                 
                 # Fill in missing dates with 0 count
@@ -146,45 +159,40 @@ class StatisticsService:
         Get incident count grouped by date (day) between start_date and end_date.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Parse dates
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        
+        # Get naive datetime for date calculations
+        if start_date.tzinfo:
+            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             start_dt = start_date
-        
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
+        if end_date.tzinfo:
+            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             end_dt = end_date
         
         with Session() as session:
-            # Group by day: DATE(create_time)
+            # Group by day: extract date from string format
             query = (
                 session.query(
-                    func.date(cast(Incident.create_time, DateTime)).label('date'),
+                    func.substring(Incident.create_time, 1, 10).label('date'),
                     func.count(Incident.id).label('count')
                 )
                 .filter(
-                    cast(Incident.create_time, DateTime) >= start_dt,
-                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
                     ~Incident.labels.like('%vulscan%')
                 )
             )
             
-            results = query.group_by(func.date(cast(Incident.create_time, DateTime))).order_by('date').all()
+            results = query.group_by(func.substring(Incident.create_time, 1, 10)).order_by('date').all()
             
             # Convert results to list of dicts, ensure date format is YYYY-MM-DD
             trend_data = []
             for row in results:
-                date_obj = row.date
-                if isinstance(date_obj, str):
-                    date_str = date_obj
-                else:
-                    date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                date_str = row.date if isinstance(row.date, str) else str(row.date)
                 trend_data.append({'date': date_str, 'count': row.count})
             
             # Fill in missing dates with 0 count
@@ -210,46 +218,41 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Parse dates
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        
+        # Get naive datetime for date calculations
+        if start_date.tzinfo:
+            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             start_dt = start_date
-        
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
+        if end_date.tzinfo:
+            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             end_dt = end_date
         
         with Session() as session:
-            # Group by day: DATE(create_time)
+            # Group by day: extract date from string format
             # Filter incidents where labels contains 'vulscan'
             query = (
                 session.query(
-                    func.date(cast(Incident.create_time, DateTime)).label('date'),
+                    func.substring(Incident.create_time, 1, 10).label('date'),
                     func.count(Incident.id).label('count')
                 )
                 .filter(
-                    cast(Incident.create_time, DateTime) >= start_dt,
-                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
                     Incident.labels.like('%vulscan%')
                 )
             )
             
-            results = query.group_by(func.date(cast(Incident.create_time, DateTime))).order_by('date').all()
+            results = query.group_by(func.substring(Incident.create_time, 1, 10)).order_by('date').all()
             
             # Convert results to list of dicts, ensure date format is YYYY-MM-DD
             trend_data = []
             for row in results:
-                date_obj = row.date
-                if isinstance(date_obj, str):
-                    date_str = date_obj
-                else:
-                    date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                date_str = row.date if isinstance(row.date, str) else str(row.date)
                 trend_data.append({'date': date_str, 'count': row.count})
             
             # Fill in missing dates with 0 count
@@ -275,39 +278,38 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a list of dictionaries with 'date', 'severity', and 'count' keys.
         """
-        # Parse dates
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        
+        # Get naive datetime for date calculations
+        if start_date.tzinfo:
+            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             start_dt = start_date
-        
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
+        if end_date.tzinfo:
+            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
         else:
             end_dt = end_date
         
         with Session() as session:
-            # Group by day and severity: DATE(create_time), severity
+            # Group by day and severity: extract date from string format, severity
             # Filter incidents where labels contains 'vulscan'
             query = (
                 session.query(
-                    func.date(cast(Incident.create_time, DateTime)).label('date'),
+                    func.substring(Incident.create_time, 1, 10).label('date'),
                     Incident.severity.label('severity'),
                     func.count(Incident.id).label('count')
                 )
                 .filter(
-                    cast(Incident.create_time, DateTime) >= start_dt,
-                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
                     Incident.labels.like('%vulscan%')
                 )
             )
             
             results = query.group_by(
-                func.date(cast(Incident.create_time, DateTime)),
+                func.substring(Incident.create_time, 1, 10),
                 Incident.severity
             ).order_by('date', 'severity').all()
             
@@ -321,11 +323,7 @@ class StatisticsService:
             
             trend_data = []
             for row in results:
-                date_obj = row.date
-                if isinstance(date_obj, str):
-                    date_str = date_obj
-                else:
-                    date_str = date_obj.strftime('%Y-%m-%d') if hasattr(date_obj, 'strftime') else str(date_obj)
+                date_str = row.date if isinstance(row.date, str) else str(row.date)
                 trend_data.append({
                     'date': date_str,
                     'severity': normalize_severity(row.severity),
@@ -380,20 +378,9 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a dictionary with department names as keys and counts as values.
         """
-        # Parse dates
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
-        else:
-            start_dt = start_date
-        
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
-        else:
-            end_dt = end_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
         
         with Session() as session:
             # Group by responsible_dept
@@ -404,8 +391,8 @@ class StatisticsService:
                     func.count(Incident.id).label('count')
                 )
                 .filter(
-                    cast(Incident.create_time, DateTime) >= start_dt,
-                    cast(Incident.create_time, DateTime) <= end_dt,
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
                     Incident.labels.like('%vulscan%')
                 )
                 .group_by(Incident.responsible_dept)
@@ -432,19 +419,9 @@ class StatisticsService:
         if not start_date or not end_date:
             raise ValueError("start_date and end_date are required")
 
-        if isinstance(start_date, str):
-            start_dt = datetime.fromisoformat(start_date)
-        elif isinstance(start_date, datetime):
-            start_dt = start_date
-        else:
-            start_dt = start_date
-
-        if isinstance(end_date, str):
-            end_dt = datetime.fromisoformat(end_date)
-        elif isinstance(end_date, datetime):
-            end_dt = end_date
-        else:
-            end_dt = end_date
+        # Convert UTC datetime to database string format for comparison
+        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
+        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
 
         with Session() as session:
             query = (
@@ -459,8 +436,8 @@ class StatisticsService:
                     ).label('correct')
                 )
                 .filter(
-                    cast(Alert.create_time, DateTime) >= start_dt,
-                    cast(Alert.create_time, DateTime) <= end_dt,
+                    Alert.create_time >= start_date_str,
+                    Alert.create_time <= end_date_str,
                     Alert.model_name.isnot(None),
                     Alert.model_name != '',
                     Alert.is_ai_decision_correct.isnot(None),

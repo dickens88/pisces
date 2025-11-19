@@ -1,6 +1,7 @@
 import service from './axios.js'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { calculateTTR, formatDateTimeWithOffset } from '@/utils/dateTime'
 
 const API_SEVERITY_TO_CLIENT_MAP = {
   'Fatal': 'fatal',
@@ -43,6 +44,12 @@ const CLOSE_REASON_CATEGORY_MAP = {
  * @returns {Object} 转换后的告警对象
  */
 const transformAlertData = (apiAlert) => {
+  const computedTtr = calculateTTR(
+    apiAlert.create_time || apiAlert.createTime,
+    apiAlert.close_time,
+    apiAlert.handle_status
+  )
+
   return {
     id: apiAlert.id,
     createTime: apiAlert.create_time || apiAlert.createTime,
@@ -61,30 +68,10 @@ const transformAlertData = (apiAlert) => {
     is_auto_closed: apiAlert.is_auto_closed,
     close_comment: apiAlert.close_comment,
     creator: apiAlert.creator,
-    ttr: apiAlert.ttr,
+    responseTime: computedTtr,
     extend_properties: apiAlert.extend_properties,
     description: apiAlert.description
   }
-}
-
-/**
- * @brief 转换时间范围为time_range参数
- * @param {string} startTime - 开始时间 ISO字符串
- * @param {string} endTime - 结束时间 ISO字符串
- * @returns {number} time_range值 (1=24小时, 2=3天, 3=7天, 4=30天, 5=3个月)
- */
-const convertTimeRange = (startTime, endTime) => {
-  if (!startTime || !endTime) return 1
-  
-  const start = new Date(startTime)
-  const end = new Date(endTime)
-  const diffHours = (end - start) / (1000 * 60 * 60)
-  
-  if (diffHours <= 24) return 1
-  if (diffHours <= 72) return 2  // 3 days
-  if (diffHours <= 168) return 3  // 7 days
-  if (diffHours <= 720) return 4  // 30 days
-  return 5  // 3 months
 }
 
 /**
@@ -177,9 +164,6 @@ export const getAlerts = async (params = {}) => {
   const limit = pageSize
   const offset = (page - 1) * pageSize
   
-  // Convert time range
-  const time_range = convertTimeRange(params.startTime, params.endTime)
-  
   // Build query conditions
   const conditions = buildConditions(params.searchKeywords, params.status)
   
@@ -188,8 +172,14 @@ export const getAlerts = async (params = {}) => {
     action: 'list',
     limit,
     offset,
-    time_range,
     conditions
+  }
+
+  const start_time = formatDateTimeWithOffset(params.startTime)
+  const end_time = formatDateTimeWithOffset(params.endTime)
+  if (start_time && end_time) {
+    requestBody.start_time = start_time
+    requestBody.end_time = end_time
   }
   
   // Use axios to directly call /alerts, forwarded to backend by vite proxy
@@ -237,21 +227,24 @@ export const getAlertStatistics = () => {
   return service.get('/alerts/statistics')
 }
 
+const setDateParam = (params, key, value) => {
+  const formatted = formatDateTimeWithOffset(value)
+  if (formatted) {
+    params[key] = formatted
+  }
+}
+
 /**
  * @brief 获取按数据源产品名称统计的告警数量
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志，可选）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象，可选）
  * @param {string} status - 状态过滤（可选）
  * @returns {Promise} 告警数量映射
  */
 export const getAlertCountsBySource = (startDate, endDate = null, status = null) => {
   const params = {}
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   if (status && status !== 'all') {
     params.status = status
   }
@@ -260,27 +253,23 @@ export const getAlertCountsBySource = (startDate, endDate = null, status = null)
 
 /**
  * @brief 获取告警趋势数据（按日期分组统计）
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @returns {Promise} 告警趋势数据数组，格式为 [{date: string, count: number}, ...]
  */
 export const getAlertTrend = (startDate, endDate) => {
   const params = {
     chart: 'alert-trend'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 
 /**
  * @brief 获取按模型统计的AI准确率
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @param {number} limit - 返回的模型数量上限（默认10）
  * @returns {Promise} AI准确率数据数组
  */
@@ -291,9 +280,14 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
 
   const params = {
     chart: 'ai-model-accuracy',
-    start_date: startDate,
-    end_date: endDate,
     limit
+  }
+
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+
+  if (!params.start_date || !params.end_date) {
+    throw new Error('Invalid startDate or endDate format')
   }
 
   return service.get('/stats/alerts', { params })

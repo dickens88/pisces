@@ -318,14 +318,14 @@ const loadAlertCount24hData = async () => {
 
     // Get last 24 hours data
     const response24h = await getAlertTrend(
-      formatDateForBackend(start24h),
-      formatDateForBackend(end24h)
+      start24h,
+      end24h
     )
     
     // Get previous 24 hours data (24-48 hours ago)
     const response48h = await getAlertTrend(
-      formatDateForBackend(start48h),
-      formatDateForBackend(start24h)
+      start48h,
+      start24h
     )
 
     const data24h = response24h?.data || []
@@ -367,14 +367,14 @@ const loadIncidentCount30dData = async () => {
 
     // Get last 30 days data
     const response30d = await getIncidentTrend(
-      formatDateForBackend(start30d),
-      formatDateForBackend(end30d)
+      start30d,
+      end30d
     )
     
     // Get previous 30 days data (30-60 days ago)
     const response60d = await getIncidentTrend(
-      formatDateForBackend(start60d),
-      formatDateForBackend(start30d)
+      start60d,
+      start30d
     )
 
     const data30d = response30d?.data || []
@@ -416,14 +416,14 @@ const loadVulnerabilityCount30dData = async () => {
 
     // Get last 30 days data
     const response30d = await getVulnerabilityTrend(
-      formatDateForBackend(start30d),
-      formatDateForBackend(end30d)
+      start30d,
+      end30d
     )
     
     // Get previous 30 days data (30-60 days ago)
     const response60d = await getVulnerabilityTrend(
-      formatDateForBackend(start60d),
-      formatDateForBackend(start30d)
+      start60d,
+      start30d
     )
 
     const data30d = response30d?.data || []
@@ -666,7 +666,7 @@ const loadAlertSourceStatistics = async () => {
   alertSourceTotal.value = 0
   try {
     const { start, end } = getDashboardTimeRange()
-    const response = await getAlertCountsBySource(formatDateForBackend(start), formatDateForBackend(end))
+    const response = await getAlertCountsBySource(start, end)
     const counts = response?.data || {}
     const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
     entries.sort((a, b) => b[1] - a[1])
@@ -690,8 +690,8 @@ const loadAiAccuracyStatistics = async () => {
   try {
     const { start, end } = getDashboardTimeRange()
     const response = await getAiAccuracyByModel(
-      formatDateForBackend(start),
-      formatDateForBackend(end),
+      start,
+      end,
       10
     )
     const data = response?.data || []

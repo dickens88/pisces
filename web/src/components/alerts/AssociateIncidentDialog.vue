@@ -157,7 +157,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getIncidents, associateAlertsToIncident } from '@/api/incidents'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
@@ -253,11 +253,16 @@ const loadIncidents = async () => {
   loadingIncidents.value = true
   try {
     // Build parameters in the format expected by the backend
+    const end = new Date()
+    const start = new Date()
+    start.setMonth(start.getMonth() - 3)
+
     const params = {
       action: 'list',
       limit: pageSize.value,
       offset: (page.value - 1) * pageSize.value,
-      time_range: 90, // Default to 3 months to show more incidents
+      start_time: formatDateTimeWithOffset(start),
+      end_time: formatDateTimeWithOffset(end),
       conditions: [] // No filters, show all incidents
     }
     

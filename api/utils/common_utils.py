@@ -2,8 +2,9 @@ import base64
 import csv
 import hashlib
 import random
+import re
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from Crypto.Cipher import AES
 from flask_apscheduler import APScheduler
@@ -85,6 +86,92 @@ def singleton(cls):
 def generate_random_string(length=64):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
+
+
+def parse_datetime_with_timezone(date_str):
+    """
+    Parse datetime string with timezone offset and convert to UTC.
+    
+    Expected format: 2025-11-20T00:44:26.714Z+0100
+    - The 'Z' is ignored, the actual timezone is from the offset (+0100)
+    - Returns UTC datetime object
+    
+    Args:
+        date_str: Datetime string in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm
+        
+    Returns:
+        datetime object in UTC timezone
+    """
+    if not date_str:
+        return None
+    
+    # Pattern to match: YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm or YYYY-MM-DDTHH:mm:ssZ+HHmm
+    pattern = r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?Z([+-])(\d{2})(\d{2})'
+    match = re.match(pattern, date_str)
+    
+    if not match:
+        # Fallback to standard ISO format parsing
+        try:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+    
+    date_part = match.group(1)  # YYYY-MM-DDTHH:mm:ss
+    fractional = match.group(2) or '0'  # milliseconds/microseconds
+    tz_sign = match.group(3)  # + or -
+    tz_hours = int(match.group(4))  # HH
+    tz_minutes = int(match.group(5))  # mm
+    
+    # Construct datetime string with fractional seconds
+    if len(fractional) <= 3:
+        fractional = fractional.ljust(3, '0')
+    else:
+        fractional = fractional[:6].ljust(6, '0')
+    
+    dt_str = f"{date_part}.{fractional}"
+    
+    # Parse the datetime (naive, without timezone)
+    try:
+        if len(fractional) == 3:
+            dt = datetime.strptime(dt_str, '%Y-%m-%dT%H:%M:%S.%f')
+        else:
+            dt = datetime.strptime(dt_str, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        return None
+    
+    # Calculate timezone offset in minutes
+    offset_minutes = (tz_hours * 60 + tz_minutes) * (1 if tz_sign == '+' else -1)
+    
+    # Convert to UTC by subtracting the offset
+    utc_dt = dt - timedelta(minutes=offset_minutes)
+    
+    return utc_dt.replace(tzinfo=timezone.utc)
+
+
+def format_utc_datetime_to_db_string(dt):
+    """
+    Format UTC datetime object to database string format.
+    
+    Database format: YYYY-MM-DDTHH:mm:ss.SSSZ+0000 (UTC timezone)
+    
+    Args:
+        dt: datetime object (should be UTC)
+        
+    Returns:
+        String in format YYYY-MM-DDTHH:mm:ss.SSSZ+0000
+    """
+    if dt is None:
+        return None
+    
+    # Ensure it's UTC
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    elif dt.tzinfo != timezone.utc:
+        dt = dt.astimezone(timezone.utc)
+    
+    # Format with milliseconds
+    milliseconds = dt.microsecond // 1000
+    return dt.strftime(f'%Y-%m-%dT%H:%M:%S.{milliseconds:03d}Z+0000')
 
 
 def get_date_range(time_range, unit="day"):

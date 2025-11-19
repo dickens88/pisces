@@ -10,7 +10,6 @@ from controllers.comment_service import CommentService
 from models.alert import Alert
 from models.incident import Incident
 from utils.app_config import config
-from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE
 from utils.logger_init import logger
 
@@ -25,11 +24,11 @@ class IncidentService:
     _graph_jobs = set()
 
     @classmethod
-    def list_incidents(cls, conditions: List, time_range=1, limit=50, offset=1, search_vulscan=False):
+    def list_incidents(cls, conditions: List, limit=50, offset=1, search_vulscan=False,
+                       start_time=None, end_time=None):
         """
         search incident list
         """
-        from_date, to_date = get_date_range(time_range)
 
         conditions, logics = build_conditions_and_logics(conditions)
 
@@ -44,8 +43,8 @@ class IncidentService:
                 "conditions": conditions,
                 "logics": logics
             },
-            "from_date": from_date,
-            "to_date": to_date
+            "from_date": start_time,
+            "to_date": end_time
         }
         body = json.dumps(body)
 

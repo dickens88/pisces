@@ -220,7 +220,7 @@ import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
@@ -333,32 +333,54 @@ const getStoredCustomRange = () => {
 const selectedTimeRange = ref(getStoredTimeRange())
 const customTimeRange = ref(getStoredCustomRange())
 
+const computeSelectedRange = () => {
+  if (selectedTimeRange.value === 'customRange') {
+    if (customTimeRange.value && customTimeRange.value.length === 2) {
+      return {
+        start: new Date(customTimeRange.value[0]),
+        end: new Date(customTimeRange.value[1])
+      }
+    }
+    const end = new Date()
+    const start = new Date(end)
+    start.setDate(start.getDate() - 7)
+    return { start, end }
+  }
+
+  const end = new Date()
+  const start = new Date(end)
+
+  switch (selectedTimeRange.value) {
+    case 'last24Hours':
+      start.setHours(start.getHours() - 24)
+      break
+    case 'last3Days':
+      start.setDate(start.getDate() - 3)
+      break
+    case 'last7Days':
+      start.setDate(start.getDate() - 7)
+      break
+    case 'last30Days':
+      start.setDate(start.getDate() - 30)
+      break
+    case 'last3Months':
+      start.setMonth(start.getMonth() - 3)
+      break
+    default:
+      start.setMonth(start.getMonth() - 3)
+      break
+  }
+
+  return { start, end }
+}
+
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 const loadIncidents = async () => {
   loadingIncidents.value = true
   try {
-    // Calculate time range (in days)
-    let timeRange = 1 // Default 1 day
-    if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
-      // Custom time range: calculate day difference
-      const diffTime = Math.abs(customTimeRange.value[1] - customTimeRange.value[0])
-      timeRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1
-    } else {
-      // Predefined time range
-      if (selectedTimeRange.value === 'last24Hours') {
-        timeRange = 1
-      } else if (selectedTimeRange.value === 'last3Days') {
-        timeRange = 3
-      } else if (selectedTimeRange.value === 'last7Days') {
-        timeRange = 7
-      } else if (selectedTimeRange.value === 'last30Days') {
-        timeRange = 30
-      } else if (selectedTimeRange.value === 'last3Months') {
-        timeRange = 90
-      }
-    }
-    
+    const range = computeSelectedRange()
+
     // Build conditions array
     const conditions = []
     // Add search keyword conditions
@@ -377,8 +399,12 @@ const loadIncidents = async () => {
       action: 'list',
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
-      time_range: timeRange,
-      conditions: conditions
+      conditions
+    }
+
+    if (range) {
+      params.start_time = formatDateTimeWithOffset(range.start)
+      params.end_time = formatDateTimeWithOffset(range.end)
     }
     
     const response = await getIncidents(params)

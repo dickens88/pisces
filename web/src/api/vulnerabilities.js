@@ -1,4 +1,12 @@
 import service from './axios.js'
+import { formatDateTimeWithOffset } from '@/utils/dateTime'
+
+const setDateParam = (params, key, value) => {
+  const formatted = formatDateTimeWithOffset(value)
+  if (formatted) {
+    params[key] = formatted
+  }
+}
 
 // Get vulnerability list
 export const getVulnerabilities = (params = {}) => {
@@ -15,12 +23,8 @@ export const getVulnerabilityDepartmentDistribution = (startDate, endDate) => {
   const params = {
     chart: 'vulnerability-department-distribution'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 

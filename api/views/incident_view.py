@@ -16,14 +16,25 @@ class IncidentView(Resource):
         data = json.loads(request.data)
         limit = int(data.get('limit', 50))
         offset = int(data.get('offset', 0))
-        time_range = int(data.get('time_range', 1))
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
         conditions = data.get('conditions', [])
         action = data.get('action')
         search_vulscan = data.get('search_vulscan', False)
 
         try:
             if action == "list":
-                data, total = IncidentService.list_incidents(conditions, time_range, limit, offset, search_vulscan)
+                if not start_time or not end_time:
+                    return {"error_message": "start_time and end_time are required"}, 400
+
+                data, total = IncidentService.list_incidents(
+                    conditions,
+                    limit=limit,
+                    offset=offset,
+                    search_vulscan=search_vulscan,
+                    start_time=start_time,
+                    end_time=end_time
+                )
                 return {"data": data, "total": total}, 200
             elif action == "create":
                 """
