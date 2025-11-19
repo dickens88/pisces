@@ -797,8 +797,8 @@ const loadAlertTypeDistribution = async () => {
   try {
     const range = computeSelectedRange()
     const response = await getAlertCountsBySource(
-      formatDateForBackend(range.start),
-      formatDateForBackend(range.end),
+      range.start,
+      range.end,
       statusFilter.value
     )
     const counts = response?.data || {}
@@ -913,8 +913,8 @@ const loadAlertTrend = async () => {
   try {
     const range = computeSelectedRange()
     const response = await getAlertTrend(
-      formatDateForBackend(range.start),
-      formatDateForBackend(range.end)
+      range.start,
+      range.end
     )
     const trendData = response?.data || []
     alertTrendChartDates.value = trendData.map(item => item.date)

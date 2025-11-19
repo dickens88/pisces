@@ -4,6 +4,7 @@ from flask import request
 from flask_restful import Resource
 
 from controllers.stats_service import StatisticsService
+from utils.common_utils import parse_datetime_with_timezone, format_utc_datetime_to_db_string
 from utils.jwt_helper import auth_required
 from utils.logger_init import logger
 
@@ -23,9 +24,12 @@ class AlertCountBySourceView(Resource):
             return {"error_message": "start_date is required"}, 400
 
         try:
-            start_date = datetime.fromisoformat(start_date_str)
-        except ValueError:
-            return {"error_message": "start_date must be in ISO 8601 format"}, 400
+            # Parse datetime with timezone and convert to UTC
+            start_date = parse_datetime_with_timezone(start_date_str)
+            if start_date is None:
+                return {"error_message": "start_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+        except Exception as e:
+            return {"error_message": f"Invalid start_date format: {str(e)}"}, 400
 
         try:
             if chart_name_normalized == "data-source-count":
@@ -33,9 +37,11 @@ class AlertCountBySourceView(Resource):
                 end_date = None
                 if end_date_str:
                     try:
-                        end_date = datetime.fromisoformat(end_date_str)
-                    except ValueError:
-                        return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                        end_date = parse_datetime_with_timezone(end_date_str)
+                        if end_date is None:
+                            return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                    except Exception as e:
+                        return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_alert_count_by_product_name(start_date, end_date=end_date, status=status)
                 return {"data": data}, 200
             elif chart_name_normalized == "alert-trend":
@@ -43,9 +49,11 @@ class AlertCountBySourceView(Resource):
                 if not end_date_str:
                     return {"error_message": "end_date is required for alert-trend chart"}, 400
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_alert_trend(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized == "incident-trend":
@@ -53,9 +61,11 @@ class AlertCountBySourceView(Resource):
                 if not end_date_str:
                     return {"error_message": "end_date is required for incident-trend chart"}, 400
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_incident_trend(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized == "vulnerability-trend":
@@ -63,9 +73,11 @@ class AlertCountBySourceView(Resource):
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-trend chart"}, 400
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_trend(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized == "vulnerability-trend-by-severity":
@@ -73,9 +85,11 @@ class AlertCountBySourceView(Resource):
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-trend-by-severity chart"}, 400
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_trend_by_severity(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized == "vulnerability-department-distribution":
@@ -83,9 +97,11 @@ class AlertCountBySourceView(Resource):
                 if not end_date_str:
                     return {"error_message": "end_date is required for vulnerability-department-distribution chart"}, 400
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_department_distribution(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized in (
@@ -98,9 +114,11 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": "end_date is required for ai-model-accuracy chart"}, 400
 
                 try:
-                    end_date = datetime.fromisoformat(end_date_str)
-                except ValueError:
-                    return {"error_message": "end_date must be in ISO 8601 format"}, 400
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
 
                 limit = request.args.get("limit", default=10, type=int)
                 data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10)

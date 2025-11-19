@@ -688,8 +688,8 @@ const loadVulnerabilityTrendBySeverity = async () => {
     const range = computeSelectedRange()
 
     const response = await getVulnerabilityTrendBySeverity(
-      formatDateForBackend(range.start),
-      formatDateForBackend(range.end)
+      range.start,
+      range.end
     )
 
     const trendData = response?.data || []
@@ -865,8 +865,8 @@ const loadDepartmentData = async () => {
     const range = computeSelectedRange()
 
     const response = await getVulnerabilityDepartmentDistribution(
-      formatDateForBackend(range.start),
-      formatDateForBackend(range.end)
+      range.start,
+      range.end
     )
 
     const distribution = response?.data || {}

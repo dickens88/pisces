@@ -1,4 +1,12 @@
 import service from './axios.js'
+import { formatDateTimeWithOffset } from '@/utils/dateTime'
+
+const setDateParam = (params, key, value) => {
+  const formatted = formatDateTimeWithOffset(value)
+  if (formatted) {
+    params[key] = formatted
+  }
+}
 
 // Get incident list
 export const getIncidents = (params = {}) => {
@@ -32,58 +40,46 @@ export { postComment } from './comments.js'
 
 /**
  * @brief 获取事件趋势数据（按日期分组统计）
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @returns {Promise} 事件趋势数据数组，格式为 [{date: string, count: number}, ...]
  */
 export const getIncidentTrend = (startDate, endDate) => {
   const params = {
     chart: 'incident-trend'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 
 /**
  * @brief 获取漏洞趋势数据（按日期分组统计）
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @returns {Promise} 漏洞趋势数据数组，格式为 [{date: string, count: number}, ...]
  */
 export const getVulnerabilityTrend = (startDate, endDate) => {
   const params = {
     chart: 'vulnerability-trend'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 
 /**
  * @brief 获取漏洞趋势数据（按日期和severity分组统计）
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @returns {Promise} 漏洞趋势数据数组，格式为 [{date: string, severity: string, count: number}, ...]
  */
 export const getVulnerabilityTrendBySeverity = (startDate, endDate) => {
   const params = {
     chart: 'vulnerability-trend-by-severity'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 

@@ -227,21 +227,24 @@ export const getAlertStatistics = () => {
   return service.get('/alerts/statistics')
 }
 
+const setDateParam = (params, key, value) => {
+  const formatted = formatDateTimeWithOffset(value)
+  if (formatted) {
+    params[key] = formatted
+  }
+}
+
 /**
  * @brief 获取按数据源产品名称统计的告警数量
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志，可选）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象，可选）
  * @param {string} status - 状态过滤（可选）
  * @returns {Promise} 告警数量映射
  */
 export const getAlertCountsBySource = (startDate, endDate = null, status = null) => {
   const params = {}
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   if (status && status !== 'all') {
     params.status = status
   }
@@ -250,27 +253,23 @@ export const getAlertCountsBySource = (startDate, endDate = null, status = null)
 
 /**
  * @brief 获取告警趋势数据（按日期分组统计）
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @returns {Promise} 告警趋势数据数组，格式为 [{date: string, count: number}, ...]
  */
 export const getAlertTrend = (startDate, endDate) => {
   const params = {
     chart: 'alert-trend'
   }
-  if (startDate) {
-    params.start_date = startDate
-  }
-  if (endDate) {
-    params.end_date = endDate
-  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
   return service.get('/stats/alerts', { params })
 }
 
 /**
  * @brief 获取按模型统计的AI准确率
- * @param {string} startDate - ISO格式的开始时间（不带Z标志）
- * @param {string} endDate - ISO格式的结束时间（不带Z标志）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @param {number} limit - 返回的模型数量上限（默认10）
  * @returns {Promise} AI准确率数据数组
  */
@@ -281,9 +280,14 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
 
   const params = {
     chart: 'ai-model-accuracy',
-    start_date: startDate,
-    end_date: endDate,
     limit
+  }
+
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+
+  if (!params.start_date || !params.end_date) {
+    throw new Error('Invalid startDate or endDate format')
   }
 
   return service.get('/stats/alerts', { params })

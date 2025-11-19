@@ -179,6 +179,7 @@ export const formatDateTimeWithOffset = (value) => {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0')
 
   const offsetMinutes = -date.getTimezoneOffset()
   const sign = offsetMinutes >= 0 ? '+' : '-'
@@ -186,7 +187,7 @@ export const formatDateTimeWithOffset = (value) => {
   const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, '0')
   const offsetMins = String(absOffset % 60).padStart(2, '0')
 
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}Z${sign}${offsetHours}${offsetMins}`
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}Z${sign}${offsetHours}${offsetMins}`
 }
 
 /**
