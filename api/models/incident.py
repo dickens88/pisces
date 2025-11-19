@@ -159,6 +159,26 @@ class Incident(Base):
             session.close()
 
     @classmethod
+    def list_incident_alert_snapshots(cls, *, only_open=False):
+        """Return incident ids with their stored alert_list for comparison."""
+        session = Session()
+        try:
+            query = session.query(cls.incident_id, cls.alert_list, cls.handle_status)
+            if only_open:
+                query = query.filter(cls.handle_status == 'Open')
+            rows = query.all()
+            snapshots = []
+            for incident_id, alert_list, handle_status in rows or []:
+                snapshots.append({
+                    "incident_id": incident_id,
+                    "alert_list": parse_json_field(alert_list),
+                    "handle_status": handle_status,
+                })
+            return snapshots
+        finally:
+            session.close()
+
+    @classmethod
     def update_graph_bundle(cls, incident_id: str, graph_data=None, graph_summary=None):
         session = Session()
         try:

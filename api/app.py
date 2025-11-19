@@ -5,8 +5,10 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_restful import Api
 
+from controllers.incident_graph_scheduler import IncidentGraphIntelligenceJob
 from models import user
 from utils.app_config import config
+from utils.common_utils import scheduler
 from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin
 
 app = Flask(__name__)
@@ -57,14 +59,27 @@ api.add_resource(callback_view.CallbackMessageHandler, '/piscesapi/secmaster/cal
 api.add_resource(admin.SystemInfo, '/system/info')
 
 
+def _init_scheduler():
+    if app.config.get('SCHEDULER_INITIALIZED'):
+        return
+
+    app.config.setdefault(
+        'SCHEDULER_EXECUTORS',
+        {
+            'default': {'type': 'threadpool', 'max_workers': 30}
+        }
+    )
+    scheduler.api_enabled = True
+    scheduler.init_app(app)
+    IncidentGraphIntelligenceJob.register()
+    scheduler.start()
+    app.config['SCHEDULER_INITIALIZED'] = True
+
+
+_init_scheduler()
+
+
 if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
     app.config['PROPAGATE_EXCEPTIONS'] = True
-    app.config['SCHEDULER_EXECUTORS'] = {
-        'default': {'type': 'threadpool', 'max_workers': 30}
-    }
-    # scheduler.api_enabled = True
-    # scheduler.init_app(app)
-    # scheduler.start()
-
     app.run(debug=False, host='0.0.0.0', port=8080)

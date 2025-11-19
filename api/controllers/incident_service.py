@@ -99,7 +99,7 @@ class IncidentService:
 
 
     @classmethod
-    def retrieve_incident_by_id(cls, incident_id, *, include_graph=True):
+    def retrieve_incident_by_id(cls, incident_id, *, include_graph=True, sync_local=True):
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
@@ -167,10 +167,11 @@ class IncidentService:
         row["comments"] = cls._extract_info_from_comment(CommentService.retrieve_comments(incident_id))
 
         # Persist or update the incident snapshot locally so we can attach graph metadata.
-        try:
-            Incident.upsert_incident(row)
-        except Exception as exc:
-            logger.warning("[Incident] Failed to sync incident %s locally: %s", incident_id, exc)
+        if sync_local:
+            try:
+                Incident.upsert_incident(row)
+            except Exception as exc:
+                logger.warning("[Incident] Failed to sync incident %s locally: %s", incident_id, exc)
 
         if include_graph:
             graph_bundle = Incident.get_graph_bundle(incident_id)
