@@ -54,7 +54,7 @@ api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
-api.add_resource(callback_view.CallbackMessageHandler, '/piscesapi/secmaster/callback')
+api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')
 
 api.add_resource(admin.SystemInfo, '/system/info')
 
