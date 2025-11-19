@@ -9,6 +9,7 @@ from models.alert import Alert
 from utils.app_config import config
 from utils.common_utils import get_date_range
 from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE
+from utils.logger_init import logger
 
 
 class IncidentService:
@@ -138,6 +139,9 @@ class IncidentService:
         # Try to get from database first, fallback to API if not found
         associated_alerts = []
         associated_ids = item['data_object'].get('alert_list', [])
+        # Add alert_list to row for database storage
+        row["alert_list"] = associated_ids
+        logger.info(f"[RetrieveIncident] Retrieved incident {item['id']}, alert_list={associated_ids}, type={type(associated_ids)}")
         for alert_id in associated_ids:
             # Try to get from database first
             db_alert = Alert.get_alert_by_id(alert_id)

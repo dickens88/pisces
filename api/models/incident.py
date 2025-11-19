@@ -4,6 +4,7 @@ from sqlalchemy.sql import func
 
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
+from utils.json_utils import parse_json_field, to_json_string
 
 
 class Incident(Base):
@@ -28,7 +29,7 @@ class Incident(Base):
     responsible_person = Column(Text())
     responsible_dept = Column(Text())
 
-    close_reason = Column(Enum('False positive', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
+    close_reason = Column(Enum('False detection', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
     close_comment = Column(Text())
 
     labels = Column(Text())
@@ -37,14 +38,11 @@ class Incident(Base):
     ttd = Column(String(40))
     is_auto_closed = Column(String(10))
     extend_properties = Column(Text())
+    alert_list = Column(Text())
 
     def to_dict(self):
-        extend_properties = None
-        if self.extend_properties:
-            try:
-                extend_properties = json.loads(self.extend_properties)
-            except Exception:
-                extend_properties = self.extend_properties
+        extend_properties = parse_json_field(self.extend_properties)
+        alert_list = parse_json_field(self.alert_list)
 
         return {
             "id": self.id,
@@ -67,7 +65,8 @@ class Incident(Base):
             "category": self.category,
             "ttd": self.ttd,
             "is_auto_closed": self.is_auto_closed,
-            "extend_properties": extend_properties
+            "extend_properties": extend_properties,
+            "alert_list": alert_list
         }
 
     @classmethod
@@ -147,13 +146,8 @@ class Incident(Base):
                 )
             close_reason = None
 
-        description = payload.get("description")
-        if isinstance(description, (dict, list)):
-            description = json.dumps(description)
-
-        extend_properties = payload.get("extend_properties")
-        if isinstance(extend_properties, (dict, list)):
-            extend_properties = json.dumps(extend_properties)
+        description = to_json_string(payload.get("description"))
+        extend_properties = to_json_string(payload.get("extend_properties"))
 
         # Handle labels - could be string or list
         labels = payload.get("labels")
@@ -161,6 +155,10 @@ class Incident(Base):
             labels = ",".join(labels) if labels else None
         elif labels == '-':
             labels = None
+
+        # Handle alert_list - convert list to JSON string
+        alert_list = to_json_string(payload.get("alert_list"), wrap_string_in_array=True)
+        logger.info(f"[BuildEntity] alert_list serialized value={alert_list}")
 
         return Incident(
             incident_id=payload.get("id"),
@@ -184,5 +182,6 @@ class Incident(Base):
             ttd=str(payload.get("ttd")) if payload.get("ttd") else None,
             is_auto_closed=str(payload.get("is_auto_closed")) if payload.get("is_auto_closed") is not None else None,
             extend_properties=extend_properties,
+            alert_list=alert_list,
         )
 
