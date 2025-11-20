@@ -728,18 +728,24 @@ const loadGraphData = (rawData) => {
 
 const baseGraphNodes = computed(() => {
   const availableNodes = (eventGraphData.value.nodes || []).filter((node) => !prunedNodeIds.value.has(node.id))
-  const count = Math.min(availableNodes.length, 14)
-  if (!count) {
+  const total = availableNodes.length
+  if (!total) {
     return []
   }
-  const radiusX = 280
-  const radiusY = 200
-  return availableNodes.slice(0, count).map((node, index) => {
-    const angle = (index / count) * Math.PI * 2 - Math.PI / 2
+  const centerX = 500
+  const centerY = 320
+  const maxRadiusX = 420
+  const maxRadiusY = 260
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5))
+  return availableNodes.map((node, index) => {
+    const scale = Math.sqrt((index + 1) / total)
+    const angle = index * goldenAngle
+    const radiusX = scale * maxRadiusX
+    const radiusY = scale * maxRadiusY
     return {
       ...node,
-      x: 500 + Math.cos(angle) * radiusX,
-      y: 320 + Math.sin(angle) * radiusY
+      x: centerX + Math.cos(angle) * radiusX,
+      y: centerY + Math.sin(angle) * radiusY
     }
   })
 })
@@ -763,7 +769,6 @@ const displayGraphEdges = computed(() => {
   const nodesById = Object.fromEntries(displayGraphNodes.value.map((node) => [node.id, node]))
   return (eventGraphData.value.edges || [])
     .filter((edge) => nodesById[edge.source] && nodesById[edge.target])
-    .slice(0, 24)
     .map((edge) => {
       const positioned = {
         ...edge,
@@ -849,6 +854,19 @@ const nodeTypeMap = computed(() => {
   const map = {}
   ;(eventGraphData.value.nodes || []).forEach((node) => {
     map[node.id] = (node.properties?.entity_type || 'entity').toLowerCase()
+  })
+  return map
+})
+
+const nodeDegreeMap = computed(() => {
+  const map = {}
+  ;(eventGraphData.value.edges || []).forEach((edge) => {
+    if (edge.source) {
+      map[edge.source] = (map[edge.source] || 0) + 1
+    }
+    if (edge.target) {
+      map[edge.target] = (map[edge.target] || 0) + 1
+    }
   })
   return map
 })
@@ -985,11 +1003,17 @@ const getNodeFill = (node) => {
 }
 
 const getNodeRadius = (node) => {
-  const type = node.properties?.entity_type
-  if (type === 'ip') return 22
-  if (type === 'tenant' || type === 'service') return 20
-  if (type === 'alert') return 18
-  return 16
+  const degree = nodeDegreeMap.value[node.id] || 0
+  const normalizedDegree = Math.min(degree, 12) / 12
+  const baseRadius = 14
+  const maxExtra = 10
+  const type = (node.properties?.entity_type || '').toLowerCase()
+  const typeBoost =
+    type === 'incident' ? 1.2 :
+    type === 'alert' ? 1.1 :
+    type === 'ip' ? 1.05 :
+    1
+  return (baseRadius + normalizedDegree * maxExtra) * typeBoost
 }
 
 const formatNodeLabel = (node) => {

@@ -39,7 +39,7 @@ class IncidentGraphIntelligenceJob:
         with cls._lock:
             snapshots = Incident.list_incident_alert_snapshots(only_open=True)
             light_rag_enabled = EventGraphService.is_configured()
-            logger.info("[IncidentGraphJob] Scanning %s incidents for alert changes", len(snapshots))
+            logger.debug("[IncidentGraphJob] Scanning %s open incidents for alert changes", len(snapshots))
             for snapshot in snapshots:
                 incident_id = snapshot.get("incident_id")
                 if not incident_id:
@@ -61,10 +61,10 @@ class IncidentGraphIntelligenceJob:
                     continue
 
                 logger.info(
-                    "[IncidentGraphJob] Detected alert_list change for %s: %s -> %s",
+                    "[IncidentGraphJob] Detected alert count change for %s: local=%s remote=%s",
                     incident_id,
-                    stored_alerts,
-                    remote_alerts,
+                    len(stored_alerts),
+                    len(remote_alerts),
                 )
 
                 try:
@@ -85,7 +85,6 @@ class IncidentGraphIntelligenceJob:
             return []
         if isinstance(values, list):
             return [str(item) for item in values if item is not None]
-        logger.debug("[IncidentGraphJob] Unexpected alert_list format: %s", type(values))
         return []
 
     @staticmethod

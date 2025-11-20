@@ -146,7 +146,6 @@ class IncidentService:
         associated_ids = item['data_object'].get('alert_list', [])
         # Add alert_list to row for database storage
         row["alert_list"] = associated_ids
-        logger.info(f"[RetrieveIncident] Retrieved incident {item['id']}, alert_list={associated_ids}, type={type(associated_ids)}")
         for alert_id in associated_ids:
             # Try to get from database first
             db_alert = Alert.get_alert_by_id(alert_id)

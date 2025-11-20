@@ -252,8 +252,6 @@ class Incident(Base):
 
         # Handle alert_list - convert list to JSON string
         alert_list = to_json_string(payload.get("alert_list"), wrap_string_in_array=True)
-        logger.info(f"[BuildEntity] alert_list serialized value={alert_list}")
-
         return Incident(
             incident_id=payload.get("id"),
             create_time=payload.get("create_time"),
