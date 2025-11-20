@@ -202,7 +202,10 @@ class _LightRAGClient:
                 safe_body = safe_body.encode("ascii", errors="replace").decode("ascii")
             except Exception:
                 safe_body = "<non-ascii-body>"
-        logger.info("[LightRAG] %s %s -> %s %s", method, path, response.status_code, safe_body)
+
+        noisy_paths = ("/documents/track_status", "/documents/status_counts")
+        log_fn = logger.debug if any(path.startswith(noisy) for noisy in noisy_paths) else logger.info
+        log_fn("[LightRAG] %s %s -> %s %s", method, path, response.status_code, safe_body)
 
 
 class EventGraphService:
