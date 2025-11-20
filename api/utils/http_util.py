@@ -38,8 +38,9 @@ def build_conditions_and_logics(input_conditions):
     logics = []
     for data in input_conditions:
         for field, value in data.items():
+            i = 0
             condition = {
-                "name": field,
+                "name": field + str(i),
                 "data": [
                     field,
                     "contains",
@@ -48,7 +49,8 @@ def build_conditions_and_logics(input_conditions):
             }
             conditions.append(condition)
             logics.append("and")
-            logics.append(field)
+            logics.append(field + str(i))
+            i = i + 1
 
     logics = logics[1:]
     return conditions, logics
