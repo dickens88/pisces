@@ -34,9 +34,9 @@ class AlertView(Resource):
                 )
                 return {"data": data, "total": total}, 200
             elif action == 'create':
-                # 从 data 中获取告警数据
                 alert_data = data.get('data', data)
                 created = AlertService.create_alert(alert_data)
+                logger.info(f"[Alert] Create Alert: {alert_id} successfully.[{username}]")
                 return {"data": created}, 201
 
         except Exception as ex:
@@ -67,12 +67,14 @@ class AlertView(Resource):
                                                         close_reason=close_reason,
                                                         comment=close_comment,
                                                         owner=username)
+                logger.info(f"[Alert] Close Alerts: {data['batch_ids']} successfully.[{username}]")
                 return {"data": result}, 200
             if action == "update":
                 # update alert by id
                 update_info = data["data"]
                 update_info["actor"] = username
                 result = AlertService.update_alert(alert_id, update_info)
+                logger.info(f"[Alert] Update Alert: {alert_id} successfully.[{username}]")
                 return {"data": result}, 200
             elif action == "close":
                 # close alert by id
@@ -82,6 +84,7 @@ class AlertView(Resource):
                                                   close_reason=close_reason,
                                                   comment=close_comment,
                                                   owner=username)
+                logger.info(f"[Alert] Update Alert: {alert_id} successfully.[{username}]")
                 return {"data": result}, 200
             else:
                 raise Exception(f"The action {action} is not supported")
@@ -89,3 +92,15 @@ class AlertView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
+    @auth_required
+    def delete(self, username=None):
+        data = json.loads(request.data)
+
+        try:
+            ids = data["batch_ids"]
+            result = AlertService.delete_alerts(ids)
+            logger.warn(f"[Alert] Delete Alerts successfully. ids: {ids}. [{username}]")
+            return {"data": result}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500

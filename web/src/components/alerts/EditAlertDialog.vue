@@ -314,7 +314,7 @@ const handleSubmit = async () => {
     await updateAlert(props.alertId, alertData)
     
     // 显示成功提示
-    toast.success(t('alerts.edit.success') || '告警更新成功', '操作成功')
+    toast.success(t('alerts.edit.success') || '告警更新成功', 'SUCCESS')
     
     // 触发更新成功事件
     emit('updated')
@@ -323,7 +323,7 @@ const handleSubmit = async () => {
     console.error('Failed to update alert:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('alerts.edit.error') || '告警更新失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmitting.value = false
   }

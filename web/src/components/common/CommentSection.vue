@@ -236,7 +236,7 @@ const handleDownloadFile = async (url, fileType, fileName) => {
     window.URL.revokeObjectURL(downloadUrl)
   } catch (error) {
     console.error('Failed to download file:', error)
-    toast.error('文件下载失败', '操作失败')
+    toast.error('文件下载失败', 'ERROR')
   }
 }
 

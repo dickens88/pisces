@@ -428,3 +428,16 @@ export const updateAlert = (alertId, data) => {
   return service.put(`/alerts/${alertId}`, requestBody)
 }
 
+/**
+ * @brief 批量删除告警
+ * @param {Array<string>} alertIds - 告警ID数组
+ * @returns {Promise} 返回删除结果
+ */
+export const deleteAlerts = (alertIds) => {
+  return service.delete('/alerts', {
+    data: {
+      batch_ids: alertIds
+    }
+  })
+}
+

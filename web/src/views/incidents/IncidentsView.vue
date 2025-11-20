@@ -43,6 +43,30 @@
           <span class="material-symbols-outlined text-base">add</span>
           <span>{{ $t('incidents.list.createIncident') }}</span>
         </button>
+        <!-- More actions button -->
+        <div class="relative">
+          <button
+            @click="showMoreMenu = !showMoreMenu"
+            class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
+            :title="$t('common.more')"
+          >
+            <span class="material-symbols-outlined text-base">more_vert</span>
+          </button>
+          <!-- Dropdown menu -->
+          <div
+            v-if="showMoreMenu"
+            class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+          >
+            <button
+              @click="openBatchDeleteDialog"
+              :disabled="selectedIncidents.length === 0"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+            >
+              <span class="material-symbols-outlined text-base">delete</span>
+              <span>{{ $t('incidents.list.batchDelete') }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -212,14 +236,75 @@
       @close="closeCloseDialog"
       @submit="handleCloseIncident"
     />
+
+    <!-- Batch delete dialog -->
+    <div
+      v-if="showBatchDeleteDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeBatchDeleteDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('incidents.list.batchDeleteDialog.title') }}
+          </h2>
+          <button
+            @click="closeBatchDeleteDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ $t('incidents.list.batchDeleteDialog.confirmMessage', { count: selectedIncidents.length }) }}
+          </p>
+        </div>
+
+        <!-- Confirmation input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('incidents.list.batchDeleteDialog.confirmInputLabel') }}
+          </label>
+          <input
+            v-model="deleteConfirmInput"
+            @keydown.enter.prevent="handleBatchDelete"
+            type="text"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            :placeholder="$t('incidents.list.batchDeleteDialog.confirmInputPlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeBatchDeleteDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleBatchDelete"
+            :disabled="!isDeleteConfirmValid || isBatchDeleting"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isBatchDeleting" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { getIncidents } from '@/api/incidents'
+import { getIncidents, deleteIncidents } from '@/api/incidents'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -306,6 +391,10 @@ const showCloseDialog = ref(false)
 const isClosingIncident = ref(false)
 const closeDialogRef = ref(null)
 const closingIncidentId = ref(null)
+const showMoreMenu = ref(false)
+const showBatchDeleteDialog = ref(false)
+const deleteConfirmInput = ref('')
+const isBatchDeleting = ref(false)
 
 // Time range picker
 // 从 localStorage 读取保存的时间范围
@@ -651,7 +740,7 @@ const handleCloseIncident = async (data) => {
     await axios.put(url, body, { headers })
     
     // 显示成功提示
-    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', '操作成功')
+    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', 'SUCCESS')
     
     // 关闭对话框
     closeCloseDialog()
@@ -662,12 +751,81 @@ const handleCloseIncident = async (data) => {
     console.error('Failed to close incident:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isClosingIncident.value = false
     if (closeDialogRef.value) {
       closeDialogRef.value.setSubmitting(false)
     }
+  }
+}
+
+// Delete confirmation validation
+const isDeleteConfirmValid = computed(() => {
+  return deleteConfirmInput.value.toLowerCase() === 'delete'
+})
+
+const openBatchDeleteDialog = () => {
+  if (selectedIncidents.value.length === 0) {
+    console.warn('No incidents selected')
+    return
+  }
+  showMoreMenu.value = false
+  showBatchDeleteDialog.value = true
+  deleteConfirmInput.value = ''
+}
+
+const closeBatchDeleteDialog = () => {
+  showBatchDeleteDialog.value = false
+  deleteConfirmInput.value = ''
+}
+
+const handleBatchDelete = async () => {
+  if (!isDeleteConfirmValid.value || isBatchDeleting.value) {
+    return
+  }
+
+  if (selectedIncidents.value.length === 0) {
+    toast.warn('请至少选择一个事件', '提示')
+    return
+  }
+
+  try {
+    isBatchDeleting.value = true
+    
+    // 调用删除接口
+    await deleteIncidents(selectedIncidents.value)
+    
+    // 显示成功提示
+    toast.success(
+      t('incidents.list.batchDeleteDialog.deleteSuccess', { count: selectedIncidents.value.length }) || 
+      `成功删除 ${selectedIncidents.value.length} 条事件`, 
+      'SUCCESS'
+    )
+    
+    // Close dialog and reset form
+    closeBatchDeleteDialog()
+    selectedIncidents.value = []
+    if (dataTableRef.value) {
+      dataTableRef.value.clearSelection()
+    }
+    
+    // Reload incident list
+    loadIncidents()
+  } catch (error) {
+    console.error('Failed to delete incidents:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('incidents.list.batchDeleteDialog.deleteError') || '删除事件失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isBatchDeleting.value = false
+  }
+}
+
+// Close more menu when clicking outside
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.more-menu-button') && !event.target.closest('.more-menu-dropdown')) {
+    showMoreMenu.value = false
   }
 }
 
@@ -677,6 +835,13 @@ watch([currentPage, pageSize], () => {
 
 onMounted(() => {
   loadIncidents()
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
+})
+
+// Clean up event listener
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

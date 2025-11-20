@@ -6,7 +6,7 @@
  *   toast.info('信息提示')
  *   toast.warn('警告提示', '警告标题')
  *   toast.error('错误提示')
- *   toast.success('操作成功', '成功')
+ *   toast.success('SUCCESS', '成功')
  */
 export const useToast = () => {
   const showToast = (message, type = 'info', title = null) => {

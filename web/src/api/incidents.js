@@ -35,8 +35,30 @@ export const associateAlertsToIncident = (incidentId, alertIds) => {
   })
 }
 
+// Disassociate alerts from incident
+export const disassociateAlertsFromIncident = (incidentId, alertIds) => {
+  return service.delete(`/incidents/${incidentId}/relations`, {
+    data: {
+      ids: alertIds
+    }
+  })
+}
+
 export const regenerateIncidentGraph = (incidentId) => {
   return service.post(`/incidents/${incidentId}/graph`)
+}
+
+/**
+ * @brief 批量删除事件
+ * @param {Array<string>} incidentIds - 事件ID数组
+ * @returns {Promise} 返回删除结果
+ */
+export const deleteIncidents = (incidentIds) => {
+  return service.delete('/incidents', {
+    data: {
+      batch_ids: incidentIds
+    }
+  })
 }
 
 // Post comment (imported from comments.js for backward compatibility)

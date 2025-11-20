@@ -241,6 +241,37 @@ class IncidentService:
             raise Exception(resp.text)
         return json.loads(resp.text)
 
+    @classmethod
+    def disassociate_alerts_from_incident(cls, incident_id: str, alert_ids: list):
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}/alerts"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+        body = json.dumps({"ids": alert_ids})
+
+        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
+
+        resp = requests.delete(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+        return json.loads(resp.text)
+
+    @classmethod
+    def delete_incidents(cls, batch_ids):
+        """Delete incidents."""
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {"batch_ids": batch_ids}
+
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
+        resp = requests.delete(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+
+        result = json.loads(resp.text)
+        return result
+
     @staticmethod
     def _convert_db_alert_to_api_format(db_alert: dict) -> dict:
         """Convert database alert record to API format."""

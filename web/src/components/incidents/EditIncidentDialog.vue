@@ -411,7 +411,7 @@ const handleSubmit = async () => {
     await axios.put(url, body, { headers })
     
     // 显示成功提示
-    toast.success(t('incidents.edit.success') || '事件更新成功', '操作成功')
+    toast.success(t('incidents.edit.success') || '事件更新成功', 'SUCCESS')
     
     // 触发更新成功事件
     emit('updated')
@@ -420,7 +420,7 @@ const handleSubmit = async () => {
     console.error('Failed to update incident:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('incidents.edit.error') || '事件更新失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmitting.value = false
   }
