@@ -26,7 +26,8 @@
       "login": "登录",
       "logout": "登出",
       "loggingIn": "登录中...",
-      "footer": "© 2024 Pisces. All rights reserved."
+      "footer": "© 2024 Pisces. All rights reserved.",
+      "operationSuccess": "操作成功"
     },
     "totalAlerts": "总告警数",
     "pagination": {

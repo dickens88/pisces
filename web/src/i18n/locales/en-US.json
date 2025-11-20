@@ -26,7 +26,8 @@
       "login": "Login",
       "logout": "Logout",
       "loggingIn": "Logging in...",
-      "footer": "© 2024 Pisces. All rights reserved."
+      "footer": "© 2024 Pisces. All rights reserved.",
+      "operationSuccess": "Operation Successful"
     },
     "totalAlerts": "Total Alerts",
     "pagination": {
@@ -115,6 +116,8 @@
       "block": "Block",
       "closed": "Closed",
       "batchClose": "Batch Close",
+      "batchCloseSuccess": "Successfully closed {count} alert(s)",
+      "batchCloseError": "Failed to batch close alerts, please try again later",
       "batchCloseDialog": {
         "title": "Batch Close Alerts",
         "selectedCount": "Selected {count} alert(s)",

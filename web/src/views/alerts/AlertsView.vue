@@ -1221,7 +1221,7 @@ const handleBatchClose = async () => {
     toast.success(
       t('alerts.list.batchCloseSuccess', { count: selectedAlerts.value.length }) || 
       `成功关闭 ${selectedAlerts.value.length} 个告警`, 
-      '操作成功'
+      t('common.operationSuccess')
     )
     
     // Close dialog and reset form
