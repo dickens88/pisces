@@ -30,6 +30,7 @@
       "operationSuccess": "操作成功"
     },
     "totalAlerts": "总告警数",
+    "averageAccuracy": "平均准确率",
     "pagination": {
       "showing": "显示第 {start}-{end} 条，共 {total} 条",
       "previous": "上一页",

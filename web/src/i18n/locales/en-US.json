@@ -30,6 +30,7 @@
       "operationSuccess": "Operation Successful"
     },
     "totalAlerts": "Total Alerts",
+    "averageAccuracy": "Average Accuracy",
     "pagination": {
       "showing": "Showing {start}-{end} of {total}",
       "previous": "Previous",

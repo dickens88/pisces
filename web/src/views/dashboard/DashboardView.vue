@@ -147,6 +147,14 @@
           <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
           <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
         </div>
+        <div class="flex flex-col gap-1 px-3 pb-2">
+          <span class="text-white/60 text-sm font-medium uppercase tracking-wide">
+            {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
+          </span>
+          <span class="text-white text-3xl font-bold tracking-tight">
+            {{ aiAccuracyAverage }}%
+          </span>
+        </div>
         <div class="relative h-80">
           <div 
             v-if="aiAccuracyLoading"
@@ -231,6 +239,22 @@ const aiAccuracyData = ref([])
 const aiAccuracyLoading = ref(false)
 let aiAccuracyChartInstance = null
 let aiAccuracyResizeListenerBound = false
+const aiAccuracyAverage = computed(() => {
+  if (!aiAccuracyData.value.length) {
+    return '0.0'
+  }
+  const sum = aiAccuracyData.value.reduce((total, item) => total + (Number(item.accuracy) || 0), 0)
+  return (sum / aiAccuracyData.value.length).toFixed(1)
+})
+const wrapAxisLabel = (label) => {
+  if (!label) {
+    return ''
+  }
+  const normalized = String(label)
+  const chunkSize = normalized.length > 12 ? 12 : 8
+  const segments = normalized.match(new RegExp(`.{1,${chunkSize}}`, 'g'))
+  return segments ? segments.join('\n') : normalized
+}
 
 // Alert Count 24h
 const alertCount24hTotal = ref(0)
@@ -566,10 +590,10 @@ const updateAiAccuracyChart = () => {
       }
     },
     grid: {
-      top: 16,
-      left: 36,
-      right: 16,
-      bottom: 36,
+      top: 10,
+      right: 12,
+      bottom: 6,
+      left: 28,
       containLabel: true
     },
     xAxis: {
@@ -577,9 +601,11 @@ const updateAiAccuracyChart = () => {
       data: categories,
       axisLabel: {
         color: '#cbd5f5',
-        rotate: categories.length > 5 ? 20 : 0,
-        fontSize: 10,
-        margin: 8
+        fontSize: 11,
+        lineHeight: 11,
+        margin: 1,
+        interval: 0,
+        formatter: wrapAxisLabel
       },
       axisLine: {
         lineStyle: { color: '#334155' }
