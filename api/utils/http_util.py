@@ -36,9 +36,9 @@ def _get_domain_from_url(url):
 def build_conditions_and_logics(input_conditions):
     conditions = []
     logics = []
+    i = 0
     for data in input_conditions:
         for field, value in data.items():
-            i = 0
             condition = {
                 "name": field + str(i),
                 "data": [
