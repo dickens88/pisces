@@ -164,7 +164,7 @@
       <div v-if="activeTab === 'eventGraph'" class="space-y-6">
         <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4 relative overflow-hidden">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div>
+            <div class="flex-1">
               <h3 class="text-white font-bold text-lg">
                 {{ $t('incidents.detail.eventGraph.summaryTitle') }}
               </h3>
@@ -175,37 +175,40 @@
             <div class="flex items-center gap-2 md:justify-end">
               <button
                 type="button"
-                class="graph-status-btn"
-                :class="graphStatusClass"
-                disabled
+                class="graph-regenerate-btn"
+                :class="{ 'graph-regenerate-btn--loading': isRegeneratingGraph }"
+                :disabled="isRegeneratingGraph"
+                @click="handleRegenerateGraph"
               >
-                <span class="material-symbols-outlined text-base">{{ graphStatusIcon }}</span>
-                <span>{{ graphStatusLabel }}</span>
-              </button>
-              <button
-                type="button"
-                class="graph-icon-btn"
-                :class="{ 'graph-icon-btn--loading': isRefreshingGraph }"
-                :disabled="isRefreshingGraph"
-                :title="$t('incidents.detail.eventGraph.refreshStatus')"
-                @click="handleRefreshGraphStatus"
-              >
-                <span class="material-symbols-outlined text-lg">
-                  {{ isRefreshingGraph ? 'progress_activity' : 'refresh' }}
+                <span class="material-symbols-outlined text-base">
+                  {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
                 </span>
-                <span class="sr-only">{{ $t('incidents.detail.eventGraph.refreshStatus') }}</span>
+                <span>{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
               </button>
             </div>
           </div>
-          <div
-            v-if="incident?.graphSummary"
-            class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
-            v-html="graphSummaryHtml"
-          ></div>
+          <div v-if="incident?.graphSummary" class="space-y-2">
+            <div
+              class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
+              :class="{ 'summary-collapsed': !isSummaryExpanded }"
+              v-html="graphSummaryHtml"
+            ></div>
+            <button
+              v-if="shouldShowSummaryExpand"
+              type="button"
+              @click="isSummaryExpanded = !isSummaryExpanded"
+              class="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+            >
+              <span class="material-symbols-outlined text-base">
+                {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
+              </span>
+              <span>{{ isSummaryExpanded ? '收起' : '展开' }}</span>
+            </button>
+          </div>
           <p v-else class="text-slate-500 leading-relaxed">
             {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
           </p>
-          <p class="text-slate-400 text-sm">
+          <p v-if="incident?.graphSummary" class="text-slate-400 text-sm">
             {{
               $t('incidents.detail.eventGraph.summaryParagraph2', {
                 nodes: eventGraphStats.totalNodes,
@@ -215,22 +218,13 @@
               })
             }}
           </p>
-          <button
-            type="button"
-            class="graph-regenerate-fab"
-            :class="{ 'graph-regenerate-fab--loading': isRegeneratingGraph }"
-            :disabled="isRegeneratingGraph"
-            @click="handleRegenerateGraph"
-          >
-            <span class="material-symbols-outlined text-base">
-              {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
-            </span>
-            <span>{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
-          </button>
+          <p v-if="incident?.graphSummary && graphLastGeneratedTime" class="text-slate-500 text-xs mt-2">
+            上次生成时间：{{ graphLastGeneratedTime }}
+          </p>
         </div>
         <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
-          <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[640px]">
-            <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a]">
+          <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[600px]">
+            <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
                   <div class="flex flex-col md:flex-row gap-4 flex-1 w-full">
@@ -309,16 +303,6 @@
                     >
                       <span class="material-symbols-outlined text-base">download</span>
                     </button>
-                    <button
-                      type="button"
-                      class="graph-control-btn"
-                      :class="{ 'graph-control-btn--loading': isRefreshingGraph }"
-                      :disabled="isRefreshingGraph"
-                      :title="$t('incidents.detail.eventGraph.controls.refresh')"
-                      @click="handleRefreshGraphStatus"
-                    >
-                      <span class="material-symbols-outlined text-base">refresh</span>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -339,82 +323,13 @@
                   </div>
                 </div>
               </div>
-              <div class="w-full h-full" @click="handleGraphBackgroundClick">
-                <svg
-                  ref="graphSvgRef"
-                  class="w-full h-full event-graph-svg"
-                  :viewBox="graphViewBox"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <defs>
-                    <radialGradient id="grad-rose">
-                      <stop offset="0%" stop-color="#fda4af" stop-opacity="0.45" />
-                      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.12" />
-                    </radialGradient>
-                    <radialGradient id="grad-cyan">
-                      <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.45" />
-                      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.12" />
-                    </radialGradient>
-                    <radialGradient id="grad-emerald">
-                      <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.45" />
-                      <stop offset="100%" stop-color="#10b981" stop-opacity="0.12" />
-                    </radialGradient>
-                    <radialGradient id="grad-amber">
-                      <stop offset="0%" stop-color="#fcd34d" stop-opacity="0.45" />
-                      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.12" />
-                    </radialGradient>
-                    <radialGradient id="grad-violet">
-                      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.45" />
-                      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0.12" />
-                    </radialGradient>
-                  </defs>
-                  <g>
-                    <path
-                      v-for="edge in displayGraphEdges"
-                      :key="edge.id"
-                      :d="edge.path"
-                      fill="none"
-                      :class="[
-                        'graph-edge',
-                        {
-                          'graph-edge--active': isEdgeActive(edge),
-                          'graph-edge--related': isEdgeRelated(edge),
-                          'graph-edge--dimmed': isEdgeDimmed(edge)
-                        }
-                      ]"
-                      @click.stop
-                      @mouseenter.stop="handleEdgeHover(edge.id)"
-                      @mouseleave.stop="handleEdgeHover('')"
-                    />
-                  </g>
-                  <g>
-                    <g
-                      v-for="node in displayGraphNodes"
-                      :key="node.id"
-                      :transform="`translate(${node.x}, ${node.y})`"
-                      :class="[
-                        'graph-node cursor-pointer',
-                        {
-                          'graph-node--active': isNodeActive(node.id),
-                          'graph-node--related': isNodeRelated(node.id),
-                          'graph-node--dimmed': isNodeDimmed(node.id)
-                        }
-                      ]"
-                      role="button"
-                      tabindex="0"
-                      @click.stop="handleNodeClick(node.id)"
-                      @keyup.enter.stop="handleNodeClick(node.id)"
-                      @mouseenter.stop="handleNodeHover(node.id)"
-                      @mouseleave.stop="handleNodeHover('')"
-                      @pointerdown.stop="(event) => handleNodePointerDown(event, node)"
-                    >
-                      <circle :r="getNodeRadius(node)" :fill="getNodeFill(node)" />
-                      <text class="graph-node__label" dominant-baseline="middle" text-anchor="middle">
-                        {{ formatNodeLabel(node) }}
-                      </text>
-                    </g>
-                  </g>
-                </svg>
+              <div class="w-full h-full" @click="handleGraphBackgroundClick" style="position: relative;">
+                <div
+                  ref="graphEchartsRef"
+                  class="w-full h-full"
+                  style="min-height: 480px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
+                  @click.stop
+                ></div>
               </div>
             </div>
             <Transition name="fade">
@@ -461,24 +376,31 @@
                           {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
                         </p>
                       </div>
-                    </div>
-                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-                      <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.properties') }}</h3>
-                      <div v-if="selectedNodeProperties.length" class="space-y-3 text-sm text-slate-200">
-                        <div
-                          v-for="([key, value], index) in selectedNodeProperties"
-                          :key="`${key}-${index}`"
-                          class="flex flex-col gap-0.5"
-                        >
-                          <p class="text-xs uppercase text-slate-500 tracking-wide">{{ key }}</p>
-                          <p class="font-mono text-slate-200 break-all whitespace-pre-wrap">
-                            {{ formatNodeDetailValue(value) }}
+                      <div class="flex flex-col gap-1">
+                        <p class="text-xs text-slate-400 uppercase tracking-wide">属性描述</p>
+                        <div v-if="selectedNodePropertyDescription" class="space-y-1">
+                          <p
+                            class="text-sm text-slate-200 break-all whitespace-pre-wrap"
+                            :class="{ 'property-description-collapsed': !isPropertyDescriptionExpanded }"
+                          >
+                            {{ formatNodeDetailValue(selectedNodePropertyDescription) }}
                           </p>
+                          <button
+                            v-if="shouldShowPropertyDescriptionExpand"
+                            type="button"
+                            @click="isPropertyDescriptionExpanded = !isPropertyDescriptionExpanded"
+                            class="text-primary hover:text-primary/80 text-xs font-medium flex items-center gap-1 transition-colors"
+                          >
+                            <span class="material-symbols-outlined text-sm">
+                              {{ isPropertyDescriptionExpanded ? 'expand_less' : 'expand_more' }}
+                            </span>
+                            <span>{{ isPropertyDescriptionExpanded ? '收起' : '展开' }}</span>
+                          </button>
                         </div>
+                        <p v-else class="text-sm text-slate-500">
+                          {{ $t('common.noData') || 'No data available' }}
+                        </p>
                       </div>
-                      <p v-else class="text-xs text-slate-500">
-                        {{ $t('common.noData') || 'No data available' }}
-                      </p>
                     </div>
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
                       <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.relations') }}</h3>
@@ -507,12 +429,8 @@
             v-else
             class="min-h-[420px] flex flex-col items-center justify-center gap-3 text-center p-10 text-slate-400"
           >
-            <span class="material-symbols-outlined text-5xl text-slate-600">hub</span>
             <p class="text-base font-medium">
-              {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
-            </p>
-            <p class="text-sm text-slate-500 max-w-2xl">
-              {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+              {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
             </p>
           </div>
         </div>
@@ -676,6 +594,7 @@ import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
+import * as echarts from 'echarts'
 
 const ENTITY_COLOR_GRADIENT = {
   host: 'grad-rose',
@@ -731,14 +650,11 @@ const eventGraphData = ref(createEmptyGraphData())
 const graphSearchQuery = ref('')
 const highlightedEntity = ref('')
 const selectedGraphNodeId = ref('')
-const hoveredNodeId = ref('')
-const hoveredEdgeId = ref('')
 const prunedNodeIds = ref(new Set())
-const nodePositions = ref({})
-const draggingNodeId = ref('')
-const dragOffset = ref({ x: 0, y: 0 })
-const graphSvgRef = ref(null)
+const graphEchartsRef = ref(null)
 const graphContainerRef = ref(null)
+const graphEchartsInstance = ref(null)
+const graphResizeHandler = ref(null)
 const legendFlashKey = ref('')
 const legendFlashTimer = ref(null)
 const nodeDetailWidth = ref(320)
@@ -749,11 +665,12 @@ const isRefreshingGraph = ref(false)
 const isRegeneratingGraph = ref(false)
 const graphZoomLevel = ref(1)
 const isGraphFullscreen = ref(false)
+const isSummaryExpanded = ref(false)
+const isPropertyDescriptionExpanded = ref(false)
 
 const GRAPH_ZOOM_STEP = 0.2
 const GRAPH_MIN_ZOOM = 0.5
 const GRAPH_MAX_ZOOM = 2.5
-const GRAPH_BASE_VIEWBOX = { x: 0, y: 0, width: 1000, height: 640 }
 
 const parseGraphData = (rawData) => {
   if (!rawData) {
@@ -776,73 +693,58 @@ const parseGraphData = (rawData) => {
 
 const loadGraphData = (rawData) => {
   const parsed = parseGraphData(rawData)
+  console.log('Loading graph data:', { 
+    nodes: parsed.nodes?.length || 0, 
+    edges: parsed.edges?.length || 0,
+    rawData: rawData ? 'present' : 'missing',
+    activeTab: activeTab.value
+  })
   eventGraphData.value = parsed
   selectedGraphNodeId.value = ''
   highlightedEntity.value = ''
-  hoveredNodeId.value = ''
-  hoveredEdgeId.value = ''
   prunedNodeIds.value = new Set()
-  nodePositions.value = {}
   graphZoomLevel.value = 1
+  
+  // 如果当前在 Event Graph 标签页，初始化图表
+  // 否则等待用户切换到该标签页时再初始化（通过 watch activeTab）
+  if (activeTab.value === 'eventGraph') {
+    nextTick(() => {
+      // 使用多次重试，确保 DOM 已渲染
+      let retries = 0
+      const maxRetries = 10
+      const tryInit = () => {
+        if (graphEchartsRef.value && hasGraphData.value) {
+          console.log('Initializing ECharts graph...')
+          initEChartsGraph()
+        } else if (retries < maxRetries) {
+          retries++
+          setTimeout(tryInit, 100)
+        } else {
+          console.warn('Cannot initialize graph after retries:', {
+            hasRef: !!graphEchartsRef.value,
+            hasData: hasGraphData.value,
+            activeTab: activeTab.value
+          })
+        }
+      }
+      tryInit()
+    })
+  }
 }
 
 const baseGraphNodes = computed(() => {
-  const availableNodes = (eventGraphData.value.nodes || []).filter((node) => !prunedNodeIds.value.has(node.id))
-  const total = availableNodes.length
-  if (!total) {
-    return []
-  }
-  const centerX = 500
-  const centerY = 320
-  const maxRadiusX = 420
-  const maxRadiusY = 260
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5))
-  return availableNodes.map((node, index) => {
-    const scale = Math.sqrt((index + 1) / total)
-    const angle = index * goldenAngle
-    const radiusX = scale * maxRadiusX
-    const radiusY = scale * maxRadiusY
-    return {
-      ...node,
-      x: centerX + Math.cos(angle) * radiusX,
-      y: centerY + Math.sin(angle) * radiusY
-    }
-  })
+  return (eventGraphData.value.nodes || []).filter((node) => !prunedNodeIds.value.has(node.id))
 })
 
 const displayGraphNodes = computed(() => {
-  const overrides = nodePositions.value || {}
-  return baseGraphNodes.value.map((node) => {
-    const override = overrides[node.id]
-    if (!override) {
-      return node
-    }
-    return {
-      ...node,
-      x: override.x,
-      y: override.y
-    }
-  })
+  return baseGraphNodes.value
 })
 
 const displayGraphEdges = computed(() => {
-  const nodesById = Object.fromEntries(displayGraphNodes.value.map((node) => [node.id, node]))
-  return (eventGraphData.value.edges || [])
-    .filter((edge) => nodesById[edge.source] && nodesById[edge.target])
-    .map((edge) => {
-      const positioned = {
-        ...edge,
-        id: edge.id || `${edge.source}-${edge.target}`,
-        x1: nodesById[edge.source].x,
-        y1: nodesById[edge.source].y,
-        x2: nodesById[edge.target].x,
-        y2: nodesById[edge.target].y
-      }
-      return {
-        ...positioned,
-        path: buildEdgePath(positioned)
-      }
-    })
+  const nodeIds = new Set(displayGraphNodes.value.map((node) => node.id))
+  return (eventGraphData.value.edges || []).filter(
+    (edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target)
+  )
 })
 
 const selectedGraphNode = computed(() => {
@@ -852,17 +754,347 @@ const selectedGraphNode = computed(() => {
   return displayGraphNodes.value.find((node) => node.id === selectedGraphNodeId.value) || null
 })
 
-const graphViewBox = computed(() => {
-  const zoom = graphZoomLevel.value
-  const width = GRAPH_BASE_VIEWBOX.width / zoom
-  const height = GRAPH_BASE_VIEWBOX.height / zoom
-  const x = GRAPH_BASE_VIEWBOX.x + (GRAPH_BASE_VIEWBOX.width - width) / 2
-  const y = GRAPH_BASE_VIEWBOX.y + (GRAPH_BASE_VIEWBOX.height - height) / 2
-  return `${x} ${y} ${width} ${height}`
-})
+  // 初始化 ECharts 图表
+const initEChartsGraph = () => {
+  console.log('initEChartsGraph called', {
+    hasRef: !!graphEchartsRef.value,
+    hasData: hasGraphData.value,
+    nodesCount: displayGraphNodes.value.length,
+    edgesCount: displayGraphEdges.value.length
+  })
+  
+  if (!graphEchartsRef.value) {
+    console.warn('ECharts container ref is not available')
+    return
+  }
+  
+  if (!hasGraphData.value) {
+    console.warn('No graph data available')
+    return
+  }
+  
+  if (displayGraphNodes.value.length === 0) {
+    console.warn('No nodes to display')
+    return
+  }
+  
+  try {
+    if (graphEchartsInstance.value) {
+      graphEchartsInstance.value.dispose()
+      graphEchartsInstance.value = null
+    }
+    
+    // 确保容器有尺寸
+    const container = graphEchartsRef.value
+    console.log('Container dimensions:', {
+      width: container.offsetWidth,
+      height: container.offsetHeight,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight
+    })
+    
+    if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+      console.warn('ECharts container has no dimensions, retrying...')
+      setTimeout(() => {
+        initEChartsGraph()
+      }, 200)
+      return
+    }
+    
+    graphEchartsInstance.value = echarts.init(container, 'dark')
+    console.log('ECharts instance created')
+    
+    updateEChartsGraph()
+    
+    // 监听窗口大小变化
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(() => {
+        if (graphEchartsInstance.value) {
+          graphEchartsInstance.value.resize()
+        }
+      })
+      resizeObserver.observe(container)
+    }
+    
+    // 监听全屏变化
+    watch(isGraphFullscreen, () => {
+      nextTick(() => {
+        if (graphEchartsInstance.value) {
+          graphEchartsInstance.value.resize()
+        }
+      })
+    })
+    
+    // 监听窗口大小变化
+    if (graphResizeHandler.value) {
+      window.removeEventListener('resize', graphResizeHandler.value)
+    }
+    graphResizeHandler.value = () => {
+      if (graphEchartsInstance.value) {
+        graphEchartsInstance.value.resize()
+      }
+    }
+    window.addEventListener('resize', graphResizeHandler.value)
+  } catch (error) {
+    console.error('Failed to initialize ECharts graph:', error)
+  }
+}
 
-const canZoomIn = computed(() => graphZoomLevel.value < GRAPH_MAX_ZOOM - 0.01)
-const canZoomOut = computed(() => graphZoomLevel.value > GRAPH_MIN_ZOOM + 0.01)
+// 更新 ECharts 图表数据
+const updateEChartsGraph = () => {
+  if (!graphEchartsInstance.value) {
+    console.warn('ECharts instance is not available')
+    return
+  }
+  
+  if (!hasGraphData.value) {
+    console.warn('No graph data available for update')
+    return
+  }
+  
+  if (displayGraphNodes.value.length === 0) {
+    console.warn('No nodes to display')
+    return
+  }
+  
+  console.log('Updating ECharts graph with:', {
+    nodes: displayGraphNodes.value.length,
+    edges: displayGraphEdges.value.length,
+    sampleNode: displayGraphNodes.value[0],
+    sampleEdge: displayGraphEdges.value[0]
+  })
+  
+  const nodes = displayGraphNodes.value.map((node) => {
+    const type = (node.properties?.entity_type || 'other').toLowerCase()
+    const color = ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+    const degree = nodeDegreeMap.value[node.id] || 0
+    const size = Math.min(20 + degree * 2, 40)
+    
+    // 根据搜索和选中状态设置样式
+    // 默认透明度设置为 0.7，让节点更透明
+    let itemStyle = { 
+      color,
+      opacity: 0.7,
+      borderColor: 'rgba(148, 163, 184, 0.4)',
+      borderWidth: 1.5
+    }
+    let label = { show: true, fontSize: 10, color: '#fff' }
+    
+    if (graphSearchQuery.value.trim()) {
+      if (!filteredNodeIds.value.has(node.id)) {
+        itemStyle.opacity = 0.15
+        label.show = false
+      } else {
+        // 搜索匹配的节点保持较高透明度
+        itemStyle.opacity = 0.8
+      }
+    }
+    
+    if (selectedGraphNodeId.value) {
+      if (relatedNodeIds.value.has(node.id)) {
+        itemStyle.borderColor = '#fbbf24'
+        itemStyle.borderWidth = 2
+        itemStyle.opacity = 0.85
+      } else {
+        itemStyle.opacity = 0.2
+        label.show = false
+      }
+    }
+    
+    if (selectedGraphNodeId.value === node.id) {
+      itemStyle.borderColor = '#60a5fa'
+      itemStyle.borderWidth = 3
+      itemStyle.shadowBlur = 10
+      itemStyle.shadowColor = '#60a5fa'
+      itemStyle.opacity = 0.95
+    }
+    
+    return {
+      id: node.id,
+      name: formatNodeLabel(node),
+      value: node.id,
+      symbolSize: size,
+      itemStyle,
+      label,
+      category: type,
+      properties: node.properties,
+      labels: node.labels
+    }
+  })
+  
+  const edges = displayGraphEdges.value.map((edge) => {
+    let lineStyle = {
+      color: '#64748b',
+      opacity: 0.25,
+      width: 1.4
+    }
+    
+    if (selectedGraphNodeId.value) {
+      if (edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value) {
+        lineStyle.color = '#38bdf8'
+        lineStyle.opacity = 0.85
+        lineStyle.width = 2.6
+      } else if (relatedNodeIds.value.has(edge.source) && relatedNodeIds.value.has(edge.target)) {
+        lineStyle.opacity = 0.6
+      } else {
+        lineStyle.opacity = 0.2
+      }
+    }
+    
+    return {
+      source: edge.source,
+      target: edge.target,
+      lineStyle
+    }
+  })
+  
+  // 计算类别，用于分簇
+  const categories = []
+  const categoryMap = new Map()
+  displayGraphNodes.value.forEach((node) => {
+    const type = (node.properties?.entity_type || 'other').toLowerCase()
+    if (!categoryMap.has(type)) {
+      const color = ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+      categoryMap.set(type, categories.length)
+      categories.push({
+        name: type,
+        itemStyle: { color }
+      })
+    }
+  })
+  
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      show: true,
+      trigger: 'item',
+      backgroundColor: 'rgba(30, 41, 59, 0.98)',
+      borderColor: 'rgba(148, 163, 184, 0.4)',
+      borderWidth: 1,
+      borderRadius: 8,
+      textStyle: {
+        color: '#e2e8f0',
+        fontSize: 12,
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      },
+      padding: [12, 16],
+      extraCssText: 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);',
+      formatter: (params) => {
+        if (params.dataType === 'node') {
+          const node = displayGraphNodes.value.find(n => n.id === params.data.id)
+          if (node) {
+            const type = node.properties?.entity_type || 'unknown'
+            const typeColor = ENTITY_COLOR_SOLID[type.toLowerCase()] || ENTITY_COLOR_SOLID.other
+            const description = node.properties?.description || ''
+            const descriptionText = description.length > 100 ? description.substring(0, 100) + '...' : description
+            return `<div style="padding: 0; line-height: 1.5;">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #ffffff; font-size: 13px; letter-spacing: 0.01em;">${params.data.name}</div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${description ? '8px' : '0'};">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${typeColor}; flex-shrink: 0;"></span>
+                <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">${type}</span>
+              </div>
+              ${description ? `<div style="font-size: 11px; color: #cbd5e1; margin-top: 8px; max-width: 280px; word-wrap: break-word; line-height: 1.4;">${descriptionText}</div>` : ''}
+            </div>`
+          }
+        }
+        return ''
+      }
+    },
+    series: [
+      {
+        type: 'graph',
+        layout: 'force',
+        data: nodes,
+        links: edges,
+        categories,
+        roam: true, // 启用缩放和平移（拖动画布）
+        draggable: true, // 启用节点拖动
+        label: {
+          show: true,
+          position: 'right',
+          fontSize: 10,
+          color: '#fff'
+        },
+        labelLayout: {
+          hideOverlap: true
+        },
+        emphasis: {
+          focus: 'adjacency',
+          lineStyle: {
+            width: 3
+          }
+        },
+        force: {
+          initLayout: 'circular',
+          // 降低排斥力，使节点更容易聚集
+          repulsion: 100,
+          // 降低重力，减少向中心聚集的趋势，让节点更自由地形成簇
+          gravity: 0.05,
+          // 缩短边的长度，使连接的节点更紧密
+          edgeLength: [30, 80],
+          layoutAnimation: true,
+          // 增加摩擦，使布局更稳定
+          friction: 0.8
+        },
+        lineStyle: {
+          color: '#64748b',
+          opacity: 0.25,
+          curveness: 0.3
+        },
+        itemStyle: {
+          borderColor: 'rgba(148, 163, 184, 0.4)',
+          borderWidth: 1.5,
+          opacity: 0.7
+        }
+      }
+    ]
+  }
+  
+  try {
+    console.log('Setting ECharts option:', {
+      nodesCount: nodes.length,
+      edgesCount: edges.length,
+      categoriesCount: categories.length,
+      option: JSON.stringify(option, null, 2).substring(0, 500)
+    })
+    graphEchartsInstance.value.setOption(option, true)
+    console.log('ECharts option set successfully')
+    
+    // 监听节点点击事件
+    graphEchartsInstance.value.off('click')
+    graphEchartsInstance.value.on('click', (params) => {
+      console.log('ECharts click event:', params)
+      // 检查是否是节点点击
+      if (params.dataType === 'node' && params.data) {
+        // 阻止事件冒泡，防止触发背景点击事件
+        if (params.event && params.event.event) {
+          params.event.event.stopPropagation()
+        }
+        // 尝试多种方式获取节点ID
+        const nodeId = params.data.id || params.data.value || (params.data.name && displayGraphNodes.value.find(n => formatNodeLabel(n) === params.data.name)?.id)
+        console.log('Node clicked, nodeId:', nodeId, 'params.data:', params.data)
+        if (nodeId) {
+          // 使用 nextTick 确保在下一个事件循环中处理，避免与背景点击冲突
+          nextTick(() => {
+            handleNodeClick(nodeId)
+          })
+        } else {
+          console.warn('Node clicked but no id found:', params.data)
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Failed to update ECharts graph:', error)
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack
+    })
+  }
+}
+
+
+const canZoomIn = computed(() => true)
+const canZoomOut = computed(() => true)
 const graphFullscreenIcon = computed(() => (isGraphFullscreen.value ? 'fullscreen_exit' : 'fullscreen'))
 
 const graphEntityOptions = computed(() =>
@@ -913,6 +1145,34 @@ const graphSummaryHtml = computed(() => {
     console.error('Failed to render graph summary markdown', error)
     return DOMPurify.sanitize(incident.value.graphSummary)
   }
+})
+
+const graphLastGeneratedTime = computed(() => {
+  if (!incident.value?.updateTime) {
+    return null
+  }
+  try {
+    const date = new Date(incident.value.updateTime)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  } catch (error) {
+    console.error('Failed to format graph generation time', error)
+    return null
+  }
+})
+
+const shouldShowSummaryExpand = computed(() => {
+  if (!incident.value?.graphSummary) {
+    return false
+  }
+  // Check if summary is long enough to need expansion
+  // We'll use a simple heuristic: if the text is longer than ~200 characters, show expand button
+  return incident.value.graphSummary.length > 200
 })
 
 const nodeLabelMap = computed(() => {
@@ -997,6 +1257,21 @@ const selectedNodeProperties = computed(() => {
   return orderedEntries.slice(0, 6)
 })
 
+const selectedNodePropertyDescription = computed(() => {
+  if (!selectedGraphNode.value) {
+    return null
+  }
+  return selectedGraphNode.value.properties?.description || null
+})
+
+const shouldShowPropertyDescriptionExpand = computed(() => {
+  if (!selectedNodePropertyDescription.value) {
+    return false
+  }
+  // Show expand button if description is longer than ~150 characters
+  return selectedNodePropertyDescription.value.length > 150
+})
+
 const selectedNodeRelations = computed(() => {
   if (!selectedGraphNode.value) {
     return []
@@ -1048,12 +1323,36 @@ const relatedNodeIds = computed(() => {
 })
 
 const handleNodeClick = (nodeId, { temporaryHighlight = false } = {}) => {
+  console.log('handleNodeClick called with nodeId:', nodeId)
+  if (!nodeId) {
+    console.warn('handleNodeClick: nodeId is empty')
+    return
+  }
+  
+  // 检查节点是否存在
+  const nodeExists = displayGraphNodes.value.some(n => n.id === nodeId)
+  if (!nodeExists) {
+    console.warn('handleNodeClick: node not found:', nodeId)
+    return
+  }
+  
   if (selectedGraphNodeId.value === nodeId) {
     selectedGraphNodeId.value = ''
+    highlightedEntity.value = ''
+    console.log('Node deselected')
     return
   }
   selectedGraphNodeId.value = nodeId
   highlightedEntity.value = nodeId
+  // Reset property description expansion when node changes
+  isPropertyDescriptionExpanded.value = false
+  console.log('Node selected:', nodeId, 'selectedGraphNode:', selectedGraphNode.value)
+  
+  // 更新图表以高亮选中的节点
+  if (graphEchartsInstance.value) {
+    updateEChartsGraph()
+  }
+  
   if (temporaryHighlight) {
     setTimeout(() => {
       if (selectedGraphNodeId.value === nodeId) {
@@ -1066,28 +1365,7 @@ const handleNodeClick = (nodeId, { temporaryHighlight = false } = {}) => {
   }
 }
 
-const handleNodeHover = (nodeId) => {
-  hoveredNodeId.value = nodeId
-}
 
-const getNodeFill = (node) => {
-  const type = (node.properties?.entity_type || 'other').toLowerCase()
-  return `url(#${ENTITY_COLOR_GRADIENT[type] || ENTITY_COLOR_GRADIENT.other})`
-}
-
-const getNodeRadius = (node) => {
-  const degree = nodeDegreeMap.value[node.id] || 0
-  const normalizedDegree = Math.min(degree, 12) / 12
-  const baseRadius = 14
-  const maxExtra = 10
-  const type = (node.properties?.entity_type || '').toLowerCase()
-  const typeBoost =
-    type === 'incident' ? 1.2 :
-    type === 'alert' ? 1.1 :
-    type === 'ip' ? 1.05 :
-    1
-  return (baseRadius + normalizedDegree * maxExtra) * typeBoost
-}
 
 const formatNodeLabel = (node) => {
   const label = node.labels?.[0] || node.id || node.properties?.entity_type || 'entity'
@@ -1111,90 +1389,7 @@ const formatNodeDetailValue = (value) => {
   return String(value)
 }
 
-const hoveredEdgeNodes = computed(() => {
-  if (!hoveredEdgeId.value) {
-    return new Set()
-  }
-  const edge = displayGraphEdges.value.find((edgeItem) => edgeItem.id === hoveredEdgeId.value)
-  if (!edge) {
-    return new Set()
-  }
-  return new Set([edge.source, edge.target])
-})
 
-const isNodeActive = (nodeId) => selectedGraphNodeId.value === nodeId
-const isNodeRelated = (nodeId) => {
-  if (legendFlashKey.value && nodeTypeMap.value[nodeId] === legendFlashKey.value) {
-    return true
-  }
-  if (hoveredEdgeNodes.value.has(nodeId) || hoveredNodeId.value === nodeId) {
-    return true
-  }
-  return relatedNodeIds.value.has(nodeId)
-}
-const isNodeDimmed = (nodeId) => {
-  const searchActive = !!graphSearchQuery.value.trim()
-  const selectionActive = !!selectedGraphNodeId.value
-  const dimBySearch = searchActive && !filteredNodeIds.value.has(nodeId)
-  const dimBySelection = selectionActive && !relatedNodeIds.value.has(nodeId)
-  const dimByHover =
-    !selectionActive &&
-    hoveredEdgeNodes.value.size &&
-    !hoveredEdgeNodes.value.has(nodeId) &&
-    hoveredNodeId.value !== nodeId
-  const dimByLegend =
-    legendFlashKey.value &&
-    nodeTypeMap.value[nodeId] !== legendFlashKey.value
-  return dimBySearch || dimBySelection || dimByHover || dimByLegend
-}
-
-const isEdgeActive = (edge) =>
-  !!selectedGraphNodeId.value &&
-  (edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value)
-
-const isEdgeRelated = (edge) => {
-  if (
-    legendFlashKey.value &&
-    (nodeTypeMap.value[edge.source] === legendFlashKey.value ||
-      nodeTypeMap.value[edge.target] === legendFlashKey.value)
-  ) {
-    return true
-  }
-  if (hoveredEdgeId.value && edge.id === hoveredEdgeId.value) {
-    return true
-  }
-  if (hoveredNodeId.value) {
-    return edge.source === hoveredNodeId.value || edge.target === hoveredNodeId.value
-  }
-  if (selectedGraphNodeId.value) {
-    return edge.source === selectedGraphNodeId.value || edge.target === selectedGraphNodeId.value
-  }
-  return false
-}
-
-const isEdgeDimmed = (edge) => {
-  const searchActive = !!graphSearchQuery.value.trim()
-  const selectionActive = !!selectedGraphNodeId.value
-  const dimBySearch =
-    searchActive && !filteredNodeIds.value.has(edge.source) && !filteredNodeIds.value.has(edge.target)
-  const dimBySelection =
-    selectionActive &&
-    edge.source !== selectedGraphNodeId.value &&
-    edge.target !== selectedGraphNodeId.value &&
-    (!hoveredNodeId.value || (edge.source !== hoveredNodeId.value && edge.target !== hoveredNodeId.value))
-  const dimByHover =
-    !selectionActive &&
-    hoveredEdgeNodes.value.size &&
-    !hoveredEdgeNodes.value.has(edge.source) &&
-    !hoveredEdgeNodes.value.has(edge.target) &&
-    hoveredEdgeId.value !== edge.id &&
-    (!hoveredNodeId.value || (edge.source !== hoveredNodeId.value && edge.target !== hoveredNodeId.value))
-  const dimByLegend =
-    legendFlashKey.value &&
-    nodeTypeMap.value[edge.source] !== legendFlashKey.value &&
-    nodeTypeMap.value[edge.target] !== legendFlashKey.value
-  return dimBySearch || dimBySelection || dimByHover || dimByLegend
-}
 
 const buildNodeDetailCopyPayload = () => {
   if (!selectedGraphNode.value) {
@@ -1284,28 +1479,27 @@ const pruneSelectedNode = () => {
 const clearSelectedNode = () => {
   selectedGraphNodeId.value = ''
   highlightedEntity.value = ''
-  hoveredNodeId.value = ''
-  hoveredEdgeId.value = ''
 }
 
-function buildEdgePath({ x1, y1, x2, y2 }) {
-  const dx = x2 - x1
-  const dy = y2 - y1
-  const bend = Math.max(-120, Math.min(120, dx * 0.4))
-  const cx1 = x1 + dx * 0.33
-  const cy1 = y1 + dy * 0.33 - bend
-  const cx2 = x1 + dx * 0.66
-  const cy2 = y1 + dy * 0.66 + bend
-  return `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`
-}
 
-const handleEdgeHover = (edgeId) => {
-  hoveredEdgeId.value = edgeId
-}
-
-const handleGraphBackgroundClick = () => {
-  if (draggingNodeId.value || resizingNodeDetail.value) {
+const handleGraphBackgroundClick = (event) => {
+  if (resizingNodeDetail.value) {
     return
+  }
+  // 检查点击的目标是否是 ECharts 容器内的节点
+  // 如果是节点点击，不应该清除选中状态
+  const target = event.target
+  if (target && graphEchartsRef.value && graphEchartsRef.value.contains(target)) {
+    // 检查是否是 ECharts 的节点元素
+    // ECharts 的节点通常有特定的类名或属性
+    const isEChartsNode = target.closest && (
+      target.closest('[class*="echarts"]') || 
+      target.closest('canvas')
+    )
+    if (isEChartsNode) {
+      // 如果是 ECharts 元素，不处理背景点击
+      return
+    }
   }
   clearSelectedNode()
 }
@@ -1331,33 +1525,32 @@ const handleRelationClick = (neighborId) => {
   handleNodeClick(neighborId)
 }
 
-const adjustGraphZoom = (direction) => {
-  const delta = direction === 'in' ? GRAPH_ZOOM_STEP : -GRAPH_ZOOM_STEP
-  const nextZoom = parseFloat(
-    Math.min(GRAPH_MAX_ZOOM, Math.max(GRAPH_MIN_ZOOM, graphZoomLevel.value + delta)).toFixed(2)
-  )
-  graphZoomLevel.value = nextZoom
-}
 
 const handleGraphZoomIn = () => {
-  if (!canZoomIn.value) {
-    return
-  }
-  adjustGraphZoom('in')
+  if (!graphEchartsInstance.value) return
+  // 通过修改 roam 的 scale 来实现缩放
+  graphEchartsInstance.value.dispatchAction({
+    type: 'graphRoam',
+    zoom: 1.2
+  })
 }
 
 const handleGraphZoomOut = () => {
-  if (!canZoomOut.value) {
-    return
-  }
-  adjustGraphZoom('out')
+  if (!graphEchartsInstance.value) return
+  graphEchartsInstance.value.dispatchAction({
+    type: 'graphRoam',
+    zoom: 0.8
+  })
 }
 
 const handleGraphResetView = () => {
-  graphZoomLevel.value = 1
-  nodePositions.value = {}
   selectedGraphNodeId.value = ''
   highlightedEntity.value = ''
+  graphSearchQuery.value = ''
+  if (graphEchartsInstance.value && hasGraphData.value) {
+    // 重新初始化图表来重置视图
+    updateEChartsGraph()
+  }
 }
 
 const fullscreenEventNames = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
@@ -1401,85 +1594,27 @@ const toggleGraphFullscreen = () => {
 }
 
 const handleGraphDownload = () => {
-  const svg = graphSvgRef.value
-  if (!svg || typeof document === 'undefined') {
+  if (!graphEchartsInstance.value || typeof document === 'undefined') {
     return
   }
   try {
-    const clone = svg.cloneNode(true)
-    if (clone.style) {
-      clone.style.transform = ''
-      clone.style.transformOrigin = ''
-      clone.style.transition = ''
-    }
-    const serializer = new XMLSerializer()
-    const source = serializer.serializeToString(clone)
-    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
+    const url = graphEchartsInstance.value.getDataURL({
+      type: 'png',
+      pixelRatio: 2,
+      backgroundColor: '#0f172a'
+    })
     const link = document.createElement('a')
     link.href = url
     const incidentId = incident.value?.id || incident.value?.eventId || 'incident'
-    link.download = `incident-graph-${incidentId}.svg`
+    link.download = `incident-graph-${incidentId}.png`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    URL.revokeObjectURL(url)
   } catch (error) {
-    console.error('Failed to download graph svg', error)
+    console.error('Failed to download graph', error)
   }
 }
 
-const getSvgCoordinates = (event) => {
-  const svg = graphSvgRef.value
-  if (!svg) {
-    return { x: 0, y: 0 }
-  }
-  const rect = svg.getBoundingClientRect()
-  const viewBox = svg.viewBox.baseVal
-  const scaleX = viewBox.width / rect.width
-  const scaleY = viewBox.height / rect.height
-  return {
-    x: (event.clientX - rect.left) * scaleX + viewBox.x,
-    y: (event.clientY - rect.top) * scaleY + viewBox.y
-  }
-}
-
-const handleNodePointerDown = (event, node) => {
-  if (event.button !== 0) {
-    return
-  }
-  event.preventDefault()
-  const coords = getSvgCoordinates(event)
-  draggingNodeId.value = node.id
-  dragOffset.value = {
-    x: coords.x - node.x,
-    y: coords.y - node.y
-  }
-  window.addEventListener('pointermove', handlePointerMove)
-  window.addEventListener('pointerup', handlePointerUp)
-}
-
-const handlePointerMove = (event) => {
-  if (!draggingNodeId.value) {
-    return
-  }
-  event.preventDefault()
-  const coords = getSvgCoordinates(event)
-  nodePositions.value = {
-    ...nodePositions.value,
-    [draggingNodeId.value]: {
-      x: coords.x - dragOffset.value.x,
-      y: coords.y - dragOffset.value.y
-    }
-  }
-}
-
-const handlePointerUp = () => {
-  draggingNodeId.value = ''
-  dragOffset.value = { x: 0, y: 0 }
-  window.removeEventListener('pointermove', handlePointerMove)
-  window.removeEventListener('pointerup', handlePointerUp)
-}
 
 const startNodeDetailResize = (event) => {
   if (event.button !== 0) {
@@ -1520,36 +1655,81 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerup', handlePointerUp)
   window.removeEventListener('pointermove', handleNodeDetailResize)
   window.removeEventListener('pointerup', stopNodeDetailResize)
+  if (graphResizeHandler.value) {
+    window.removeEventListener('resize', graphResizeHandler.value)
+    graphResizeHandler.value = null
+  }
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
   }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
   }
+  if (graphEchartsInstance.value) {
+    graphEchartsInstance.value.dispose()
+    graphEchartsInstance.value = null
+  }
 })
 
 watch(
-  baseGraphNodes,
-  (nodes) => {
-    if (!nodes.length) {
-      selectedGraphNodeId.value = ''
-      highlightedEntity.value = ''
-      nodePositions.value = {}
-      return
+  [baseGraphNodes, displayGraphEdges, graphSearchQuery, selectedGraphNodeId],
+  () => {
+    if (graphEchartsInstance.value && hasGraphData.value && displayGraphNodes.value.length > 0) {
+      updateEChartsGraph()
     }
-    if (!nodes.some((node) => node.id === selectedGraphNodeId.value)) {
-      selectedGraphNodeId.value = ''
+  },
+  { deep: true }
+)
+
+// 监听 hasGraphData 变化，当数据加载后初始化图表
+watch(
+  hasGraphData,
+  (hasData) => {
+    if (hasData && graphEchartsRef.value && !graphEchartsInstance.value && activeTab.value === 'eventGraph') {
+      nextTick(() => {
+        initEChartsGraph()
+      })
     }
-    const validIds = new Set(nodes.map((node) => node.id))
-    const nextPositions = { ...nodePositions.value }
-    Object.keys(nextPositions).forEach((id) => {
-      if (!validIds.has(id)) {
-        delete nextPositions[id]
-      }
-    })
-    nodePositions.value = nextPositions
   },
   { immediate: true }
+)
+
+// 监听 activeTab 变化，切换到图表标签页时初始化
+watch(
+  activeTab,
+  (newTab) => {
+    if (newTab === 'eventGraph' && hasGraphData.value) {
+      // 使用多次重试，确保 DOM 已渲染
+      let retries = 0
+      const maxRetries = 10
+      const tryInit = () => {
+        if (graphEchartsRef.value) {
+          if (!graphEchartsInstance.value) {
+            console.log('Initializing ECharts graph after tab switch...')
+            initEChartsGraph()
+          } else {
+            // 如果图表已存在，确保它正确显示
+            nextTick(() => {
+              if (graphEchartsInstance.value) {
+                graphEchartsInstance.value.resize()
+              }
+            })
+          }
+        } else if (retries < maxRetries) {
+          retries++
+          setTimeout(tryInit, 100)
+        } else {
+          console.warn('Cannot initialize graph after tab switch:', {
+            hasRef: !!graphEchartsRef.value,
+            hasData: hasGraphData.value
+          })
+        }
+      }
+      nextTick(() => {
+        tryInit()
+      })
+    }
+  }
 )
 
 watch(
@@ -1560,6 +1740,9 @@ watch(
       !nodes.some((node) => (node.properties?.entity_type || 'entity').toLowerCase() === legendFlashKey.value)
     ) {
       legendFlashKey.value = ''
+    }
+    if (graphEchartsInstance.value && hasGraphData.value) {
+      updateEChartsGraph()
     }
   },
   { immediate: true }
@@ -2244,6 +2427,11 @@ onMounted(() => {
     fullscreenEventNames.forEach((eventName) => document.addEventListener(eventName, syncGraphFullscreenState))
     syncGraphFullscreenState()
   }
+  nextTick(() => {
+    if (hasGraphData.value) {
+      initEChartsGraph()
+    }
+  })
 })
 </script>
 
@@ -2612,6 +2800,53 @@ onMounted(() => {
 .prose :deep(ul) {
   list-style: disc;
   margin-left: 1.25rem;
+}
+
+.summary-collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.property-description-collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-regenerate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(248, 113, 113, 0.6);
+  background: rgba(248, 113, 113, 0.15);
+  color: #fecaca;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.25s ease;
+}
+
+.graph-regenerate-btn:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.85);
+  background: rgba(248, 113, 113, 0.3);
+  color: #fee2e2;
+}
+
+.graph-regenerate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.graph-regenerate-btn--loading {
+  animation: pulse 1.1s ease-in-out infinite;
 }
 </style>
 
