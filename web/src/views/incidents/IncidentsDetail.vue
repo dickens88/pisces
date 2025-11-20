@@ -202,7 +202,7 @@
               <span class="material-symbols-outlined text-base">
                 {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
               </span>
-              <span>{{ isSummaryExpanded ? '收起' : '展开' }}</span>
+              <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
             </button>
           </div>
           <p v-else class="text-slate-500 leading-relaxed">
@@ -323,12 +323,11 @@
                   </div>
                 </div>
               </div>
-              <div class="w-full h-full" @click="handleGraphBackgroundClick" style="position: relative;">
+              <div class="w-full h-full" style="position: relative;" @click="handleGraphContainerClick">
                 <div
                   ref="graphEchartsRef"
                   class="w-full h-full"
                   style="min-height: 480px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
-                  @click.stop
                 ></div>
               </div>
             </div>
@@ -394,7 +393,7 @@
                             <span class="material-symbols-outlined text-sm">
                               {{ isPropertyDescriptionExpanded ? 'expand_less' : 'expand_more' }}
                             </span>
-                            <span>{{ isPropertyDescriptionExpanded ? '收起' : '展开' }}</span>
+                            <span>{{ isPropertyDescriptionExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
                           </button>
                         </div>
                         <p v-else class="text-sm text-slate-500">
@@ -667,6 +666,8 @@ const graphZoomLevel = ref(1)
 const isGraphFullscreen = ref(false)
 const isSummaryExpanded = ref(false)
 const isPropertyDescriptionExpanded = ref(false)
+const isDragging = ref(false)
+const dragTimeout = ref(null)
 
 const GRAPH_ZOOM_STEP = 0.2
 const GRAPH_MIN_ZOOM = 0.5
@@ -871,12 +872,13 @@ const updateEChartsGraph = () => {
     const size = Math.min(20 + degree * 2, 40)
     
     // 根据搜索和选中状态设置样式
-    // 默认透明度设置为 0.7，让节点更透明
+    // 中间透明度低，边缘透明度高（通过borderOpacity实现渐变效果）
     let itemStyle = { 
       color,
-      opacity: 0.7,
-      borderColor: 'rgba(148, 163, 184, 0.4)',
-      borderWidth: 1.5
+      opacity: 0.5, // 中间透明度低
+      borderColor: 'rgba(148, 163, 184, 0.8)', // 边缘透明度高
+      borderWidth: 1.5,
+      borderOpacity: 0.8 // 边缘透明度高
     }
     let label = { show: true, fontSize: 10, color: '#fff' }
     
@@ -893,8 +895,10 @@ const updateEChartsGraph = () => {
     if (selectedGraphNodeId.value) {
       if (relatedNodeIds.value.has(node.id)) {
         itemStyle.borderColor = '#fbbf24'
-        itemStyle.borderWidth = 2
-        itemStyle.opacity = 0.85
+        itemStyle.borderWidth = 1.5
+        itemStyle.borderOpacity = 0.7
+        // 中间透明度低，边缘透明度高
+        itemStyle.opacity = 0.6
       } else {
         itemStyle.opacity = 0.2
         label.show = false
@@ -903,10 +907,12 @@ const updateEChartsGraph = () => {
     
     if (selectedGraphNodeId.value === node.id) {
       itemStyle.borderColor = '#60a5fa'
-      itemStyle.borderWidth = 3
+      itemStyle.borderWidth = 1.5
+      itemStyle.borderOpacity = 0.8
       itemStyle.shadowBlur = 10
       itemStyle.shadowColor = '#60a5fa'
-      itemStyle.opacity = 0.95
+      // 中间透明度低，边缘透明度高（通过borderOpacity实现）
+      itemStyle.opacity = 0.5
     }
     
     return {
@@ -985,15 +991,14 @@ const updateEChartsGraph = () => {
           if (node) {
             const type = node.properties?.entity_type || 'unknown'
             const typeColor = ENTITY_COLOR_SOLID[type.toLowerCase()] || ENTITY_COLOR_SOLID.other
-            const description = node.properties?.description || ''
-            const descriptionText = description.length > 100 ? description.substring(0, 100) + '...' : description
+            // 获取完整的 label，不省略
+            const label = node.labels?.[0] || node.id || node.properties?.entity_id || 'entity'
             return `<div style="padding: 0; line-height: 1.5;">
-              <div style="font-weight: 600; margin-bottom: 8px; color: #ffffff; font-size: 13px; letter-spacing: 0.01em;">${params.data.name}</div>
-              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: ${description ? '8px' : '0'};">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #ffffff; font-size: 13px; letter-spacing: 0.01em; word-wrap: break-word; max-width: 300px;">${label}</div>
+              <div style="display: flex; align-items: center; gap: 6px;">
                 <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${typeColor}; flex-shrink: 0;"></span>
                 <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">${type}</span>
               </div>
-              ${description ? `<div style="font-size: 11px; color: #cbd5e1; margin-top: 8px; max-width: 280px; word-wrap: break-word; line-height: 1.4;">${descriptionText}</div>` : ''}
             </div>`
           }
         }
@@ -1026,15 +1031,17 @@ const updateEChartsGraph = () => {
         },
         force: {
           initLayout: 'circular',
-          // 降低排斥力，使节点更容易聚集
-          repulsion: 100,
+          // 降低排斥力，使节点更容易聚集，拖动时只影响直接连接的节点
+          repulsion: isDragging.value ? 50 : 100,
           // 降低重力，减少向中心聚集的趋势，让节点更自由地形成簇
           gravity: 0.05,
-          // 缩短边的长度，使连接的节点更紧密
-          edgeLength: [30, 80],
+          // 动态调整边的长度：拖动时变长，稳定后变短
+          edgeLength: isDragging.value ? [50, 120] : [30, 80],
           layoutAnimation: true,
-          // 增加摩擦，使布局更稳定
-          friction: 0.8
+          // 增加摩擦，使布局更稳定，减少拖动时的连锁反应
+          friction: 0.95,
+          // 拖动时只带动相关节点（通过降低repulsion实现）
+          preventOverlap: true
         },
         lineStyle: {
           color: '#64748b',
@@ -1065,7 +1072,7 @@ const updateEChartsGraph = () => {
     graphEchartsInstance.value.on('click', (params) => {
       console.log('ECharts click event:', params)
       // 检查是否是节点点击
-      if (params.dataType === 'node' && params.data) {
+      if (params && params.dataType === 'node' && params.data) {
         // 阻止事件冒泡，防止触发背景点击事件
         if (params.event && params.event.event) {
           params.event.event.stopPropagation()
@@ -1081,6 +1088,72 @@ const updateEChartsGraph = () => {
         } else {
           console.warn('Node clicked but no id found:', params.data)
         }
+      } else {
+        // 点击的不是节点，是背景（params 为 null 或 params.dataType 不是 'node'）
+        console.log('Background clicked, clearing selection', params)
+        clearSelectedNode()
+        // 立即更新图表以清除凸显效果
+        if (graphEchartsInstance.value) {
+          updateEChartsGraph()
+        }
+      }
+    })
+    
+    
+    // 监听拖动开始事件（ECharts graph 支持 dragstart）
+    graphEchartsInstance.value.off('dragstart')
+    graphEchartsInstance.value.on('dragstart', (params) => {
+      if (params.dataType === 'node') {
+        isDragging.value = true
+        // 清除之前的超时
+        if (dragTimeout.value) {
+          clearTimeout(dragTimeout.value)
+        }
+        // 更新图表以应用拖长效果和降低排斥力
+        nextTick(() => {
+          if (graphEchartsInstance.value) {
+            const option = graphEchartsInstance.value.getOption()
+            if (option.series && option.series[0] && option.series[0].force) {
+              option.series[0].force.edgeLength = [50, 120]
+              option.series[0].force.repulsion = 50
+              graphEchartsInstance.value.setOption(option, false)
+            }
+          }
+        })
+      }
+    })
+    
+    // 监听拖动事件（持续更新）
+    graphEchartsInstance.value.off('drag')
+    graphEchartsInstance.value.on('drag', (params) => {
+      if (params.dataType === 'node' && isDragging.value) {
+        // 拖动时动态更新边的长度和排斥力
+        if (graphEchartsInstance.value) {
+          const option = graphEchartsInstance.value.getOption()
+          if (option.series && option.series[0] && option.series[0].force) {
+            option.series[0].force.edgeLength = [50, 120]
+            option.series[0].force.repulsion = 50
+            graphEchartsInstance.value.setOption(option, false)
+          }
+        }
+      }
+    })
+    
+    // 监听拖动结束事件
+    graphEchartsInstance.value.off('dragend')
+    graphEchartsInstance.value.on('dragend', (params) => {
+      if (params.dataType === 'node') {
+        // 延迟恢复，让布局稳定
+        if (dragTimeout.value) {
+          clearTimeout(dragTimeout.value)
+        }
+        dragTimeout.value = setTimeout(() => {
+          isDragging.value = false
+          // 恢复边的长度和排斥力
+          if (graphEchartsInstance.value) {
+            updateEChartsGraph()
+          }
+        }, 500)
       }
     })
   } catch (error) {
@@ -1481,6 +1554,23 @@ const clearSelectedNode = () => {
   highlightedEntity.value = ''
 }
 
+const handleGraphContainerClick = (event) => {
+  // 检查点击的目标
+  const target = event.target
+  // 如果点击的是 canvas 元素，说明可能是点击了背景
+  // 延迟检查，确保 ECharts 的 click 事件先处理
+  setTimeout(() => {
+    // 如果此时还有选中状态，且点击的是 canvas（不是节点），则清除选中
+    if (selectedGraphNodeId.value && target && target.tagName === 'CANVAS') {
+      console.log('Graph container background clicked, clearing selection')
+      clearSelectedNode()
+      if (graphEchartsInstance.value) {
+        updateEChartsGraph()
+      }
+    }
+  }, 150)
+}
+
 
 const handleGraphBackgroundClick = (event) => {
   if (resizingNodeDetail.value) {
@@ -1497,11 +1587,26 @@ const handleGraphBackgroundClick = (event) => {
       target.closest('canvas')
     )
     if (isEChartsNode) {
-      // 如果是 ECharts 元素，不处理背景点击
+      // 检查是否点击的是节点本身（通过检查事件参数）
+      // 如果点击的是节点，ECharts 会触发节点点击事件，这里不应该清除
+      // 只有当点击的是空白背景时才清除选中状态
+      // 由于 ECharts 的节点点击事件已经处理，这里只需要处理背景点击
+      // 延迟执行，让节点点击事件先处理
+      setTimeout(() => {
+        // 如果点击的不是节点，清除选中状态
+        clearSelectedNode()
+        if (graphEchartsInstance.value) {
+          updateEChartsGraph()
+        }
+      }, 100)
       return
     }
   }
+  // 点击空白处，清除选中状态
   clearSelectedNode()
+  if (graphEchartsInstance.value) {
+    updateEChartsGraph()
+  }
 }
 
 const handleLegendClick = (key) => {
@@ -1661,6 +1766,10 @@ onBeforeUnmount(() => {
   }
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
+  }
+  if (dragTimeout.value) {
+    clearTimeout(dragTimeout.value)
+    dragTimeout.value = null
   }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))

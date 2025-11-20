@@ -47,6 +47,8 @@
     },
     "wordWrap": "自动换行",
     "singleLine": "单行显示",
+    "expand": "展开",
+    "collapse": "收起",
     "severity": {
       "fatal": "致命",
       "critical": "严重",
