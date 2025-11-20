@@ -333,44 +333,44 @@ const disposeAiAccuracyChart = () => {
 const loadAlertCount24hData = async () => {
   try {
     const now = new Date()
-    const end24h = new Date(now)
-    const start24h = new Date(now)
+    const end = new Date(now)
+    const start24h = new Date(end)
     start24h.setHours(start24h.getHours() - 24)
-    
     const start48h = new Date(start24h)
     start48h.setHours(start48h.getHours() - 24)
 
-    // Get last 24 hours data
-    const response24h = await getAlertTrend(
-      start24h,
-      end24h
-    )
-    
-    // Get previous 24 hours data (24-48 hours ago)
-    const response48h = await getAlertTrend(
-      start48h,
-      start24h
-    )
+    // Fetch a single 48h window and split into current and previous 24h buckets
+    const response = await getAlertTrend(start48h, end)
+    const data = response?.data || []
 
-    const data24h = response24h?.data || []
-    const data48h = response48h?.data || []
+    let currentTotal = 0
+    let previousTotal = 0
 
-    // Calculate total counts
-    const total24h = data24h.reduce((sum, item) => sum + (item.count || 0), 0)
-    const total48h = data48h.reduce((sum, item) => sum + (item.count || 0), 0)
+    data.forEach((item) => {
+      const count = Number(item.count) || 0
+      const timestamp = item.date ? new Date(item.date) : null
+      if (!timestamp || Number.isNaN(timestamp.getTime())) {
+        currentTotal += count
+        return
+      }
+      if (timestamp >= start24h) {
+        currentTotal += count
+      } else if (timestamp >= start48h) {
+        previousTotal += count
+      }
+    })
 
-    alertCount24hTotal.value = total24h
+    alertCount24hTotal.value = currentTotal
 
     // Calculate percentage change
-    if (total48h > 0) {
-      const change = ((total24h - total48h) / total48h) * 100
+    if (previousTotal > 0) {
+      const change = ((currentTotal - previousTotal) / previousTotal) * 100
       alertCount24hChange.value = Math.abs(change).toFixed(1)
       alertCount24hTrend.value = change >= 0 ? 'up' : 'down'
     } else {
-      alertCount24hChange.value = total24h > 0 ? '100.0' : '0.0'
-      alertCount24hTrend.value = total24h > 0 ? 'up' : 'down'
+      alertCount24hChange.value = currentTotal > 0 ? '100.0' : '0.0'
+      alertCount24hTrend.value = currentTotal > 0 ? 'up' : 'down'
     }
-
   } catch (error) {
     console.error('Failed to load alert count 24h data:', error)
     alertCount24hTotal.value = 0
@@ -382,44 +382,42 @@ const loadAlertCount24hData = async () => {
 const loadIncidentCount30dData = async () => {
   try {
     const now = new Date()
-    const end30d = new Date(now)
-    const start30d = new Date(now)
+    const end = new Date(now)
+    const start30d = new Date(end)
     start30d.setDate(start30d.getDate() - 30)
-    
     const start60d = new Date(start30d)
     start60d.setDate(start60d.getDate() - 30)
 
-    // Get last 30 days data
-    const response30d = await getIncidentTrend(
-      start30d,
-      end30d
-    )
-    
-    // Get previous 30 days data (30-60 days ago)
-    const response60d = await getIncidentTrend(
-      start60d,
-      start30d
-    )
+    const response = await getIncidentTrend(start60d, end)
+    const data = response?.data || []
 
-    const data30d = response30d?.data || []
-    const data60d = response60d?.data || []
+    let currentTotal = 0
+    let previousTotal = 0
 
-    // Calculate total counts
-    const total30d = data30d.reduce((sum, item) => sum + (item.count || 0), 0)
-    const total60d = data60d.reduce((sum, item) => sum + (item.count || 0), 0)
+    data.forEach((item) => {
+      const count = Number(item.count) || 0
+      const timestamp = item.date ? new Date(item.date) : null
+      if (!timestamp || Number.isNaN(timestamp.getTime())) {
+        currentTotal += count
+        return
+      }
+      if (timestamp >= start30d) {
+        currentTotal += count
+      } else if (timestamp >= start60d) {
+        previousTotal += count
+      }
+    })
 
-    incidentCount30dTotal.value = total30d
+    incidentCount30dTotal.value = currentTotal
 
-    // Calculate percentage change
-    if (total60d > 0) {
-      const change = ((total30d - total60d) / total60d) * 100
+    if (previousTotal > 0) {
+      const change = ((currentTotal - previousTotal) / previousTotal) * 100
       incidentCount30dChange.value = Math.abs(change).toFixed(1)
       incidentCount30dTrend.value = change >= 0 ? 'up' : 'down'
     } else {
-      incidentCount30dChange.value = total30d > 0 ? '100.0' : '0.0'
-      incidentCount30dTrend.value = total30d > 0 ? 'up' : 'down'
+      incidentCount30dChange.value = currentTotal > 0 ? '100.0' : '0.0'
+      incidentCount30dTrend.value = currentTotal > 0 ? 'up' : 'down'
     }
-
   } catch (error) {
     console.error('Failed to load incident count 30d data:', error)
     incidentCount30dTotal.value = 0
@@ -431,44 +429,42 @@ const loadIncidentCount30dData = async () => {
 const loadVulnerabilityCount30dData = async () => {
   try {
     const now = new Date()
-    const end30d = new Date(now)
-    const start30d = new Date(now)
+    const end = new Date(now)
+    const start30d = new Date(end)
     start30d.setDate(start30d.getDate() - 30)
-    
     const start60d = new Date(start30d)
     start60d.setDate(start60d.getDate() - 30)
 
-    // Get last 30 days data
-    const response30d = await getVulnerabilityTrend(
-      start30d,
-      end30d
-    )
-    
-    // Get previous 30 days data (30-60 days ago)
-    const response60d = await getVulnerabilityTrend(
-      start60d,
-      start30d
-    )
+    const response = await getVulnerabilityTrend(start60d, end)
+    const data = response?.data || []
 
-    const data30d = response30d?.data || []
-    const data60d = response60d?.data || []
+    let currentTotal = 0
+    let previousTotal = 0
 
-    // Calculate total counts
-    const total30d = data30d.reduce((sum, item) => sum + (item.count || 0), 0)
-    const total60d = data60d.reduce((sum, item) => sum + (item.count || 0), 0)
+    data.forEach((item) => {
+      const count = Number(item.count) || 0
+      const timestamp = item.date ? new Date(item.date) : null
+      if (!timestamp || Number.isNaN(timestamp.getTime())) {
+        currentTotal += count
+        return
+      }
+      if (timestamp >= start30d) {
+        currentTotal += count
+      } else if (timestamp >= start60d) {
+        previousTotal += count
+      }
+    })
 
-    vulnerabilityCount30dTotal.value = total30d
+    vulnerabilityCount30dTotal.value = currentTotal
 
-    // Calculate percentage change
-    if (total60d > 0) {
-      const change = ((total30d - total60d) / total60d) * 100
+    if (previousTotal > 0) {
+      const change = ((currentTotal - previousTotal) / previousTotal) * 100
       vulnerabilityCount30dChange.value = Math.abs(change).toFixed(1)
       vulnerabilityCount30dTrend.value = change >= 0 ? 'up' : 'down'
     } else {
-      vulnerabilityCount30dChange.value = total30d > 0 ? '100.0' : '0.0'
-      vulnerabilityCount30dTrend.value = total30d > 0 ? 'up' : 'down'
+      vulnerabilityCount30dChange.value = currentTotal > 0 ? '100.0' : '0.0'
+      vulnerabilityCount30dTrend.value = currentTotal > 0 ? 'up' : 'down'
     }
-
   } catch (error) {
     console.error('Failed to load vulnerability count 30d data:', error)
     vulnerabilityCount30dTotal.value = 0

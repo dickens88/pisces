@@ -970,8 +970,10 @@ const handleRefresh = async () => {
   try {
     await Promise.all([
       loadAlerts(),
-      loadStatistics()
+      loadStatistics(),
+      loadAlertTypeDistribution()
     ])
+    await loadAlertTrend()
   } catch (error) {
     console.error('Failed to refresh:', error)
   } finally {
