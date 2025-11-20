@@ -57,21 +57,31 @@ class IncidentGraphIntelligenceJob:
                 stored_alerts = cls._normalize_alert_list(snapshot.get("alert_list"))
                 remote_alerts = cls._normalize_alert_list(remote_payload.get("alert_list"))
 
-                if cls._alert_counts_equal(stored_alerts, remote_alerts):
+                alerts_changed = not cls._alert_counts_equal(stored_alerts, remote_alerts)
+                graph_missing = cls._graph_bundle_missing(snapshot)
+
+                if not alerts_changed and not graph_missing:
                     continue
 
-                logger.info(
-                    "[IncidentGraphJob] Detected alert count change for %s: local=%s remote=%s",
-                    incident_id,
-                    len(stored_alerts),
-                    len(remote_alerts),
-                )
-
-                try:
-                    Incident.upsert_incident(remote_payload)
-                except Exception as exc:
-                    logger.warning("[IncidentGraphJob] Failed to update local snapshot for %s: %s", incident_id, exc)
-                    continue
+                if alerts_changed:
+                    logger.info(
+                        "[IncidentGraphJob] Detected alert count change for %s: local=%s remote=%s",
+                        incident_id,
+                        len(stored_alerts),
+                        len(remote_alerts),
+                    )
+                    try:
+                        Incident.upsert_incident(remote_payload)
+                    except Exception as exc:
+                        logger.warning("[IncidentGraphJob] Failed to update local snapshot for %s: %s", incident_id, exc)
+                        continue
+                else:
+                    logger.info(
+                        "[IncidentGraphJob] Missing graph bundle for %s (graph_data=%s, graph_summary=%s)",
+                        incident_id,
+                        "present" if snapshot.get("has_graph_data") else "missing",
+                        "present" if snapshot.get("has_graph_summary") else "missing",
+                    )
 
                 associated_alerts = remote_payload.get("associated_alerts", [])
                 if light_rag_enabled:
@@ -90,6 +100,10 @@ class IncidentGraphIntelligenceJob:
     @staticmethod
     def _alert_counts_equal(left: List[str], right: List[str]) -> bool:
         return len(left) == len(right)
+
+    @staticmethod
+    def _graph_bundle_missing(snapshot: dict) -> bool:
+        return (not snapshot.get("has_graph_data", False)) or (not snapshot.get("has_graph_summary", False))
 
     @staticmethod
     def _refresh_graph_bundle(incident_id: str, incident_payload: dict, associated_alerts: List[dict]):

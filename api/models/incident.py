@@ -163,16 +163,32 @@ class Incident(Base):
         """Return incident ids with their stored alert_list for comparison."""
         session = Session()
         try:
-            query = session.query(cls.incident_id, cls.alert_list, cls.handle_status)
+            query = session.query(
+                cls.incident_id,
+                cls.alert_list,
+                cls.handle_status,
+                cls.graph_data,
+                cls.graph_summary,
+            )
             if only_open:
                 query = query.filter(cls.handle_status == 'Open')
             rows = query.all()
             snapshots = []
-            for incident_id, alert_list, handle_status in rows or []:
+
+            def _has_value(value):
+                if value is None:
+                    return False
+                if isinstance(value, str):
+                    return bool(value.strip())
+                return True
+
+            for incident_id, alert_list, handle_status, graph_data, graph_summary in rows or []:
                 snapshots.append({
                     "incident_id": incident_id,
                     "alert_list": parse_json_field(alert_list),
                     "handle_status": handle_status,
+                    "has_graph_data": _has_value(graph_data),
+                    "has_graph_summary": _has_value(graph_summary),
                 })
             return snapshots
         finally:
