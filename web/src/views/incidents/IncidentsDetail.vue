@@ -230,7 +230,7 @@
         </div>
         <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
           <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[640px]">
-            <div class="flex-1 relative bg-[#0f172a]">
+            <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
                   <div class="flex flex-col md:flex-row gap-4 flex-1 w-full">
@@ -267,22 +267,56 @@
                     </div>
                   </div>
                   <div class="flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-lg px-1 h-11">
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.zoomIn')">
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :disabled="!canZoomIn"
+                      :title="$t('incidents.detail.eventGraph.controls.zoomIn')"
+                      @click="handleGraphZoomIn"
+                    >
                       <span class="material-symbols-outlined text-base">zoom_in</span>
                     </button>
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.zoomOut')">
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :disabled="!canZoomOut"
+                      :title="$t('incidents.detail.eventGraph.controls.zoomOut')"
+                      @click="handleGraphZoomOut"
+                    >
                       <span class="material-symbols-outlined text-base">zoom_out</span>
                     </button>
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.reset')">
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :title="$t('incidents.detail.eventGraph.controls.reset')"
+                      @click="handleGraphResetView"
+                    >
                       <span class="material-symbols-outlined text-base">center_focus_strong</span>
                     </button>
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.fullscreen')">
-                      <span class="material-symbols-outlined text-base">fullscreen</span>
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :title="$t('incidents.detail.eventGraph.controls.fullscreen')"
+                      @click="toggleGraphFullscreen"
+                    >
+                      <span class="material-symbols-outlined text-base">{{ graphFullscreenIcon }}</span>
                     </button>
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.download')">
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :title="$t('incidents.detail.eventGraph.controls.download')"
+                      @click="handleGraphDownload"
+                    >
                       <span class="material-symbols-outlined text-base">download</span>
                     </button>
-                    <button type="button" class="graph-control-btn" :title="$t('incidents.detail.eventGraph.controls.refresh')">
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :class="{ 'graph-control-btn--loading': isRefreshingGraph }"
+                      :disabled="isRefreshingGraph"
+                      :title="$t('incidents.detail.eventGraph.controls.refresh')"
+                      @click="handleRefreshGraphStatus"
+                    >
                       <span class="material-symbols-outlined text-base">refresh</span>
                     </button>
                   </div>
@@ -306,7 +340,12 @@
                 </div>
               </div>
               <div class="w-full h-full" @click="handleGraphBackgroundClick">
-                <svg ref="graphSvgRef" class="w-full h-full event-graph-svg" viewBox="0 0 1000 640">
+                <svg
+                  ref="graphSvgRef"
+                  class="w-full h-full event-graph-svg"
+                  :viewBox="graphViewBox"
+                  preserveAspectRatio="xMidYMid meet"
+                >
                   <defs>
                     <radialGradient id="grad-rose">
                       <stop offset="0%" stop-color="#fda4af" stop-opacity="0.45" />
@@ -406,15 +445,21 @@
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div class="flex flex-col gap-1">
                         <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.id') }}</p>
-                        <p class="text-sm text-slate-200 break-all">{{ selectedGraphNode.id }}</p>
+                        <p class="text-sm text-slate-200 break-all whitespace-pre-wrap">
+                          {{ formatNodeDetailValue(selectedGraphNode.id) }}
+                        </p>
                       </div>
                       <div class="flex flex-col gap-1">
                         <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.labels') }}</p>
-                        <p class="text-sm text-slate-200">{{ selectedGraphNode.labels?.join(', ') }}</p>
+                        <p class="text-sm text-slate-200 whitespace-pre-wrap">
+                          {{ formatNodeDetailValue((selectedGraphNode.labels || []).join(', ')) }}
+                        </p>
                       </div>
                       <div class="flex flex-col gap-1">
                         <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}</p>
-                        <p class="text-sm text-slate-200">{{ selectedGraphNode.properties?.entity_type }}</p>
+                        <p class="text-sm text-slate-200 whitespace-pre-wrap">
+                          {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
+                        </p>
                       </div>
                     </div>
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
@@ -426,7 +471,9 @@
                           class="flex flex-col gap-0.5"
                         >
                           <p class="text-xs uppercase text-slate-500 tracking-wide">{{ key }}</p>
-                          <p class="font-mono text-slate-200 break-all">{{ value }}</p>
+                          <p class="font-mono text-slate-200 break-all whitespace-pre-wrap">
+                            {{ formatNodeDetailValue(value) }}
+                          </p>
                         </div>
                       </div>
                       <p v-else class="text-xs text-slate-500">
@@ -658,6 +705,10 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const toast = useToast()
+const translateOr = (key, fallback) => {
+  const translated = t(key)
+  return translated === key ? fallback : translated
+}
 const authStore = useAuthStore()
 
 const incident = ref(null)
@@ -687,6 +738,7 @@ const nodePositions = ref({})
 const draggingNodeId = ref('')
 const dragOffset = ref({ x: 0, y: 0 })
 const graphSvgRef = ref(null)
+const graphContainerRef = ref(null)
 const legendFlashKey = ref('')
 const legendFlashTimer = ref(null)
 const nodeDetailWidth = ref(320)
@@ -695,6 +747,13 @@ const resizeStartX = ref(0)
 const initialNodeDetailWidth = ref(320)
 const isRefreshingGraph = ref(false)
 const isRegeneratingGraph = ref(false)
+const graphZoomLevel = ref(1)
+const isGraphFullscreen = ref(false)
+
+const GRAPH_ZOOM_STEP = 0.2
+const GRAPH_MIN_ZOOM = 0.5
+const GRAPH_MAX_ZOOM = 2.5
+const GRAPH_BASE_VIEWBOX = { x: 0, y: 0, width: 1000, height: 640 }
 
 const parseGraphData = (rawData) => {
   if (!rawData) {
@@ -724,6 +783,7 @@ const loadGraphData = (rawData) => {
   hoveredEdgeId.value = ''
   prunedNodeIds.value = new Set()
   nodePositions.value = {}
+  graphZoomLevel.value = 1
 }
 
 const baseGraphNodes = computed(() => {
@@ -791,6 +851,19 @@ const selectedGraphNode = computed(() => {
   }
   return displayGraphNodes.value.find((node) => node.id === selectedGraphNodeId.value) || null
 })
+
+const graphViewBox = computed(() => {
+  const zoom = graphZoomLevel.value
+  const width = GRAPH_BASE_VIEWBOX.width / zoom
+  const height = GRAPH_BASE_VIEWBOX.height / zoom
+  const x = GRAPH_BASE_VIEWBOX.x + (GRAPH_BASE_VIEWBOX.width - width) / 2
+  const y = GRAPH_BASE_VIEWBOX.y + (GRAPH_BASE_VIEWBOX.height - height) / 2
+  return `${x} ${y} ${width} ${height}`
+})
+
+const canZoomIn = computed(() => graphZoomLevel.value < GRAPH_MAX_ZOOM - 0.01)
+const canZoomOut = computed(() => graphZoomLevel.value > GRAPH_MIN_ZOOM + 0.01)
+const graphFullscreenIcon = computed(() => (isGraphFullscreen.value ? 'fullscreen_exit' : 'fullscreen'))
 
 const graphEntityOptions = computed(() =>
   displayGraphNodes.value.map((node) => ({
@@ -1021,6 +1094,23 @@ const formatNodeLabel = (node) => {
   return label.length > 12 ? `${label.slice(0, 11)}…` : label
 }
 
+const formatNodeDetailValue = (value) => {
+  if (value === null || value === undefined) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value.replace(/<SEP>/gi, '\n')
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch (error) {
+      return String(value)
+    }
+  }
+  return String(value)
+}
+
 const hoveredEdgeNodes = computed(() => {
   if (!hoveredEdgeId.value) {
     return new Set()
@@ -1106,14 +1196,77 @@ const isEdgeDimmed = (edge) => {
   return dimBySearch || dimBySelection || dimByHover || dimByLegend
 }
 
+const buildNodeDetailCopyPayload = () => {
+  if (!selectedGraphNode.value) {
+    return ''
+  }
+  const node = selectedGraphNode.value
+  const lines = []
+  lines.push(`ID: ${formatNodeDetailValue(node.id) || '-'}`)
+  if (node.labels?.length) {
+    lines.push(`Labels: ${formatNodeDetailValue(node.labels.join(', '))}`)
+  }
+  if (node.properties?.entity_type) {
+    lines.push(`Entity Type: ${formatNodeDetailValue(node.properties.entity_type)}`)
+  }
+  if (selectedNodeProperties.value.length) {
+    lines.push('Properties:')
+    selectedNodeProperties.value.forEach(([key, value]) => {
+      lines.push(`  - ${key}: ${formatNodeDetailValue(value)}`)
+    })
+  }
+  if (selectedNodeRelations.value.length) {
+    lines.push('Relations:')
+    selectedNodeRelations.value.forEach((relation) => {
+      const indicator = relation.direction === 'outbound' ? '->' : '<-'
+      lines.push(`  ${indicator} ${relation.neighborLabel || relation.neighbor}`)
+    })
+  }
+  return lines.join('\n').trim()
+}
+
 const copySelectedNode = async () => {
-  if (!selectedGraphNode.value || typeof navigator === 'undefined' || !navigator.clipboard) {
+  if (!selectedGraphNode.value) {
+    toast.error(translateOr('incidents.detail.eventGraph.nodeDetail.copyUnavailable', 'Select a node to copy'), 'Error')
     return
   }
+  const payload = buildNodeDetailCopyPayload()
+  if (!payload) {
+    toast.error(translateOr('incidents.detail.eventGraph.nodeDetail.copyUnavailable', 'Select a node to copy'), 'Error')
+    return
+  }
+  let copied = false
   try {
-    await navigator.clipboard.writeText(JSON.stringify(selectedGraphNode.value, null, 2))
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(payload)
+      copied = true
+    }
   } catch (error) {
-    console.error('Failed to copy node detail', error)
+    copied = false
+  }
+
+  if (!copied) {
+    try {
+      const textArea = document.createElement('textarea')
+      textArea.value = payload
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      textArea.style.pointerEvents = 'none'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      copied = true
+    } catch (fallbackError) {
+      console.error('Failed to copy node detail', fallbackError)
+    }
+  }
+
+  if (copied) {
+    toast.success(translateOr('incidents.detail.eventGraph.nodeDetail.copySuccess', 'Node detail copied'), 'Success')
+  } else {
+    toast.error(translateOr('incidents.detail.eventGraph.nodeDetail.copyError', 'Unable to copy node detail'), 'Error')
   }
 }
 
@@ -1176,6 +1329,104 @@ const handleRelationClick = (neighborId) => {
     return
   }
   handleNodeClick(neighborId)
+}
+
+const adjustGraphZoom = (direction) => {
+  const delta = direction === 'in' ? GRAPH_ZOOM_STEP : -GRAPH_ZOOM_STEP
+  const nextZoom = parseFloat(
+    Math.min(GRAPH_MAX_ZOOM, Math.max(GRAPH_MIN_ZOOM, graphZoomLevel.value + delta)).toFixed(2)
+  )
+  graphZoomLevel.value = nextZoom
+}
+
+const handleGraphZoomIn = () => {
+  if (!canZoomIn.value) {
+    return
+  }
+  adjustGraphZoom('in')
+}
+
+const handleGraphZoomOut = () => {
+  if (!canZoomOut.value) {
+    return
+  }
+  adjustGraphZoom('out')
+}
+
+const handleGraphResetView = () => {
+  graphZoomLevel.value = 1
+  nodePositions.value = {}
+  selectedGraphNodeId.value = ''
+  highlightedEntity.value = ''
+}
+
+const fullscreenEventNames = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
+
+const syncGraphFullscreenState = () => {
+  if (typeof document === 'undefined') {
+    return
+  }
+  const fullscreenElement =
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  isGraphFullscreen.value = fullscreenElement === graphContainerRef.value
+}
+
+const toggleGraphFullscreen = () => {
+  const container = graphContainerRef.value
+  if (!container || typeof document === 'undefined') {
+    return
+  }
+  try {
+    if (!isGraphFullscreen.value) {
+      const request =
+        container.requestFullscreen ||
+        container.webkitRequestFullscreen ||
+        container.mozRequestFullScreen ||
+        container.msRequestFullscreen
+      request?.call(container)
+    } else {
+      const exit =
+        document.exitFullscreen ||
+        document.webkitExitFullscreen ||
+        document.mozCancelFullScreen ||
+        document.msExitFullscreen
+      exit?.call(document)
+    }
+  } catch (error) {
+    console.error('Failed to toggle fullscreen', error)
+  }
+}
+
+const handleGraphDownload = () => {
+  const svg = graphSvgRef.value
+  if (!svg || typeof document === 'undefined') {
+    return
+  }
+  try {
+    const clone = svg.cloneNode(true)
+    if (clone.style) {
+      clone.style.transform = ''
+      clone.style.transformOrigin = ''
+      clone.style.transition = ''
+    }
+    const serializer = new XMLSerializer()
+    const source = serializer.serializeToString(clone)
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const incidentId = incident.value?.id || incident.value?.eventId || 'incident'
+    link.download = `incident-graph-${incidentId}.svg`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to download graph svg', error)
+  }
 }
 
 const getSvgCoordinates = (event) => {
@@ -1271,6 +1522,9 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerup', stopNodeDetailResize)
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
+  }
+  if (typeof document !== 'undefined') {
+    fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
   }
 })
 
@@ -1986,6 +2240,10 @@ const handleIncidentUpdated = async () => {
 
 onMounted(() => {
   loadIncidentDetail()
+  if (typeof document !== 'undefined') {
+    fullscreenEventNames.forEach((eventName) => document.addEventListener(eventName, syncGraphFullscreenState))
+    syncGraphFullscreenState()
+  }
 })
 </script>
 

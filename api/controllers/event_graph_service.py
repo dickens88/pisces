@@ -141,8 +141,12 @@ class _LightRAGClient:
             "mode": "mix",
             "include_references": False,
             "response_type": "Multiple Paragraphs",
-            "top_k": 15,
-            "max_total_tokens": 800,
+            "top_k": 40,
+            "chunk_top_k": 20,
+            "max_entity_tokens": 6000,
+            "max_relation_tokens": 8000,
+            "enable_rerank": True,
+            "max_total_tokens": 30000,
         }
         response = self._request("POST", "/query", json=body)
         data = self._safe_json(response)
@@ -345,42 +349,43 @@ class EventGraphService:
         incident_title = incident_payload.get("title") or incident_payload.get("name") or incident_payload.get("id")
         prompt = dedent(
             f"""
-            请基于知识库中的内容，生成事件《{incident_title}》的调查摘要。
+            Based on the retrieved knowledge base, produce an investigation summary for incident “{incident_title}”.
 
-            要求：
-            - 用中文、简短概括，不要过度推测
-            - 所有信息必须基于检索到的内容
-            - 包含：攻击时间线、可能的攻击链、处置建议
+            Requirements:
+            - Use concise English, avoid speculation
+            - Ground every statement in retrieved evidence
+            - Include: attack timeline, possible kill chain, risk assessment, mitigation advice
 
-            ### 1. 攻击时间线（Attack Timeline）
-            - 按时间顺序列出与此事件相关的活动、告警、实体交互，用YYYY-MM-DD HH:MM:SS 的格式表示
+            ### 1. Attack Timeline
+            - List chronologically the activities, alerts, and entity interactions tied to the incident
+            - Use `YYYY-MM-DD HH:MM:SS` timestamps when available
 
-            ### 2. 攻击链推测（Kill Chain Analysis）
-            - 分析攻击者可能的路径
-            - 映射到适用的 MITRE ATT&CK 阶段
-            - 用简短的箭头链表示（示例：`入口 → 横向移动 → 数据访问 → 可能的目标`）
+            ### 2. Kill Chain Analysis
+            - Describe the attacker's likely path
+            - Map steps to relevant MITRE ATT&CK phases
+            - Express as a short arrow chain (example: `Initial Access → Lateral Movement → Data Access → Objective`)
 
-            ### 3. 风险判断
-            - 给出此事件可能的攻击意图
-            - 指出潜在的高风险资产、薄弱点
+            ### 3. Risk Assessment
+            - State the probable attacker intent
+            - Highlight high-value assets or weak points at risk
 
-            ### 4. 建议（Mitigation Suggestions）
-            - 给出 3–5 条简短、可执行的缓解措施
-            - 优先级排序（高/中/低）
+            ### 4. Mitigation Suggestions
+            - Provide 3-5 actionable recommendations
+            - Assign priority (High/Medium/Low)
 
-            **输出格式严格如下：**
+            **Output format (markdown)**
 
             ```markdown
-            ## 攻击时间线
+            ## Attack Timeline
             - …
 
-            ## 攻击链推测
+            ## Kill Chain Analysis
             - …
 
-            ## 风险判断
+            ## Risk Assessment
             - …
 
-            ## 建议
+            ## Mitigation Suggestions
             1. …
             ```
             """
