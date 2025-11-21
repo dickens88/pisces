@@ -329,7 +329,7 @@
       "shareSuccess": "Copied to clipboard",
       "status": "Status",
       "severity": "Severity",
-      "affectedAssets": "Affected Assets",
+      "countOfAlarms": "Count of Alarms",
       "mitreTactic": "MITRE ATT&CK Tactic",
       "responsibleDepartment": "Responsible Department",
       "responsiblePerson": "Responsible Person",

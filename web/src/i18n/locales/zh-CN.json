@@ -327,7 +327,7 @@
       "shareSuccess": "已复制到剪切板",
       "status": "状态",
       "severity": "严重等级",
-      "affectedAssets": "受影响资产",
+      "countOfAlarms": "告警数量",
       "mitreTactic": "MITRE ATT&CK 战术",
       "responsibleDepartment": "责任部门",
       "responsiblePerson": "责任人",
