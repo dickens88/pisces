@@ -224,7 +224,12 @@
       "noAssociatedAlerts": "暂无关联告警",
       "noAiResponse": "暂无AI分析结果",
       "responseTab": "响应",
-      "securityAgentTab": "安全智能体"
+      "securityAgentTab": "安全智能体",
+      "securityAgentUserLabel": "我",
+      "securityAgentAssistantLabel": "安全智能体",
+      "securityAgentSendSuccess": "已发送给安全智能体",
+      "securityAgentSendError": "发送给安全智能体失败，请稍后重试",
+      "securityAgentMissingConfig": "未配置安全智能体接口，请设置 VITE_AI_CHAT_API。"
     }
   },
   "incidents": {

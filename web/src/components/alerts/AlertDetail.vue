@@ -457,8 +457,9 @@
                 <!-- Security Agent 聊天组件 -->
                 <div class="flex-1 min-h-0 min-w-0">
                   <SecurityAgentChat
-                    :messages="alert?.ai || []"
+                    :messages="securityAgentMessages"
                     :auto-scroll="true"
+                    :disabled="isSendingSecurityAgentMessage"
                     @send="handleRightSidebarAiSend"
                   />
                 </div>
@@ -611,6 +612,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
+import { sendSecurityAgentMessage } from '@/api/securityAgent'
 import { formatDateTime, calculateTTR } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -656,6 +658,8 @@ const rightSidebarAiMessage = ref('')
 const rightSidebarAiFiles = ref([])
 const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
+const isSendingSecurityAgentMessage = ref(false)
+const securityAgentMessages = ref([])
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
@@ -920,6 +924,7 @@ const loadAlertDetail = async () => {
     const response = await getAlertDetail(currentAlertId.value)
     // 转换后端返回的数据格式
     alert.value = transformAlertDetailData(response.data)
+    hydrateSecurityAgentMessages(alert.value?.ai || [])
     // 加载关联告警
     loadAssociatedAlerts()
   } catch (error) {
@@ -1399,26 +1404,140 @@ const removeRightSidebarAiFile = (index) => {
   rightSidebarAiFiles.value.splice(index, 1)
 }
 
-const handleSendRightSidebarAiMessage = () => {
-  if (!canSubmitRightSidebarAiMessage.value) return
-  
-  // TODO: 实现发送右侧侧边栏 AI 消息的逻辑，包含文件上传
-  console.log('Sending right sidebar AI message:', rightSidebarAiMessage.value)
-  console.log('Files:', rightSidebarAiFiles.value)
-  
-  // 清空输入
-  rightSidebarAiMessage.value = ''
-  rightSidebarAiFiles.value = []
+const getSecurityAgentUserLabel = () => t('alerts.detail.securityAgentUserLabel') || 'You'
+const getSecurityAgentAssistantLabel = () =>
+  t('alerts.detail.securityAgentAssistantLabel') ||
+  t('alerts.detail.securityAgentTab') ||
+  'Security Agent'
+
+const hydrateSecurityAgentMessages = (messages = []) => {
+  securityAgentMessages.value = Array.isArray(messages) ? [...messages] : []
+}
+
+const formatSecurityAgentContent = (text = '') => {
+  if (!text || typeof text !== 'string') return ''
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br />')
+}
+
+const appendSecurityAgentMessage = (message) => {
+  if (!message || !message.content) return
+  securityAgentMessages.value = [
+    ...securityAgentMessages.value,
+    {
+      id: message.id || `security-agent-${Date.now()}`,
+      author: message.author || getSecurityAgentAssistantLabel(),
+      content: formatSecurityAgentContent(message.content),
+      create_time: message.create_time || new Date().toISOString(),
+      role: message.role || 'assistant',
+      isLocal: message.isLocal || false
+    }
+  ]
+}
+
+const extractSecurityAgentAnswer = (response) => {
+  if (!response) return ''
+  if (typeof response === 'string') return response
+  if (typeof response.answer === 'string') return response.answer
+  if (response.output_text) {
+    if (Array.isArray(response.output_text)) {
+      return response.output_text.join('\n')
+    }
+    return response.output_text
+  }
+  if (typeof response.message === 'string') return response.message
+  if (response.data) {
+    if (typeof response.data === 'string') {
+      return response.data
+    }
+    if (Array.isArray(response.data)) {
+      const joined = response.data
+        .map(item => item?.answer || item?.output_text || item?.message || '')
+        .filter(Boolean)
+        .join('\n')
+      if (joined) return joined
+    } else if (typeof response.data === 'object') {
+      if (typeof response.data.answer === 'string') return response.data.answer
+      if (Array.isArray(response.data.output_text)) {
+        return response.data.output_text.join('\n')
+      }
+      if (typeof response.data.output_text === 'string') {
+        return response.data.output_text
+      }
+      if (typeof response.data.message === 'string') {
+        return response.data.message
+      }
+    }
+  }
+  if (typeof response.raw === 'string') return response.raw
+  if (typeof response.result === 'string') return response.result
+  return ''
 }
 
 // 处理复用的 AI 对话框组件发送事件
-const handleRightSidebarAiSend = (data) => {
-  // TODO: 实现发送右侧侧边栏 AI 消息的逻辑，包含文件上传
-  console.log('Sending right sidebar AI message:', data.message)
-  console.log('Files:', data.files)
-  
-  // 这里可以调用 API 发送消息
-  // 发送成功后，组件会自动清空输入框
+const handleRightSidebarAiSend = async (data) => {
+  if (!alert.value?.id) {
+    const missingAlertMsg = t('alerts.detail.securityAgentSendError') || 'Unable to send message: missing alert context'
+    toast.error(missingAlertMsg, 'ERROR')
+    return
+  }
+
+  if (!data || (!data.message && (!data.files || data.files.length === 0))) {
+    return
+  }
+
+  if (isSendingSecurityAgentMessage.value) {
+    return
+  }
+
+  const sanitizedUserMessage = (data.message || '').trim()
+  const payload = {
+    alertId: alert.value.id,
+    message: sanitizedUserMessage,
+    files: data.files
+  }
+
+  if (sanitizedUserMessage) {
+    appendSecurityAgentMessage({
+      author: getSecurityAgentUserLabel(),
+      content: sanitizedUserMessage,
+      role: 'user',
+      isLocal: true
+    })
+  }
+
+  try {
+    isSendingSecurityAgentMessage.value = true
+    const response = await sendSecurityAgentMessage(payload)
+    const aiAnswer = extractSecurityAgentAnswer(response)
+    if (aiAnswer) {
+      appendSecurityAgentMessage({
+        author: t('alerts.detail.securityAgentTab') || 'Security Agent',
+        content: aiAnswer,
+        role: 'assistant',
+        isLocal: true
+      })
+    }
+    const successMsg = t('alerts.detail.securityAgentSendSuccess') || 'Message sent to Security Agent'
+    toast.success(successMsg, 'SUCCESS')
+  } catch (error) {
+    const rawMessage = error?.message || ''
+    const errorMsg = rawMessage.includes('VITE_AI_CHAT_API') || rawMessage.toLowerCase().includes('not configured')
+      ? t('alerts.detail.securityAgentMissingConfig') || 'Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.'
+      : rawMessage || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
+    toast.error(errorMsg, 'ERROR')
+    appendSecurityAgentMessage({
+      author: getSecurityAgentAssistantLabel(),
+      content: errorMsg,
+      role: 'assistant',
+      isLocal: true
+    })
+  } finally {
+    isSendingSecurityAgentMessage.value = false
+  }
 }
 
 const getSeverityClass = (severity) => {

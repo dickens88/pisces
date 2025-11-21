@@ -87,22 +87,16 @@
         </p>
       </div>
 
-      <!-- Average detection time -->
+      <!-- Average accuracy -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.mttd') }}</p>
-        <p class="text-white text-3xl font-bold tracking-tight">
-          {{ statistics.mttd || '0m 0s' }}
+        <p class="text-white/70 text-sm font-medium">
+          {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
         </p>
-        <p 
-          :class="[
-            'text-sm font-medium flex items-center gap-1',
-            statistics.mttdTrend === 'up' ? 'text-red-400' : 'text-green-400'
-          ]"
-        >
-          <span class="material-symbols-outlined text-base">
-            {{ statistics.mttdTrend === 'up' ? 'arrow_upward' : 'arrow_downward' }}
-          </span>
-          {{ statistics.mttdTrend === 'up' ? '+' : '' }}{{ statistics.mttdChange }}%
+        <p class="text-white text-3xl font-bold tracking-tight">
+          {{ aiAccuracyAverage }}%
+        </p>
+        <p class="text-sm text-white/60">
+          {{ $t('dashboard.charts.aiAccuracy') }}
         </p>
       </div>
     </div>

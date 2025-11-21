@@ -36,6 +36,7 @@
       <CommentInput
         v-model="message"
         :placeholder="$t('alerts.detail.aiAgentPlaceholder') || '输入消息...'"
+        :disabled="disabled"
         @submit="handleSubmit"
       />
     </div>
@@ -57,6 +58,10 @@ const props = defineProps({
   autoScroll: {
     type: Boolean,
     default: true
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 

@@ -226,7 +226,12 @@
       "noAssociatedAlerts": "No associated alerts found",
       "noAiResponse": "No AI analysis results",
       "responseTab": "Response",
-      "securityAgentTab": "Security Agent"
+      "securityAgentTab": "Security Agent",
+      "securityAgentUserLabel": "You",
+      "securityAgentAssistantLabel": "Security Agent",
+      "securityAgentSendSuccess": "Message sent to Security Agent",
+      "securityAgentSendError": "Failed to send message to Security Agent",
+      "securityAgentMissingConfig": "Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API."
     }
   },
   "incidents": {
