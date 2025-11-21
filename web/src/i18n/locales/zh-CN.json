@@ -404,6 +404,7 @@
         "regenerateGraph": "重新生成图谱",
         "regenerateSuccess": "已开始重新生成图谱，请稍后刷新查看结果。",
         "regenerateError": "图谱重新生成失败，请稍后重试。",
+        "lastGenerationTime": "上次生成时间",
         "incidentCreated": "图谱引擎初始化",
         "incidentCreatedDesc": "初始主机与租户侧FIP已写入攻击图谱。",
         "alertConverted": "告警写入图谱",

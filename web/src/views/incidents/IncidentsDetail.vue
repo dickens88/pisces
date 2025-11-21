@@ -218,24 +218,29 @@
                 <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
               </button>
             </div>
-            <p class="text-slate-400 text-sm">
-              {{
-                $t('incidents.detail.eventGraph.summaryParagraph2', {
-                  nodes: eventGraphStats.totalNodes,
-                  edges: eventGraphStats.totalEdges,
-                  alerts: eventGraphStats.alertNodes,
-                  ips: eventGraphStats.ipNodes
-                })
-              }}
-            </p>
           </template>
           <div class="graph-status-hint">
-            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500 text-xs">
-              <span class="inline-flex items-center gap-1">
-                <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                <span>{{ graphStatusLabel }}</span>
-            </span>
-              <span>上次生成时间：{{ graphLastGeneratedTime || '--' }}</span>
+            <div class="flex flex-col gap-y-1 text-slate-500 text-xs">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="inline-flex items-center gap-1">
+                  <span class="graph-status-dot" :class="graphStatusDotClass"></span>
+                  <span>{{ graphStatusLabel }}</span>
+                </span>
+                <span>|</span>
+                <span>{{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}</span>
+              </div>
+              <template v-if="isGraphReady">
+                <div class="text-slate-500 text-xs">
+                  {{
+                    $t('incidents.detail.eventGraph.summaryParagraph2', {
+                      nodes: eventGraphStats.totalNodes,
+                      edges: eventGraphStats.totalEdges,
+                      alerts: eventGraphStats.alertNodes,
+                      ips: eventGraphStats.ipNodes
+                    })
+                  }}
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -1457,10 +1462,12 @@ const graphStatusDotClass = computed(() => {
 })
 
 const graphLastGeneratedTime = computed(() => {
-  if (!incident.value?.graphGeneratedAt) {
+  // Use last_update_time from incident as per requirement
+  const time = incident.value?.lastUpdateTime || incident.value?.graphGeneratedAt
+  if (!time) {
     return ''
   }
-  return formatDateTime(incident.value.graphGeneratedAt)
+  return formatDateTime(time)
 })
 
 const graphSummaryHtml = computed(() => {
@@ -1749,8 +1756,47 @@ const pruneSelectedNode = () => {
   if (!selectedGraphNodeId.value) {
     return
   }
+  
+  // Find all nodes that should be pruned (selected node + all child nodes recursively)
+  const nodesToPrune = new Set([selectedGraphNodeId.value])
+  const edges = eventGraphData.value.edges || []
+  const nodes = baseGraphNodes.value
+  
+  // Build child adjacency list (only outgoing edges: source -> target)
+  const childAdjacencyList = new Map()
+  nodes.forEach(node => {
+    childAdjacencyList.set(node.id, new Set())
+  })
+  edges.forEach(edge => {
+    const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source
+    const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target
+    if (childAdjacencyList.has(sourceId) && childAdjacencyList.has(targetId)) {
+      childAdjacencyList.get(sourceId).add(targetId)
+    }
+  })
+  
+  // BFS to find all child nodes recursively
+  const queue = [selectedGraphNodeId.value]
+  const visited = new Set([selectedGraphNodeId.value])
+  
+  while (queue.length > 0) {
+    const currentNodeId = queue.shift()
+    const children = childAdjacencyList.get(currentNodeId) || new Set()
+    
+    for (const childId of children) {
+      if (!visited.has(childId) && !prunedNodeIds.value.has(childId)) {
+        visited.add(childId)
+        nodesToPrune.add(childId)
+        queue.push(childId)
+      }
+    }
+  }
+  
+  // Add all nodes to prune to the pruned set
   const next = new Set(prunedNodeIds.value)
-  next.add(selectedGraphNodeId.value)
+  nodesToPrune.forEach(nodeId => {
+    next.add(nodeId)
+  })
   prunedNodeIds.value = next
   selectedGraphNodeId.value = ''
   highlightedEntity.value = ''
@@ -2195,6 +2241,7 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       data.graph_last_run_at ||
       data.graph_last_build_time ||
       data.graph_last_refresh_time ||
+      data.last_update_time ||
       data.update_time
     const associatedAlerts = data.associated_alerts || data.associatedAlerts || []
     
@@ -2233,7 +2280,8 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphData: graphPayload,
       graphSummary: data.graph_summary || '',
       graphStatus: data.graph_status || (graphPayload.nodes.length ? 'ready' : 'missing'),
-      graphGeneratedAt
+      graphGeneratedAt,
+      lastUpdateTime: data.last_update_time || data.update_time
     }
     loadGraphData(graphPayload)
   } catch (error) {
