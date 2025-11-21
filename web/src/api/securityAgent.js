@@ -41,7 +41,7 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
 //     body = formData
 //   } else {
     body = JSON.stringify({
-      inputs: {},  
+      inputs: {},
       query: sanitizedMessage,
       response_mode: 'streaming',
       user: 'Botond Varhalmi 84400683'

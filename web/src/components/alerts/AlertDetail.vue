@@ -1419,6 +1419,67 @@ const getSecurityAgentAssistantLabel = () =>
   t('alerts.detail.securityAgentTab') ||
   'Security Agent'
 
+const stringifyAlertDescription = (description) => {
+  if (!description) return ''
+  if (typeof description === 'string') return description
+  if (Array.isArray(description)) {
+    return description.map(item => stringifyAlertDescription(item)).join(', ')
+  }
+  if (typeof description === 'object') {
+    try {
+      return JSON.stringify(description, null, 2)
+    } catch {
+      return Object.entries(description)
+        .map(([key, value]) => `${key}: ${stringifyAlertDescription(value)}`)
+        .join('\n')
+    }
+  }
+  return String(description)
+}
+
+const buildSecurityAgentContext = (alertData, userMessage) => {
+  if (!alertData) return {}
+  return {
+    alertId: alertData.id,
+    alertTitle: alertData.title || '',
+    alertSeverity: alertData.riskLevel || alertData.severity || '',
+    alertStatus: alertData.status || '',
+    alertOwner: alertData.owner || '',
+    alertActor: alertData.actor || '',
+    alertRuleName: alertData.ruleName || '',
+    alertDescription: stringifyAlertDescription(alertData.description),
+    alertTimestamp: alertData.timestamp || alertData.createTime || '',
+    analystMessage: userMessage || ''
+  }
+}
+
+const buildSecurityAgentPrompt = (userMessage, context) => {
+  const lines = []
+  if (context.alertTitle) {
+    lines.push(`Alert Title: ${context.alertTitle}`)
+  }
+  if (context.alertSeverity) {
+    lines.push(`Alert Severity: ${context.alertSeverity}`)
+  }
+  if (context.alertStatus) {
+    lines.push(`Alert Status: ${context.alertStatus}`)
+  }
+  if (context.alertDescription) {
+    lines.push(`Alert Description: ${context.alertDescription}`)
+  }
+  if (context.alertRuleName) {
+    lines.push(`Rule Name: ${context.alertRuleName}`)
+  }
+  if (context.alertOwner) {
+    lines.push(`Owner: ${context.alertOwner}`)
+  }
+  if (context.alertActor) {
+    lines.push(`Actor: ${context.alertActor}`)
+  }
+  lines.push(`Analyst Message: ${userMessage || ''}`)
+  return lines.join('\n')
+}
+
 const formatSecurityAgentContent = (text = '') => {
   if (!text || typeof text !== 'string') return ''
   return text
@@ -1492,7 +1553,7 @@ const handleRightSidebarAiSend = async (data) => {
   const sanitizedUserMessage = (data.message || '').trim()
   const payload = {
     alertId: alert.value.id,
-    message: sanitizedUserMessage,
+    message: buildSecurityAgentPrompt(sanitizedUserMessage, buildSecurityAgentContext(alert.value, sanitizedUserMessage)),
     files: data.files
   }
 
