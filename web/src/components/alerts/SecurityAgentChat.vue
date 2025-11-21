@@ -12,8 +12,13 @@
           :key="`msg-${index}`"
           class="min-w-0"
         >
-          <div class="text-xs text-slate-400 mb-1">
-            {{ formatDateTime(item.create_time || item.time) }}
+          <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+            <span class="font-semibold text-slate-200">
+              {{ getMessageAuthorLabel(item) }}
+            </span>
+            <span>
+              {{ formatDateTime(item.create_time || item.time) }}
+            </span>
           </div>
           <div 
             class="text-sm text-slate-200 bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
@@ -115,6 +120,13 @@ const sanitizeHtml = (html) => {
     ALLOWED_TAGS: ['br', 'strong', 'em', 'pre', 'code', 'b', 'i', 'u', 'p'],
     ALLOWED_ATTR: []
   })
+}
+
+const getMessageAuthorLabel = (item = {}) => {
+  if (item.role === 'user') {
+    return t('alerts.detail.securityAgentUserLabel') || 'Me'
+  }
+  return t('alerts.detail.securityAgentAssistantLabel') || 'Agent'
 }
 </script>
 
