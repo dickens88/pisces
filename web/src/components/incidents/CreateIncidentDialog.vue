@@ -403,19 +403,19 @@ const handleSubmit = async () => {
         await associateAlertsToIncident(incidentId, props.alertIds)
         toast.success(
           t('incidents.create.success') || '事件创建成功，已关联告警', 
-          '操作成功'
+          'SUCCESS'
         )
       } catch (associateError) {
         console.error('Failed to associate alerts to incident:', associateError)
         // 即使关联失败，也显示创建成功（因为事件已经创建）
-        toast.success(t('incidents.create.success') || '事件创建成功', '操作成功')
+        toast.success(t('incidents.create.success') || '事件创建成功', 'SUCCESS')
         // 可选：显示关联失败的警告
         const associateErrorMessage = associateError?.response?.data?.message || associateError?.message || '关联告警失败'
         toast.warn(associateErrorMessage, '警告')
       }
     } else {
       // 显示成功提示
-      toast.success(t('incidents.create.success') || '事件创建成功', '操作成功')
+      toast.success(t('incidents.create.success') || '事件创建成功', 'SUCCESS')
     }
     
     // 触发创建成功事件
@@ -425,7 +425,7 @@ const handleSubmit = async () => {
     console.error('Failed to create incident:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('incidents.create.error') || '事件创建失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmitting.value = false
   }

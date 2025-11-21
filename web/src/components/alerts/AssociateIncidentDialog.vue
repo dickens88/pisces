@@ -317,7 +317,7 @@ const handleAssociate = async () => {
     await associateAlertsToIncident(selectedIncidentId.value, props.alertIds)
     
     // Show success message
-    toast.success(t('alerts.list.associateIncidentDialog.success') || '关联事件成功', '操作成功')
+    toast.success(t('alerts.list.associateIncidentDialog.success') || '关联事件成功', 'SUCCESS')
     
     handleClose()
     emit('associated')
@@ -325,7 +325,7 @@ const handleAssociate = async () => {
     console.error('Failed to associate alerts to incident:', error)
     // Show error toast
     const errorMessage = error?.response?.data?.message || error?.message || t('alerts.list.associateIncidentDialog.associateError') || '关联事件失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isAssociating.value = false
   }

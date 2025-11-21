@@ -266,6 +266,22 @@
                 </span>
                 <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
               </button>
+              <button
+                @click="handleConvertToVulnerability"
+                :disabled="selectedAlerts.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">bug_report</span>
+                <span>{{ $t('alerts.detail.convertToVulnerability') }}</span>
+              </button>
+              <button
+                @click="openBatchDeleteDialog"
+                :disabled="selectedAlerts.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">delete</span>
+                <span>{{ $t('alerts.list.batchDelete') }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -373,6 +389,76 @@
       @associated="handleAssociateIncidentSuccess"
     />
 
+    <!-- Create vulnerability dialog -->
+    <CreateVulnerabilityDialog
+      :visible="showCreateVulnerabilityDialog"
+      :initial-data="createVulnerabilityInitialData"
+      :alert-ids="selectedAlerts"
+      @close="closeCreateVulnerabilityDialog"
+      @created="handleVulnerabilityCreated"
+    />
+
+    <!-- Batch delete dialog -->
+    <div
+      v-if="showBatchDeleteDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeBatchDeleteDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('alerts.list.batchDeleteDialog.title') }}
+          </h2>
+          <button
+            @click="closeBatchDeleteDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ $t('alerts.list.batchDeleteDialog.confirmMessage', { count: selectedAlerts.length }) }}
+          </p>
+        </div>
+
+        <!-- Confirmation input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('alerts.list.batchDeleteDialog.confirmInputLabel') }}
+          </label>
+          <input
+            v-model="deleteConfirmInput"
+            @keydown.enter.prevent="handleBatchDelete"
+            type="text"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            :placeholder="$t('alerts.list.batchDeleteDialog.confirmInputPlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeBatchDeleteDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleBatchDelete"
+            :disabled="!isDeleteConfirmValid || isBatchDeleting"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isBatchDeleting" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Batch close dialog -->
     <div
       v-if="showBatchCloseDialog"
@@ -456,11 +542,12 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertTrend, closeAlert } from '@/api/alerts'
+import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertTrend, closeAlert, deleteAlerts } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
+import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -604,6 +691,11 @@ const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
 const showMoreMenu = ref(false)
+const showCreateVulnerabilityDialog = ref(false)
+const createVulnerabilityInitialData = ref(null)
+const showBatchDeleteDialog = ref(false)
+const deleteConfirmInput = ref('')
+const isBatchDeleting = ref(false)
 
 const alertTypeChartRef = ref(null)
 const alertTypeChartCategories = ref([])
@@ -1172,6 +1264,69 @@ const handleToggleWordWrap = () => {
   }
 }
 
+// Convert to vulnerability
+const handleConvertToVulnerability = () => {
+  if (selectedAlerts.value.length === 0) {
+    console.warn('No alerts selected')
+    return
+  }
+  openCreateVulnerabilityDialog()
+  showMoreMenu.value = false
+}
+
+const openCreateVulnerabilityDialog = () => {
+  // Find selected alerts
+  const selectedAlertObjects = alerts.value.filter(alert => selectedAlerts.value.includes(alert.id))
+  
+  if (selectedAlertObjects.length === 0) {
+    console.warn('No alerts selected')
+    return
+  }
+  
+  // Use the first alert's data for initial form data
+  const firstAlert = selectedAlertObjects[0]
+  
+  // Get description - handle both string and object types
+  let alertDescription = ''
+  if (firstAlert.aiAnalysis?.description) {
+    alertDescription = typeof firstAlert.aiAnalysis.description === 'string' 
+      ? firstAlert.aiAnalysis.description 
+      : JSON.stringify(firstAlert.aiAnalysis.description)
+  } else if (firstAlert.description) {
+    alertDescription = typeof firstAlert.description === 'string' 
+      ? firstAlert.description 
+      : JSON.stringify(firstAlert.description)
+  }
+  
+  // Set initial data - use first alert's data
+  createVulnerabilityInitialData.value = {
+    title: firstAlert.title || '',
+    riskLevel: firstAlert.riskLevel || 'medium',
+    status: firstAlert.status || 'open',
+    owner: firstAlert.owner || '',
+    actor: firstAlert.actor || '',
+    description: alertDescription
+  }
+  
+  // Open dialog
+  showCreateVulnerabilityDialog.value = true
+}
+
+const closeCreateVulnerabilityDialog = () => {
+  showCreateVulnerabilityDialog.value = false
+  createVulnerabilityInitialData.value = null
+}
+
+const handleVulnerabilityCreated = () => {
+  // Reload alert list after vulnerability is created
+  loadAlerts()
+  // Clear selection
+  selectedAlerts.value = []
+  if (dataTableRef.value) {
+    dataTableRef.value.clearSelection()
+  }
+}
+
 // Close dropdown menu when clicking outside
 const handleClickOutside = (event) => {
   const dropdown = event.target.closest('.more-menu-dropdown')
@@ -1239,7 +1394,7 @@ const handleBatchClose = async () => {
     console.error('Failed to batch close alerts:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchCloseError') || '批量关闭告警失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isBatchClosing.value = false
   }
@@ -1400,6 +1555,67 @@ const alertsTimeRangeLabel = computed(() => {
   }
   return t(`common.timeRange.${selectedTimeRange.value}`) || t('common.timeRange.last24Hours')
 })
+
+// Delete confirmation validation
+const isDeleteConfirmValid = computed(() => {
+  return deleteConfirmInput.value.toLowerCase() === 'delete'
+})
+
+const openBatchDeleteDialog = () => {
+  if (selectedAlerts.value.length === 0) {
+    console.warn('No alerts selected')
+    return
+  }
+  showBatchDeleteDialog.value = true
+  deleteConfirmInput.value = ''
+}
+
+const closeBatchDeleteDialog = () => {
+  showBatchDeleteDialog.value = false
+  deleteConfirmInput.value = ''
+}
+
+const handleBatchDelete = async () => {
+  if (!isDeleteConfirmValid.value || isBatchDeleting.value) {
+    return
+  }
+
+  if (selectedAlerts.value.length === 0) {
+    toast.warn('请至少选择一个告警', '提示')
+    return
+  }
+
+  try {
+    isBatchDeleting.value = true
+    
+    // 调用删除接口
+    await deleteAlerts(selectedAlerts.value)
+    
+    // 显示成功提示
+    toast.success(
+      t('alerts.list.batchDeleteDialog.deleteSuccess', { count: selectedAlerts.value.length }) || 
+      `成功删除 ${selectedAlerts.value.length} 条告警`, 
+      t('common.operationSuccess')
+    )
+    
+    // Close dialog and reset form
+    closeBatchDeleteDialog()
+    selectedAlerts.value = []
+    if (dataTableRef.value) {
+      dataTableRef.value.clearSelection()
+    }
+    
+    // Reload alert list
+    loadAlerts()
+  } catch (error) {
+    console.error('Failed to delete alerts:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchDeleteDialog.deleteError') || '删除告警失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isBatchDeleting.value = false
+  }
+}
 </script>
 
 

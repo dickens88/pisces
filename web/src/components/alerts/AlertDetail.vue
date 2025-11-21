@@ -79,6 +79,13 @@
                       <span class="material-symbols-outlined text-base">link</span>
                       {{ $t('alerts.list.associateIncident') }}
                     </button>
+                    <button
+                      @click="handleConvertToVulnerabilityFromMenu"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                    >
+                      <span class="material-symbols-outlined text-base">bug_report</span>
+                      {{ $t('alerts.detail.convertToVulnerability') }}
+                    </button>
                   </div>
                 </div>
                 <button
@@ -569,6 +576,15 @@
       @associated="handleAssociateIncidentSuccess"
     />
 
+    <!-- 创建漏洞对话框 -->
+    <CreateVulnerabilityDialog
+      :visible="showCreateVulnerabilityDialog"
+      :initial-data="createVulnerabilityInitialData"
+      :alert-ids="currentAlertId ? [currentAlertId] : []"
+      @close="closeCreateVulnerabilityDialog"
+      @created="handleVulnerabilityCreated"
+    />
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -591,6 +607,7 @@ import { postComment } from '@/api/comments'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
+import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
@@ -655,6 +672,8 @@ const loadingAssociatedAlerts = ref(false)
 const showAssociateIncidentDialog = ref(false)
 const showMoreActionsMenu = ref(false)
 const isRefreshing = ref(false)
+const showCreateVulnerabilityDialog = ref(false)
+const createVulnerabilityInitialData = ref(null)
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -1087,6 +1106,50 @@ const handleIncidentCreated = () => {
   emit('created')
 }
 
+const openCreateVulnerabilityDialog = () => {
+  if (!alert.value) {
+    console.warn('Alert data not loaded')
+    return
+  }
+  
+  // 获取告警描述（优先使用 aiAnalysis.description，否则使用 description）
+  let alertDescription = ''
+  if (alert.value.aiAnalysis?.description) {
+    alertDescription = typeof alert.value.aiAnalysis.description === 'string' 
+      ? alert.value.aiAnalysis.description 
+      : JSON.stringify(alert.value.aiAnalysis.description)
+  } else if (alert.value.description) {
+    alertDescription = typeof alert.value.description === 'string' 
+      ? alert.value.description 
+      : JSON.stringify(alert.value.description)
+  }
+  
+  // 设置初始数据
+  createVulnerabilityInitialData.value = {
+    title: alert.value.title || '',
+    riskLevel: alert.value.riskLevel || alert.value.severity?.toLowerCase() || 'medium',
+    status: alert.value.status || 'open',
+    owner: alert.value.owner || '',
+    actor: alert.value.actor || '',
+    description: alertDescription
+  }
+  
+  // 打开对话框
+  showCreateVulnerabilityDialog.value = true
+}
+
+const closeCreateVulnerabilityDialog = () => {
+  showCreateVulnerabilityDialog.value = false
+  createVulnerabilityInitialData.value = null
+}
+
+const handleVulnerabilityCreated = () => {
+  // 漏洞创建成功后，关闭对话框
+  closeCreateVulnerabilityDialog()
+  // 触发刷新事件，让父组件知道需要刷新列表
+  emit('created')
+}
+
 const openEditAlertDialog = () => {
   if (!alert.value) {
     console.warn('Alert data not loaded')
@@ -1165,6 +1228,11 @@ const handleAssociateIncidentFromMenu = () => {
   showMoreActionsMenu.value = false
 }
 
+const handleConvertToVulnerabilityFromMenu = () => {
+  openCreateVulnerabilityDialog()
+  showMoreActionsMenu.value = false
+}
+
 const closeAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = false
 }
@@ -1206,7 +1274,7 @@ const handleRefresh = async () => {
 
 const handleAddComment = async ({ comment, files }) => {
   if (!currentAlertId.value) {
-    toast.error(t('alerts.detail.comments.postError') || '无法提交评论：告警ID不存在', '操作失败')
+    toast.error(t('alerts.detail.comments.postError') || '无法提交评论：告警ID不存在', 'ERROR')
     return
   }
   
@@ -1227,11 +1295,11 @@ const handleAddComment = async ({ comment, files }) => {
     await loadAlertDetail()
     
     // 显示成功提示
-    toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', '操作成功')
+    toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('alerts.detail.comments.postError') || '评论提交失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   }
 }
 

@@ -333,7 +333,7 @@ const formatComments = (comments) => {
 
 const handlePostComment = async ({ comment, files }) => {
   if (!vulnerability.value?.id) {
-    toast.error(t('vulnerabilities.detail.commentError') || '无法提交评论：漏洞ID不存在', '操作失败')
+    toast.error(t('vulnerabilities.detail.commentError') || '无法提交评论：漏洞ID不存在', 'ERROR')
     return
   }
   
@@ -347,11 +347,11 @@ const handlePostComment = async ({ comment, files }) => {
     
     await loadVulnerabilityDetail()
     
-    toast.success(t('vulnerabilities.detail.commentSuccess') || '评论提交成功', '操作成功')
+    toast.success(t('vulnerabilities.detail.commentSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('vulnerabilities.detail.commentError') || '评论提交失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -482,7 +482,7 @@ const handleCloseVulnerability = async (data) => {
     
     await axios.put(url, body, { headers })
     
-    toast.success(t('vulnerabilities.detail.closeSuccess') || '漏洞关闭成功', '操作成功')
+    toast.success(t('vulnerabilities.detail.closeSuccess') || '漏洞关闭成功', 'SUCCESS')
     
     closeCloseDialog()
     
@@ -490,7 +490,7 @@ const handleCloseVulnerability = async (data) => {
   } catch (error) {
     console.error('Failed to close vulnerability:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('vulnerabilities.detail.closeError') || '漏洞关闭失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isClosingVulnerability.value = false
     if (closeDialogRef.value) {

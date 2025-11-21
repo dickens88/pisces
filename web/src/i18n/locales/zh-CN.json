@@ -154,7 +154,16 @@
         "autoClosed": "自动关闭",
         "totalAlerts": "总关闭数"
       },
-      "createAlert": "新建告警"
+      "createAlert": "新建告警",
+      "batchDelete": "删除告警",
+      "batchDeleteDialog": {
+        "title": "删除告警",
+        "confirmMessage": "请确认是否删除选定的 {count} 条告警？",
+        "confirmInputLabel": "请输入 'delete' 以确认删除",
+        "confirmInputPlaceholder": "请输入 delete",
+        "deleteSuccess": "成功删除 {count} 条告警",
+        "deleteError": "删除告警失败，请稍后重试"
+      }
     },
     "create": {
       "title": "新建告警",
@@ -180,6 +189,7 @@
       "openAlert": "开启告警",
       "editAlert": "编辑告警",
       "convertToIncident": "转事件",
+      "convertToVulnerability": "转漏洞",
       "moreActions": "更多",
       "share": "分享",
       "aiAnalysis": "AI-Powered Analysis",
@@ -259,7 +269,16 @@
         "conclusionPlaceholder": "请输入调查结论..."
       },
       "export": "导出",
-      "createIncident": "创建事件"
+      "createIncident": "创建事件",
+      "batchDelete": "删除事件",
+      "batchDeleteDialog": {
+        "title": "删除事件",
+        "confirmMessage": "请确认是否删除选定的 {count} 条事件？",
+        "confirmInputLabel": "请输入 'delete' 以确认删除",
+        "confirmInputPlaceholder": "请输入 delete",
+        "deleteSuccess": "成功删除 {count} 条事件",
+        "deleteError": "删除事件失败，请稍后重试"
+      }
     },
     "edit": {
       "title": "编辑事件"
@@ -410,6 +429,13 @@
         "hoursAgo": "小时前",
         "daysAgo": "天前"
       },
+      "disassociate": "解关联",
+      "disassociateSuccess": "成功解关联 {count} 条告警",
+      "disassociateError": "解关联告警失败，请稍后重试",
+      "disassociateDialog": {
+        "title": "解关联告警",
+        "confirmMessage": "请确认是否解关联 {count} 条告警？"
+      },
       "comments": {
         "addComment": "添加评论...",
         "post": "发布",
@@ -432,7 +458,16 @@
       "detail": "详情",
       "searchPlaceholder": "搜索CVE, IP, 名称...",
       "exportReport": "导出报告",
-      "batchOperate": "批量操作"
+      "batchOperate": "批量操作",
+      "batchDelete": "删除漏洞",
+      "batchDeleteDialog": {
+        "title": "删除漏洞",
+        "confirmMessage": "请确认是否删除选定的 {count} 条漏洞？",
+        "confirmInputLabel": "请输入 'delete' 以确认删除",
+        "confirmInputPlaceholder": "请输入 delete",
+        "deleteSuccess": "成功删除 {count} 条漏洞",
+        "deleteError": "删除漏洞失败，请稍后重试"
+      }
     },
     "statistics": {
       "trend": "漏洞趋势统计",

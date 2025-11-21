@@ -260,7 +260,7 @@ const handleSubmit = async () => {
     })
     
     // 显示成功提示
-    toast.success(t('alerts.create.success') || '告警创建成功', '操作成功')
+    toast.success(t('alerts.create.success') || '告警创建成功', 'SUCCESS')
     
     // 触发创建成功事件
     emit('created')
@@ -269,7 +269,7 @@ const handleSubmit = async () => {
     console.error('Failed to create alert:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('alerts.create.error') || '告警创建失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmitting.value = false
   }

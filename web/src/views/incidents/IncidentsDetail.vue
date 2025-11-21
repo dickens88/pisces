@@ -164,63 +164,88 @@
       <div v-if="activeTab === 'eventGraph'" class="space-y-6">
         <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4 relative overflow-hidden">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div class="flex-1">
+            <div>
               <h3 class="text-white font-bold text-lg">
                 {{ $t('incidents.detail.eventGraph.summaryTitle') }}
               </h3>
-              <p class="text-slate-400 text-sm">
-                {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+              <p v-if="!isGraphReady" class="text-slate-400 text-sm">
+                {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
               </p>
             </div>
             <div class="flex items-center gap-2 md:justify-end">
               <button
                 type="button"
-                class="graph-regenerate-btn"
-                :class="{ 'graph-regenerate-btn--loading': isRegeneratingGraph }"
-                :disabled="isRegeneratingGraph"
-                @click="handleRegenerateGraph"
+                class="graph-status-btn"
+                :class="graphStatusClass"
+                disabled
               >
-                <span class="material-symbols-outlined text-base">
-                  {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
+                <span class="material-symbols-outlined text-base">{{ graphStatusIcon }}</span>
+                <span>{{ graphStatusLabel }}</span>
+              </button>
+              <button
+                type="button"
+                class="graph-icon-btn"
+                :class="{ 'graph-icon-btn--loading': isRefreshingGraph }"
+                :disabled="isRefreshingGraph"
+                :title="$t('incidents.detail.eventGraph.refreshStatus')"
+                @click="handleRefreshGraphStatus"
+              >
+                <span class="material-symbols-outlined text-lg">
+                  {{ isRefreshingGraph ? 'progress_activity' : 'refresh' }}
                 </span>
-                <span>{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
+                <span class="sr-only">{{ $t('incidents.detail.eventGraph.refreshStatus') }}</span>
               </button>
             </div>
           </div>
-          <div v-if="incident?.graphSummary" class="space-y-2">
-            <div
-              class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
-              :class="{ 'summary-collapsed': !isSummaryExpanded }"
-              v-html="graphSummaryHtml"
-            ></div>
-            <button
-              v-if="shouldShowSummaryExpand"
-              type="button"
-              @click="isSummaryExpanded = !isSummaryExpanded"
-              class="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
-            >
-              <span class="material-symbols-outlined text-base">
-                {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
-              </span>
-              <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
-            </button>
-          </div>
-          <p v-else class="text-slate-500 leading-relaxed">
-            {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
-          </p>
-          <p v-if="incident?.graphSummary" class="text-slate-400 text-sm">
-            {{
-              $t('incidents.detail.eventGraph.summaryParagraph2', {
-                nodes: eventGraphStats.totalNodes,
-                edges: eventGraphStats.totalEdges,
-                alerts: eventGraphStats.alertNodes,
-                ips: eventGraphStats.ipNodes
-              })
-            }}
-          </p>
-          <p v-if="incident?.graphSummary && graphLastGeneratedTime" class="text-slate-500 text-xs mt-2">
-            上次生成时间：{{ graphLastGeneratedTime }}
-          </p>
+          <template v-if="isGraphReady">
+            <div class="space-y-2">
+              <div
+                v-if="incident?.graphSummary"
+                class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
+                :class="{ 'summary-collapsed': !isSummaryExpanded }"
+                v-html="graphSummaryHtml"
+              ></div>
+              <p v-else class="text-slate-400 text-sm">
+                {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
+              </p>
+              <button
+                v-if="incident?.graphSummary && shouldShowSummaryExpand"
+                type="button"
+                @click="isSummaryExpanded = !isSummaryExpanded"
+                class="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
+                </span>
+                <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
+              </button>
+            </div>
+            <p class="text-slate-400 text-sm">
+              {{
+                $t('incidents.detail.eventGraph.summaryParagraph2', {
+                  nodes: eventGraphStats.totalNodes,
+                  edges: eventGraphStats.totalEdges,
+                  alerts: eventGraphStats.alertNodes,
+                  ips: eventGraphStats.ipNodes
+                })
+              }}
+            </p>
+            <p v-if="graphLastGeneratedTime" class="text-slate-500 text-xs mt-2">
+              上次生成时间：{{ graphLastGeneratedTime }}
+            </p>
+          </template>
+          <button
+            type="button"
+            class="graph-regenerate-fab"
+            :class="{ 'graph-regenerate-fab--loading': isRegeneratingGraph }"
+            :disabled="isRegeneratingGraph"
+            @click="handleRegenerateGraph"
+          >
+            <span class="material-symbols-outlined text-base">
+              {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
+            </span>
+            <span>{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
+          </button>
         </div>
         <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
           <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[600px]">
@@ -303,6 +328,16 @@
                     >
                       <span class="material-symbols-outlined text-base">download</span>
                     </button>
+                    <button
+                      type="button"
+                      class="graph-control-btn"
+                      :class="{ 'graph-control-btn--loading': isRefreshingGraph }"
+                      :disabled="isRefreshingGraph"
+                      :title="$t('incidents.detail.eventGraph.controls.refresh')"
+                      @click="handleRefreshGraphStatus"
+                    >
+                      <span class="material-symbols-outlined text-base">refresh</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -327,7 +362,7 @@
                 <div
                   ref="graphEchartsRef"
                   class="w-full h-full"
-                  style="min-height: 480px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
+                  style="min-height: 600px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
                 ></div>
               </div>
             </div>
@@ -375,31 +410,24 @@
                           {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
                         </p>
                       </div>
-                      <div class="flex flex-col gap-1">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide">属性描述</p>
-                        <div v-if="selectedNodePropertyDescription" class="space-y-1">
-                          <p
-                            class="text-sm text-slate-200 break-all whitespace-pre-wrap"
-                            :class="{ 'property-description-collapsed': !isPropertyDescriptionExpanded }"
-                          >
-                            {{ formatNodeDetailValue(selectedNodePropertyDescription) }}
+                    </div>
+                    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                      <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.properties') }}</h3>
+                      <div v-if="selectedNodeProperties.length" class="space-y-3 text-sm text-slate-200">
+                        <div
+                          v-for="([key, value], index) in selectedNodeProperties"
+                          :key="`${key}-${index}`"
+                          class="flex flex-col gap-0.5"
+                        >
+                          <p class="text-xs uppercase text-slate-500 tracking-wide">{{ key }}</p>
+                          <p class="font-mono text-slate-200 break-all whitespace-pre-wrap">
+                            {{ formatNodeDetailValue(value) }}
                           </p>
-                          <button
-                            v-if="shouldShowPropertyDescriptionExpand"
-                            type="button"
-                            @click="isPropertyDescriptionExpanded = !isPropertyDescriptionExpanded"
-                            class="text-primary hover:text-primary/80 text-xs font-medium flex items-center gap-1 transition-colors"
-                          >
-                            <span class="material-symbols-outlined text-sm">
-                              {{ isPropertyDescriptionExpanded ? 'expand_less' : 'expand_more' }}
-                            </span>
-                            <span>{{ isPropertyDescriptionExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
-                          </button>
                         </div>
-                        <p v-else class="text-sm text-slate-500">
-                          {{ $t('common.noData') || 'No data available' }}
-                        </p>
                       </div>
+                      <p v-else class="text-xs text-slate-500">
+                        {{ $t('common.noData') || 'No data available' }}
+                      </p>
                     </div>
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
                       <h3 class="text-sm font-semibold text-white mb-3">{{ $t('incidents.detail.eventGraph.nodeDetail.relations') }}</h3>
@@ -426,11 +454,23 @@
           </div>
           <div
             v-else
-            class="min-h-[420px] flex flex-col items-center justify-center gap-3 text-center p-10 text-slate-400"
+            class="min-h-[420px] flex items-center justify-center p-10"
           >
-            <p class="text-base font-medium">
-              {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
-            </p>
+            <svg
+              class="w-24 h-24 text-slate-600/80"
+              viewBox="0 0 120 120"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="24" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="60" cy="24" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="96" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="60" cy="96" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+              <path d="M33 53 L51 35" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M69 35 L87 53" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M51 85 L33 67" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M87 67 L69 85" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            </svg>
           </div>
         </div>
       </div>
@@ -456,19 +496,30 @@
 
         <!-- 关联告警 -->
         <div class="bg-[#111822] border border-[#324867] rounded-xl">
-          <div class="p-6 border-b border-[#324867]">
+          <div class="p-6 border-b border-[#324867] flex items-center justify-between">
             <h3 class="text-white font-bold text-lg">
               {{ $t('incidents.detail.overview.associatedAlerts') }}
             </h3>
+            <button
+              :disabled="selectedAlerts.length === 0"
+              @click="openDisassociateDialog"
+              class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+            >
+              <span class="material-symbols-outlined text-base">link_off</span>
+              <span>{{ $t('incidents.detail.disassociate') }}</span>
+            </button>
           </div>
           <DataTable
+            ref="associatedAlertsTableRef"
             :columns="associatedAlertsColumns"
             :items="formattedAssociatedAlerts"
-            :selectable="false"
+            :selectable="true"
             :resizable="true"
             storage-key="incident-associated-alerts-table-columns"
             :default-widths="associatedAlertsDefaultWidths"
             :pagination="false"
+            @select="handleSelectAlerts"
+            @select-all="handleSelectAlerts"
           >
             <template #cell-createTime="{ value }">
               {{ formatDateTime(value) }}
@@ -563,6 +614,52 @@
       @updated="handleIncidentUpdated"
     />
 
+    <!-- 解关联确认对话框 -->
+    <div
+      v-if="showDisassociateDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeDisassociateDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('incidents.detail.disassociateDialog.title') }}
+          </h2>
+          <button
+            @click="closeDisassociateDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-6 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ $t('incidents.detail.disassociateDialog.confirmMessage', { count: selectedAlerts.length }) }}
+          </p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeDisassociateDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleDisassociate"
+            :disabled="isDisassociating"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isDisassociating" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('incidents.detail.disassociate') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -582,7 +679,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { getIncidentDetail, postComment, regenerateIncidentGraph } from '@/api/incidents'
+import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident } from '@/api/incidents'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -640,6 +737,10 @@ const isClosingIncident = ref(false)
 const closeDialogRef = ref(null)
 const showEditDialog = ref(false)
 const editIncidentInitialData = ref(null)
+const selectedAlerts = ref([])
+const associatedAlertsTableRef = ref(null)
+const showDisassociateDialog = ref(false)
+const isDisassociating = ref(false)
 
 const createEmptyGraphData = () => ({
   nodes: [],
@@ -672,6 +773,10 @@ const dragTimeout = ref(null)
 const GRAPH_ZOOM_STEP = 0.2
 const GRAPH_MIN_ZOOM = 0.5
 const GRAPH_MAX_ZOOM = 2.5
+const FORCE_EDGE_LENGTH_DEFAULT = [55, 140]
+const FORCE_EDGE_LENGTH_DRAGGING = [100, 220]
+const FORCE_REPULSION_DEFAULT = 120
+const FORCE_REPULSION_DRAGGING = 60
 
 const parseGraphData = (rawData) => {
   if (!rawData) {
@@ -884,7 +989,7 @@ const updateEChartsGraph = () => {
     
     if (graphSearchQuery.value.trim()) {
       if (!filteredNodeIds.value.has(node.id)) {
-        itemStyle.opacity = 0.15
+        itemStyle.opacity = 0.2
         label.show = false
       } else {
         // 搜索匹配的节点保持较高透明度
@@ -898,9 +1003,9 @@ const updateEChartsGraph = () => {
         itemStyle.borderWidth = 1.5
         itemStyle.borderOpacity = 0.7
         // 中间透明度低，边缘透明度高
-        itemStyle.opacity = 0.6
+        itemStyle.opacity = 0.65
       } else {
-        itemStyle.opacity = 0.2
+        itemStyle.opacity = 0.35
         label.show = false
       }
     }
@@ -912,7 +1017,7 @@ const updateEChartsGraph = () => {
       itemStyle.shadowBlur = 10
       itemStyle.shadowColor = '#60a5fa'
       // 中间透明度低，边缘透明度高（通过borderOpacity实现）
-      itemStyle.opacity = 0.5
+      itemStyle.opacity = 0.55
     }
     
     return {
@@ -943,7 +1048,7 @@ const updateEChartsGraph = () => {
       } else if (relatedNodeIds.value.has(edge.source) && relatedNodeIds.value.has(edge.target)) {
         lineStyle.opacity = 0.6
       } else {
-        lineStyle.opacity = 0.2
+        lineStyle.opacity = 0.35
       }
     }
     
@@ -973,18 +1078,6 @@ const updateEChartsGraph = () => {
     backgroundColor: 'transparent',
     tooltip: {
       show: true,
-      trigger: 'item',
-      backgroundColor: 'rgba(30, 41, 59, 0.98)',
-      borderColor: 'rgba(148, 163, 184, 0.4)',
-      borderWidth: 1,
-      borderRadius: 8,
-      textStyle: {
-        color: '#e2e8f0',
-        fontSize: 12,
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-      },
-      padding: [12, 16],
-      extraCssText: 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);',
       formatter: (params) => {
         if (params.dataType === 'node') {
           const node = displayGraphNodes.value.find(n => n.id === params.data.id)
@@ -1012,8 +1105,10 @@ const updateEChartsGraph = () => {
         data: nodes,
         links: edges,
         categories,
-        roam: true, // 启用缩放和平移（拖动画布）
-        draggable: true, // 启用节点拖动
+        roam: {
+          scale: true,
+          pan: true
+        },
         label: {
           show: true,
           position: 'right',
@@ -1031,15 +1126,13 @@ const updateEChartsGraph = () => {
         },
         force: {
           initLayout: 'circular',
-          // 降低排斥力，使节点更容易聚集，拖动时只影响直接连接的节点
-          repulsion: isDragging.value ? 50 : 100,
-          // 降低重力，减少向中心聚集的趋势，让节点更自由地形成簇
-          gravity: 0.05,
-          // 动态调整边的长度：拖动时变长，稳定后变短
-          edgeLength: isDragging.value ? [50, 120] : [30, 80],
+          // 根据交互状态动态调整排斥力和边长
+          repulsion: isDragging.value ? FORCE_REPULSION_DRAGGING : FORCE_REPULSION_DEFAULT,
+          gravity: 0.035,
+          edgeLength: isDragging.value ? FORCE_EDGE_LENGTH_DRAGGING : FORCE_EDGE_LENGTH_DEFAULT,
           layoutAnimation: true,
           // 增加摩擦，使布局更稳定，减少拖动时的连锁反应
-          friction: 0.95,
+          friction: 0.9,
           // 拖动时只带动相关节点（通过降低repulsion实现）
           preventOverlap: true
         },
@@ -1049,9 +1142,8 @@ const updateEChartsGraph = () => {
           curveness: 0.3
         },
         itemStyle: {
-          borderColor: 'rgba(148, 163, 184, 0.4)',
-          borderWidth: 1.5,
-          opacity: 0.7
+          borderColor: '#94a3b8',
+          borderWidth: 1.5
         }
       }
     ]
@@ -1064,7 +1156,7 @@ const updateEChartsGraph = () => {
       categoriesCount: categories.length,
       option: JSON.stringify(option, null, 2).substring(0, 500)
     })
-    graphEchartsInstance.value.setOption(option, true)
+    graphEchartsInstance.value.setOption(option, false, true)
     console.log('ECharts option set successfully')
     
     // 监听节点点击事件
@@ -1114,8 +1206,8 @@ const updateEChartsGraph = () => {
           if (graphEchartsInstance.value) {
             const option = graphEchartsInstance.value.getOption()
             if (option.series && option.series[0] && option.series[0].force) {
-              option.series[0].force.edgeLength = [50, 120]
-              option.series[0].force.repulsion = 50
+              option.series[0].force.edgeLength = FORCE_EDGE_LENGTH_DRAGGING
+              option.series[0].force.repulsion = FORCE_REPULSION_DRAGGING
               graphEchartsInstance.value.setOption(option, false)
             }
           }
@@ -1131,8 +1223,8 @@ const updateEChartsGraph = () => {
         if (graphEchartsInstance.value) {
           const option = graphEchartsInstance.value.getOption()
           if (option.series && option.series[0] && option.series[0].force) {
-            option.series[0].force.edgeLength = [50, 120]
-            option.series[0].force.repulsion = 50
+            option.series[0].force.edgeLength = FORCE_EDGE_LENGTH_DRAGGING
+            option.series[0].force.repulsion = FORCE_REPULSION_DRAGGING
             graphEchartsInstance.value.setOption(option, false)
           }
         }
@@ -1179,6 +1271,7 @@ const graphEntityOptions = computed(() =>
 
 const hasGraphData = computed(() => (eventGraphData.value.nodes || []).length > 0)
 const graphStatus = computed(() => incident.value?.graphStatus || 'missing')
+const isGraphReady = computed(() => graphStatus.value === 'ready' && hasGraphData.value)
 const graphStatusLabel = computed(() =>
   t(`incidents.detail.eventGraph.graphStatus.${graphStatus.value}`, graphStatus.value)
 )
@@ -1218,34 +1311,6 @@ const graphSummaryHtml = computed(() => {
     console.error('Failed to render graph summary markdown', error)
     return DOMPurify.sanitize(incident.value.graphSummary)
   }
-})
-
-const graphLastGeneratedTime = computed(() => {
-  if (!incident.value?.updateTime) {
-    return null
-  }
-  try {
-    const date = new Date(incident.value.updateTime)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-  } catch (error) {
-    console.error('Failed to format graph generation time', error)
-    return null
-  }
-})
-
-const shouldShowSummaryExpand = computed(() => {
-  if (!incident.value?.graphSummary) {
-    return false
-  }
-  // Check if summary is long enough to need expansion
-  // We'll use a simple heuristic: if the text is longer than ~200 characters, show expand button
-  return incident.value.graphSummary.length > 200
 })
 
 const nodeLabelMap = computed(() => {
@@ -1330,21 +1395,6 @@ const selectedNodeProperties = computed(() => {
   return orderedEntries.slice(0, 6)
 })
 
-const selectedNodePropertyDescription = computed(() => {
-  if (!selectedGraphNode.value) {
-    return null
-  }
-  return selectedGraphNode.value.properties?.description || null
-})
-
-const shouldShowPropertyDescriptionExpand = computed(() => {
-  if (!selectedNodePropertyDescription.value) {
-    return false
-  }
-  // Show expand button if description is longer than ~150 characters
-  return selectedNodePropertyDescription.value.length > 150
-})
-
 const selectedNodeRelations = computed(() => {
   if (!selectedGraphNode.value) {
     return []
@@ -1396,36 +1446,12 @@ const relatedNodeIds = computed(() => {
 })
 
 const handleNodeClick = (nodeId, { temporaryHighlight = false } = {}) => {
-  console.log('handleNodeClick called with nodeId:', nodeId)
-  if (!nodeId) {
-    console.warn('handleNodeClick: nodeId is empty')
-    return
-  }
-  
-  // 检查节点是否存在
-  const nodeExists = displayGraphNodes.value.some(n => n.id === nodeId)
-  if (!nodeExists) {
-    console.warn('handleNodeClick: node not found:', nodeId)
-    return
-  }
-  
   if (selectedGraphNodeId.value === nodeId) {
     selectedGraphNodeId.value = ''
-    highlightedEntity.value = ''
-    console.log('Node deselected')
     return
   }
   selectedGraphNodeId.value = nodeId
   highlightedEntity.value = nodeId
-  // Reset property description expansion when node changes
-  isPropertyDescriptionExpanded.value = false
-  console.log('Node selected:', nodeId, 'selectedGraphNode:', selectedGraphNode.value)
-  
-  // 更新图表以高亮选中的节点
-  if (graphEchartsInstance.value) {
-    updateEChartsGraph()
-  }
-  
   if (temporaryHighlight) {
     setTimeout(() => {
       if (selectedGraphNodeId.value === nodeId) {
@@ -1572,37 +1598,10 @@ const handleGraphContainerClick = (event) => {
 }
 
 
-const handleGraphBackgroundClick = (event) => {
+const handleGraphBackgroundClick = () => {
   if (resizingNodeDetail.value) {
     return
   }
-  // 检查点击的目标是否是 ECharts 容器内的节点
-  // 如果是节点点击，不应该清除选中状态
-  const target = event.target
-  if (target && graphEchartsRef.value && graphEchartsRef.value.contains(target)) {
-    // 检查是否是 ECharts 的节点元素
-    // ECharts 的节点通常有特定的类名或属性
-    const isEChartsNode = target.closest && (
-      target.closest('[class*="echarts"]') || 
-      target.closest('canvas')
-    )
-    if (isEChartsNode) {
-      // 检查是否点击的是节点本身（通过检查事件参数）
-      // 如果点击的是节点，ECharts 会触发节点点击事件，这里不应该清除
-      // 只有当点击的是空白背景时才清除选中状态
-      // 由于 ECharts 的节点点击事件已经处理，这里只需要处理背景点击
-      // 延迟执行，让节点点击事件先处理
-      setTimeout(() => {
-        // 如果点击的不是节点，清除选中状态
-        clearSelectedNode()
-        if (graphEchartsInstance.value) {
-          updateEChartsGraph()
-        }
-      }, 100)
-      return
-    }
-  }
-  // 点击空白处，清除选中状态
   clearSelectedNode()
   if (graphEchartsInstance.value) {
     updateEChartsGraph()
@@ -1756,8 +1755,6 @@ const nodeDetailPaneStyle = computed(() => ({
 }))
 
 onBeforeUnmount(() => {
-  window.removeEventListener('pointermove', handlePointerMove)
-  window.removeEventListener('pointerup', handlePointerUp)
   window.removeEventListener('pointermove', handleNodeDetailResize)
   window.removeEventListener('pointerup', stopNodeDetailResize)
   if (graphResizeHandler.value) {
@@ -2134,7 +2131,7 @@ const closeAlertDetail = () => {
 
 const handlePostComment = async ({ comment, files }) => {
   if (!incident.value?.id) {
-    toast.error(t('incidents.detail.comments.postError') || '无法提交评论：事件ID不存在', '操作失败')
+    toast.error(t('incidents.detail.comments.postError') || '无法提交评论：事件ID不存在', 'ERROR')
     return
   }
   
@@ -2155,11 +2152,11 @@ const handlePostComment = async ({ comment, files }) => {
     await loadIncidentDetail()
     
     // 显示成功提示
-    toast.success(t('incidents.detail.comments.postSuccess') || '评论提交成功', '操作成功')
+    toast.success(t('incidents.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || '评论提交失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -2470,7 +2467,7 @@ const handleCloseIncident = async (data) => {
     await axios.put(url, body, { headers })
     
     // 显示成功提示
-    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', '操作成功')
+    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', 'SUCCESS')
     
     // 关闭对话框
     closeCloseDialog()
@@ -2481,7 +2478,7 @@ const handleCloseIncident = async (data) => {
     console.error('Failed to close incident:', error)
     // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
-    toast.error(errorMessage, '操作失败')
+    toast.error(errorMessage, 'ERROR')
   } finally {
     isClosingIncident.value = false
     if (closeDialogRef.value) {
@@ -2528,6 +2525,54 @@ const handleIncidentUpdated = async () => {
   // 事件更新成功后，关闭对话框并重新加载详情
   closeEditDialog()
   await loadIncidentDetail()
+}
+
+// 处理选中告警（单选和全选使用相同逻辑）
+const handleSelectAlerts = (items) => {
+  selectedAlerts.value = items.map(alert => alert.id)
+}
+
+// 打开解关联对话框
+const openDisassociateDialog = () => {
+  showDisassociateDialog.value = true
+}
+
+// 关闭解关联对话框
+const closeDisassociateDialog = () => {
+  showDisassociateDialog.value = false
+}
+
+// 处理解关联
+const handleDisassociate = async () => {
+  if (selectedAlerts.value.length === 0 || isDisassociating.value) {
+    return
+  }
+
+  try {
+    isDisassociating.value = true
+    
+    // 调用解关联接口
+    await disassociateAlertsFromIncident(route.params.id, selectedAlerts.value)
+    
+    toast.success(
+      t('incidents.detail.disassociateSuccess', { count: selectedAlerts.value.length }),
+      'SUCCESS'
+    )
+    
+    closeDisassociateDialog()
+    selectedAlerts.value = []
+    associatedAlertsTableRef.value?.clearSelection()
+    await loadIncidentDetail()
+  } catch (error) {
+    console.error('Failed to disassociate alerts:', error)
+    const errorMessage = error?.response?.data?.message || 
+                        error?.response?.data?.error_message || 
+                        error?.message || 
+                        t('incidents.detail.disassociateError')
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isDisassociating.value = false
+  }
 }
 
 onMounted(() => {
@@ -2909,53 +2954,6 @@ onMounted(() => {
 .prose :deep(ul) {
   list-style: disc;
   margin-left: 1.25rem;
-}
-
-.summary-collapsed {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.property-description-collapsed {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.graph-regenerate-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1rem;
-  border-radius: 9999px;
-  border: 1px solid rgba(248, 113, 113, 0.6);
-  background: rgba(248, 113, 113, 0.15);
-  color: #fecaca;
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, opacity 0.25s ease;
-}
-
-.graph-regenerate-btn:hover:not(:disabled) {
-  border-color: rgba(248, 113, 113, 0.85);
-  background: rgba(248, 113, 113, 0.3);
-  color: #fee2e2;
-}
-
-.graph-regenerate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.graph-regenerate-btn--loading {
-  animation: pulse 1.1s ease-in-out infinite;
 }
 </style>
 

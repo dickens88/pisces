@@ -156,7 +156,16 @@
         "autoClosed": "Auto Closed",
         "totalAlerts": "Total Closed"
       },
-      "createAlert": "Create Alert"
+      "createAlert": "Create Alert",
+      "batchDelete": "Delete Alerts",
+      "batchDeleteDialog": {
+        "title": "Delete Alerts",
+        "confirmMessage": "Please confirm whether to delete the selected {count} alert(s)?",
+        "confirmInputLabel": "Please enter 'delete' to confirm deletion",
+        "confirmInputPlaceholder": "Please enter delete",
+        "deleteSuccess": "Successfully deleted {count} alert(s)",
+        "deleteError": "Failed to delete alerts, please try again later"
+      }
     },
     "create": {
       "title": "Create Alert",
@@ -182,6 +191,7 @@
       "openAlert": "Open Alert",
       "editAlert": "Edit Alert",
       "convertToIncident": "Convert to Incident",
+      "convertToVulnerability": "Convert to Vulnerability",
       "moreActions": "More Actions",
       "share": "Share",
       "aiAnalysis": "AI-Powered Analysis",
@@ -261,7 +271,16 @@
         "conclusionPlaceholder": "Please enter investigation conclusion..."
       },
       "export": "Export",
-      "createIncident": "Create Incident"
+      "createIncident": "Create Incident",
+      "batchDelete": "Delete Incidents",
+      "batchDeleteDialog": {
+        "title": "Delete Incidents",
+        "confirmMessage": "Please confirm whether to delete the selected {count} incident(s)?",
+        "confirmInputLabel": "Please enter 'delete' to confirm deletion",
+        "confirmInputPlaceholder": "Please enter delete",
+        "deleteSuccess": "Successfully deleted {count} incident(s)",
+        "deleteError": "Failed to delete incidents, please try again later"
+      }
     },
     "edit": {
       "title": "Edit Incident"
@@ -294,6 +313,7 @@
     "detail": {
       "title": "Incident Details",
       "owner": "Owner",
+      "actor": "Actor",
       "createTime": "Create Time",
       "updateTime": "Last Updated",
       "assign": "Assign",
@@ -411,6 +431,13 @@
         "hoursAgo": "hours ago",
         "daysAgo": "days ago"
       },
+      "disassociate": "Disassociate",
+      "disassociateSuccess": "Successfully disassociated {count} alert(s)",
+      "disassociateError": "Failed to disassociate alerts, please try again later",
+      "disassociateDialog": {
+        "title": "Disassociate Alerts",
+        "confirmMessage": "Are you sure you want to disassociate {count} alert(s)?"
+      },
       "comments": {
         "addComment": "Add a comment...",
         "post": "Post",
@@ -433,7 +460,16 @@
       "searchPlaceholder": "Search CVE, IP, Name...",
       "exportReport": "Export Report",
       "batchOperate": "Batch Operate",
-      "status": "Status"
+      "status": "Status",
+      "batchDelete": "Delete Vulnerabilities",
+      "batchDeleteDialog": {
+        "title": "Delete Vulnerabilities",
+        "confirmMessage": "Please confirm whether to delete the selected {count} vulnerability(ies)?",
+        "confirmInputLabel": "Please enter 'delete' to confirm deletion",
+        "confirmInputPlaceholder": "Please enter delete",
+        "deleteSuccess": "Successfully deleted {count} vulnerability(ies)",
+        "deleteError": "Failed to delete vulnerabilities, please try again later"
+      }
     },
     "statistics": {
       "trend": "Vulnerability Trend Statistics",

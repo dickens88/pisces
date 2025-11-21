@@ -35,6 +35,30 @@
           <span class="material-symbols-outlined text-base">add</span>
           <span>{{ $t('vulnerabilities.create.title') }}</span>
         </button>
+        <!-- More actions button -->
+        <div class="relative">
+          <button
+            @click="showMoreMenu = !showMoreMenu"
+            class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
+            :title="$t('common.more')"
+          >
+            <span class="material-symbols-outlined text-base">more_vert</span>
+          </button>
+          <!-- Dropdown menu -->
+          <div
+            v-if="showMoreMenu"
+            class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+          >
+            <button
+              @click="openBatchDeleteDialog"
+              :disabled="selectedVulnerabilities.length === 0"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+            >
+              <span class="material-symbols-outlined text-base">delete</span>
+              <span>{{ $t('vulnerabilities.list.batchDelete') }}</span>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -262,15 +286,76 @@
       @close="showCreateDialog = false"
       @created="handleVulnerabilityCreated"
     />
+
+    <!-- Batch delete dialog -->
+    <div
+      v-if="showBatchDeleteDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeBatchDeleteDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('vulnerabilities.list.batchDeleteDialog.title') }}
+          </h2>
+          <button
+            @click="closeBatchDeleteDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ $t('vulnerabilities.list.batchDeleteDialog.confirmMessage', { count: selectedVulnerabilities.length }) }}
+          </p>
+        </div>
+
+        <!-- Confirmation input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('vulnerabilities.list.batchDeleteDialog.confirmInputLabel') }}
+          </label>
+          <input
+            v-model="deleteConfirmInput"
+            @keydown.enter.prevent="handleBatchDelete"
+            type="text"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            :placeholder="$t('vulnerabilities.list.batchDeleteDialog.confirmInputPlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeBatchDeleteDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleBatchDelete"
+            :disabled="!isDeleteConfirmValid || isBatchDeleting"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isBatchDeleting" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { getIncidents, getVulnerabilityTrendBySeverity } from '@/api/incidents'
+import { getIncidents, getVulnerabilityTrendBySeverity, deleteIncidents } from '@/api/incidents'
 import { 
   getVulnerabilityTrend, 
   getVulnerabilityDepartmentDistribution
@@ -281,8 +366,10 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { severityToNumber } from '@/utils/severity'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
+const toast = useToast()
 
 // Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
@@ -310,6 +397,10 @@ const departmentData = ref([])
 const dataTableRef = ref(null)
 const loadingVulnerabilities = ref(false)
 const showCreateDialog = ref(false)
+const showMoreMenu = ref(false)
+const showBatchDeleteDialog = ref(false)
+const deleteConfirmInput = ref('')
+const isBatchDeleting = ref(false)
 
 // 从 localStorage 读取保存的搜索关键词
 const getStoredSearchKeywords = () => {
@@ -1066,6 +1157,77 @@ const handleVulnerabilityCreated = () => {
   loadDepartmentData()
 }
 
+// Delete confirmation validation
+const isDeleteConfirmValid = computed(() => {
+  return deleteConfirmInput.value.toLowerCase() === 'delete'
+})
+
+const openBatchDeleteDialog = () => {
+  if (selectedVulnerabilities.value.length === 0) {
+    console.warn('No vulnerabilities selected')
+    return
+  }
+  showMoreMenu.value = false
+  showBatchDeleteDialog.value = true
+  deleteConfirmInput.value = ''
+}
+
+const closeBatchDeleteDialog = () => {
+  showBatchDeleteDialog.value = false
+  deleteConfirmInput.value = ''
+}
+
+const handleBatchDelete = async () => {
+  if (!isDeleteConfirmValid.value || isBatchDeleting.value) {
+    return
+  }
+
+  if (selectedVulnerabilities.value.length === 0) {
+    toast.warn('请至少选择一个漏洞', '提示')
+    return
+  }
+
+  try {
+    isBatchDeleting.value = true
+    
+    // 调用删除接口（使用和删除事件相同的接口）
+    await deleteIncidents(selectedVulnerabilities.value)
+    
+    // 显示成功提示
+    toast.success(
+      t('vulnerabilities.list.batchDeleteDialog.deleteSuccess', { count: selectedVulnerabilities.value.length }) || 
+      `成功删除 ${selectedVulnerabilities.value.length} 条漏洞`, 
+      'SUCCESS'
+    )
+    
+    // Close dialog and reset form
+    closeBatchDeleteDialog()
+    selectedVulnerabilities.value = []
+    if (dataTableRef.value) {
+      dataTableRef.value.clearSelection()
+    }
+    
+    // Reload vulnerability list
+    loadVulnerabilities()
+    loadVulnerabilityTrendBySeverity()
+    loadDepartmentData()
+  } catch (error) {
+    console.error('Failed to delete vulnerabilities:', error)
+    // 显示错误提示
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('vulnerabilities.list.batchDeleteDialog.deleteError') || '删除漏洞失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isBatchDeleting.value = false
+  }
+}
+
+// Close more menu when clicking outside
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.more-menu-button') && !event.target.closest('.more-menu-dropdown')) {
+    showMoreMenu.value = false
+  }
+}
+
 watch([currentPage, pageSize], () => {
   loadVulnerabilities()
 })
@@ -1076,11 +1238,15 @@ onMounted(() => {
   loadDepartmentData()
   ensureVulnerabilityTrendChart()
   ensureDepartmentChart()
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside)
 })
 
 onBeforeUnmount(() => {
   disposeVulnerabilityTrendChart()
   disposeDepartmentChart()
+  // Clean up event listener
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

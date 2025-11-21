@@ -239,6 +239,24 @@ class AlertService:
         result = json.loads(resp.text)
         return result
 
+    @classmethod
+    def delete_alerts(cls, alert_ids):
+        """Delete alerts."""
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {"batch_ids": alert_ids}
+
+        body = json.dumps(payload)
+
+        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
+        resp = requests.delete(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+
+        result = json.loads(resp.text)
+        return result
+
     @staticmethod
     def _extract_info_from_comment(comment: dict):
         """Extract and categorize info from comments."""
