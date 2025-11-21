@@ -168,8 +168,8 @@
               <h3 class="text-white font-bold text-lg">
                 {{ $t('incidents.detail.eventGraph.summaryTitle') }}
               </h3>
-              <p class="text-slate-400 text-sm">
-                {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
+              <p v-if="!isGraphReady" class="text-slate-400 text-sm">
+                {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
               </p>
             </div>
             <div class="flex items-center gap-2 md:justify-end">
@@ -197,24 +197,43 @@
               </button>
             </div>
           </div>
-          <div
-            v-if="incident?.graphSummary"
-            class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
-            v-html="graphSummaryHtml"
-          ></div>
-          <p v-else class="text-slate-500 leading-relaxed">
-            {{ $t('incidents.detail.eventGraph.summaryUnavailable') }}
-          </p>
-          <p class="text-slate-400 text-sm">
-            {{
-              $t('incidents.detail.eventGraph.summaryParagraph2', {
-                nodes: eventGraphStats.totalNodes,
-                edges: eventGraphStats.totalEdges,
-                alerts: eventGraphStats.alertNodes,
-                ips: eventGraphStats.ipNodes
-              })
-            }}
-          </p>
+          <template v-if="isGraphReady">
+            <div class="space-y-2">
+              <div
+                v-if="incident?.graphSummary"
+                class="text-slate-200 leading-relaxed prose prose-invert max-w-none"
+                :class="{ 'summary-collapsed': !isSummaryExpanded }"
+                v-html="graphSummaryHtml"
+              ></div>
+              <p v-else class="text-slate-400 text-sm">
+                {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
+              </p>
+              <button
+                v-if="incident?.graphSummary && shouldShowSummaryExpand"
+                type="button"
+                @click="isSummaryExpanded = !isSummaryExpanded"
+                class="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
+                </span>
+                <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
+              </button>
+            </div>
+            <p class="text-slate-400 text-sm">
+              {{
+                $t('incidents.detail.eventGraph.summaryParagraph2', {
+                  nodes: eventGraphStats.totalNodes,
+                  edges: eventGraphStats.totalEdges,
+                  alerts: eventGraphStats.alertNodes,
+                  ips: eventGraphStats.ipNodes
+                })
+              }}
+            </p>
+            <p v-if="graphLastGeneratedTime" class="text-slate-500 text-xs mt-2">
+              上次生成时间：{{ graphLastGeneratedTime }}
+            </p>
+          </template>
           <button
             type="button"
             class="graph-regenerate-fab"
@@ -339,7 +358,7 @@
                   </div>
                 </div>
               </div>
-              <div class="w-full h-full" @click="handleGraphBackgroundClick" style="position: relative;">
+              <div class="w-full h-full" style="position: relative;" @click="handleGraphContainerClick">
                 <div
                   ref="graphEchartsRef"
                   class="w-full h-full"
@@ -435,15 +454,23 @@
           </div>
           <div
             v-else
-            class="min-h-[420px] flex flex-col items-center justify-center gap-3 text-center p-10 text-slate-400"
+            class="min-h-[420px] flex items-center justify-center p-10"
           >
-            <span class="material-symbols-outlined text-5xl text-slate-600">hub</span>
-            <p class="text-base font-medium">
-              {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
-            </p>
-            <p class="text-sm text-slate-500 max-w-2xl">
-              {{ $t('incidents.detail.eventGraph.summaryParagraph1') }}
-            </p>
+            <svg
+              class="w-24 h-24 text-slate-600/80"
+              viewBox="0 0 120 120"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle cx="24" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="60" cy="24" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="96" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+              <circle cx="60" cy="96" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+              <path d="M33 53 L51 35" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M69 35 L87 53" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M51 85 L33 67" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+              <path d="M87 67 L69 85" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+            </svg>
           </div>
         </div>
       </div>
@@ -738,10 +765,18 @@ const isRefreshingGraph = ref(false)
 const isRegeneratingGraph = ref(false)
 const graphZoomLevel = ref(1)
 const isGraphFullscreen = ref(false)
+const isSummaryExpanded = ref(false)
+const isPropertyDescriptionExpanded = ref(false)
+const isDragging = ref(false)
+const dragTimeout = ref(null)
 
 const GRAPH_ZOOM_STEP = 0.2
 const GRAPH_MIN_ZOOM = 0.5
 const GRAPH_MAX_ZOOM = 2.5
+const FORCE_EDGE_LENGTH_DEFAULT = [55, 140]
+const FORCE_EDGE_LENGTH_DRAGGING = [100, 220]
+const FORCE_REPULSION_DEFAULT = 120
+const FORCE_REPULSION_DRAGGING = 60
 
 const parseGraphData = (rawData) => {
   if (!rawData) {
@@ -942,18 +977,19 @@ const updateEChartsGraph = () => {
     const size = Math.min(20 + degree * 2, 40)
     
     // 根据搜索和选中状态设置样式
-    // 默认透明度设置为 0.7，让节点更透明
+    // 中间透明度低，边缘透明度高（通过borderOpacity实现渐变效果）
     let itemStyle = { 
       color,
-      opacity: 0.7,
-      borderColor: 'rgba(148, 163, 184, 0.4)',
-      borderWidth: 1.5
+      opacity: 0.5, // 中间透明度低
+      borderColor: 'rgba(148, 163, 184, 0.8)', // 边缘透明度高
+      borderWidth: 1.5,
+      borderOpacity: 0.8 // 边缘透明度高
     }
     let label = { show: true, fontSize: 10, color: '#fff' }
     
     if (graphSearchQuery.value.trim()) {
       if (!filteredNodeIds.value.has(node.id)) {
-        itemStyle.opacity = 0.15
+        itemStyle.opacity = 0.2
         label.show = false
       } else {
         // 搜索匹配的节点保持较高透明度
@@ -964,20 +1000,24 @@ const updateEChartsGraph = () => {
     if (selectedGraphNodeId.value) {
       if (relatedNodeIds.value.has(node.id)) {
         itemStyle.borderColor = '#fbbf24'
-        itemStyle.borderWidth = 2
-        itemStyle.opacity = 0.85
+        itemStyle.borderWidth = 1.5
+        itemStyle.borderOpacity = 0.7
+        // 中间透明度低，边缘透明度高
+        itemStyle.opacity = 0.65
       } else {
-        itemStyle.opacity = 0.2
+        itemStyle.opacity = 0.35
         label.show = false
       }
     }
     
     if (selectedGraphNodeId.value === node.id) {
       itemStyle.borderColor = '#60a5fa'
-      itemStyle.borderWidth = 3
+      itemStyle.borderWidth = 1.5
+      itemStyle.borderOpacity = 0.8
       itemStyle.shadowBlur = 10
       itemStyle.shadowColor = '#60a5fa'
-      itemStyle.opacity = 0.95
+      // 中间透明度低，边缘透明度高（通过borderOpacity实现）
+      itemStyle.opacity = 0.55
     }
     
     return {
@@ -1008,7 +1048,7 @@ const updateEChartsGraph = () => {
       } else if (relatedNodeIds.value.has(edge.source) && relatedNodeIds.value.has(edge.target)) {
         lineStyle.opacity = 0.6
       } else {
-        lineStyle.opacity = 0.2
+        lineStyle.opacity = 0.35
       }
     }
     
@@ -1042,9 +1082,16 @@ const updateEChartsGraph = () => {
         if (params.dataType === 'node') {
           const node = displayGraphNodes.value.find(n => n.id === params.data.id)
           if (node) {
-            return `<div style="padding: 8px;">
-              <div style="font-weight: bold; margin-bottom: 4px;">${params.data.name}</div>
-              <div style="font-size: 12px; color: #94a3b8;">Type: ${node.properties?.entity_type || 'unknown'}</div>
+            const type = node.properties?.entity_type || 'unknown'
+            const typeColor = ENTITY_COLOR_SOLID[type.toLowerCase()] || ENTITY_COLOR_SOLID.other
+            // 获取完整的 label，不省略
+            const label = node.labels?.[0] || node.id || node.properties?.entity_id || 'entity'
+            return `<div style="padding: 0; line-height: 1.5;">
+              <div style="font-weight: 600; margin-bottom: 8px; color: #ffffff; font-size: 13px; letter-spacing: 0.01em; word-wrap: break-word; max-width: 300px;">${label}</div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: ${typeColor}; flex-shrink: 0;"></span>
+                <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">${type}</span>
+              </div>
             </div>`
           }
         }
@@ -1079,15 +1126,15 @@ const updateEChartsGraph = () => {
         },
         force: {
           initLayout: 'circular',
-          // 降低排斥力，使节点更容易聚集
-          repulsion: 100,
-          // 降低重力，减少向中心聚集的趋势，让节点更自由地形成簇
-          gravity: 0.05,
-          // 缩短边的长度，使连接的节点更紧密
-          edgeLength: [30, 80],
+          // 根据交互状态动态调整排斥力和边长
+          repulsion: isDragging.value ? FORCE_REPULSION_DRAGGING : FORCE_REPULSION_DEFAULT,
+          gravity: 0.035,
+          edgeLength: isDragging.value ? FORCE_EDGE_LENGTH_DRAGGING : FORCE_EDGE_LENGTH_DEFAULT,
           layoutAnimation: true,
-          // 增加摩擦，使布局更稳定
-          friction: 0.8
+          // 增加摩擦，使布局更稳定，减少拖动时的连锁反应
+          friction: 0.9,
+          // 拖动时只带动相关节点（通过降低repulsion实现）
+          preventOverlap: true
         },
         lineStyle: {
           color: '#64748b',
@@ -1109,14 +1156,96 @@ const updateEChartsGraph = () => {
       categoriesCount: categories.length,
       option: JSON.stringify(option, null, 2).substring(0, 500)
     })
-    graphEchartsInstance.value.setOption(option, true)
+    graphEchartsInstance.value.setOption(option, false, true)
     console.log('ECharts option set successfully')
     
     // 监听节点点击事件
     graphEchartsInstance.value.off('click')
     graphEchartsInstance.value.on('click', (params) => {
-      if (params.dataType === 'node' && params.data) {
-        handleNodeClick(params.data.id)
+      console.log('ECharts click event:', params)
+      // 检查是否是节点点击
+      if (params && params.dataType === 'node' && params.data) {
+        // 阻止事件冒泡，防止触发背景点击事件
+        if (params.event && params.event.event) {
+          params.event.event.stopPropagation()
+        }
+        // 尝试多种方式获取节点ID
+        const nodeId = params.data.id || params.data.value || (params.data.name && displayGraphNodes.value.find(n => formatNodeLabel(n) === params.data.name)?.id)
+        console.log('Node clicked, nodeId:', nodeId, 'params.data:', params.data)
+        if (nodeId) {
+          // 使用 nextTick 确保在下一个事件循环中处理，避免与背景点击冲突
+          nextTick(() => {
+            handleNodeClick(nodeId)
+          })
+        } else {
+          console.warn('Node clicked but no id found:', params.data)
+        }
+      } else {
+        // 点击的不是节点，是背景（params 为 null 或 params.dataType 不是 'node'）
+        console.log('Background clicked, clearing selection', params)
+        clearSelectedNode()
+        // 立即更新图表以清除凸显效果
+        if (graphEchartsInstance.value) {
+          updateEChartsGraph()
+        }
+      }
+    })
+    
+    
+    // 监听拖动开始事件（ECharts graph 支持 dragstart）
+    graphEchartsInstance.value.off('dragstart')
+    graphEchartsInstance.value.on('dragstart', (params) => {
+      if (params.dataType === 'node') {
+        isDragging.value = true
+        // 清除之前的超时
+        if (dragTimeout.value) {
+          clearTimeout(dragTimeout.value)
+        }
+        // 更新图表以应用拖长效果和降低排斥力
+        nextTick(() => {
+          if (graphEchartsInstance.value) {
+            const option = graphEchartsInstance.value.getOption()
+            if (option.series && option.series[0] && option.series[0].force) {
+              option.series[0].force.edgeLength = FORCE_EDGE_LENGTH_DRAGGING
+              option.series[0].force.repulsion = FORCE_REPULSION_DRAGGING
+              graphEchartsInstance.value.setOption(option, false)
+            }
+          }
+        })
+      }
+    })
+    
+    // 监听拖动事件（持续更新）
+    graphEchartsInstance.value.off('drag')
+    graphEchartsInstance.value.on('drag', (params) => {
+      if (params.dataType === 'node' && isDragging.value) {
+        // 拖动时动态更新边的长度和排斥力
+        if (graphEchartsInstance.value) {
+          const option = graphEchartsInstance.value.getOption()
+          if (option.series && option.series[0] && option.series[0].force) {
+            option.series[0].force.edgeLength = FORCE_EDGE_LENGTH_DRAGGING
+            option.series[0].force.repulsion = FORCE_REPULSION_DRAGGING
+            graphEchartsInstance.value.setOption(option, false)
+          }
+        }
+      }
+    })
+    
+    // 监听拖动结束事件
+    graphEchartsInstance.value.off('dragend')
+    graphEchartsInstance.value.on('dragend', (params) => {
+      if (params.dataType === 'node') {
+        // 延迟恢复，让布局稳定
+        if (dragTimeout.value) {
+          clearTimeout(dragTimeout.value)
+        }
+        dragTimeout.value = setTimeout(() => {
+          isDragging.value = false
+          // 恢复边的长度和排斥力
+          if (graphEchartsInstance.value) {
+            updateEChartsGraph()
+          }
+        }, 500)
       }
     })
   } catch (error) {
@@ -1142,6 +1271,7 @@ const graphEntityOptions = computed(() =>
 
 const hasGraphData = computed(() => (eventGraphData.value.nodes || []).length > 0)
 const graphStatus = computed(() => incident.value?.graphStatus || 'missing')
+const isGraphReady = computed(() => graphStatus.value === 'ready' && hasGraphData.value)
 const graphStatusLabel = computed(() =>
   t(`incidents.detail.eventGraph.graphStatus.${graphStatus.value}`, graphStatus.value)
 )
@@ -1450,12 +1580,32 @@ const clearSelectedNode = () => {
   highlightedEntity.value = ''
 }
 
+const handleGraphContainerClick = (event) => {
+  // 检查点击的目标
+  const target = event.target
+  // 如果点击的是 canvas 元素，说明可能是点击了背景
+  // 延迟检查，确保 ECharts 的 click 事件先处理
+  setTimeout(() => {
+    // 如果此时还有选中状态，且点击的是 canvas（不是节点），则清除选中
+    if (selectedGraphNodeId.value && target && target.tagName === 'CANVAS') {
+      console.log('Graph container background clicked, clearing selection')
+      clearSelectedNode()
+      if (graphEchartsInstance.value) {
+        updateEChartsGraph()
+      }
+    }
+  }, 150)
+}
+
 
 const handleGraphBackgroundClick = () => {
   if (resizingNodeDetail.value) {
     return
   }
   clearSelectedNode()
+  if (graphEchartsInstance.value) {
+    updateEChartsGraph()
+  }
 }
 
 const handleLegendClick = (key) => {
@@ -1613,6 +1763,10 @@ onBeforeUnmount(() => {
   }
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
+  }
+  if (dragTimeout.value) {
+    clearTimeout(dragTimeout.value)
+    dragTimeout.value = null
   }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))

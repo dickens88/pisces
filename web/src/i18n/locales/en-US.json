@@ -47,6 +47,8 @@
     },
     "wordWrap": "Word Wrap",
     "singleLine": "Single Line",
+    "expand": "Expand",
+    "collapse": "Collapse",
     "severity": {
       "fatal": "Fatal",
       "critical": "Critical",
