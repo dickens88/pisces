@@ -11,8 +11,8 @@
             'border-primary/50': isDragging
           }"
           @drop.prevent="handleDrop"
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
+          @dragover.prevent="handleDragOver"
+          @dragleave.prevent="handleDragLeave"
         >
           <textarea
             v-model="commentText"
@@ -20,10 +20,14 @@
             :placeholder="placeholder"
             rows="3"
             @input="handleTextareaInput"
+            @keydown="handleKeyDown"
           ></textarea>
-          
+
           <!-- Toolbar -->
-          <div class="absolute bottom-3 left-4 flex items-center gap-2">
+          <div
+            v-if="props.enableFileUpload"
+            class="absolute bottom-3 left-4 flex items-center gap-2"
+          >
             <!-- File upload button -->
             <input
               ref="fileInput"
@@ -53,7 +57,7 @@
         </div>
         
         <!-- Uploaded files list -->
-        <div v-if="uploadedFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
+        <div v-if="props.enableFileUpload && uploadedFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
           <div
             v-for="(file, index) in uploadedFiles"
             :key="index"
@@ -95,6 +99,14 @@ const props = defineProps({
   modelValue: {
     type: String,
     default: ''
+  },
+  enableFileUpload: {
+    type: Boolean,
+    default: true
+  },
+  submitOnEnter: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -120,13 +132,23 @@ const handleTextareaInput = () => {
   // 可以在这里添加自动调整高度的逻辑
 }
 
+const handleKeyDown = (event) => {
+  if (!props.submitOnEnter) return
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    handleSubmit()
+  }
+}
+
 const triggerFileInput = () => {
+  if (!props.enableFileUpload) return
   if (fileInput.value) {
     fileInput.value.click()
   }
 }
 
 const handleFileSelect = (event) => {
+  if (!props.enableFileUpload) return
   const files = Array.from(event.target.files || [])
   // 只取第一个文件
   if (files.length > 0) {
@@ -140,6 +162,7 @@ const handleFileSelect = (event) => {
 
 const handleDrop = (event) => {
   isDragging.value = false
+  if (!props.enableFileUpload) return
   const files = Array.from(event.dataTransfer.files || [])
   // 只取第一个文件
   if (files.length > 0) {
@@ -150,7 +173,7 @@ const handleDrop = (event) => {
 const MAX_FILE_SIZE = 500 * 1024 // 500KB
 
 const addFiles = (files) => {
-  if (files.length === 0) return
+  if (!props.enableFileUpload || files.length === 0) return
   
   const file = files[0] // 只处理第一个文件
   
@@ -171,6 +194,16 @@ const addFiles = (files) => {
 
 const removeFile = (index) => {
   uploadedFiles.value = []
+}
+
+const handleDragOver = () => {
+  if (!props.enableFileUpload) return
+  isDragging.value = true
+}
+
+const handleDragLeave = () => {
+  if (!props.enableFileUpload) return
+  isDragging.value = false
 }
 
 const getFileIcon = (mimeType) => {

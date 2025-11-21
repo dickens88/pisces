@@ -122,6 +122,10 @@ const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 # API 配置
 VITE_API_BASE_URL=/api
 VITE_API_TARGET=http://localhost:8080
+# 安全助手对话接口（完整URL，指向外部AI服务）
+VITE_AI_CHAT_API=https://sectools.cloudbu.huawei.com:9443/v1/chat-messages
+# 如果外部AI服务需要鉴权，可在此填写Bearer Token
+VITE_AI_CHAT_KEY=
 
 # 前端基础路径（如部署在子路径或指定完整URL）
 VITE_WEB_BASE_PATH=https://huntingportal.dearcharles.cn/pisces
