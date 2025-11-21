@@ -132,9 +132,6 @@ const handleLogin = async () => {
       authStore.setToken(response.access_token)
       authStore.setUser({ username: response.username })
       
-      toast.success('登录成功')
-      
-      // 重定向到原始页面或首页
       const redirect = route.query.redirect || '/'
       router.push(redirect)
     } else {

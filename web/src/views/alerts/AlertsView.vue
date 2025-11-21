@@ -503,16 +503,35 @@
         </div>
 
         <!-- Investigation conclusion input -->
-        <div class="mb-6">
+        <div class="mb-6 relative">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
-          <textarea
-            v-model="closeConclusion.notes"
-            rows="4"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-            :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
-          ></textarea>
+          <div class="relative">
+            <textarea
+              v-model="closeConclusion.notes"
+              @focus="showAlertHistoryDropdown = true"
+              @blur="handleAlertTextareaBlur"
+              rows="4"
+              class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+              :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
+            ></textarea>
+            <!-- 历史记录下拉菜单 -->
+            <div
+              v-if="showAlertHistoryDropdown && alertCommentHistory.length > 0"
+              class="absolute z-10 w-full mt-1 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg max-h-48 overflow-y-auto"
+              @mousedown.prevent
+            >
+              <div
+                v-for="(item, index) in alertCommentHistory"
+                :key="index"
+                @click="selectAlertHistoryItem(item)"
+                class="px-4 py-2 text-sm text-white hover:bg-[#324867] cursor-pointer border-b border-[#324867] last:border-b-0"
+              >
+                <div class="truncate">{{ item }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Action buttons -->
@@ -552,6 +571,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
+import { saveCloseComment, getCloseCommentHistory } from '@/utils/closeCommentHistory'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -682,6 +702,8 @@ const selectedTimeRange = ref(getStoredTimeRange())
 const customTimeRange = ref(getStoredCustomRange())
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
+const showAlertHistoryDropdown = ref(false)
+const alertCommentHistory = ref([])
 const closeConclusion = ref({
   category: '',
   notes: ''
@@ -1336,12 +1358,33 @@ const handleClickOutside = (event) => {
   }
 }
 
+// 加载告警历史记录
+const loadAlertHistory = () => {
+  alertCommentHistory.value = getCloseCommentHistory('alert')
+}
+
+// 处理输入框失焦事件（延迟关闭下拉菜单，以便点击选项时能触发）
+const handleAlertTextareaBlur = () => {
+  // 延迟关闭，让点击事件先触发
+  setTimeout(() => {
+    showAlertHistoryDropdown.value = false
+  }, 200)
+}
+
+// 选择历史记录项
+const selectAlertHistoryItem = (item) => {
+  closeConclusion.value.notes = item
+  showAlertHistoryDropdown.value = false
+}
+
 const openBatchCloseDialog = () => {
   if (selectedAlerts.value.length === 0) {
     console.warn('No alerts selected')
     return
   }
 
+  // 打开弹窗时加载历史记录
+  loadAlertHistory()
   showBatchCloseDialog.value = true
 }
 
@@ -1352,6 +1395,7 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
+  showAlertHistoryDropdown.value = false
 }
 
 const handleBatchClose = async () => {
@@ -1366,6 +1410,9 @@ const handleBatchClose = async () => {
 
   try {
     isBatchClosing.value = true
+    
+    // 保存评论到历史记录
+    saveCloseComment(closeConclusion.value.notes.trim(), 'alert')
     
     // 调用批量关闭接口
     await batchCloseAlertsByPut(
