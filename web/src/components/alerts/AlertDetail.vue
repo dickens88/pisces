@@ -15,7 +15,10 @@
       <Transition name="slide" appear>
         <div
           v-if="visible"
-          class="relative w-[70vw] h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
+          :class="[
+            rightSidebarTab === 'securityAgent' ? 'w-[80vw]' : 'w-[70vw]',
+            'relative h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden'
+          ]"
           @click.stop="handlePanelClick"
         >
           <!-- Header -->
@@ -342,7 +345,13 @@
             </div>
 
             <!-- Sidebar -->
-            <aside v-if="!isLoading && alert" class="w-80 border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden">
+            <aside
+              v-if="!isLoading && alert"
+              :class="[
+                rightSidebarTab === 'securityAgent' ? 'w-[32rem]' : 'w-80',
+                'border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden'
+              ]"
+            >
               <!-- 页签导航 -->
               <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
                 <nav class="flex -mb-px space-x-4">
