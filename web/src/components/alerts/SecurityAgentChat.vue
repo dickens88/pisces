@@ -42,6 +42,8 @@
         v-model="message"
         :placeholder="$t('alerts.detail.aiAgentPlaceholder') || '输入消息...'"
         :disabled="disabled"
+        :enable-file-upload="false"
+        :submit-on-enter="true"
         @submit="handleSubmit"
       />
     </div>

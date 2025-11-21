@@ -924,7 +924,7 @@ const loadAlertDetail = async () => {
     const response = await getAlertDetail(currentAlertId.value)
     // 转换后端返回的数据格式
     alert.value = transformAlertDetailData(response.data)
-    hydrateSecurityAgentMessages(alert.value?.ai || [])
+    securityAgentMessages.value = []
     // 加载关联告警
     loadAssociatedAlerts()
   } catch (error) {
@@ -1410,10 +1410,6 @@ const getSecurityAgentAssistantLabel = () =>
   t('alerts.detail.securityAgentTab') ||
   'Security Agent'
 
-const hydrateSecurityAgentMessages = (messages = []) => {
-  securityAgentMessages.value = Array.isArray(messages) ? [...messages] : []
-}
-
 const formatSecurityAgentContent = (text = '') => {
   if (!text || typeof text !== 'string') return ''
   return text
@@ -1423,58 +1419,49 @@ const formatSecurityAgentContent = (text = '') => {
     .replace(/\n/g, '<br />')
 }
 
+const generateSecurityAgentMessageId = () =>
+  `security-agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
 const appendSecurityAgentMessage = (message) => {
-  if (!message || !message.content) return
-  securityAgentMessages.value = [
-    ...securityAgentMessages.value,
-    {
-      id: message.id || `security-agent-${Date.now()}`,
-      author: message.author || getSecurityAgentAssistantLabel(),
-      content: formatSecurityAgentContent(message.content),
-      create_time: message.create_time || new Date().toISOString(),
-      role: message.role || 'assistant',
-      isLocal: message.isLocal || false
-    }
-  ]
+  if (!message) return null
+  const rawContent = message.content || ''
+  const normalizedMessage = {
+    id: message.id || generateSecurityAgentMessageId(),
+    author: message.author || getSecurityAgentAssistantLabel(),
+    rawContent,
+    content: formatSecurityAgentContent(rawContent),
+    create_time: message.create_time || new Date().toISOString(),
+    role: message.role || 'assistant',
+    isLocal: message.isLocal || false
+  }
+  securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
+  return normalizedMessage.id
 }
 
-const extractSecurityAgentAnswer = (response) => {
-  if (!response) return ''
-  if (typeof response === 'string') return response
-  if (typeof response.answer === 'string') return response.answer
-  if (response.output_text) {
-    if (Array.isArray(response.output_text)) {
-      return response.output_text.join('\n')
+const setSecurityAgentMessageContent = (messageId, text) => {
+  if (!messageId) return
+  securityAgentMessages.value = securityAgentMessages.value.map(message => {
+    if (message.id !== messageId) return message
+    const newRawContent = text || ''
+    return {
+      ...message,
+      rawContent: newRawContent,
+      content: formatSecurityAgentContent(newRawContent)
     }
-    return response.output_text
-  }
-  if (typeof response.message === 'string') return response.message
-  if (response.data) {
-    if (typeof response.data === 'string') {
-      return response.data
+  })
+}
+
+const appendToSecurityAgentMessage = (messageId, chunk) => {
+  if (!messageId || !chunk) return
+  securityAgentMessages.value = securityAgentMessages.value.map(message => {
+    if (message.id !== messageId) return message
+    const newRawContent = (message.rawContent || '') + chunk
+    return {
+      ...message,
+      rawContent: newRawContent,
+      content: formatSecurityAgentContent(newRawContent)
     }
-    if (Array.isArray(response.data)) {
-      const joined = response.data
-        .map(item => item?.answer || item?.output_text || item?.message || '')
-        .filter(Boolean)
-        .join('\n')
-      if (joined) return joined
-    } else if (typeof response.data === 'object') {
-      if (typeof response.data.answer === 'string') return response.data.answer
-      if (Array.isArray(response.data.output_text)) {
-        return response.data.output_text.join('\n')
-      }
-      if (typeof response.data.output_text === 'string') {
-        return response.data.output_text
-      }
-      if (typeof response.data.message === 'string') {
-        return response.data.message
-      }
-    }
-  }
-  if (typeof response.raw === 'string') return response.raw
-  if (typeof response.result === 'string') return response.result
-  return ''
+  })
 }
 
 // 处理复用的 AI 对话框组件发送事件
@@ -1509,32 +1496,62 @@ const handleRightSidebarAiSend = async (data) => {
     })
   }
 
+  let assistantMessageId = null
+
   try {
     isSendingSecurityAgentMessage.value = true
-    const response = await sendSecurityAgentMessage(payload)
-    const aiAnswer = extractSecurityAgentAnswer(response)
-    if (aiAnswer) {
-      appendSecurityAgentMessage({
-        author: t('alerts.detail.securityAgentTab') || 'Security Agent',
-        content: aiAnswer,
-        role: 'assistant',
-        isLocal: true
-      })
-    }
-    const successMsg = t('alerts.detail.securityAgentSendSuccess') || 'Message sent to Security Agent'
-    toast.success(successMsg, 'SUCCESS')
+    assistantMessageId = appendSecurityAgentMessage({
+      author: getSecurityAgentAssistantLabel(),
+      content: '',
+      role: 'assistant',
+      isLocal: true
+    })
+
+    await sendSecurityAgentMessage({
+      ...payload,
+      onEvent: (event) => {
+        if (!event) return
+        const eventType = event.event || event.type
+        if (eventType === 'message') {
+          if (assistantMessageId && typeof event.answer === 'string') {
+            appendToSecurityAgentMessage(assistantMessageId, event.answer)
+          }
+        } else if (eventType === 'message_end') {
+          if (assistantMessageId && typeof event.answer === 'string') {
+            appendToSecurityAgentMessage(assistantMessageId, event.answer)
+          }
+        } else if (eventType === 'error') {
+          const streamError = event?.message || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
+          toast.error(streamError, 'ERROR')
+          if (assistantMessageId) {
+            setSecurityAgentMessageContent(assistantMessageId, streamError)
+          } else {
+            appendSecurityAgentMessage({
+              author: getSecurityAgentAssistantLabel(),
+              content: streamError,
+              role: 'assistant',
+              isLocal: true
+            })
+          }
+        }
+      }
+    })
   } catch (error) {
     const rawMessage = error?.message || ''
     const errorMsg = rawMessage.includes('VITE_AI_CHAT_API') || rawMessage.toLowerCase().includes('not configured')
       ? t('alerts.detail.securityAgentMissingConfig') || 'Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.'
       : rawMessage || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
     toast.error(errorMsg, 'ERROR')
-    appendSecurityAgentMessage({
-      author: getSecurityAgentAssistantLabel(),
-      content: errorMsg,
-      role: 'assistant',
-      isLocal: true
-    })
+    if (assistantMessageId) {
+      setSecurityAgentMessageContent(assistantMessageId, errorMsg)
+    } else {
+      appendSecurityAgentMessage({
+        author: getSecurityAgentAssistantLabel(),
+        content: errorMsg,
+        role: 'assistant',
+        isLocal: true
+      })
+    }
   } finally {
     isSendingSecurityAgentMessage.value = false
   }

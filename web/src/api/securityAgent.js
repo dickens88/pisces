@@ -5,15 +5,16 @@ const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
 /**
  * Send a chat message to the external Security Agent API.
- * Falls back to plain JSON when there is no attachment.
+ * Uses streaming response mode and emits each event through onEvent callback.
  *
  * @param {Object} params
  * @param {string|number} params.alertId - Current alert identifier.
  * @param {string} params.message - Message body from the analyst.
- * @param {File[]} [params.files] - Optional attachment list (max 1 from CommentInput).
- * @returns {Promise<any>} Response payload from the external API.
+ * @param {File[]} [params.files] - Optional attachment list (currently unused).
+ * @param {(event: object) => void} [params.onEvent] - Callback for each streamed event.
+ * @returns {Promise<any>} The last event received from the stream.
  */
-export const sendSecurityAgentMessage = async ({ alertId, message, files = [] }) => {
+export const sendSecurityAgentMessage = async ({ alertId, message, files = [], onEvent }) => {
   const endpoint = config.aiChatApi
   if (!endpoint) {
     throw new Error('AI chat API endpoint is not configured (VITE_AI_CHAT_API)')
@@ -42,7 +43,7 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [] })
     body = JSON.stringify({
       inputs: {},  
       query: sanitizedMessage,
-      response_mode: 'blocking',
+      response_mode: 'streaming',
       user: 'Botond Varhalmi 84400683'
     })
     headers['Content-Type'] = 'application/json'
@@ -63,17 +64,63 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [] })
     throw new Error(errorText || `External AI chat API responded with ${response.status}`)
   }
 
-  const contentType = response.headers.get('content-type') || ''
-  if (contentType.includes('application/json')) {
-    return response.json()
+  if (!response.body) {
+    const fallbackText = await response.text().catch(() => '')
+    let parsed = null
+    try {
+      parsed = fallbackText ? JSON.parse(fallbackText) : null
+    } catch {
+      parsed = { raw: fallbackText }
+    }
+    if (parsed) {
+      onEvent?.(parsed)
+    }
+    return parsed
   }
 
-  try {
-    const text = await response.text()
-    return { raw: text }
-  } catch {
-    return {}
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let lastEvent = null
+
+  const flushBuffer = (line) => {
+    if (!line) return
+    const trimmedLine = line.trim()
+    if (!trimmedLine) return
+    const normalized = trimmedLine.startsWith('data:')
+      ? trimmedLine.slice(5).trim()
+      : trimmedLine
+    if (!normalized) return
+    try {
+      const parsed = JSON.parse(normalized)
+      lastEvent = parsed
+      if (onEvent) {
+        onEvent(parsed)
+      }
+    } catch (err) {
+      console.warn('Failed to parse Security Agent stream chunk:', normalized, err)
+    }
   }
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) {
+      break
+    }
+    buffer += decoder.decode(value, { stream: true })
+    let newlineIndex
+    while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, newlineIndex)
+      buffer = buffer.slice(newlineIndex + 1)
+      flushBuffer(line)
+    }
+  }
+
+  if (buffer.trim()) {
+    flushBuffer(buffer)
+  }
+
+  return lastEvent
 }
 
 
