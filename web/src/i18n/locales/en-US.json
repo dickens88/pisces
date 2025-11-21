@@ -233,7 +233,8 @@
       "securityAgentAssistantLabel": "Security Agent",
       "securityAgentSendSuccess": "Message sent to Security Agent",
       "securityAgentSendError": "Failed to send message to Security Agent",
-      "securityAgentMissingConfig": "Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API."
+      "securityAgentMissingConfig": "Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.",
+      "aiAssistant": "AI Assistant"
     }
   },
   "incidents": {

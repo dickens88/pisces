@@ -307,26 +307,11 @@ class AlertService:
                 continue
 
             if "ip" in key_lower:
-                entity = {
-                    "type": "ip",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
+                entities.append({"type": "ip", "name": str(value), "from": key_lower})
             elif "host" in key_lower:
-                entity = {
-                    "type": "host",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
-            elif "user" in key_lower:
-                entity = {
-                    "type": "user",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
+                entities.append({"type": "host", "name": str(value), "from": key_lower})
+            elif "domain" in key_lower:
+                entities.append({"type": "domain", "name": str(value), "from": key_lower})
 
         return entities
 

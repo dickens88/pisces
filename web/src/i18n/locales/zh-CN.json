@@ -231,7 +231,8 @@
       "securityAgentAssistantLabel": "安全智能体",
       "securityAgentSendSuccess": "已发送给安全智能体",
       "securityAgentSendError": "发送给安全智能体失败，请稍后重试",
-      "securityAgentMissingConfig": "未配置安全智能体接口，请设置 VITE_AI_CHAT_API。"
+      "securityAgentMissingConfig": "未配置安全智能体接口，请设置 VITE_AI_CHAT_API。",
+      "aiAssistant": "AI助手"
     }
   },
   "incidents": {

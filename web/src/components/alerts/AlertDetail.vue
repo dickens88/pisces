@@ -226,13 +226,27 @@
                     >
                       <div
                         v-if="value !== null && value !== undefined && value !== ''"
-                        class="flex items-baseline"
+                        class="flex items-baseline gap-2"
                       >
                         <p class="text-text-light w-40 shrink-0">{{ key }}:</p>
-                        <p class="font-medium text-white break-all">
-                          <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
-                          <span v-else>{{ value }}</span>
-                        </p>
+                        <div class="flex-1 min-w-0 flex items-center gap-1.5">
+                          <p class="font-medium text-white break-all">
+                            <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
+                            <span v-else>{{ value }}</span>
+                          </p>
+                          <button
+                            v-if="isFieldMatchedWithEntity(key, value)"
+                            @click="handleSendFieldToSecurityAgent(key, value)"
+                            class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
+                            :title="$t('alerts.detail.aiAssistant')"
+                          >
+                            <img 
+                              src="/ai-chat.png" 
+                              :alt="$t('alerts.detail.aiAssistant')" 
+                              class="w-4 h-4"
+                            />
+                          </button>
+                        </div>
                       </div>
                     </template>
                   </template>
@@ -320,12 +334,12 @@
                     >
                       <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
                         <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
                         <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
                       </div>
-                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')">
+                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html max-w-full overflow-hidden" v-html="sanitizeHtml(aiItem.content || '')">
                       </div>
                     </div>
                   </div>
@@ -390,6 +404,7 @@
                     <div
                       v-for="(entity, index) in alert.associatedEntities"
                       :key="index"
+                      @click="handleSendEntityToSecurityAgent(entity)"
                       class="flex items-center gap-3 p-3 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] cursor-pointer transition-colors"
                     >
                       <span class="material-symbols-outlined text-primary">
@@ -466,6 +481,7 @@
                 <!-- Security Agent 聊天组件 -->
                 <div class="flex-1 min-h-0 min-w-0">
                   <SecurityAgentChat
+                    ref="securityAgentChatRef"
                     :messages="securityAgentMessages"
                     :auto-scroll="true"
                     :disabled="isSendingSecurityAgentMessage"
@@ -669,6 +685,7 @@ const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
 const isSendingSecurityAgentMessage = ref(false)
 const securityAgentMessages = ref([])
+const securityAgentChatRef = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
@@ -1659,6 +1676,100 @@ const getEntityIcon = (type) => {
 }
 
 /**
+ * @brief 判断字段值是否与Associated Entity匹配
+ * @param {string} key - 字段名
+ * @param {any} value - 字段值
+ * @returns {boolean} 是否匹配
+ */
+const isFieldMatchedWithEntity = (key, value) => {
+  if (!alert.value?.associatedEntities || !value) {
+    return false
+  }
+  
+  // 将值转换为字符串进行比较
+  const valueStr = String(value).trim()
+  if (!valueStr) {
+    return false
+  }
+  
+  // 检查是否与任何associatedEntity匹配
+  // 匹配条件：字段值（value）与entity的name匹配，或者字段名（key）与entity的label匹配且值也匹配
+  return alert.value.associatedEntities.some(entity => {
+    if (!entity.name) return false
+    const entityNameStr = String(entity.name).trim()
+    const entityLabelStr = entity.label ? String(entity.label).trim().toLowerCase() : ''
+    const keyLower = key.toLowerCase()
+    
+    // 精确匹配：字段值完全等于entity的name
+    if (entityNameStr === valueStr) {
+      return true
+    }
+    
+    // 字段名匹配且值匹配：如果字段名与entity的label匹配，且值也匹配（支持部分匹配）
+    if (entityLabelStr && (entityLabelStr === keyLower || keyLower.includes(entityLabelStr) || entityLabelStr.includes(keyLower))) {
+      // 值完全匹配或包含匹配
+      if (entityNameStr === valueStr || valueStr.includes(entityNameStr) || entityNameStr.includes(valueStr)) {
+        return true
+      }
+    }
+    
+    return false
+  })
+}
+
+/**
+ * @brief 将字段的key:value填充到Security Agent输入框
+ * @param {string} key - 字段名
+ * @param {any} value - 字段值
+ */
+const handleSendFieldToSecurityAgent = (key, value) => {
+  if (!alert.value) {
+    return
+  }
+  
+  // 切换到Security Agent页签
+  rightSidebarTab.value = 'securityAgent'
+  
+  // 构建消息：key:value
+  const valueStr = typeof value === 'object' && value !== null 
+    ? JSON.stringify(value) 
+    : String(value)
+  const message = `${key}: ${valueStr}`
+  
+  // 等待组件渲染后设置输入框的值
+  setTimeout(() => {
+    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
+      securityAgentChatRef.value.setMessage(message)
+    }
+  }, 100)
+}
+
+/**
+ * @brief 将entity信息填充到Security Agent输入框
+ * @param {Object} entity - 关联实体对象
+ */
+const handleSendEntityToSecurityAgent = (entity) => {
+  if (!alert.value || !entity) {
+    return
+  }
+  
+  // 切换到Security Agent页签
+  rightSidebarTab.value = 'securityAgent'
+  
+  // 构建消息：entity.from: entity.name
+  const from = entity.from || entity.label || ''
+  const name = entity.name || ''
+  const message = `${from}: ${name}`
+  
+  // 等待组件渲染后设置输入框的值
+  setTimeout(() => {
+    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
+      securityAgentChatRef.value.setMessage(message)
+    }
+  }, 100)
+}
+
+/**
  * @brief 获取风险等级样式类
  * @param {string} level - 风险等级（fatal/high/medium/low/tips）
  * @returns {string} 返回对应的CSS类名
@@ -1868,6 +1979,13 @@ onUnmounted(() => {
   animation: dragPulse 1.5s ease-in-out infinite;
 }
 
+.ai-agent__html {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
 .ai-agent__html :deep(pre) {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1875,6 +1993,11 @@ onUnmounted(() => {
   border-radius: 6px;
   white-space: pre-wrap;
   margin: 10px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .ai-agent__html :deep(code) {
