@@ -22,6 +22,7 @@
         <TimeRangePicker
           v-model="selectedTimeRange"
           :custom-range="customTimeRange"
+          storage-key="dashboard"
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
@@ -179,6 +180,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { getDashboardStatistics } from '@/api/dashboard'
 import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel } from '@/api/alerts'
 import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
@@ -205,14 +207,9 @@ const statistics = ref({
 
 
 /**
- * @brief 选中的时间范围
+ * @brief 时间范围存储
  */
-const selectedTimeRange = ref('last24Hours')
-
-/**
- * @brief 自定义时间范围
- */
-const customTimeRange = ref(null)
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('dashboard', 'last24Hours')
 
 /**
  * @brief 是否正在刷新

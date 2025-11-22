@@ -553,6 +553,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -649,37 +650,7 @@ const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 
 // Time range picker
-// 从 localStorage 读取保存的时间范围
-const getStoredTimeRange = () => {
-  try {
-    const stored = localStorage.getItem('alerts-timeRange')
-    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read time range from localStorage:', error)
-  }
-  return 'last24Hours'
-}
-
-// 从 localStorage 读取保存的自定义时间范围
-const getStoredCustomRange = () => {
-  try {
-    const stored = localStorage.getItem('alerts-customTimeRange')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        return [new Date(parsed[0]), new Date(parsed[1])]
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read custom time range from localStorage:', error)
-  }
-  return null
-}
-
-const selectedTimeRange = ref(getStoredTimeRange())
-const customTimeRange = ref(getStoredCustomRange())
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('alerts', 'last24Hours')
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
 const closeConclusion = ref({

@@ -312,6 +312,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
 
@@ -397,37 +398,8 @@ const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
 
 // Time range picker
-// 从 localStorage 读取保存的时间范围
-const getStoredTimeRange = () => {
-  try {
-    const stored = localStorage.getItem('incidents-timeRange')
-    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read time range from localStorage:', error)
-  }
-  return 'last3Months'
-}
-
-// 从 localStorage 读取保存的自定义时间范围
-const getStoredCustomRange = () => {
-  try {
-    const stored = localStorage.getItem('incidents-customTimeRange')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        return [new Date(parsed[0]), new Date(parsed[1])]
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read custom time range from localStorage:', error)
-  }
-  return null
-}
-
-const selectedTimeRange = ref(getStoredTimeRange())
-const customTimeRange = ref(getStoredCustomRange())
+// Time range picker
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('incidents', 'last3Months')
 
 const computeSelectedRange = () => {
   if (selectedTimeRange.value === 'customRange') {

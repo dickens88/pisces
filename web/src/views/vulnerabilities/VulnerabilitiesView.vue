@@ -367,6 +367,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { severityToNumber } from '@/utils/severity'
 import { useToast } from '@/composables/useToast'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -445,37 +446,8 @@ const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 
 // Time range picker
-// 从 localStorage 读取保存的时间范围
-const getStoredTimeRange = () => {
-  try {
-    const stored = localStorage.getItem('vulnerabilities-timeRange')
-    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read time range from localStorage:', error)
-  }
-  return 'last30Days'
-}
-
-// 从 localStorage 读取保存的自定义时间范围
-const getStoredCustomRange = () => {
-  try {
-    const stored = localStorage.getItem('vulnerabilities-customTimeRange')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        return [new Date(parsed[0]), new Date(parsed[1])]
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read custom time range from localStorage:', error)
-  }
-  return null
-}
-
-const selectedTimeRange = ref(getStoredTimeRange())
-const customTimeRange = ref(getStoredCustomRange())
+// Time range picker
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('vulnerabilities', 'last30Days')
 
 // Vulnerability trend chart
 const vulnerabilityTrendChartRef = ref(null)
