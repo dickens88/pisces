@@ -149,6 +149,6 @@ CREATE TABLE `t_toolkits_records` (
   PRIMARY KEY (`id`),
   KEY `idx_app_id` (`app_id`),
   KEY `idx_create_time` (`create_time`),
-  KEY `idx_owner` (`owner`)
+  KEY `idx_owner` (`owner`),
   KEY `idx_event` (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='工具包记录表';

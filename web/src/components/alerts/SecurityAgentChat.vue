@@ -101,9 +101,15 @@ onMounted(() => {
   }, 100)
 })
 
+// 设置输入框的值
+const setMessage = (text) => {
+  message.value = text || ''
+}
+
 // 暴露方法供父组件调用
 defineExpose({
-  scrollToBottom
+  scrollToBottom,
+  setMessage
 })
 
 const handleSubmit = ({ comment, files }) => {
