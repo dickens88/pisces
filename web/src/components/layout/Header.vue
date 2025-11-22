@@ -158,6 +158,7 @@ import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { getSystemInfo } from '@/api/system'
 import { getAppConfig } from '@config'
+import { redirectToTianyanLogin } from '@/utils/auth'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 
 const props = defineProps({
@@ -215,13 +216,8 @@ const selectLanguage = (lang) => {
 
 const handleLogin = () => {
   showUserMenu.value = false
-  if (config.authMode === 'tianyan') {
-    // 使用tianyan-web认证，重定向到tianyan-web登录页面
-    const currentUrl = window.location.href
-    const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
-    window.location.href = loginUrl
-  } else {
-    // 使用本地认证，跳转到本地登录页
+  if (!redirectToTianyanLogin()) {
+    // 如果不是 tianyan 模式，使用本地认证，跳转到本地登录页
     router.push({ name: 'Login' })
   }
 }
