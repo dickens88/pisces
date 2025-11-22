@@ -232,7 +232,21 @@
       "securityAgentSendSuccess": "已发送给安全智能体",
       "securityAgentSendError": "发送给安全智能体失败，请稍后重试",
       "securityAgentMissingConfig": "未配置安全智能体接口，请设置 VITE_AI_CHAT_API。",
-      "aiAssistant": "AI助手"
+      "aiAssistant": "AI助手",
+      "availableTools": "可用工具",
+      "executionRecords": "执行记录",
+      "toolkitClickToConfigure": "点击配置并运行",
+      "toolkitExecute": "执行",
+      "toolkitExecuting": "执行中...",
+      "toolkitStatusSuccess": "成功",
+      "toolkitStatusInProgress": "进行中",
+      "toolkitStatusFailed": "失败",
+      "executionTime": "执行时间",
+      "executor": "执行者",
+      "result": "结果",
+      "error": "错误",
+      "system": "系统",
+      "noToolkitsAvailable": "暂无可用工具"
     }
   },
   "incidents": {

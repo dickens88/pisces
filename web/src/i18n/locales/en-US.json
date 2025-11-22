@@ -234,7 +234,21 @@
       "securityAgentSendSuccess": "Message sent to Security Agent",
       "securityAgentSendError": "Failed to send message to Security Agent",
       "securityAgentMissingConfig": "Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.",
-      "aiAssistant": "AI Assistant"
+      "aiAssistant": "AI Assistant",
+      "availableTools": "Available Tools",
+      "executionRecords": "Execution Records",
+      "toolkitClickToConfigure": "Click to configure & run",
+      "toolkitExecute": "Execute",
+      "toolkitExecuting": "Executing...",
+      "toolkitStatusSuccess": "Success",
+      "toolkitStatusInProgress": "In Progress",
+      "toolkitStatusFailed": "Failed",
+      "executionTime": "Execution Time",
+      "executor": "Executor",
+      "result": "Result",
+      "error": "Error",
+      "system": "System",
+      "noToolkitsAvailable": "No toolkits available"
     }
   },
   "incidents": {

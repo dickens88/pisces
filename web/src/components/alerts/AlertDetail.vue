@@ -397,6 +397,110 @@
               <!-- Response 页签内容 -->
               <div v-if="rightSidebarTab === 'response'" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
                 <div class="pr-6 space-y-6">
+                <!-- 自动化响应 -->
+                <div class="space-y-4">
+                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
+                  
+                  <!-- 加载状态 -->
+                  <div v-if="loadingToolkits || loadingToolkitRecords" class="flex items-center justify-center py-8">
+                    <span class="material-symbols-outlined animate-spin text-primary text-2xl">refresh</span>
+                  </div>
+                  
+                  <div v-else class="space-y-4">
+                    <!-- 工具清单部分：显示所有可用工具 -->
+                    <div v-if="toolkits.length" class="space-y-2">
+                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
+                      <template v-for="tool in toolkits" :key="tool.app_id">
+                        <details class="group rounded-lg bg-[#2a3546]">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                            <div class="flex items-center gap-3">
+                              <span class="material-symbols-outlined text-primary">play_circle</span>
+                              <div>
+                                <p class="font-medium text-white text-sm">{{ tool.title }}</p>
+                                <p class="text-xs text-text-light">{{ $t('alerts.detail.toolkitClickToConfigure') }}</p>
+                              </div>
+                            </div>
+                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                          </summary>
+                          <div class="px-3 pb-3 pt-2 text-sm text-text-light space-y-3 border-t border-border-dark/50">
+                            <div v-for="param in tool.params" :key="param.name">
+                              <label class="block text-xs font-medium text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
+                                {{ param.label }}
+                              </label>
+                              <input 
+                                class="w-full rounded-md border border-border-dark bg-[#1a202c] p-2 text-white placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
+                                :id="`toolkit-${tool.app_id}-${param.name}`"
+                                :placeholder="`e.g., ${param.label}`"
+                                type="text" 
+                                :value="toolkitParams[tool.app_id]?.[param.name] || ''"
+                                @input="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
+                              />
+                            </div>
+                            <button 
+                              @click="handleExecuteToolkit(tool)"
+                              :disabled="executingToolkitId === tool.app_id"
+                              class="w-full bg-primary hover:bg-blue-500 text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
+                            >
+                              <span :class="['material-symbols-outlined text-base', executingToolkitId === tool.app_id && 'animate-spin']">
+                                {{ executingToolkitId === tool.app_id ? 'refresh' : 'play_arrow' }}
+                              </span>
+                              {{ executingToolkitId === tool.app_id ? $t('alerts.detail.toolkitExecuting') : $t('alerts.detail.toolkitExecute') }}
+                            </button>
+                          </div>
+                        </details>
+                      </template>
+                    </div>
+                    
+                    <!-- 执行记录部分 -->
+                    <div v-if="toolkitRecords.length" class="space-y-2">
+                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.executionRecords') }}</h4>
+                      <template v-for="record in toolkitRecords" :key="record.id">
+                        <details :class="['group rounded-lg bg-[#2a3546]', record.status === 'running' && 'animate-pulse']">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                            <div class="flex items-center gap-3">
+                              <span :class="[
+                                'material-symbols-outlined',
+                                record.status === 'completed' && 'text-green-400',
+                                record.status === 'running' && 'text-yellow-400',
+                                record.status === 'failed' && 'text-red-400'
+                              ]">
+                                {{ record.status === 'completed' ? 'task_alt' : record.status === 'running' ? 'hourglass_top' : 'error' }}
+                              </span>
+                              <div>
+                                <p class="font-medium text-white text-sm">{{ record.title }}</p>
+                                <p :class="[
+                                  'text-xs',
+                                  record.status === 'completed' && 'text-green-300/80',
+                                  record.status === 'running' && 'text-yellow-300/80',
+                                  record.status === 'failed' && 'text-red-300/80'
+                                ]">
+                                  {{ record.status === 'completed' ? $t('alerts.detail.toolkitStatusSuccess') : 
+                                     record.status === 'running' ? $t('alerts.detail.toolkitStatusInProgress') : 
+                                     $t('alerts.detail.toolkitStatusFailed') }}
+                                </p>
+                              </div>
+                            </div>
+                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                          </summary>
+                          <div class="px-3 pb-3 pt-2 text-sm text-text-light font-mono space-y-1 border-t border-border-dark/50">
+                            <p><span class="text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
+                            <p><span class="text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
+                            <p v-if="record.result" :class="['mt-2 pt-2 border-t border-border-dark/50', record.status === 'failed' && 'text-red-300']">
+                              <span class="text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
+                              <pre class="mt-1 text-xs whitespace-pre-wrap">{{ formatToolkitResult(record.result) }}</pre>
+                            </p>
+                          </div>
+                        </details>
+                      </template>
+                    </div>
+                    
+                    <!-- 如果没有工具和记录，显示空状态 -->
+                    <div v-if="!toolkits.length && !toolkitRecords.length" class="text-center py-8 text-text-light">
+                      <p class="text-sm">{{ $t('alerts.detail.noToolkitsAvailable') }}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 关联实体 -->
                 <div class="space-y-4" v-if="alert?.associatedEntities">
                   <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
@@ -440,37 +544,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <!-- 自动化响应 -->
-                <div class="space-y-4">
-                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
-                  <div class="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <div class="flex items-start gap-3">
-                      <span class="material-symbols-outlined text-green-400 mt-0.5">task_alt</span>
-                      <div>
-                        <p class="font-semibold text-white text-sm">Block IP Address</p>
-                        <p class="text-xs text-green-300/80">
-                          Successfully blocked {{ alert?.associatedEntities?.find(e => e.type === 'ip')?.name || 'IP' }} at firewall.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                    <div class="flex items-start gap-3">
-                      <span class="material-symbols-outlined text-yellow-400 mt-0.5">hourglass_top</span>
-                      <div>
-                        <p class="font-semibold text-white text-sm">Threat Intel Scan</p>
-                        <p class="text-xs text-yellow-300/80">Scan in progress for related indicators...</p>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    class="w-full bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center"
-                  >
-                    <span class="material-symbols-outlined text-base">play_circle</span>
-                    {{ $t('alerts.detail.runPlaybook') }}
-                  </button>
                 </div>
                 </div>
               </div>
@@ -630,6 +703,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert } from '@/api/alerts'
 import { postComment } from '@/api/comments'
+import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
@@ -704,6 +778,14 @@ const showMoreActionsMenu = ref(false)
 const isRefreshing = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
+
+// Toolkit related state
+const toolkits = ref([])
+const toolkitRecords = ref([])
+const loadingToolkits = ref(false)
+const loadingToolkitRecords = ref(false)
+const executingToolkitId = ref(null) // 正在执行的工具ID
+const toolkitParams = ref({}) // 存储每个工具的输入参数 { app_id: { param_name: value } }
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -953,6 +1035,9 @@ const loadAlertDetail = async () => {
     securityAgentMessages.value = []
     // 加载关联告警
     loadAssociatedAlerts()
+    // 加载工具列表和执行记录
+    loadToolkits()
+    loadToolkitRecords()
   } catch (error) {
     console.error('Failed to load alert detail:', error)
     // 加载失败时只触发 close 事件，不进行路由跳转
@@ -986,6 +1071,132 @@ const loadAssociatedAlerts = async () => {
   } finally {
     loadingAssociatedAlerts.value = false
   }
+}
+
+/**
+ * @brief 加载工具列表
+ */
+const loadToolkits = async () => {
+  loadingToolkits.value = true
+  try {
+    const response = await getToolkits()
+    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
+    // 后端返回格式: { "tools": [...] }
+    toolkits.value = response.tools || []
+    console.log('Loaded toolkits:', toolkits.value, 'Response:', response)
+    // 初始化每个工具的参数
+    toolkits.value.forEach(tool => {
+      if (!toolkitParams.value[tool.app_id]) {
+        toolkitParams.value[tool.app_id] = {}
+      }
+    })
+  } catch (error) {
+    console.error('Failed to load toolkits:', error)
+    toolkits.value = []
+    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitsError') || '加载工具列表失败')
+  } finally {
+    loadingToolkits.value = false
+  }
+}
+
+/**
+ * @brief 加载工具执行记录
+ */
+const loadToolkitRecords = async () => {
+  if (!currentAlertId.value) return
+
+  loadingToolkitRecords.value = true
+  try {
+    const response = await getToolkitRecords(currentAlertId.value)
+    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
+    // 后端返回格式: { "data": [...], "total": ... }
+    toolkitRecords.value = response.data || []
+    console.log('Loaded toolkit records:', toolkitRecords.value, 'Response:', response)
+  } catch (error) {
+    console.error('Failed to load toolkit records:', error)
+    toolkitRecords.value = []
+    // 如果接口返回 400 或没有数据，不显示错误提示
+    if (error?.response?.status !== 400) {
+      toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitRecordsError') || '加载执行记录失败')
+    }
+  } finally {
+    loadingToolkitRecords.value = false
+  }
+}
+
+/**
+ * @brief 执行工具
+ * @param {Object} tool - 工具对象
+ */
+const handleExecuteToolkit = async (tool) => {
+  if (!currentAlertId.value) {
+    toast.error(t('alerts.detail.alertIdRequired') || '告警ID不存在')
+    return
+  }
+
+  // 验证必填参数
+  const params = toolkitParams.value[tool.app_id] || {}
+  const requiredParams = tool.params || []
+  const missingParams = requiredParams.filter(p => !params[p.name] || params[p.name].trim() === '')
+  
+  if (missingParams.length > 0) {
+    toast.error(t('alerts.detail.toolkitParamsRequired') || `请填写参数: ${missingParams.map(p => p.label).join(', ')}`)
+    return
+  }
+
+  executingToolkitId.value = tool.app_id
+
+  try {
+    const requestData = {
+      title: tool.title,
+      app_id: tool.app_id,
+      app_type: tool.app_type,
+      params: params
+    }
+
+    await executeToolkit(currentAlertId.value, requestData)
+    toast.success(t('alerts.detail.toolkitExecuteSuccess') || '工具执行成功')
+    
+    // 重新加载执行记录
+    await loadToolkitRecords()
+  } catch (error) {
+    console.error('Failed to execute toolkit:', error)
+    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError') || '工具执行失败')
+  } finally {
+    executingToolkitId.value = null
+  }
+}
+
+/**
+ * @brief 更新工具参数值
+ * @param {string} appId - 工具应用ID
+ * @param {string} paramName - 参数名
+ * @param {string} value - 参数值
+ */
+const updateToolkitParam = (appId, paramName, value) => {
+  if (!toolkitParams.value[appId]) {
+    toolkitParams.value[appId] = {}
+  }
+  toolkitParams.value[appId][paramName] = value
+}
+
+/**
+ * @brief 格式化工具执行结果
+ * @param {string|Object} result - 执行结果
+ * @returns {string} 格式化后的结果字符串
+ */
+const formatToolkitResult = (result) => {
+  if (typeof result === 'string') {
+    try {
+      if (result.startsWith('{')) {
+        return JSON.stringify(JSON.parse(result), null, 2)
+      }
+      return result
+    } catch {
+      return result
+    }
+  }
+  return String(result)
 }
 
 const handleClose = async () => {
@@ -2007,6 +2218,23 @@ onUnmounted(() => {
 
 .ai-agent__html :deep(b) {
   color: #e2e8f0;
+}
+
+/* Details element styles for Automated Response */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary .marker {
+  transition: transform 0.2s ease-in-out;
+}
+
+details[open] > summary .marker {
+  transform: rotate(90deg);
 }
 
 </style>

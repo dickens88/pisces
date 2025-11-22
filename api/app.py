@@ -9,7 +9,7 @@ from controllers.incident_graph_scheduler import IncidentGraphIntelligenceJob
 from models import user
 from utils.app_config import config
 from utils.common_utils import scheduler
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -51,6 +51,9 @@ api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/rela
 api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
 
 api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
+
+api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
+api.add_resource(toolkits_view.ToolkitRecordView, '/alerts/<alert_id>/toolkits')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
