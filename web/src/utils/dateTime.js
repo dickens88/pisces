@@ -14,9 +14,12 @@ const normalizeDateString = (raw) => {
     return null
   }
 
-  // Remove redundant timezone parts like Z+0000
+  // Remove redundant timezone parts like Z+0000 or Z+0800
+  // If there's Z followed by a timezone offset, remove Z and keep the offset
   dateStr = dateStr.replace(/Z\+0{4}$/i, 'Z')
   dateStr = dateStr.replace(/Z\+00:00$/i, 'Z')
+  // Handle Z+HHMM format (e.g., Z+0800) - remove Z and keep the offset
+  dateStr = dateStr.replace(/Z([+-]\d{2})(\d{2})$/i, '$1$2')
 
   // Convert +0800 to +08:00 for Date parsing compatibility
   if (ISO_OFFSET_REGEX.test(dateStr)) {
