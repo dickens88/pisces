@@ -30,18 +30,11 @@ const colors = [
 
 /**
  * @brief 根据名称生成缩写
- * @description 最多显示3个字母的缩写
+ * @description 只显示名字的第一个字符
  */
 const abbreviation = computed(() => {
   if (!props.name) return ''
-  const words = props.name.trim().split(/\s+/)
-  if (words.length === 1) {
-    return words[0].charAt(0).toUpperCase()
-  }
-  return words
-    .slice(0, 3)
-    .map((word) => word.charAt(0).toUpperCase())
-    .join('')
+  return props.name.trim().charAt(0).toUpperCase()
 })
 
 /**

@@ -59,7 +59,7 @@
     }
   },
   "nav": {
-    "dashboard": "总览",
+    "dashboard": "安全态势",
     "alerts": "告警管理",
     "incidents": "事件管理",
     "vulnerabilities": "漏洞管理"
