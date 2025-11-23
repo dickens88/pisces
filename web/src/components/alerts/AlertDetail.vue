@@ -140,19 +140,22 @@
             <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
               <!-- Title and severity -->
               <div>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
-                    getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
-                  ]"
-                >
-                  <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
-                    <circle cx="4" cy="4" r="3"></circle>
-                  </svg>
-                  {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
-                </span>
-                <h1 class="mt-2 text-xl font-bold text-white">{{ alert.title }}</h1>
+                <h1 class="text-xl font-bold text-white">{{ alert.title }}</h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-light">
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      :class="[
+                        'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
+                        getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
+                      ]"
+                    >
+                      <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="3"></circle>
+                      </svg>
+                      {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
+                    </span>
+                  </div>
+                  <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
                     <span
@@ -558,6 +561,7 @@
                     :messages="securityAgentMessages"
                     :auto-scroll="true"
                     :disabled="isSendingSecurityAgentMessage"
+                    :loading="isSendingSecurityAgentMessage"
                     @send="handleRightSidebarAiSend"
                   />
                 </div>
