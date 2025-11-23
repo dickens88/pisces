@@ -159,7 +159,8 @@
                     <option value="weakPassword">{{ $t('incidents.create.rootCauseWeakPassword') }}</option>
                     <option value="weakConfig">{{ $t('incidents.create.rootCauseWeakConfig') }}</option>
                     <option value="unauthorizedApi">{{ $t('incidents.create.rootCauseUnauthorizedApi') }}</option>
-                    <option value="historicalVulnerability">{{ $t('incidents.create.rootCauseHistoricalVulnerability') }}</option>
+                    <option value="penetrationTest">{{ $t('incidents.create.rootCausePenetrationTest') }}</option>
+                    <option value="vulnerabilityExploit">{{ $t('incidents.create.rootCauseVulnerabilityExploit') }}</option>
                   </select>
                 </div>
 

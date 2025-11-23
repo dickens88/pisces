@@ -75,7 +75,7 @@
     </header>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
         <p class="text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.status') }}
@@ -109,9 +109,17 @@
               getSeverityTextClass(incident?.severity)
             ]"
           >
-            {{ $t(`common.severity.${incident?.severity?.toLowerCase()}`) }}
+            {{ severityToNumber(incident?.severity) || '-' }}
           </p>
         </div>
+      </div>
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
+        <p class="text-slate-300 text-sm font-medium leading-normal">
+          {{ $t('incidents.detail.category') }}
+        </p>
+        <p class="text-white text-xl font-bold leading-tight">
+          {{ $t(`incidents.create.category${incident?.category ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1) : 'Platform'}`) }}
+        </p>
       </div>
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
         <p class="text-slate-300 text-sm font-medium leading-normal">
@@ -698,6 +706,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
+import { severityToNumber } from '@/utils/severity'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import * as d3 from 'd3'
@@ -2260,6 +2269,7 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       actor: data.actor,
       responsiblePerson: data.responsible_person || data.owner,
       responsibleDept: data.responsible_dept || '',
+      category: data.category || 'platform',
       creator: data.creator,
       labels: data.labels,
       closeReason: data.close_reason,
@@ -2581,21 +2591,31 @@ const getStatusText = (status) => {
 }
 
 const getSeverityDotClass = (severity) => {
+  if (!severity) return 'bg-gray-500'
+  const severityLower = String(severity).toLowerCase().trim()
   const classes = {
+    fatal: 'bg-red-600',
+    critical: 'bg-red-600',
     high: 'bg-red-500',
     medium: 'bg-orange-500',
-    low: 'bg-blue-500'
+    low: 'bg-blue-500',
+    tips: 'bg-gray-400'
   }
-  return classes[severity] || classes.low
+  return classes[severityLower] || classes.low
 }
 
 const getSeverityTextClass = (severity) => {
+  if (!severity) return 'text-gray-400'
+  const severityLower = String(severity).toLowerCase().trim()
   const classes = {
+    fatal: 'text-red-400',
+    critical: 'text-red-400',
     high: 'text-red-400',
     medium: 'text-orange-400',
-    low: 'text-blue-400'
+    low: 'text-blue-400',
+    tips: 'text-gray-400'
   }
-  return classes[severity] || classes.low
+  return classes[severityLower] || classes.low
 }
 
 const getTimelineIconBgClass = (severity) => {

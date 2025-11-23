@@ -163,6 +163,9 @@
       <template #cell-occurrenceTime="{ value, item }">
         {{ formatDateTime(value || item?.arrive_time || item?.create_time || item?.occurrenceTime || item?.occurrence_time) }}
       </template>
+      <template #cell-category="{ item }">
+        {{ $t(`incidents.create.category${item?.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'Platform'}`) }}
+      </template>
       <template #cell-incidentName="{ item }">
         <div class="flex items-center gap-2">
           <button
@@ -189,7 +192,7 @@
           ]"
           :title="$t(`common.severity.${item.severity?.toLowerCase()}`)"
         >
-          {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
+          {{ severityToNumber(item.severity) || '-' }}
         </span>
       </template>
       <template #cell-status="{ item }">
@@ -314,6 +317,7 @@ import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useAuthStore } from '@/stores/auth'
+import { severityToNumber } from '@/utils/severity'
 import axios from 'axios'
 
 const { t } = useI18n()
@@ -323,6 +327,7 @@ const authStore = useAuthStore()
 // Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
   { key: 'occurrenceTime', label: t('incidents.list.occurrenceTime') },
+  { key: 'category', label: t('incidents.detail.category') },
   { key: 'incidentName', label: t('incidents.list.incidentName') },
   { key: 'severity', label: t('incidents.list.severity') },
   { key: 'status', label: t('incidents.list.status') },
@@ -334,6 +339,7 @@ const columns = computed(() => [
 // Default column widths
 const defaultWidths = {
   occurrenceTime: 200,
+  category: 120,
   incidentName: 400,
   severity: 120,
   status: 120,
@@ -593,11 +599,15 @@ const handlePageSizeChange = (newPageSize) => {
 const router = useRouter()
 
 const getSeverityClass = (severity) => {
-  const severityLower = (severity || '').toLowerCase()
+  if (!severity) return 'text-white bg-gray-500'
+  const severityLower = String(severity).toLowerCase().trim()
   const classes = {
+    fatal: 'text-white bg-red-600',
+    critical: 'text-white bg-red-600',
     high: 'text-white bg-[#E57373]',
     medium: 'text-black bg-[#FFB74D]',
-    low: 'text-white bg-[#64B5F6]'
+    low: 'text-white bg-[#64B5F6]',
+    tips: 'text-white bg-gray-400'
   }
   return classes[severityLower] || classes.low
 }
