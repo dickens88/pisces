@@ -1,11 +1,9 @@
 import json
 from typing import List
 
-import requests
-
 from controllers.comment_service import CommentService
 from utils.app_config import config
-from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE
+from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
 
 
@@ -36,10 +34,7 @@ class AlertService:
         }
         body = json.dumps(body)
 
-
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -77,8 +72,7 @@ class AlertService:
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
-        base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
-        resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("GET", url=base_url, headers=headers)
         if resp.status_code > 300:
             raise Exception(f"[Alert] Fail to retrieve alert  {alert_id}. {resp.text}")
 
@@ -155,8 +149,7 @@ class AlertService:
             payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -180,8 +173,7 @@ class AlertService:
             payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -196,8 +188,7 @@ class AlertService:
         payload = {"data_object": update_info}
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -214,8 +205,7 @@ class AlertService:
         }
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -231,8 +221,7 @@ class AlertService:
         payload = {"data_object": SECMASTER_ALERT_TEMPLATE}
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -249,8 +238,7 @@ class AlertService:
 
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
-        resp = requests.delete(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("DELETE", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 

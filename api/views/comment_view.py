@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 
 from controllers.comment_service import CommentService
 from models.comment import Comment
-from utils.jwt_helper import auth_required
+from utils.auth_util import auth_required
 from utils.logger_init import logger
 
 # 文件大小限制：500KB

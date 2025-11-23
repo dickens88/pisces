@@ -191,4 +191,27 @@ def get_date_range(time_range, unit="day"):
 
 scheduler = APScheduler()
 
+
+def get_proxy(proxy_host, proxy_username, proxy_password):
+    if proxy_username and proxy_password:
+        proxies = {
+            "http": f"http://{proxy_username}:{proxy_password}@{proxy_host}",
+            "https": f"http://{proxy_username}:{proxy_password}@{proxy_host}"
+        }
+    else:
+        proxies = None
+    return proxies
+
+
+def Singleton(cls):
+    _instance = {}
+
+    def _singleton(*args, **kargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args, **kargs)
+        return _instance[cls]
+
+    return _singleton
+
+
 # logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)

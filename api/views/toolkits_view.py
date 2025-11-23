@@ -3,7 +3,7 @@ from flask import request
 from flask_restful import Resource
 
 from models.tookits import ToolkitRecord
-from utils.jwt_helper import auth_required
+from utils.auth_util import auth_required
 from utils.logger_init import logger
 
 

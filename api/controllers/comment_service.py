@@ -2,11 +2,9 @@ import base64
 import json
 import re
 
-import requests
-
 from models.comment import Comment
 from utils.app_config import config
-from utils.http_util import wrap_http_auth_headers
+from utils.http_util import request_with_auth
 from utils.logger_init import logger
 
 
@@ -24,9 +22,7 @@ class CommentService:
         }
         body = json.dumps(body)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -44,9 +40,7 @@ class CommentService:
         }
         body = json.dumps(body)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 

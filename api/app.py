@@ -18,8 +18,7 @@ api = Api(app)
 # enable CORS
 CORS(app, resources={r'/*': {'origins': '*'}})
 
-
-app.config['JWT_SECRET_KEY'] = config.get('application.jwt_secret_key')
+app.config['JWT_SECRET_KEY'] = config.get('application.auth.jwt_secret')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(minutes=60)
 
@@ -86,3 +85,4 @@ if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
     app.config['PROPAGATE_EXCEPTIONS'] = True
     app.run(debug=False, host='0.0.0.0', port=8080)
+
