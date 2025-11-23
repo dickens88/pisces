@@ -112,39 +112,12 @@ const buildConditions = (searchKeywords, status) => {
 }
 
 /**
- * @brief 格式化时间为后端期望的格式：YYYY-MM-DDTHH:mm:ssZ+HHmm (例如: 2021-01-30T23:00:00Z+0800)
- * @param {Date} date - 日期对象
- * @returns {string} 格式化后的时间字符串
- */
-const formatDateTime = (date) => {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  const h = String(date.getHours()).padStart(2, '0')
-  const min = String(date.getMinutes()).padStart(2, '0')
-  const s = String(date.getSeconds()).padStart(2, '0')
-  const offset = -date.getTimezoneOffset()
-  const oh = Math.floor(Math.abs(offset) / 60)
-  const om = Math.abs(offset) % 60
-  const sign = offset >= 0 ? '+' : '-'
-  return `${y}-${m}-${d}T${h}:${min}:${s}Z${sign}${String(oh).padStart(2, '0')}${String(om).padStart(2, '0')}`
-}
-
-/**
  * @brief 将时间戳转换为后端期望的格式
  * @param {Date|string|undefined} timestamp - 时间戳（Date对象、ISO字符串或undefined）
- * @returns {string} 格式化后的时间字符串
+ * @returns {string} 格式化后的时间字符串，使用统一的 formatDateTimeWithOffset 函数
  */
 const formatTimestamp = (timestamp) => {
-  if (timestamp instanceof Date) {
-    return formatDateTime(timestamp)
-  } else if (typeof timestamp === 'string') {
-    const date = new Date(timestamp)
-    if (!isNaN(date.getTime())) {
-      return formatDateTime(date)
-    }
-  }
-  return formatDateTime(new Date())
+  return formatDateTimeWithOffset(timestamp) || formatDateTimeWithOffset(new Date())
 }
 
 /**
