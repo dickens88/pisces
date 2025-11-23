@@ -28,13 +28,6 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
-        <button
-          @click="showCreateDialog = true"
-          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">add</span>
-          <span>{{ $t('vulnerabilities.create.title') }}</span>
-        </button>
         <!-- More actions button -->
         <div class="relative">
           <button
@@ -49,6 +42,21 @@
             v-if="showMoreMenu"
             class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
           >
+            <button
+              @click="handleCreateVulnerability"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+            >
+              <span class="material-symbols-outlined text-base">add</span>
+              <span>{{ $t('vulnerabilities.create.title') }}</span>
+            </button>
+            <button
+              @click="openCloseVulnerabilityDialog"
+              :disabled="selectedVulnerabilities.length !== 1"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+            >
+              <span class="material-symbols-outlined text-base">archive</span>
+              <span>{{ $t('vulnerabilities.detail.closeVulnerability') }}</span>
+            </button>
             <button
               @click="openBatchDeleteDialog"
               :disabled="selectedVulnerabilities.length === 0"
@@ -287,6 +295,16 @@
       @created="handleVulnerabilityCreated"
     />
 
+    <!-- Close vulnerability dialog -->
+    <CloseIncidentDialog
+      ref="closeVulnerabilityDialogRef"
+      :visible="showCloseVulnerabilityDialog"
+      :title="$t('vulnerabilities.detail.closeDialog.title') || '关闭漏洞'"
+      :confirm-message="$t('vulnerabilities.detail.closeDialog.confirmMessage') || '确认要关闭此漏洞吗？'"
+      @close="closeCloseVulnerabilityDialog"
+      @submit="handleCloseVulnerability"
+    />
+
     <!-- Batch delete dialog -->
     <div
       v-if="showBatchDeleteDialog"
@@ -364,10 +382,13 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
+import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { severityToNumber } from '@/utils/severity'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
+import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -402,6 +423,10 @@ const showMoreMenu = ref(false)
 const showBatchDeleteDialog = ref(false)
 const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
+const showCloseVulnerabilityDialog = ref(false)
+const closeVulnerabilityDialogRef = ref(null)
+const isClosingVulnerability = ref(false)
+const authStore = useAuthStore()
 
 // 从 localStorage 读取保存的搜索关键词
 const getStoredSearchKeywords = () => {
@@ -1190,6 +1215,84 @@ const handleBatchDelete = async () => {
     toast.error(errorMessage, 'ERROR')
   } finally {
     isBatchDeleting.value = false
+  }
+}
+
+const handleCreateVulnerability = () => {
+  showMoreMenu.value = false
+  showCreateDialog.value = true
+}
+
+const openCloseVulnerabilityDialog = () => {
+  if (selectedVulnerabilities.value.length !== 1) {
+    toast.warn('请选择一个漏洞', '提示')
+    return
+  }
+  showMoreMenu.value = false
+  showCloseVulnerabilityDialog.value = true
+}
+
+const closeCloseVulnerabilityDialog = () => {
+  showCloseVulnerabilityDialog.value = false
+}
+
+const handleCloseVulnerability = async (data) => {
+  if (isClosingVulnerability.value) {
+    return
+  }
+
+  if (selectedVulnerabilities.value.length !== 1) {
+    toast.warn('请选择一个漏洞', '提示')
+    return
+  }
+
+  try {
+    isClosingVulnerability.value = true
+    if (closeVulnerabilityDialogRef.value) {
+      closeVulnerabilityDialogRef.value.setSubmitting(true)
+    }
+    
+    const vulnerabilityId = selectedVulnerabilities.value[0]
+    const body = {
+      handle_status: 'Closed',
+      close_reason: data.close_reason,
+      close_comment: data.close_comment
+    }
+
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
+    const url = apiBaseURL ? `${apiBaseURL}/vulnerabilities/${vulnerabilityId}` : `/api/vulnerabilities/${vulnerabilityId}`
+    
+    const headers = {
+      'Content-Type': 'application/json'
+    }
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`
+    }
+    
+    await axios.put(url, body, { headers })
+    
+    toast.success(t('vulnerabilities.detail.closeSuccess') || '漏洞关闭成功', 'SUCCESS')
+    
+    closeCloseVulnerabilityDialog()
+    
+    // 清除选择并刷新列表
+    selectedVulnerabilities.value = []
+    if (dataTableRef.value) {
+      dataTableRef.value.clearSelection()
+    }
+    
+    await loadVulnerabilities()
+    loadVulnerabilityTrendBySeverity()
+    loadDepartmentData()
+  } catch (error) {
+    console.error('Failed to close vulnerability:', error)
+    const errorMessage = error?.response?.data?.message || error?.message || t('vulnerabilities.detail.closeError') || '漏洞关闭失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isClosingVulnerability.value = false
+    if (closeVulnerabilityDialogRef.value) {
+      closeVulnerabilityDialogRef.value.setSubmitting(false)
+    }
   }
 }
 
