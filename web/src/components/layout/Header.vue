@@ -184,23 +184,15 @@ const languageButtonRef = ref(null)
 const userMenuRef = ref(null)
 const userMenuButtonRef = ref(null)
 const systemVersion = ref('')
-
-const userName = computed(() => {
-  return authStore.user?.username || ''
-})
+const userName = ref('')
 
 const isAuthenticated = computed(() => {
   return authStore.isAuthenticated
 })
 
-// 展示用姓名：
-// - 未登录：显示 Guest
-// - 已登录但用户名尚未从接口返回：显示空字符串（避免先变 Guest 再变 admin 的闪烁）
+// 如果能获取到用户名就显示，否则显示 Guest
 const displayName = computed(() => {
-  if (!isAuthenticated.value) {
-    return 'Guest'
-  }
-  return userName.value || ''
+  return userName.value || 'Guest'
 })
 
 const openAbout = () => {
@@ -265,15 +257,10 @@ onMounted(() => {
   if (config.enableAuth) {
     getCurrentUserInfo()
       .then((res) => {
-        const userName = res?.data?.cn || res?.cn
-        if (userName) {
-          authStore.setUser({ username: userName })
-        } else {
-          console.warn('Failed to get username from response:', res)
+        const name = res?.data?.cn || res?.cn
+        if (name) {
+          userName.value = name
         }
-      })
-      .catch((error) => {
-        console.error('Failed to get current user info:', error)
       })
   }
 
