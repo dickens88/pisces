@@ -7,15 +7,16 @@
     <title>Pisces Security</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
     <script>
       window.difyChatbotConfig = {
         token: 'pvumiQTs5Sgbtv9f',
         baseUrl: 'https://sectools.cloudbu.huawei.com',
         inputs: {
           // You can define the inputs from the Start node here
-          // key is the variable name
-          // e.g.
-          // name: "NAME"
         },
         systemVariables: {
           // user_id: 'YOU CAN DEFINE USER ID HERE',
@@ -32,10 +33,15 @@
       id="pvumiQTs5Sgbtv9f"
       defer>
     </script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <style>
+      #dify-chatbot-bubble-button {
+        background-color: #1C64F2 !important;
+      }
+      #dify-chatbot-bubble-window {
+        width: 24rem !important;
+        height: 40rem !important;
+      }
+    </style>
   </body>
 </html>
 
