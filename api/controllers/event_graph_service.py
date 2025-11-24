@@ -177,7 +177,7 @@ class _LightRAGClient:
             params.setdefault("api_key_header_value", self.api_key)
 
         # Get proxies from config and set verify=False
-        proxies = config.get("application.proxies")
+        proxies = config.get("application.proxies", None)
 
         try:
             response = requests.request(
