@@ -265,9 +265,15 @@ onMounted(() => {
   if (config.enableAuth) {
     getCurrentUserInfo()
       .then((res) => {
-        if (res?.data?.cn) {
-          authStore.setUser({ username: res.data.cn })
+        const userName = res?.data?.cn || res?.cn
+        if (userName) {
+          authStore.setUser({ username: userName })
+        } else {
+          console.warn('Failed to get username from response:', res)
         }
+      })
+      .catch((error) => {
+        console.error('Failed to get current user info:', error)
       })
   }
 

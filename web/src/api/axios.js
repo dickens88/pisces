@@ -76,83 +76,47 @@ service.interceptors.request.use(
 )
 
 function redirectToLogin() {
-  console.log('[Auth] redirectToLogin() called', {
-    authMode: config.authMode,
-    enableAuth: config.enableAuth,
-    currentPath: window.location.pathname
-  })
-
   // Tianyan mode still relies on external login page
-  const tianyanResult = redirectToTianyanLogin()
-  console.log('[Auth] redirectToTianyanLogin() result:', tianyanResult)
-  if (tianyanResult) {
-    console.log('[Auth] Redirected to Tianyan login page')
+  if (redirectToTianyanLogin()) {
     return
   }
 
   const currentRoute = router.currentRoute?.value
   const isAlreadyOnLogin = currentRoute?.name === 'Login' || window.location.pathname === '/login'
-  console.log('[Auth] Current route check:', {
-    routeName: currentRoute?.name,
-    pathname: window.location.pathname,
-    isAlreadyOnLogin
-  })
 
   if (isAlreadyOnLogin) {
-    console.log('[Auth] Already on login page, skipping redirect')
     return
   }
 
   const query =
     currentRoute && currentRoute.fullPath ? { redirect: currentRoute.fullPath } : undefined
-  console.log('[Auth] Attempting router redirect to Login', { query })
 
-  // 使用 try-catch 确保跳转一定会执行
   try {
     router
       .replace({
         name: 'Login',
         ...(query ? { query } : {})
       })
-      .then(() => {
-        console.log('[Auth] Router redirect to Login succeeded')
-      })
-      .catch((error) => {
-        console.error('[Auth] Router redirect failed, using window.location fallback:', error)
+      .catch(() => {
         // Fallback to hard navigation if router navigation fails
         const resolved = router.resolve({ name: 'Login', ...(query ? { query } : {}) })
-        console.log('[Auth] Using window.location.href:', resolved.href)
         window.location.href = resolved.href
       })
   } catch (error) {
-    // 如果router操作失败，直接使用window.location跳转
-    console.error('[Auth] Router navigation exception, using window.location:', error)
+    // If router operation fails, use window.location directly
     const loginPath = query ? `/login?redirect=${encodeURIComponent(query.redirect)}` : '/login'
-    console.log('[Auth] Direct window.location.href:', loginPath)
     window.location.href = loginPath
   }
 }
 
 function handleUnauthorized() {
-  console.log('[Auth] handleUnauthorized() called', {
-    enableAuth: config.enableAuth,
-    authMode: config.authMode,
-    hasToken: !!useAuthStore().token
-  })
-
-  // 即使 enableAuth 为 false，也应该清除token并尝试跳转
-  // 因为401表示认证失败，需要重新登录
   const authStore = useAuthStore()
   authStore.logout()
-  console.log('[Auth] Token cleared, user logged out')
   
-  // 只有在明确禁用认证时才不跳转
   if (!config.enableAuth) {
-    console.warn('[Auth] Authentication is disabled, but received 401. Token cleared.')
     return
   }
   
-  console.log('[Auth] Calling redirectToLogin()')
   redirectToLogin()
 }
 
@@ -170,13 +134,7 @@ service.interceptors.response.use(
     // Handle response data structure
     // If backend returns format { code: 200, data: {...}, message: '...' }
     if (res.code && res.code !== 200) {
-      console.log('[Auth] Response with non-200 code:', {
-        code: res.code,
-        message: res.message,
-        isUnauthorized: isUnauthorizedCode(res.code)
-      })
       if (isUnauthorizedCode(res.code)) {
-        console.log('[Auth] Detected unauthorized code in response.data, calling handleUnauthorized()')
         handleUnauthorized()
       }
       console.error('API Error:', res.message || 'Error')
@@ -186,21 +144,13 @@ service.interceptors.response.use(
     return res
   },
   error => {
-    console.error('[Auth] Response error:', {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      url: error.config?.url
-    })
+    console.error('Response error:', error)
     
     // Handle HTTP error status codes
     if (error.response) {
-      const status = error.response.status
-      console.log('[Auth] HTTP error status:', status)
-      switch (status) {
+      switch (error.response.status) {
         case 401:
         case 422:
-          console.log('[Auth] Detected 401/422 status code, calling handleUnauthorized()')
           handleUnauthorized()
           break
         case 403:
@@ -215,8 +165,6 @@ service.interceptors.response.use(
         default:
           console.error('Error:', error.response.data?.message || error.message)
       }
-    } else {
-      console.warn('[Auth] No error.response object, network error or request cancelled')
     }
     
     return Promise.reject(error)
