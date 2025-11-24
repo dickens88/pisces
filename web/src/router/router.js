@@ -79,16 +79,19 @@ const router = createRouter({
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
-  // 如果禁用了认证，直接放行
+  // 未开启认证的场景，直接放行
   if (!config.enableAuth) {
     next()
     return
   }
 
-  // 如果使用tianyan-web认证模式，关闭pisces的登录页面
-  // 访问登录页面时重定向到tianyan-web登录页面
-  if (config.authMode === 'tianyan' && to.name === 'Login') {
-    redirectToTianyanLogin()
+  // Tianyan 模式由后端判定登录态，只有在显式访问登录页时才重定向到外部 SSO
+  if (config.authMode === 'tianyan') {
+    if (to.name === 'Login') {
+      redirectToTianyanLogin()
+      return
+    }
+    next()
     return
   }
 
@@ -96,16 +99,8 @@ router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // 需要认证但未登录
-    if (redirectToTianyanLogin()) {
-      // tianyan 模式已处理重定向，直接返回
-      return
-    } else {
-      // 使用本地认证，重定向到本地登录页
-      next({ name: 'Login', query: { redirect: to.fullPath } })
-    }
+    next({ name: 'Login', query: { redirect: to.fullPath } })
   } else if (to.name === 'Login' && authStore.isAuthenticated) {
-    // 已登录但访问登录页，重定向到首页
     next('/')
   } else {
     next()

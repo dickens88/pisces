@@ -41,7 +41,7 @@ def auth_required(func):
             if user:
                 # refresh ttl in cache
                 TokenCache().set_token(token=token_data, user=user)
-                kwargs["user"] = user
+                kwargs.setdefault("username", user.get("cn", "debug"))
                 return func(*args, **kwargs)
 
             # 2. invoke w3 api for authentication

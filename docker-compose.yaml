@@ -26,21 +26,22 @@ services:
     ports:
       - "8000:80"
 
-#  lightrag:
-#    container_name: lightrag
-#    image: lightrag:latest
-#    build:
-#      context: ./LightRAG
-#      dockerfile: Dockerfile
-#      tags:
-#        - lightrag:latest
-#    ports:
-#      - "9621:9621"
-#    volumes:
-#      - ./LightRAG/data/rag_storage:/app/data/rag_storage
-#      - ./LightRAG/data/inputs:/app/data/inputs
-#      - ./LightRAG/config.ini:/app/config.ini
-#      - ./LightRAG/.env:/app/.env
-#    env_file:
-#      - ./LightRAG/.env
-#    restart: always
+  lightrag:
+    container_name: lightrag
+    image: lightrag:latest
+    build:
+      context: ./LightRAG
+      dockerfile: Dockerfile.api
+      tags:
+        - lightrag:latest
+    ports:
+      - "9621:9621"
+    volumes:
+      - ./LightRAG/lightrag:/app/lightrag:delegated
+      - ./LightRAG/data/rag_storage:/app/data/rag_storage
+      - ./LightRAG/data/inputs:/app/data/inputs
+      - ./LightRAG/config.ini:/app/config.ini
+      - ./LightRAG/.env:/app/.env
+    env_file:
+      - ./LightRAG/.env
+    restart: always

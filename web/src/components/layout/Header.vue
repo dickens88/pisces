@@ -157,6 +157,7 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { getSystemInfo } from '@/api/system'
+import { getCurrentUserInfo } from '@/api/auth'
 import { getAppConfig } from '@config'
 import { redirectToTianyanLogin } from '@/utils/auth'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -264,15 +265,25 @@ onMounted(() => {
   // 获取当前登录用户信息（用户名等），用于在 Header 显示
   // 仅在已认证且启用认证的情况下调用
   if (config.enableAuth && authStore.token) {
-    getSystemInfo()
+    // 使用新的 /login/rest/token 接口获取用户名
+    getCurrentUserInfo()
       .then((res) => {
         if (res && res.data) {
-          if (res.data.username) {
-            authStore.setUser({ username: res.data.username })
+          // 后端返回的字段是 cn，映射为 username
+          if (res.data.cn) {
+            authStore.setUser({ username: res.data.cn })
           }
-          if (res.data.version) {
-            systemVersion.value = res.data.version
-          }
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load user info:', err)
+      })
+
+    // 仍然使用 /system/info 获取版本号
+    getSystemInfo()
+      .then((res) => {
+        if (res && res.data && res.data.version) {
+          systemVersion.value = res.data.version
         }
       })
       .catch((err) => {

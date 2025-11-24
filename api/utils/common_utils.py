@@ -192,14 +192,23 @@ def get_date_range(time_range, unit="day"):
 scheduler = APScheduler()
 
 
-def get_proxy(proxy_host, proxy_username, proxy_password):
-    if proxy_username and proxy_password:
-        proxies = {
-            "http": f"http://{proxy_username}:{proxy_password}@{proxy_host}",
-            "https": f"http://{proxy_username}:{proxy_password}@{proxy_host}"
-        }
+def get_proxy(proxy_host=None, proxy_port=None):
+    from utils.app_config import config
+    enable_proxy = config.get("application.proxy.enabled")
+    if not enable_proxy:
+        return None
+
+    if proxy_host and proxy_port:
+        proxy_host = f"{proxy_host}:{proxy_port}"
     else:
-        proxies = None
+        proxy_host = config.get("application.proxy.host")
+    proxy_username = config.get("application.proxy.username")
+    proxy_password = decrypt(config.get("application.proxy.password"))
+
+    proxies = {
+        "http": f"http://{proxy_username}:{proxy_password}@{proxy_host}",
+        "https": f"http://{proxy_username}:{proxy_password}@{proxy_host}"
+    }
     return proxies
 
 

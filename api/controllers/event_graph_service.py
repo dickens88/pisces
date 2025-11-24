@@ -22,7 +22,6 @@ class _LightRAGClient:
         if not self.base_url:
             raise EventGraphGenerationError("LightRAG base_url is not configured")
 
-        self.session = requests.Session()
         self.timeout = config.get("application.lightrag.request_timeout_seconds", 30)
         self.poll_interval = config.get("application.lightrag.poll_interval_seconds", 3)
         self.workspace_timeout = config.get("application.lightrag.workspace_timeout_seconds", 180)
@@ -171,14 +170,25 @@ class _LightRAGClient:
                     counts[key] = 0
         return counts
 
-    def _request(self, method: str, path: str, *, params=None, **kwargs):
+    def _request(self, method: str, path: str, *, params=None, json=None):
         url = f"{self.base_url.rstrip('/')}{path}"
         params = params.copy() if params else {}
         if self.api_key:
             params.setdefault("api_key_header_value", self.api_key)
 
+        # Get proxies from config and set verify=False
+        proxies = config.get("application.proxies", None)
+
         try:
-            response = self.session.request(method, url, params=params, timeout=self.timeout, **kwargs)
+            response = requests.request(
+                method=method,
+                url=url,
+                params=params,
+                json=json,
+                timeout=self.timeout,
+                verify=False,
+                proxies=proxies
+            )
         except requests.RequestException as exc:
             raise EventGraphGenerationError(f"LightRAG request error: {exc}") from exc
 
@@ -349,45 +359,19 @@ class EventGraphService:
         incident_title = incident_payload.get("title") or incident_payload.get("name") or incident_payload.get("id")
         prompt = dedent(
             f"""
-            Based on the retrieved knowledge base, produce an investigation summary for incident “{incident_title}”.
+			You are a cybersecurity analyst. Based on the following incident information retrieved from the SIEM system and knowledge base, generate a concise and structured security incident summary. The summary should include:
+			1. Overview: incident ID/name, occurrence time, attack type (e.g., ransomware, APT, DDoS, intrusion)
+			2. Attack progression: attack trigger, propagation path, key alerts, and incident chain
+			3. Impact: affected assets (servers, applications, network devices), business systems, users, alert severity and count
+			4. Related alerts: highlight key or high-severity alerts associated with this incident
+			5. Possible causes or context: exploited vulnerabilities, attack techniques, attacker behavior patterns (if available)
+			6. Recommendations or preliminary mitigation steps (if available)
 
-            Requirements:
-            - Use concise English, avoid speculation
-            - Ground every statement in retrieved evidence
-            - Include: attack timeline, possible kill chain, risk assessment, mitigation advice
+			Requirements:
+			- Present the summary in readable paragraphs, not just a list of alerts or logs
+			- Include comprehensive but concise information, focusing on key points, around 200–300 words
+			- Keep only critical alert information, ignore duplicates or low-priority alerts
 
-            ### 1. Attack Timeline
-            - List chronologically the activities, alerts, and entity interactions tied to the incident
-            - Use `YYYY-MM-DD HH:MM:SS` timestamps when available
-
-            ### 2. Kill Chain Analysis
-            - Describe the attacker's likely path
-            - Map steps to relevant MITRE ATT&CK phases
-            - Express as a short arrow chain (example: `Initial Access → Lateral Movement → Data Access → Objective`)
-
-            ### 3. Risk Assessment
-            - State the probable attacker intent
-            - Highlight high-value assets or weak points at risk
-
-            ### 4. Mitigation Suggestions
-            - Provide 3-5 actionable recommendations
-            - Assign priority (High/Medium/Low)
-
-            **Output format (markdown)**
-
-            ```markdown
-            ## Attack Timeline
-            - …
-
-            ## Kill Chain Analysis
-            - …
-
-            ## Risk Assessment
-            - …
-
-            ## Mitigation Suggestions
-            1. …
-            ```
             """
         )
         return prompt.strip()
