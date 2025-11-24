@@ -140,5 +140,11 @@ def request_with_auth(method, url, headers, data=None):
     """
     url, headers = _wrap_http_auth_headers(method, url, headers, data)
 
-    return requests.request(method, url=url, data=data, headers=headers, proxies=None, verify=False, timeout=20)
+    enable_proxy = config.get("application.proxy.enabled")
+    proxy_host = config.get("application.proxy.host")
+    proxy_username = config.get("application.proxy.username")
+    proxy_password = decrypt(config.get("application.proxy.password"))
+    proxies = get_proxy(proxy_host, proxy_username, proxy_password) if enable_proxy else None
+
+    return requests.request(method, url=url, data=data, headers=headers, proxies=proxies, verify=False, timeout=20)
 

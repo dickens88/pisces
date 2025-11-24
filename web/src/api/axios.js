@@ -103,6 +103,19 @@ function redirectToLogin() {
     })
 }
 
+function handleUnauthorized() {
+  if (!config.enableAuth) return
+  const authStore = useAuthStore()
+  authStore.logout()
+  redirectToLogin()
+}
+
+function isUnauthorizedCode(code) {
+  if (!code) return false
+  const normalized = Number(code)
+  return normalized === 401 || normalized === 422
+}
+
 // Response interceptor
 service.interceptors.response.use(
   response => {
@@ -111,6 +124,9 @@ service.interceptors.response.use(
     // Handle response data structure
     // If backend returns format { code: 200, data: {...}, message: '...' }
     if (res.code && res.code !== 200) {
+      if (isUnauthorizedCode(res.code)) {
+        handleUnauthorized()
+      }
       console.error('API Error:', res.message || 'Error')
       return Promise.reject(new Error(res.message || 'Error'))
     }
@@ -125,12 +141,7 @@ service.interceptors.response.use(
       switch (error.response.status) {
         case 401:
         case 422:
-          // Unauthorized / invalid token, clear token and redirect to login page
-          if (config.enableAuth) {
-            const authStore = useAuthStore()
-            authStore.logout()
-            redirectToLogin()
-          }
+          handleUnauthorized()
           break
         case 403:
           console.error('Forbidden: Access denied')
