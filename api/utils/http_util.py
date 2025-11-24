@@ -118,17 +118,12 @@ def _wrap_http_auth_headers(method, url, headers, body=None):
             headers["host"] = _get_domain_from_url(proxy_base_url)
     elif config.get("application.secmaster.password"):
         # 获取iam_token
-        enable_proxy = config.get("application.proxy.enabled")
-        proxy_host = config.get("application.proxy.host")
-        proxy_username = config.get("application.proxy.username")
-        proxy_password = decrypt(config.get("application.proxy.password"))
-        proxies = get_proxy(proxy_host, proxy_username, proxy_password) if enable_proxy else None
 
         iam_token = _get_iam_token(domain_name=config.get("application.secmaster.domainname"),
                                   username=config.get("application.secmaster.username"),
                                   password=decrypt(config.get("application.secmaster.password")),
                                   project_id=config.get("application.secmaster.project_id"),
-                                  proxies=proxies)
+                                  proxies=get_proxy())
         headers["X-Auth-Token"] = iam_token
 
     return url, headers
@@ -140,11 +135,5 @@ def request_with_auth(method, url, headers, data=None):
     """
     url, headers = _wrap_http_auth_headers(method, url, headers, data)
 
-    enable_proxy = config.get("application.proxy.enabled")
-    proxy_host = config.get("application.proxy.host")
-    proxy_username = config.get("application.proxy.username")
-    proxy_password = decrypt(config.get("application.proxy.password"))
-    proxies = get_proxy(proxy_host, proxy_username, proxy_password) if enable_proxy else None
-
-    return requests.request(method, url=url, data=data, headers=headers, proxies=proxies, verify=False, timeout=20)
+    return requests.request(method, url=url, data=data, headers=headers, proxies=get_proxy(), verify=False, timeout=20)
 

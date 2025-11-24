@@ -9,6 +9,8 @@ from datetime import datetime, timedelta, timezone
 from Crypto.Cipher import AES
 from flask_apscheduler import APScheduler
 
+from utils.app_config import config
+
 
 def write_csv(file_path, header, rows):
     with open(file_path, 'w', encoding='utf-8', newline='') as f:
@@ -192,14 +194,19 @@ def get_date_range(time_range, unit="day"):
 scheduler = APScheduler()
 
 
-def get_proxy(proxy_host, proxy_username, proxy_password):
-    if proxy_username and proxy_password:
-        proxies = {
-            "http": f"http://{proxy_username}:{proxy_password}@{proxy_host}",
-            "https": f"http://{proxy_username}:{proxy_password}@{proxy_host}"
-        }
-    else:
-        proxies = None
+def get_proxy():
+    enable_proxy = config.get("application.proxy.enabled")
+    if not enable_proxy:
+        return None
+
+    proxy_host = config.get("application.proxy.host")
+    proxy_username = config.get("application.proxy.username")
+    proxy_password = decrypt(config.get("application.proxy.password"))
+
+    proxies = {
+        "http": f"http://{proxy_username}:{proxy_password}@{proxy_host}",
+        "https": f"http://{proxy_username}:{proxy_password}@{proxy_host}"
+    }
     return proxies
 
 
