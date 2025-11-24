@@ -22,7 +22,6 @@ class _LightRAGClient:
         if not self.base_url:
             raise EventGraphGenerationError("LightRAG base_url is not configured")
 
-        self.session = requests.Session()
         self.timeout = config.get("application.lightrag.request_timeout_seconds", 30)
         self.poll_interval = config.get("application.lightrag.poll_interval_seconds", 3)
         self.workspace_timeout = config.get("application.lightrag.workspace_timeout_seconds", 180)
@@ -171,14 +170,25 @@ class _LightRAGClient:
                     counts[key] = 0
         return counts
 
-    def _request(self, method: str, path: str, *, params=None, **kwargs):
+    def _request(self, method: str, path: str, *, params=None, json=None):
         url = f"{self.base_url.rstrip('/')}{path}"
         params = params.copy() if params else {}
         if self.api_key:
             params.setdefault("api_key_header_value", self.api_key)
 
+        # Get proxies from config and set verify=False
+        proxies = config.get("application.proxies")
+
         try:
-            response = self.session.request(method, url, params=params, timeout=self.timeout, **kwargs)
+            response = requests.request(
+                method=method,
+                url=url,
+                params=params,
+                json=json,
+                timeout=self.timeout,
+                verify=False,
+                proxies=proxies
+            )
         except requests.RequestException as exc:
             raise EventGraphGenerationError(f"LightRAG request error: {exc}") from exc
 
