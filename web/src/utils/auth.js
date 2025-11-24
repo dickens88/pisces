@@ -8,7 +8,14 @@ const config = getAppConfig(import.meta.env, import.meta.env.PROD)
  * @param {string} customUrl - 可选，自定义要保存的 URL（默认使用当前页面 URL）
  */
 export function redirectToTianyanLogin(customUrl = null) {
+  console.log('[Auth] redirectToTianyanLogin() called', {
+    authMode: config.authMode,
+    customUrl,
+    tianyanWebBaseURL: config.tianyanWebBaseURL
+  })
+
   if (config.authMode !== 'tianyan') {
+    console.log('[Auth] Not in tianyan mode, returning false')
     return false
   }
 
@@ -16,6 +23,7 @@ export function redirectToTianyanLogin(customUrl = null) {
   // 保存到 sessionStorage 作为备选方案（防止 tianyan-web 没有正确传递 redirect）
   sessionStorage.setItem('redirect_after_login', currentUrl)
   const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
+  console.log('[Auth] Redirecting to Tianyan login:', loginUrl)
   window.location.href = loginUrl
   return true
 }
