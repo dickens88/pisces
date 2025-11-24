@@ -37,7 +37,7 @@ services:
     ports:
       - "9621:9621"
     volumes:
-	  - ./LightRAG/lightrag:/app/lightrag:delegated
+      - ./LightRAG/lightrag:/app/lightrag:delegated
       - ./LightRAG/data/rag_storage:/app/data/rag_storage
       - ./LightRAG/data/inputs:/app/data/inputs
       - ./LightRAG/config.ini:/app/config.ini
