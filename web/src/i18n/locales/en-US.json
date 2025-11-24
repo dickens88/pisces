@@ -56,7 +56,8 @@
       "medium": "Medium",
       "low": "Low",
       "tips": "Tips"
-    }
+    },
+    "github": "Report an Issue"
   },
   "nav": {
     "dashboard": "Dashboard",

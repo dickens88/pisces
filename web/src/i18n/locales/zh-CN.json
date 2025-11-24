@@ -56,7 +56,8 @@
       "medium": "中",
       "low": "低",
       "tips": "提示"
-    }
+    },
+    "github": "提个问题单"
   },
   "nav": {
     "dashboard": "安全态势",
