@@ -53,3 +53,15 @@ export const updatePassword = (passwordData) => {
   })
 }
 
+/**
+ * 获取当前登录用户信息
+ * 支持 JWT 本地认证和 Tianyan 认证
+ * @returns {Promise} 返回用户信息，包含 username (cn) 和 auth_method
+ */
+export const getCurrentUserInfo = () => {
+  return service({
+    url: '/login/rest/token',
+    method: 'get'
+  })
+}
+

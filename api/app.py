@@ -37,6 +37,7 @@ api.add_resource(auth_view.UserLogoutAccess, '/logout')
 api.add_resource(auth_view.UserRefresh, '/refresh')
 api.add_resource(auth_view.UserView, '/user/password')
 api.add_resource(auth_view.UserManagement, '/user/management')
+api.add_resource(auth_view.LoginRestToken, '/login/rest/token')
 
 api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
