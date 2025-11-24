@@ -488,10 +488,10 @@
                           <div class="px-3 pb-3 pt-2 text-sm text-text-light font-mono space-y-1 border-t border-border-dark/50">
                             <p><span class="text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
                             <p><span class="text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
-                            <p v-if="record.result" :class="['mt-2 pt-2 border-t border-border-dark/50', record.status === 'failed' && 'text-red-300']">
+                            <div v-if="record.result" :class="['mt-2 pt-2 border-t border-border-dark/50', record.status === 'failed' && 'text-red-300']">
                               <span class="text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
                               <pre class="mt-1 text-xs whitespace-pre-wrap">{{ formatToolkitResult(record.result) }}</pre>
-                            </p>
+                            </div>
                           </div>
                         </details>
                       </template>
@@ -620,12 +620,30 @@
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
-          <textarea
-            v-model="closeConclusion.notes"
-            rows="4"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-            :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
-          ></textarea>
+          <div class="relative">
+            <textarea
+              v-model="closeConclusion.notes"
+              rows="4"
+              class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+              :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
+              @focus="handleNotesFocus"
+              @click="handleNotesClick"
+              @blur="handleNotesBlur"
+            ></textarea>
+            <div
+              v-if="showRecentCloseComments && recentCloseComments.length"
+              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+            >
+              <p
+                v-for="(comment, index) in recentCloseComments"
+                :key="index"
+                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                @mousedown.prevent="handleRecentCommentSelect(comment)"
+              >
+                {{ comment }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -722,6 +740,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import { useToast } from '@/composables/useToast'
+import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 
 const props = defineProps({
   alertId: {
@@ -769,6 +788,21 @@ const isClosing = ref(false)
 const closeConclusion = ref({
   category: '',
   notes: ''
+})
+const {
+  recentComments: recentCloseComments,
+  showDropdown: showRecentCloseComments,
+  refresh: refreshRecentCloseComments,
+  persist: persistRecentCloseComment,
+  handleFocus: handleNotesFocus,
+  handleClick: handleNotesClick,
+  handleBlur: handleNotesBlur,
+  handleSelect: applyRecentCloseComment,
+  hideDropdown: hideRecentCloseCommentsDropdown
+} = useRecentCloseCommentSuggestions({
+  onApply: (comment) => {
+    closeConclusion.value.notes = comment
+  }
 })
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
@@ -1229,6 +1263,8 @@ const openBatchCloseDialog = () => {
   if (!canCloseAlert.value) {
     return
   }
+  refreshRecentCloseComments()
+  hideRecentCloseCommentsDropdown()
   showBatchCloseDialog.value = true
 }
 
@@ -1239,6 +1275,7 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
+  hideRecentCloseCommentsDropdown()
   // 重置加载状态
   isClosing.value = false
 }
@@ -1261,6 +1298,7 @@ const handleBatchClose = async () => {
       category: closeConclusion.value.category,
       notes: closeConclusion.value.notes.trim()
     })
+    persistRecentCloseComment(closeConclusion.value.notes.trim())
     
     // 关闭对话框并重置表单
     closeBatchCloseDialog()
@@ -1273,6 +1311,10 @@ const handleBatchClose = async () => {
     // 发生错误时，保持对话框打开，但重置加载状态
     isClosing.value = false
   }
+}
+
+const handleRecentCommentSelect = (comment) => {
+  applyRecentCloseComment(comment)
 }
 
 // 计算是否可以关闭告警（只有状态不是closed时才可关闭）
@@ -2120,6 +2162,7 @@ onMounted(() => {
   document.body.style.overflow = 'hidden'
   // 添加点击外部关闭下拉菜单的监听器
   document.addEventListener('click', handleClickOutside)
+  refreshRecentCloseComments()
 })
 
 // 组件卸载时恢复滚动
@@ -2127,6 +2170,7 @@ onUnmounted(() => {
   document.body.style.overflow = ''
   // 移除点击外部关闭下拉菜单的监听器
   document.removeEventListener('click', handleClickOutside)
+  hideRecentCloseCommentsDropdown()
 })
 </script>
 

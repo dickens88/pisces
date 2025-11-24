@@ -507,12 +507,30 @@
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
-          <textarea
-            v-model="closeConclusion.notes"
-            rows="4"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
-            :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
-          ></textarea>
+          <div class="relative">
+            <textarea
+              v-model="closeConclusion.notes"
+              rows="4"
+              class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+              :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
+              @focus="handleCloseNotesFocus"
+              @click="handleCloseNotesClick"
+              @blur="handleCloseNotesBlur"
+            ></textarea>
+            <div
+              v-if="showRecentCloseComments && recentCloseComments.length"
+              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+            >
+              <p
+                v-for="(comment, index) in recentCloseComments"
+                :key="index"
+                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                @mousedown.prevent="handleRecentCommentSelect(comment)"
+              >
+                {{ comment }}
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- Action buttons -->
@@ -554,6 +572,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
+import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -657,6 +676,24 @@ const closeConclusion = ref({
   category: '',
   notes: ''
 })
+const {
+  recentComments: recentCloseComments,
+  showDropdown: showRecentCloseComments,
+  refresh: refreshRecentCloseComments,
+  persist: persistRecentCloseComment,
+  handleFocus: handleCloseNotesFocus,
+  handleClick: handleCloseNotesClick,
+  handleBlur: handleCloseNotesBlur,
+  handleSelect: applyRecentCloseComment,
+  hideDropdown: hideRecentCloseCommentsDropdown
+} = useRecentCloseCommentSuggestions({
+  onApply: (comment) => {
+    closeConclusion.value.notes = comment
+  }
+})
+const handleRecentCommentSelect = (comment) => {
+  applyRecentCloseComment(comment)
+}
 const showAssociateIncidentDialog = ref(false)
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
@@ -1312,7 +1349,8 @@ const openBatchCloseDialog = () => {
     console.warn('No alerts selected')
     return
   }
-
+  refreshRecentCloseComments()
+  hideRecentCloseCommentsDropdown()
   showBatchCloseDialog.value = true
 }
 
@@ -1323,6 +1361,7 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
+  hideRecentCloseCommentsDropdown()
 }
 
 const handleBatchClose = async () => {
@@ -1344,6 +1383,7 @@ const handleBatchClose = async () => {
       closeConclusion.value.category,
       closeConclusion.value.notes.trim()
     )
+    persistRecentCloseComment(closeConclusion.value.notes.trim())
     
     // 显示成功提示
     toast.success(
@@ -1370,6 +1410,7 @@ const handleBatchClose = async () => {
     isBatchClosing.value = false
   }
 }
+
 
 const openAssociateIncidentDialog = () => {
   if (selectedAlerts.value.length === 0) {
@@ -1508,6 +1549,7 @@ onMounted(async () => {
   await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
+  refreshRecentCloseComments()
 })
 
 onUnmounted(() => {
@@ -1515,6 +1557,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
   disposeAlertTrendChart()
+  hideRecentCloseCommentsDropdown()
 })
 
 const alertsTimeRangeLabel = computed(() => {
