@@ -26,18 +26,14 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
-        <button
-          @click="openCreateAlertDialog"
-          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">add</span>
-          <span>{{ $t('alerts.list.createAlert') }}</span>
-        </button>
       </div>
     </header>
 
     <!-- Statistics cards -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <section
+      v-if="alertChartsEnabled"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+    >
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.alertTypeStats') }}
@@ -265,6 +261,13 @@
                   {{ isWordWrap ? 'wrap_text' : 'text_fields' }}
                 </span>
                 <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
+              </button>
+              <button
+                @click="handleCreateAlertFromMenu"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>{{ $t('alerts.list.createAlert') }}</span>
               </button>
               <button
                 @click="handleConvertToVulnerability"
@@ -573,10 +576,12 @@ import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
+import { getAppConfig } from '@config'
 
 const { t } = useI18n()
 const toast = useToast()
-
+const appConfig = getAppConfig(import.meta.env, import.meta.env.PROD)
+const alertChartsEnabled = appConfig.alertsChartsEnabled !== false
 
 
 // Define column configuration (using computed to ensure reactivity)
@@ -774,6 +779,9 @@ const handleAlertTrendResize = () => {
 }
 
 const ensureAlertTypeChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   if (!alertTypeChartInstance && alertTypeChartRef.value) {
     alertTypeChartInstance = echarts.init(alertTypeChartRef.value)
     if (!alertTypeChartResizeBound) {
@@ -795,6 +803,9 @@ const disposeAlertTypeChart = () => {
 }
 
 const ensureAlertTrendChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   if (!alertTrendChartInstance && alertTrendChartRef.value) {
     alertTrendChartInstance = echarts.init(alertTrendChartRef.value)
     if (!alertTrendChartResizeBound) {
@@ -816,6 +827,9 @@ const disposeAlertTrendChart = () => {
 }
 
 const updateAlertTypeChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   ensureAlertTypeChart()
   if (!alertTypeChartInstance) {
     return
@@ -892,6 +906,9 @@ const updateAlertTypeChart = () => {
 }
 
 const loadAlertTypeDistribution = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   alertTypeChartLoading.value = true
   alertTypeChartTotal.value = 0
   try {
@@ -920,6 +937,9 @@ const loadAlertTypeDistribution = async () => {
 }
 
 const updateAlertTrendChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   ensureAlertTrendChart()
   if (!alertTrendChartInstance) {
     return
@@ -1009,6 +1029,9 @@ const updateAlertTrendChart = () => {
 }
 
 const loadAlertTrend = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   alertTrendChartLoading.value = true
   try {
     const range = computeSelectedRange()
@@ -1082,6 +1105,9 @@ const handleRefresh = async () => {
 }
 
 const loadStatistics = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   automationRateLoading.value = true
   try {
     const range = computeSelectedRange()
@@ -1270,6 +1296,11 @@ const handleToggleWordWrap = () => {
     dataTableRef.value.toggleWordWrap()
     showMoreMenu.value = false
   }
+}
+
+const handleCreateAlertFromMenu = () => {
+  openCreateAlertDialog()
+  showMoreMenu.value = false
 }
 
 // Convert to vulnerability
