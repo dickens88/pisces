@@ -20,7 +20,19 @@
               {{ formatDateTime(item.create_time || item.time) }}
             </span>
           </div>
+          <!-- 如果是最后一条消息且是assistant且内容为空且正在loading，显示loading动画 -->
           <div 
+            v-if="isLastMessageLoading(item, index)"
+            class="text-sm text-slate-200 bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
+          >
+            <div class="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <div 
+            v-else
             class="text-sm text-slate-200 bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
             v-html="sanitizeHtml(item.content || '')"
           ></div>
@@ -141,6 +153,16 @@ const getMessageAuthorLabel = (item = {}) => {
   }
   return t('alerts.detail.securityAgentAssistantLabel') || 'Agent'
 }
+
+// 判断是否是最后一条消息且正在loading
+const isLastMessageLoading = (item, index) => {
+  if (!props.loading) return false
+  if (!props.messages || props.messages.length === 0) return false
+  const isLastMessage = index === props.messages.length - 1
+  const isAssistant = item.role === 'assistant'
+  const isEmptyContent = !item.content || item.content.trim() === ''
+  return isLastMessage && isAssistant && isEmptyContent
+}
 </script>
 
 <style scoped>
@@ -214,6 +236,46 @@ const getMessageAuthorLabel = (item = {}) => {
 
 .security-agent-input :deep(.comment-input-container > div) {
   gap: 0;
+}
+
+/* 打字指示器动画 */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  display: inline-block;
+  animation: typing-bounce 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>
 
