@@ -285,7 +285,7 @@
                 </div>
                 
                 <div v-else-if="associatedAlerts.length === 0" class="text-text-light text-sm py-12 text-center">
-                  {{ $t('alerts.detail.noAssociatedAlerts') || '暂无关联告警' }}
+                  {{ $t('alerts.detail.noAssociatedAlerts') }}
                 </div>
                 
                 <div v-else class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
@@ -304,7 +304,7 @@
               <!-- Threat intelligence tab -->
               <div v-if="activeTab === 'threatIntelligence'">
                 <div v-if="!alert?.intelligence || alert.intelligence.length === 0" class="text-text-light text-sm py-12 text-center">
-                  {{ $t('alerts.detail.noThreatIntelligence') || '暂无威胁情报匹配' }}
+                  {{ $t('alerts.detail.noThreatIntelligence') }}
                 </div>
                 
                 <div v-else class="space-y-6">
@@ -349,7 +349,7 @@
                   
                   <!-- If no AI data, show prompt -->
                   <div v-if="!alert?.ai || alert.ai.length === 0" class="text-text-light text-sm">
-                    {{ $t('alerts.detail.noAiResponse') || '暂无AI分析结果' }}
+                    {{ $t('alerts.detail.noAiResponse') }}
                   </div>
                 </div>
                 
@@ -358,7 +358,7 @@
             
             <!-- No data state -->
             <div v-if="!isLoading && !alert" class="flex-1 flex items-center justify-center">
-              <p class="text-text-light text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
+              <p class="text-text-light text-sm">{{ $t('common.noData') }}</p>
             </div>
 
             <!-- Sidebar -->
@@ -602,6 +602,7 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusionCategory') }}
+            <span class="text-red-500 ml-1">*</span>
           </label>
           <select
             v-model="closeConclusion.category"

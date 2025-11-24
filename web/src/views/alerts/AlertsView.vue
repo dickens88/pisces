@@ -492,6 +492,7 @@
         <div class="mb-4">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusionCategory') }}
+            <span class="text-red-500 ml-1">*</span>
           </label>
           <select
             v-model="closeConclusion.category"

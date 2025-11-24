@@ -96,7 +96,7 @@
             v-else-if="vulnerabilityTrendChartDates.length === 0"
             class="absolute inset-0 flex items-center justify-center"
           >
-            <p class="text-gray-400 text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
+            <p class="text-gray-400 text-sm">{{ $t('common.noData') }}</p>
           </div>
           <!-- Chart container -->
           <div
@@ -131,7 +131,7 @@
             v-else-if="departmentChartData.length === 0"
             class="absolute inset-0 flex items-center justify-center"
           >
-            <p class="text-gray-400 text-sm">{{ $t('common.noData') || '暂无数据' }}</p>
+            <p class="text-gray-400 text-sm">{{ $t('common.noData') }}</p>
           </div>
           <!-- Chart container -->
           <div

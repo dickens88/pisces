@@ -87,7 +87,7 @@
           <tr v-if="items.length === 0">
             <td :colspan="selectable ? columns.length + 1 : columns.length" class="px-4 py-8 text-center text-gray-400">
               <slot name="empty">
-                {{ emptyText }}
+                {{ emptyMessage }}
               </slot>
             </td>
           </tr>
@@ -246,7 +246,7 @@ const props = defineProps({
   // Empty state text
   emptyText: {
     type: String,
-    default: '暂无数据'
+    default: ''
   },
   // Row style class
   rowClass: {
@@ -266,6 +266,7 @@ const emit = defineEmits([
 ])
 
 const { t } = useI18n()
+const emptyMessage = computed(() => props.emptyText || t('common.noData'))
 
 // Use resizable columns composable
 const { getColumnWidth, startResize } = useResizableColumns(

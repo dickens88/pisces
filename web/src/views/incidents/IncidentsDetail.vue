@@ -432,7 +432,7 @@
                           {{ selectedNodeDescription }}
                         </p>
                         <p v-else class="text-sm text-slate-500">
-                          {{ translateOr('common.noData', '暂无数据') }}
+                          {{ $t('common.noData') }}
                         </p>
                       </div>
                       <button
