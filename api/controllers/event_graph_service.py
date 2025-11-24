@@ -349,45 +349,19 @@ class EventGraphService:
         incident_title = incident_payload.get("title") or incident_payload.get("name") or incident_payload.get("id")
         prompt = dedent(
             f"""
-            Based on the retrieved knowledge base, produce an investigation summary for incident “{incident_title}”.
+			You are a cybersecurity analyst. Based on the following incident information retrieved from the SIEM system and knowledge base, generate a concise and structured security incident summary. The summary should include:
+			1. Overview: incident ID/name, occurrence time, attack type (e.g., ransomware, APT, DDoS, intrusion)
+			2. Attack progression: attack trigger, propagation path, key alerts, and incident chain
+			3. Impact: affected assets (servers, applications, network devices), business systems, users, alert severity and count
+			4. Related alerts: highlight key or high-severity alerts associated with this incident
+			5. Possible causes or context: exploited vulnerabilities, attack techniques, attacker behavior patterns (if available)
+			6. Recommendations or preliminary mitigation steps (if available)
 
-            Requirements:
-            - Use concise English, avoid speculation
-            - Ground every statement in retrieved evidence
-            - Include: attack timeline, possible kill chain, risk assessment, mitigation advice
+			Requirements:
+			- Present the summary in readable paragraphs, not just a list of alerts or logs
+			- Include comprehensive but concise information, focusing on key points, around 200–300 words
+			- Keep only critical alert information, ignore duplicates or low-priority alerts
 
-            ### 1. Attack Timeline
-            - List chronologically the activities, alerts, and entity interactions tied to the incident
-            - Use `YYYY-MM-DD HH:MM:SS` timestamps when available
-
-            ### 2. Kill Chain Analysis
-            - Describe the attacker's likely path
-            - Map steps to relevant MITRE ATT&CK phases
-            - Express as a short arrow chain (example: `Initial Access → Lateral Movement → Data Access → Objective`)
-
-            ### 3. Risk Assessment
-            - State the probable attacker intent
-            - Highlight high-value assets or weak points at risk
-
-            ### 4. Mitigation Suggestions
-            - Provide 3-5 actionable recommendations
-            - Assign priority (High/Medium/Low)
-
-            **Output format (markdown)**
-
-            ```markdown
-            ## Attack Timeline
-            - …
-
-            ## Kill Chain Analysis
-            - …
-
-            ## Risk Assessment
-            - …
-
-            ## Mitigation Suggestions
-            1. …
-            ```
             """
         )
         return prompt.strip()
