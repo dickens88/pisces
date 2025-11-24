@@ -9,8 +9,6 @@ from datetime import datetime, timedelta, timezone
 from Crypto.Cipher import AES
 from flask_apscheduler import APScheduler
 
-from utils.app_config import config
-
 
 def write_csv(file_path, header, rows):
     with open(file_path, 'w', encoding='utf-8', newline='') as f:
@@ -195,6 +193,7 @@ scheduler = APScheduler()
 
 
 def get_proxy():
+    from utils.app_config import config
     enable_proxy = config.get("application.proxy.enabled")
     if not enable_proxy:
         return None
