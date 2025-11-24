@@ -2,6 +2,7 @@ import axios from 'axios'
 import router from '@/router/router'
 import { useAuthStore } from '@/stores/auth'
 import { getAppConfig } from '@config'
+import { redirectToTianyanLogin } from '@/utils/auth'
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
 // Create axios instance
@@ -76,10 +77,7 @@ service.interceptors.request.use(
 
 function redirectToLogin() {
   // Tianyan mode still relies on external login page
-  if (config.authMode === 'tianyan') {
-    const currentUrl = window.location.href
-    const loginUrl = `${config.tianyanWebBaseURL}/login?redirect=${encodeURIComponent(currentUrl)}`
-    window.location.href = loginUrl
+  if (redirectToTianyanLogin()) {
     return
   }
 

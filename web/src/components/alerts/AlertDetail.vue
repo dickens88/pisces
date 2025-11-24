@@ -140,19 +140,22 @@
             <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
               <!-- Title and severity -->
               <div>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
-                    getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
-                  ]"
-                >
-                  <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
-                    <circle cx="4" cy="4" r="3"></circle>
-                  </svg>
-                  {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
-                </span>
-                <h1 class="mt-2 text-xl font-bold text-white">{{ alert.title }}</h1>
+                <h1 class="text-xl font-bold text-white">{{ alert.title }}</h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-light">
+                  <div class="flex items-center gap-1.5">
+                    <span
+                      :class="[
+                        'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
+                        getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
+                      ]"
+                    >
+                      <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                        <circle cx="4" cy="4" r="3"></circle>
+                      </svg>
+                      {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
+                    </span>
+                  </div>
+                  <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
                     <span
@@ -226,20 +229,34 @@
                     >
                       <div
                         v-if="value !== null && value !== undefined && value !== ''"
-                        class="flex items-baseline"
+                        class="flex items-baseline gap-2"
                       >
-                        <p class="text-text-light w-40 shrink-0">{{ key }}:</p>
-                        <p class="font-medium text-white break-all">
-                          <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
-                          <span v-else>{{ value }}</span>
-                        </p>
+                        <p class="text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
+                        <div class="flex-1 min-w-0 flex items-center gap-1.5">
+                          <p class="font-medium text-[#E3E3E3] break-all">
+                            <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
+                            <span v-else>{{ value }}</span>
+                          </p>
+                          <button
+                            v-if="isFieldMatchedWithEntity(key, value)"
+                            @click="handleSendFieldToSecurityAgent(key, value)"
+                            class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
+                            :title="$t('alerts.detail.aiAssistant')"
+                          >
+                            <img 
+                              src="/ai-chat.png" 
+                              :alt="$t('alerts.detail.aiAssistant')" 
+                              class="w-4 h-4"
+                            />
+                          </button>
+                        </div>
                       </div>
                     </template>
                   </template>
                   <!-- 如果 description 不是对象（字符串、数字、布尔值等），直接显示 -->
                   <div v-else-if="alert?.description !== null && alert?.description !== undefined" class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.description') || '描述' }}:</p>
-                    <p class="font-medium text-white break-all">{{ alert.description }}</p>
+                    <p class="w-40 shrink-0 font-bold text-[#f5f5f5]">{{ $t('alerts.detail.description') || '描述' }}:</p>
+                    <p class="font-medium text-[#f5f5f5] break-all">{{ alert.description }}</p>
                   </div>
                 </div>
                 
@@ -320,12 +337,12 @@
                     >
                       <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
                     </div>
-                    <div class="flex-1">
+                    <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
                         <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
                         <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
                       </div>
-                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')">
+                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html max-w-full overflow-hidden" v-html="sanitizeHtml(aiItem.content || '')">
                       </div>
                     </div>
                   </div>
@@ -383,6 +400,110 @@
               <!-- Response 页签内容 -->
               <div v-if="rightSidebarTab === 'response'" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
                 <div class="pr-6 space-y-6">
+                <!-- 自动化响应 -->
+                <div class="space-y-4">
+                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
+                  
+                  <!-- 加载状态 -->
+                  <div v-if="loadingToolkits || loadingToolkitRecords" class="flex items-center justify-center py-8">
+                    <span class="material-symbols-outlined animate-spin text-primary text-2xl">refresh</span>
+                  </div>
+                  
+                  <div v-else class="space-y-4">
+                    <!-- 工具清单部分：显示所有可用工具 -->
+                    <div v-if="toolkits.length" class="space-y-2">
+                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
+                      <template v-for="tool in toolkits" :key="tool.app_id">
+                        <details class="group rounded-lg bg-[#2a3546]">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                            <div class="flex items-center gap-3">
+                              <span class="material-symbols-outlined text-primary">play_circle</span>
+                              <div>
+                                <p class="font-medium text-white text-sm">{{ tool.title }}</p>
+                                <p class="text-xs text-text-light">{{ $t('alerts.detail.toolkitClickToConfigure') }}</p>
+                              </div>
+                            </div>
+                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                          </summary>
+                          <div class="px-3 pb-3 pt-2 text-sm text-text-light space-y-3 border-t border-border-dark/50">
+                            <div v-for="param in tool.params" :key="param.name">
+                              <label class="block text-xs font-medium text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
+                                {{ param.label }}
+                              </label>
+                              <input 
+                                class="w-full rounded-md border border-border-dark bg-[#1a202c] p-2 text-white placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
+                                :id="`toolkit-${tool.app_id}-${param.name}`"
+                                :placeholder="`e.g., ${param.label}`"
+                                type="text" 
+                                :value="toolkitParams[tool.app_id]?.[param.name] || ''"
+                                @input="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
+                              />
+                            </div>
+                            <button 
+                              @click="handleExecuteToolkit(tool)"
+                              :disabled="executingToolkitId === tool.app_id"
+                              class="w-full bg-primary hover:bg-blue-500 text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
+                            >
+                              <span :class="['material-symbols-outlined text-base', executingToolkitId === tool.app_id && 'animate-spin']">
+                                {{ executingToolkitId === tool.app_id ? 'refresh' : 'play_arrow' }}
+                              </span>
+                              {{ executingToolkitId === tool.app_id ? $t('alerts.detail.toolkitExecuting') : $t('alerts.detail.toolkitExecute') }}
+                            </button>
+                          </div>
+                        </details>
+                      </template>
+                    </div>
+                    
+                    <!-- 执行记录部分 -->
+                    <div v-if="toolkitRecords.length" class="space-y-2">
+                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.executionRecords') }}</h4>
+                      <template v-for="record in toolkitRecords" :key="record.id">
+                        <details :class="['group rounded-lg bg-[#2a3546]', record.status === 'running' && 'animate-pulse']">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                            <div class="flex items-center gap-3">
+                              <span :class="[
+                                'material-symbols-outlined',
+                                record.status === 'completed' && 'text-green-400',
+                                record.status === 'running' && 'text-yellow-400',
+                                record.status === 'failed' && 'text-red-400'
+                              ]">
+                                {{ record.status === 'completed' ? 'task_alt' : record.status === 'running' ? 'hourglass_top' : 'error' }}
+                              </span>
+                              <div>
+                                <p class="font-medium text-white text-sm">{{ record.title }}</p>
+                                <p :class="[
+                                  'text-xs',
+                                  record.status === 'completed' && 'text-green-300/80',
+                                  record.status === 'running' && 'text-yellow-300/80',
+                                  record.status === 'failed' && 'text-red-300/80'
+                                ]">
+                                  {{ record.status === 'completed' ? $t('alerts.detail.toolkitStatusSuccess') : 
+                                     record.status === 'running' ? $t('alerts.detail.toolkitStatusInProgress') : 
+                                     $t('alerts.detail.toolkitStatusFailed') }}
+                                </p>
+                              </div>
+                            </div>
+                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                          </summary>
+                          <div class="px-3 pb-3 pt-2 text-sm text-text-light font-mono space-y-1 border-t border-border-dark/50">
+                            <p><span class="text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
+                            <p><span class="text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
+                            <div v-if="record.result" :class="['mt-2 pt-2 border-t border-border-dark/50', record.status === 'failed' && 'text-red-300']">
+                              <span class="text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
+                              <pre class="mt-1 text-xs whitespace-pre-wrap">{{ formatToolkitResult(record.result) }}</pre>
+                            </div>
+                          </div>
+                        </details>
+                      </template>
+                    </div>
+                    
+                    <!-- 如果没有工具和记录，显示空状态 -->
+                    <div v-if="!toolkits.length && !toolkitRecords.length" class="text-center py-8 text-text-light">
+                      <p class="text-sm">{{ $t('alerts.detail.noToolkitsAvailable') }}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 关联实体 -->
                 <div class="space-y-4" v-if="alert?.associatedEntities">
                   <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
@@ -390,6 +511,7 @@
                     <div
                       v-for="(entity, index) in alert.associatedEntities"
                       :key="index"
+                      @click="handleSendEntityToSecurityAgent(entity)"
                       class="flex items-center gap-3 p-3 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] cursor-pointer transition-colors"
                     >
                       <span class="material-symbols-outlined text-primary">
@@ -426,37 +548,6 @@
                     </div>
                   </div>
                 </div>
-
-                <!-- 自动化响应 -->
-                <div class="space-y-4">
-                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
-                  <div class="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <div class="flex items-start gap-3">
-                      <span class="material-symbols-outlined text-green-400 mt-0.5">task_alt</span>
-                      <div>
-                        <p class="font-semibold text-white text-sm">Block IP Address</p>
-                        <p class="text-xs text-green-300/80">
-                          Successfully blocked {{ alert?.associatedEntities?.find(e => e.type === 'ip')?.name || 'IP' }} at firewall.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                    <div class="flex items-start gap-3">
-                      <span class="material-symbols-outlined text-yellow-400 mt-0.5">hourglass_top</span>
-                      <div>
-                        <p class="font-semibold text-white text-sm">Threat Intel Scan</p>
-                        <p class="text-xs text-yellow-300/80">Scan in progress for related indicators...</p>
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    class="w-full bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center"
-                  >
-                    <span class="material-symbols-outlined text-base">play_circle</span>
-                    {{ $t('alerts.detail.runPlaybook') }}
-                  </button>
-                </div>
                 </div>
               </div>
 
@@ -466,9 +557,11 @@
                 <!-- Security Agent 聊天组件 -->
                 <div class="flex-1 min-h-0 min-w-0">
                   <SecurityAgentChat
+                    ref="securityAgentChatRef"
                     :messages="securityAgentMessages"
                     :auto-scroll="true"
                     :disabled="isSendingSecurityAgentMessage"
+                    :loading="isSendingSecurityAgentMessage"
                     @send="handleRightSidebarAiSend"
                   />
                 </div>
@@ -523,33 +616,32 @@
         </div>
 
         <!-- 调查结论输入框 -->
-        <div class="mb-6 relative">
+        <div class="mb-6">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
           <div class="relative">
             <textarea
               v-model="closeConclusion.notes"
-              @focus="showAlertHistoryDropdown = true"
-              @blur="handleAlertTextareaBlur"
               rows="4"
               class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
               :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
+              @focus="handleNotesFocus"
+              @click="handleNotesClick"
+              @blur="handleNotesBlur"
             ></textarea>
-            <!-- 历史记录下拉菜单 -->
             <div
-              v-if="showAlertHistoryDropdown && alertCommentHistory.length > 0"
-              class="absolute z-10 w-full mt-1 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg max-h-48 overflow-y-auto"
-              @mousedown.prevent
+              v-if="showRecentCloseComments && recentCloseComments.length"
+              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
             >
-              <div
-                v-for="(item, index) in alertCommentHistory"
+              <p
+                v-for="(comment, index) in recentCloseComments"
                 :key="index"
-                @click="selectAlertHistoryItem(item)"
-                class="px-4 py-2 text-sm text-white hover:bg-[#324867] cursor-pointer border-b border-[#324867] last:border-b-0"
+                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                @mousedown.prevent="handleRecentCommentSelect(comment)"
               >
-                <div class="truncate">{{ item }}</div>
-              </div>
+                {{ comment }}
+              </p>
             </div>
           </div>
         </div>
@@ -633,6 +725,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert } from '@/api/alerts'
 import { postComment } from '@/api/comments'
+import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
@@ -642,12 +735,12 @@ import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
 import { sendSecurityAgentMessage } from '@/api/securityAgent'
 import { formatDateTime, calculateTTR } from '@/utils/dateTime'
-import { saveCloseComment, getCloseCommentHistory } from '@/utils/closeCommentHistory'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import { useToast } from '@/composables/useToast'
+import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 
 const props = defineProps({
   alertId: {
@@ -689,13 +782,27 @@ const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
 const isSendingSecurityAgentMessage = ref(false)
 const securityAgentMessages = ref([])
+const securityAgentChatRef = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
-const showAlertHistoryDropdown = ref(false)
-const alertCommentHistory = ref([])
 const closeConclusion = ref({
   category: '',
   notes: ''
+})
+const {
+  recentComments: recentCloseComments,
+  showDropdown: showRecentCloseComments,
+  refresh: refreshRecentCloseComments,
+  persist: persistRecentCloseComment,
+  handleFocus: handleNotesFocus,
+  handleClick: handleNotesClick,
+  handleBlur: handleNotesBlur,
+  handleSelect: applyRecentCloseComment,
+  hideDropdown: hideRecentCloseCommentsDropdown
+} = useRecentCloseCommentSuggestions({
+  onApply: (comment) => {
+    closeConclusion.value.notes = comment
+  }
 })
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
@@ -709,6 +816,14 @@ const showMoreActionsMenu = ref(false)
 const isRefreshing = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
+
+// Toolkit related state
+const toolkits = ref([])
+const toolkitRecords = ref([])
+const loadingToolkits = ref(false)
+const loadingToolkitRecords = ref(false)
+const executingToolkitId = ref(null) // 正在执行的工具ID
+const toolkitParams = ref({}) // 存储每个工具的输入参数 { app_id: { param_name: value } }
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -958,6 +1073,9 @@ const loadAlertDetail = async () => {
     securityAgentMessages.value = []
     // 加载关联告警
     loadAssociatedAlerts()
+    // 加载工具列表和执行记录
+    loadToolkits()
+    loadToolkitRecords()
   } catch (error) {
     console.error('Failed to load alert detail:', error)
     // 加载失败时只触发 close 事件，不进行路由跳转
@@ -993,6 +1111,132 @@ const loadAssociatedAlerts = async () => {
   }
 }
 
+/**
+ * @brief 加载工具列表
+ */
+const loadToolkits = async () => {
+  loadingToolkits.value = true
+  try {
+    const response = await getToolkits()
+    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
+    // 后端返回格式: { "tools": [...] }
+    toolkits.value = response.tools || []
+    console.log('Loaded toolkits:', toolkits.value, 'Response:', response)
+    // 初始化每个工具的参数
+    toolkits.value.forEach(tool => {
+      if (!toolkitParams.value[tool.app_id]) {
+        toolkitParams.value[tool.app_id] = {}
+      }
+    })
+  } catch (error) {
+    console.error('Failed to load toolkits:', error)
+    toolkits.value = []
+    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitsError') || '加载工具列表失败')
+  } finally {
+    loadingToolkits.value = false
+  }
+}
+
+/**
+ * @brief 加载工具执行记录
+ */
+const loadToolkitRecords = async () => {
+  if (!currentAlertId.value) return
+
+  loadingToolkitRecords.value = true
+  try {
+    const response = await getToolkitRecords(currentAlertId.value)
+    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
+    // 后端返回格式: { "data": [...], "total": ... }
+    toolkitRecords.value = response.data || []
+    console.log('Loaded toolkit records:', toolkitRecords.value, 'Response:', response)
+  } catch (error) {
+    console.error('Failed to load toolkit records:', error)
+    toolkitRecords.value = []
+    // 如果接口返回 400 或没有数据，不显示错误提示
+    if (error?.response?.status !== 400) {
+      toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitRecordsError') || '加载执行记录失败')
+    }
+  } finally {
+    loadingToolkitRecords.value = false
+  }
+}
+
+/**
+ * @brief 执行工具
+ * @param {Object} tool - 工具对象
+ */
+const handleExecuteToolkit = async (tool) => {
+  if (!currentAlertId.value) {
+    toast.error(t('alerts.detail.alertIdRequired') || '告警ID不存在')
+    return
+  }
+
+  // 验证必填参数
+  const params = toolkitParams.value[tool.app_id] || {}
+  const requiredParams = tool.params || []
+  const missingParams = requiredParams.filter(p => !params[p.name] || params[p.name].trim() === '')
+  
+  if (missingParams.length > 0) {
+    toast.error(t('alerts.detail.toolkitParamsRequired') || `请填写参数: ${missingParams.map(p => p.label).join(', ')}`)
+    return
+  }
+
+  executingToolkitId.value = tool.app_id
+
+  try {
+    const requestData = {
+      title: tool.title,
+      app_id: tool.app_id,
+      app_type: tool.app_type,
+      params: params
+    }
+
+    await executeToolkit(currentAlertId.value, requestData)
+    toast.success(t('alerts.detail.toolkitExecuteSuccess') || '工具执行成功')
+    
+    // 重新加载执行记录
+    await loadToolkitRecords()
+  } catch (error) {
+    console.error('Failed to execute toolkit:', error)
+    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError') || '工具执行失败')
+  } finally {
+    executingToolkitId.value = null
+  }
+}
+
+/**
+ * @brief 更新工具参数值
+ * @param {string} appId - 工具应用ID
+ * @param {string} paramName - 参数名
+ * @param {string} value - 参数值
+ */
+const updateToolkitParam = (appId, paramName, value) => {
+  if (!toolkitParams.value[appId]) {
+    toolkitParams.value[appId] = {}
+  }
+  toolkitParams.value[appId][paramName] = value
+}
+
+/**
+ * @brief 格式化工具执行结果
+ * @param {string|Object} result - 执行结果
+ * @returns {string} 格式化后的结果字符串
+ */
+const formatToolkitResult = (result) => {
+  if (typeof result === 'string') {
+    try {
+      if (result.startsWith('{')) {
+        return JSON.stringify(JSON.parse(result), null, 2)
+      }
+      return result
+    } catch {
+      return result
+    }
+  }
+  return String(result)
+}
+
 const handleClose = async () => {
   showMoreActionsMenu.value = false
   
@@ -1015,31 +1259,12 @@ const handleClose = async () => {
   }, closeDelay)
 }
 
-// 加载告警历史记录
-const loadAlertHistory = () => {
-  alertCommentHistory.value = getCloseCommentHistory('alert')
-}
-
-// 处理输入框失焦事件（延迟关闭下拉菜单，以便点击选项时能触发）
-const handleAlertTextareaBlur = () => {
-  // 延迟关闭，让点击事件先触发
-  setTimeout(() => {
-    showAlertHistoryDropdown.value = false
-  }, 200)
-}
-
-// 选择历史记录项
-const selectAlertHistoryItem = (item) => {
-  closeConclusion.value.notes = item
-  showAlertHistoryDropdown.value = false
-}
-
 const openBatchCloseDialog = () => {
   if (!canCloseAlert.value) {
     return
   }
-  // 打开弹窗时加载历史记录
-  loadAlertHistory()
+  refreshRecentCloseComments()
+  hideRecentCloseCommentsDropdown()
   showBatchCloseDialog.value = true
 }
 
@@ -1050,9 +1275,9 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
+  hideRecentCloseCommentsDropdown()
   // 重置加载状态
   isClosing.value = false
-  showAlertHistoryDropdown.value = false
 }
 
 const handleBatchClose = async () => {
@@ -1068,14 +1293,12 @@ const handleBatchClose = async () => {
   isClosing.value = true
 
   try {
-    // 保存评论到历史记录
-    saveCloseComment(closeConclusion.value.notes.trim(), 'alert')
-    
     // 调用单个告警关闭接口
     await closeAlert(currentAlertId.value, {
       category: closeConclusion.value.category,
       notes: closeConclusion.value.notes.trim()
     })
+    persistRecentCloseComment(closeConclusion.value.notes.trim())
     
     // 关闭对话框并重置表单
     closeBatchCloseDialog()
@@ -1088,6 +1311,10 @@ const handleBatchClose = async () => {
     // 发生错误时，保持对话框打开，但重置加载状态
     isClosing.value = false
   }
+}
+
+const handleRecentCommentSelect = (comment) => {
+  applyRecentCloseComment(comment)
 }
 
 // 计算是否可以关闭告警（只有状态不是closed时才可关闭）
@@ -1706,6 +1933,100 @@ const getEntityIcon = (type) => {
 }
 
 /**
+ * @brief 判断字段值是否与Associated Entity匹配
+ * @param {string} key - 字段名
+ * @param {any} value - 字段值
+ * @returns {boolean} 是否匹配
+ */
+const isFieldMatchedWithEntity = (key, value) => {
+  if (!alert.value?.associatedEntities || !value) {
+    return false
+  }
+  
+  // 将值转换为字符串进行比较
+  const valueStr = String(value).trim()
+  if (!valueStr) {
+    return false
+  }
+  
+  // 检查是否与任何associatedEntity匹配
+  // 匹配条件：字段值（value）与entity的name匹配，或者字段名（key）与entity的label匹配且值也匹配
+  return alert.value.associatedEntities.some(entity => {
+    if (!entity.name) return false
+    const entityNameStr = String(entity.name).trim()
+    const entityLabelStr = entity.label ? String(entity.label).trim().toLowerCase() : ''
+    const keyLower = key.toLowerCase()
+    
+    // 精确匹配：字段值完全等于entity的name
+    if (entityNameStr === valueStr) {
+      return true
+    }
+    
+    // 字段名匹配且值匹配：如果字段名与entity的label匹配，且值也匹配（支持部分匹配）
+    if (entityLabelStr && (entityLabelStr === keyLower || keyLower.includes(entityLabelStr) || entityLabelStr.includes(keyLower))) {
+      // 值完全匹配或包含匹配
+      if (entityNameStr === valueStr || valueStr.includes(entityNameStr) || entityNameStr.includes(valueStr)) {
+        return true
+      }
+    }
+    
+    return false
+  })
+}
+
+/**
+ * @brief 将字段的key:value填充到Security Agent输入框
+ * @param {string} key - 字段名
+ * @param {any} value - 字段值
+ */
+const handleSendFieldToSecurityAgent = (key, value) => {
+  if (!alert.value) {
+    return
+  }
+  
+  // 切换到Security Agent页签
+  rightSidebarTab.value = 'securityAgent'
+  
+  // 构建消息：key:value
+  const valueStr = typeof value === 'object' && value !== null 
+    ? JSON.stringify(value) 
+    : String(value)
+  const message = `${key}: ${valueStr}`
+  
+  // 等待组件渲染后设置输入框的值
+  setTimeout(() => {
+    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
+      securityAgentChatRef.value.setMessage(message)
+    }
+  }, 100)
+}
+
+/**
+ * @brief 将entity信息填充到Security Agent输入框
+ * @param {Object} entity - 关联实体对象
+ */
+const handleSendEntityToSecurityAgent = (entity) => {
+  if (!alert.value || !entity) {
+    return
+  }
+  
+  // 切换到Security Agent页签
+  rightSidebarTab.value = 'securityAgent'
+  
+  // 构建消息：entity.from: entity.name
+  const from = entity.from || entity.label || ''
+  const name = entity.name || ''
+  const message = `${from}: ${name}`
+  
+  // 等待组件渲染后设置输入框的值
+  setTimeout(() => {
+    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
+      securityAgentChatRef.value.setMessage(message)
+    }
+  }, 100)
+}
+
+/**
  * @brief 获取风险等级样式类
  * @param {string} level - 风险等级（fatal/high/medium/low/tips）
  * @returns {string} 返回对应的CSS类名
@@ -1841,6 +2162,7 @@ onMounted(() => {
   document.body.style.overflow = 'hidden'
   // 添加点击外部关闭下拉菜单的监听器
   document.addEventListener('click', handleClickOutside)
+  refreshRecentCloseComments()
 })
 
 // 组件卸载时恢复滚动
@@ -1848,6 +2170,7 @@ onUnmounted(() => {
   document.body.style.overflow = ''
   // 移除点击外部关闭下拉菜单的监听器
   document.removeEventListener('click', handleClickOutside)
+  hideRecentCloseCommentsDropdown()
 })
 </script>
 
@@ -1915,6 +2238,13 @@ onUnmounted(() => {
   animation: dragPulse 1.5s ease-in-out infinite;
 }
 
+.ai-agent__html {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
 .ai-agent__html :deep(pre) {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -1922,6 +2252,11 @@ onUnmounted(() => {
   border-radius: 6px;
   white-space: pre-wrap;
   margin: 10px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .ai-agent__html :deep(code) {
@@ -1931,6 +2266,23 @@ onUnmounted(() => {
 
 .ai-agent__html :deep(b) {
   color: #e2e8f0;
+}
+
+/* Details element styles for Automated Response */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary .marker {
+  transition: transform 0.2s ease-in-out;
+}
+
+details[open] > summary .marker {
+  transform: rotate(90deg);
 }
 
 </style>

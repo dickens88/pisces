@@ -9,7 +9,7 @@ from controllers.incident_graph_scheduler import IncidentGraphIntelligenceJob
 from models import user
 from utils.app_config import config
 from utils.common_utils import scheduler
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -18,8 +18,7 @@ api = Api(app)
 # enable CORS
 CORS(app, resources={r'/*': {'origins': '*'}})
 
-
-app.config['JWT_SECRET_KEY'] = config.get('application.jwt_secret_key')
+app.config['JWT_SECRET_KEY'] = config.get('application.auth.jwt_secret')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = datetime.timedelta(minutes=60)
 
@@ -52,6 +51,9 @@ api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/grap
 
 api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
+api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
+api.add_resource(toolkits_view.ToolkitRecordView, '/alerts/<alert_id>/toolkits')
+
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
 api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')
@@ -83,3 +85,4 @@ if __name__ == '__main__':
     app.config['JSON_AS_ASCII'] = False
     app.config['PROPAGATE_EXCEPTIONS'] = True
     app.run(debug=False, host='0.0.0.0', port=8080)
+

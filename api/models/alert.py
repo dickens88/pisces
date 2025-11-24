@@ -91,7 +91,6 @@ class Alert(Base):
                 logger.debug(f"Creating alert in local DB: alert_id={alert_id}")
             
             session.commit()
-            session.refresh(alert)
             return alert.to_dict()
         except Exception as ex:
             session.rollback()

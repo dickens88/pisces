@@ -1,11 +1,9 @@
 import json
 from typing import List
 
-import requests
-
 from controllers.comment_service import CommentService
 from utils.app_config import config
-from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE
+from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
 
 
@@ -36,10 +34,7 @@ class AlertService:
         }
         body = json.dumps(body)
 
-
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -77,8 +72,7 @@ class AlertService:
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
-        base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
-        resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("GET", url=base_url, headers=headers)
         if resp.status_code > 300:
             raise Exception(f"[Alert] Fail to retrieve alert  {alert_id}. {resp.text}")
 
@@ -155,8 +149,7 @@ class AlertService:
             payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -180,8 +173,7 @@ class AlertService:
             payload["data_object"]["actor"] = owner
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -196,8 +188,7 @@ class AlertService:
         payload = {"data_object": update_info}
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -214,8 +205,7 @@ class AlertService:
         }
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -231,8 +221,7 @@ class AlertService:
         payload = {"data_object": SECMASTER_ALERT_TEMPLATE}
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -249,8 +238,7 @@ class AlertService:
 
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
-        resp = requests.delete(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("DELETE", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -283,11 +271,11 @@ class AlertService:
                 row["file"] = file_info
             
             content = row["content"]
-            if "Intelligence Information" in content:
+            if "Intelligence Information" in content or "情报信息" in content:
                 result["intelligence"].append(row)
-            elif "AI" in content or "Dify" in content:
+            elif "AI" in content or "Dify" in content or "智能体" in content:
                 result["ai"].append(row)
-            elif "Historical" in content:
+            elif "Historical" in content or "历史参考" in content:
                 result["historic"].append(row)
             else:
                 result["comments"].append(row)
@@ -307,26 +295,11 @@ class AlertService:
                 continue
 
             if "ip" in key_lower:
-                entity = {
-                    "type": "ip",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
+                entities.append({"type": "ip", "name": str(value), "from": key_lower})
             elif "host" in key_lower:
-                entity = {
-                    "type": "host",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
-            elif "user" in key_lower:
-                entity = {
-                    "type": "user",
-                    "name": str(value),
-                    "from": key_lower
-                }
-                entities.append(entity)
+                entities.append({"type": "host", "name": str(value), "from": key_lower})
+            elif "domain" in key_lower:
+                entities.append({"type": "domain", "name": str(value), "from": key_lower})
 
         return entities
 

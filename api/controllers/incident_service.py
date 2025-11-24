@@ -2,15 +2,13 @@ import json
 from threading import Lock, Thread
 from typing import List
 
-import requests
-
 from controllers.alert_service import AlertService
-from controllers.event_graph_service import EventGraphService, EventGraphGenerationError
 from controllers.comment_service import CommentService
+from controllers.event_graph_service import EventGraphService, EventGraphGenerationError
 from models.alert import Alert
 from models.incident import Incident
 from utils.app_config import config
-from utils.http_util import wrap_http_auth_headers, build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE
+from utils.http_util import build_conditions_and_logics, SECMASTER_INCIDENT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
 
 
@@ -48,8 +46,7 @@ class IncidentService:
         }
         body = json.dumps(body)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -102,8 +99,7 @@ class IncidentService:
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
-        base_url, headers = wrap_http_auth_headers("GET", base_url, headers)
-        resp = requests.get(url=base_url, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("GET", url=base_url, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -205,8 +201,7 @@ class IncidentService:
         payload = {"data_object": SECMASTER_INCIDENT_TEMPLATE}
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-        resp = requests.post(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
         if resp.status_code >= 300:
             raise Exception(resp.text)
 
@@ -220,8 +215,7 @@ class IncidentService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"data_object": data})
 
-        base_url, headers = wrap_http_auth_headers("PUT", base_url, headers, body)
-        resp = requests.put(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 
@@ -234,9 +228,7 @@ class IncidentService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"ids": alert_ids})
 
-        base_url, headers = wrap_http_auth_headers("POST", base_url, headers, body)
-
-        resp = requests.post(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("POST", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
         return json.loads(resp.text)
@@ -247,9 +239,7 @@ class IncidentService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"ids": alert_ids})
 
-        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
-
-        resp = requests.delete(url=base_url, data=body, headers=headers, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("DELETE", url=base_url, data=body, headers=headers)
         if resp.status_code > 300:
             raise Exception(resp.text)
         return json.loads(resp.text)
@@ -264,8 +254,7 @@ class IncidentService:
 
         body = json.dumps(payload)
 
-        base_url, headers = wrap_http_auth_headers("DELETE", base_url, headers, body)
-        resp = requests.delete(url=base_url, headers=headers, data=body, proxies=None, verify=False, timeout=30)
+        resp = request_with_auth("DELETE", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
 

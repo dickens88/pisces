@@ -1,0 +1,46 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pisces_mysql
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data:/var/lib/mysql
+
+  pisces_api:
+    build: ./api
+    image: pisces:0.6
+    restart: always
+    volumes:
+      - ./api:/app
+    ports:
+      - "9099:8080"
+    depends_on:
+      - mysql
+
+  pisces_web:
+    build: ./web
+    image: pisces-web:0.6
+    restart: always
+    ports:
+      - "8000:80"
+
+#  lightrag:
+#    container_name: lightrag
+#    image: lightrag:latest
+#    build:
+#      context: ./LightRAG
+#      dockerfile: Dockerfile
+#      tags:
+#        - lightrag:latest
+#    ports:
+#      - "9621:9621"
+#    volumes:
+#      - ./LightRAG/data/rag_storage:/app/data/rag_storage
+#      - ./LightRAG/data/inputs:/app/data/inputs
+#      - ./LightRAG/config.ini:/app/config.ini
+#      - ./LightRAG/.env:/app/.env
+#    env_file:
+#      - ./LightRAG/.env
+#    restart: always

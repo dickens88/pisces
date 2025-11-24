@@ -14,11 +14,19 @@ const normalizeDateString = (raw) => {
     return null
   }
 
-  // Remove redundant timezone parts like Z+0000
+  // Remove redundant timezone parts like Z+0000 (UTC)
   dateStr = dateStr.replace(/Z\+0{4}$/i, 'Z')
   dateStr = dateStr.replace(/Z\+00:00$/i, 'Z')
+  
+  // Handle Z+HHMM or Z-HHMM format (e.g., Z+0800, Z-0500) - remove Z and keep the offset
+  // This handles all timezone offsets, not just +0800
+  dateStr = dateStr.replace(/Z([+-]\d{2})(\d{2})$/i, '$1$2')
+  
+  // Handle Z+HH:MM or Z-HH:MM format (e.g., Z+08:00, Z-05:00) - remove Z and keep the offset
+  dateStr = dateStr.replace(/Z([+-]\d{2}):(\d{2})$/i, '$1:$2')
 
-  // Convert +0800 to +08:00 for Date parsing compatibility
+  // Convert +0800 or -0500 to +08:00 or -05:00 for Date parsing compatibility
+  // This regex matches both positive and negative offsets
   if (ISO_OFFSET_REGEX.test(dateStr)) {
     dateStr = dateStr.replace(ISO_OFFSET_REGEX, (_, h, m) => `${h}:${m}`)
   }
@@ -33,7 +41,8 @@ const normalizeDateString = (raw) => {
   }
 
   // Add 'Z' if there is time but no timezone suffix
-  if (ISO_WITHOUT_TZ_REGEX.test(dateStr) && !/[Zz]|[+-]\d{2}:\d{2}$/.test(dateStr)) {
+  // Check for both HHMM and HH:MM formats
+  if (ISO_WITHOUT_TZ_REGEX.test(dateStr) && !/[Zz]|[+-]\d{2}:?\d{2}$/.test(dateStr)) {
     dateStr += 'Z'
   }
 

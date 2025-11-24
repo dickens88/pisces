@@ -5,6 +5,7 @@ import router from './router/router.js'
 import i18n from './i18n/i18n.js'
 import { useAuthStore } from './stores/auth'
 import { getAppConfig } from '@config'
+import { handleTianyanLoginRedirect } from './utils/auth'
 import './style.css'
 
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
@@ -36,11 +37,10 @@ if (config.authMode === 'tianyan' && config.enableAuth) {
   const tokenFromUrl = urlParams.get('token')
   if (tokenFromUrl) {
     authStore.setToken(tokenFromUrl)
-    // 移除URL中的token参数，保持URL清洁（延迟执行，确保token已保存）
+    
+    // 处理重定向：优先使用URL中的redirect参数，其次使用sessionStorage
     setTimeout(() => {
-      const newUrl = new URL(window.location.href)
-      newUrl.searchParams.delete('token')
-      window.history.replaceState({}, '', newUrl.toString())
+      handleTianyanLoginRedirect(router)
     }, 100)
   }
   // 2. 如果没有token，尝试从cookie读取access_token（tianyan-web将token存储在cookie中）

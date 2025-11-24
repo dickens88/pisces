@@ -1,0 +1,15 @@
+{
+  "tools": [
+    {
+      "title": "Port Scan",
+      "app_id": "123123",
+      "app_type": "workflow",
+      "params": [
+        {
+          "name": "message",
+          "label": "ip:port"
+        }
+      ]
+    }
+  ]
+}

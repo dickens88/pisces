@@ -28,7 +28,7 @@ class CallbackMessageHandler(Resource):
                 if action in ("create", "update"):
                     Incident.upsert_incident(result)
 
-            logger.info(f"[Callback] processed: event_id={event_id}, action={action}, event_type={event_type}")
+            logger.info(f"[Callback] processed: event_id={event_id}, action={action}, event_type={event_type} -> {json.dumps(result)}")
             result = {"message": f"{event_type.capitalize()} synchronized successfully"}
             return {"data": result}, 201
         except Exception as ex:

@@ -28,21 +28,6 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
-        <button
-          @click="handleCloseSelectedIncident"
-          :disabled="!canCloseSelectedIncident"
-          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">archive</span>
-          <span>{{ $t('incidents.detail.closeIncident') }}</span>
-        </button>
-        <button
-          @click="showCreateDialog = true"
-          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">add</span>
-          <span>{{ $t('incidents.list.createIncident') }}</span>
-        </button>
         <!-- More actions button -->
         <div class="relative">
           <button
@@ -57,6 +42,21 @@
             v-if="showMoreMenu"
             class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
           >
+            <button
+              @click="handleCreateIncident"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+            >
+              <span class="material-symbols-outlined text-base">add</span>
+              <span>{{ $t('incidents.list.createIncident') }}</span>
+            </button>
+            <button
+              @click="handleCloseSelectedIncident"
+              :disabled="!canCloseSelectedIncident"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+            >
+              <span class="material-symbols-outlined text-base">archive</span>
+              <span>{{ $t('incidents.detail.closeIncident') }}</span>
+            </button>
             <button
               @click="openBatchDeleteDialog"
               :disabled="selectedIncidents.length === 0"
@@ -163,6 +163,9 @@
       <template #cell-occurrenceTime="{ value, item }">
         {{ formatDateTime(value || item?.arrive_time || item?.create_time || item?.occurrenceTime || item?.occurrence_time) }}
       </template>
+      <template #cell-category="{ item }">
+        {{ $t(`incidents.create.category${item?.category ? item.category.charAt(0).toUpperCase() + item.category.slice(1) : 'Platform'}`) }}
+      </template>
       <template #cell-incidentName="{ item }">
         <div class="flex items-center gap-2">
           <button
@@ -189,7 +192,7 @@
           ]"
           :title="$t(`common.severity.${item.severity?.toLowerCase()}`)"
         >
-          {{ $t(`common.severity.${item.severity?.toLowerCase()}`) }}
+          {{ severityToNumber(item.severity) || '-' }}
         </span>
       </template>
       <template #cell-status="{ item }">
@@ -312,7 +315,9 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useAuthStore } from '@/stores/auth'
+import { severityToNumber } from '@/utils/severity'
 import axios from 'axios'
 
 const { t } = useI18n()
@@ -322,6 +327,7 @@ const authStore = useAuthStore()
 // Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
   { key: 'occurrenceTime', label: t('incidents.list.occurrenceTime') },
+  { key: 'category', label: t('incidents.detail.category') },
   { key: 'incidentName', label: t('incidents.list.incidentName') },
   { key: 'severity', label: t('incidents.list.severity') },
   { key: 'status', label: t('incidents.list.status') },
@@ -333,6 +339,7 @@ const columns = computed(() => [
 // Default column widths
 const defaultWidths = {
   occurrenceTime: 200,
+  category: 120,
   incidentName: 400,
   severity: 120,
   status: 120,
@@ -397,37 +404,8 @@ const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
 
 // Time range picker
-// 从 localStorage 读取保存的时间范围
-const getStoredTimeRange = () => {
-  try {
-    const stored = localStorage.getItem('incidents-timeRange')
-    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read time range from localStorage:', error)
-  }
-  return 'last3Months'
-}
-
-// 从 localStorage 读取保存的自定义时间范围
-const getStoredCustomRange = () => {
-  try {
-    const stored = localStorage.getItem('incidents-customTimeRange')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        return [new Date(parsed[0]), new Date(parsed[1])]
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read custom time range from localStorage:', error)
-  }
-  return null
-}
-
-const selectedTimeRange = ref(getStoredTimeRange())
-const customTimeRange = ref(getStoredCustomRange())
+// Time range picker
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('incidents', 'last3Months')
 
 const computeSelectedRange = () => {
   if (selectedTimeRange.value === 'customRange') {
@@ -596,12 +574,21 @@ const canCloseSelectedIncident = computed(() => {
 })
 
 /**
+ * @brief 处理创建事件
+ */
+const handleCreateIncident = () => {
+  showMoreMenu.value = false
+  showCreateDialog.value = true
+}
+
+/**
  * @brief 处理关闭选中的事件
  */
 const handleCloseSelectedIncident = () => {
   if (!canCloseSelectedIncident.value) {
     return
   }
+  showMoreMenu.value = false
   const selectedId = selectedIncidents.value[0]
   openCloseDialog(selectedId)
 }
@@ -621,11 +608,15 @@ const handlePageSizeChange = (newPageSize) => {
 const router = useRouter()
 
 const getSeverityClass = (severity) => {
-  const severityLower = (severity || '').toLowerCase()
+  if (!severity) return 'text-white bg-gray-500'
+  const severityLower = String(severity).toLowerCase().trim()
   const classes = {
+    fatal: 'text-white bg-red-600',
+    critical: 'text-white bg-red-600',
     high: 'text-white bg-[#E57373]',
     medium: 'text-black bg-[#FFB74D]',
-    low: 'text-white bg-[#64B5F6]'
+    low: 'text-white bg-[#64B5F6]',
+    tips: 'text-white bg-gray-400'
   }
   return classes[severityLower] || classes.low
 }

@@ -6,7 +6,7 @@ from flask_restful import Resource
 from controllers.alert_service import AlertService
 from controllers.comment_service import CommentService
 from controllers.incident_service import IncidentService
-from utils.jwt_helper import auth_required
+from utils.auth_util import auth_required
 from utils.logger_init import logger
 
 

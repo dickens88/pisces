@@ -296,10 +296,10 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
     
-    // 将日期对象转换为后端需要的 ISO 格式
+    // 直接传递 Date 对象，让 formatTimestamp 统一处理时区转换
     const timestamp = formData.value.timestamp instanceof Date 
-      ? formData.value.timestamp.toISOString()
-      : new Date(formData.value.timestamp).toISOString()
+      ? formData.value.timestamp
+      : new Date(formData.value.timestamp)
     
     const alertData = {
       title: formData.value.title,

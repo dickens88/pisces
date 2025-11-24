@@ -26,18 +26,14 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
-        <button
-          @click="openCreateAlertDialog"
-          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-primary text-white text-sm font-bold px-4 hover:bg-blue-500 transition-colors"
-        >
-          <span class="material-symbols-outlined text-base">add</span>
-          <span>{{ $t('alerts.list.createAlert') }}</span>
-        </button>
       </div>
     </header>
 
     <!-- Statistics cards -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <section
+      v-if="alertChartsEnabled"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
+    >
       <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
         <p class="text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.alertTypeStats') }}
@@ -265,6 +261,13 @@
                   {{ isWordWrap ? 'wrap_text' : 'text_fields' }}
                 </span>
                 <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
+              </button>
+              <button
+                @click="handleCreateAlertFromMenu"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>{{ $t('alerts.list.createAlert') }}</span>
               </button>
               <button
                 @click="handleConvertToVulnerability"
@@ -503,33 +506,32 @@
         </div>
 
         <!-- Investigation conclusion input -->
-        <div class="mb-6 relative">
+        <div class="mb-6">
           <label class="block text-sm font-medium text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
           <div class="relative">
             <textarea
               v-model="closeConclusion.notes"
-              @focus="showAlertHistoryDropdown = true"
-              @blur="handleAlertTextareaBlur"
               rows="4"
               class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
               :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
+              @focus="handleCloseNotesFocus"
+              @click="handleCloseNotesClick"
+              @blur="handleCloseNotesBlur"
             ></textarea>
-            <!-- 历史记录下拉菜单 -->
             <div
-              v-if="showAlertHistoryDropdown && alertCommentHistory.length > 0"
-              class="absolute z-10 w-full mt-1 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg max-h-48 overflow-y-auto"
-              @mousedown.prevent
+              v-if="showRecentCloseComments && recentCloseComments.length"
+              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
             >
-              <div
-                v-for="(item, index) in alertCommentHistory"
+              <p
+                v-for="(comment, index) in recentCloseComments"
                 :key="index"
-                @click="selectAlertHistoryItem(item)"
-                class="px-4 py-2 text-sm text-white hover:bg-[#324867] cursor-pointer border-b border-[#324867] last:border-b-0"
+                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                @mousedown.prevent="handleRecentCommentSelect(comment)"
               >
-                <div class="truncate">{{ item }}</div>
-              </div>
+                {{ comment }}
+              </p>
             </div>
           </div>
         </div>
@@ -571,12 +573,15 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
-import { saveCloseComment, getCloseCommentHistory } from '@/utils/closeCommentHistory'
 import { useToast } from '@/composables/useToast'
+import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
+import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
+import { getAppConfig } from '@config'
 
 const { t } = useI18n()
 const toast = useToast()
-
+const appConfig = getAppConfig(import.meta.env, import.meta.env.PROD)
+const alertChartsEnabled = appConfig.alertsChartsEnabled !== false
 
 
 // Define column configuration (using computed to ensure reactivity)
@@ -669,45 +674,31 @@ const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 
 // Time range picker
-// 从 localStorage 读取保存的时间范围
-const getStoredTimeRange = () => {
-  try {
-    const stored = localStorage.getItem('alerts-timeRange')
-    if (stored && ['last24Hours', 'last3Days', 'last7Days', 'last30Days', 'last3Months', 'customRange'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read time range from localStorage:', error)
-  }
-  return 'last24Hours'
-}
-
-// 从 localStorage 读取保存的自定义时间范围
-const getStoredCustomRange = () => {
-  try {
-    const stored = localStorage.getItem('alerts-customTimeRange')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.length === 2) {
-        return [new Date(parsed[0]), new Date(parsed[1])]
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read custom time range from localStorage:', error)
-  }
-  return null
-}
-
-const selectedTimeRange = ref(getStoredTimeRange())
-const customTimeRange = ref(getStoredCustomRange())
+const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('alerts', 'last24Hours')
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
-const showAlertHistoryDropdown = ref(false)
-const alertCommentHistory = ref([])
 const closeConclusion = ref({
   category: '',
   notes: ''
 })
+const {
+  recentComments: recentCloseComments,
+  showDropdown: showRecentCloseComments,
+  refresh: refreshRecentCloseComments,
+  persist: persistRecentCloseComment,
+  handleFocus: handleCloseNotesFocus,
+  handleClick: handleCloseNotesClick,
+  handleBlur: handleCloseNotesBlur,
+  handleSelect: applyRecentCloseComment,
+  hideDropdown: hideRecentCloseCommentsDropdown
+} = useRecentCloseCommentSuggestions({
+  onApply: (comment) => {
+    closeConclusion.value.notes = comment
+  }
+})
+const handleRecentCommentSelect = (comment) => {
+  applyRecentCloseComment(comment)
+}
 const showAssociateIncidentDialog = ref(false)
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
@@ -788,6 +779,9 @@ const handleAlertTrendResize = () => {
 }
 
 const ensureAlertTypeChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   if (!alertTypeChartInstance && alertTypeChartRef.value) {
     alertTypeChartInstance = echarts.init(alertTypeChartRef.value)
     if (!alertTypeChartResizeBound) {
@@ -809,6 +803,9 @@ const disposeAlertTypeChart = () => {
 }
 
 const ensureAlertTrendChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   if (!alertTrendChartInstance && alertTrendChartRef.value) {
     alertTrendChartInstance = echarts.init(alertTrendChartRef.value)
     if (!alertTrendChartResizeBound) {
@@ -830,6 +827,9 @@ const disposeAlertTrendChart = () => {
 }
 
 const updateAlertTypeChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   ensureAlertTypeChart()
   if (!alertTypeChartInstance) {
     return
@@ -906,6 +906,9 @@ const updateAlertTypeChart = () => {
 }
 
 const loadAlertTypeDistribution = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   alertTypeChartLoading.value = true
   alertTypeChartTotal.value = 0
   try {
@@ -934,6 +937,9 @@ const loadAlertTypeDistribution = async () => {
 }
 
 const updateAlertTrendChart = () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   ensureAlertTrendChart()
   if (!alertTrendChartInstance) {
     return
@@ -1023,6 +1029,9 @@ const updateAlertTrendChart = () => {
 }
 
 const loadAlertTrend = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   alertTrendChartLoading.value = true
   try {
     const range = computeSelectedRange()
@@ -1096,6 +1105,9 @@ const handleRefresh = async () => {
 }
 
 const loadStatistics = async () => {
+  if (!alertChartsEnabled) {
+    return
+  }
   automationRateLoading.value = true
   try {
     const range = computeSelectedRange()
@@ -1286,6 +1298,11 @@ const handleToggleWordWrap = () => {
   }
 }
 
+const handleCreateAlertFromMenu = () => {
+  openCreateAlertDialog()
+  showMoreMenu.value = false
+}
+
 // Convert to vulnerability
 const handleConvertToVulnerability = () => {
   if (selectedAlerts.value.length === 0) {
@@ -1358,33 +1375,13 @@ const handleClickOutside = (event) => {
   }
 }
 
-// 加载告警历史记录
-const loadAlertHistory = () => {
-  alertCommentHistory.value = getCloseCommentHistory('alert')
-}
-
-// 处理输入框失焦事件（延迟关闭下拉菜单，以便点击选项时能触发）
-const handleAlertTextareaBlur = () => {
-  // 延迟关闭，让点击事件先触发
-  setTimeout(() => {
-    showAlertHistoryDropdown.value = false
-  }, 200)
-}
-
-// 选择历史记录项
-const selectAlertHistoryItem = (item) => {
-  closeConclusion.value.notes = item
-  showAlertHistoryDropdown.value = false
-}
-
 const openBatchCloseDialog = () => {
   if (selectedAlerts.value.length === 0) {
     console.warn('No alerts selected')
     return
   }
-
-  // 打开弹窗时加载历史记录
-  loadAlertHistory()
+  refreshRecentCloseComments()
+  hideRecentCloseCommentsDropdown()
   showBatchCloseDialog.value = true
 }
 
@@ -1395,7 +1392,7 @@ const closeBatchCloseDialog = () => {
     category: '',
     notes: ''
   }
-  showAlertHistoryDropdown.value = false
+  hideRecentCloseCommentsDropdown()
 }
 
 const handleBatchClose = async () => {
@@ -1411,15 +1408,13 @@ const handleBatchClose = async () => {
   try {
     isBatchClosing.value = true
     
-    // 保存评论到历史记录
-    saveCloseComment(closeConclusion.value.notes.trim(), 'alert')
-    
     // 调用批量关闭接口
     await batchCloseAlertsByPut(
       selectedAlerts.value,
       closeConclusion.value.category,
       closeConclusion.value.notes.trim()
     )
+    persistRecentCloseComment(closeConclusion.value.notes.trim())
     
     // 显示成功提示
     toast.success(
@@ -1446,6 +1441,7 @@ const handleBatchClose = async () => {
     isBatchClosing.value = false
   }
 }
+
 
 const openAssociateIncidentDialog = () => {
   if (selectedAlerts.value.length === 0) {
@@ -1584,6 +1580,7 @@ onMounted(async () => {
   await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
+  refreshRecentCloseComments()
 })
 
 onUnmounted(() => {
@@ -1591,6 +1588,7 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
   disposeAlertTrendChart()
+  hideRecentCloseCommentsDropdown()
 })
 
 const alertsTimeRangeLabel = computed(() => {
