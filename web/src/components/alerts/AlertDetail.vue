@@ -231,9 +231,9 @@
                         v-if="value !== null && value !== undefined && value !== ''"
                         class="flex items-baseline gap-2"
                       >
-                        <p class="text-text-light w-40 shrink-0">{{ key }}:</p>
+                        <p class="text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
                         <div class="flex-1 min-w-0 flex items-center gap-1.5">
-                          <p class="font-medium text-white break-all">
+                          <p class="font-medium text-[#E3E3E3] break-all">
                             <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
                             <span v-else>{{ value }}</span>
                           </p>
@@ -255,8 +255,8 @@
                   </template>
                   <!-- 如果 description 不是对象（字符串、数字、布尔值等），直接显示 -->
                   <div v-else-if="alert?.description !== null && alert?.description !== undefined" class="flex items-baseline">
-                    <p class="text-text-light w-40 shrink-0">{{ $t('alerts.detail.description') || '描述' }}:</p>
-                    <p class="font-medium text-white break-all">{{ alert.description }}</p>
+                    <p class="w-40 shrink-0 font-bold text-[#f5f5f5]">{{ $t('alerts.detail.description') || '描述' }}:</p>
+                    <p class="font-medium text-[#f5f5f5] break-all">{{ alert.description }}</p>
                   </div>
                 </div>
                 
