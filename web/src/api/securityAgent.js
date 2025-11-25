@@ -1,7 +1,32 @@
 import { getAppConfig } from '@config'
 import { useAuthStore } from '@/stores/auth'
+import { getCurrentUserInfo } from '@/api/auth'
 
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
+
+let cachedUserName = null
+
+const fetchCurrentUserName = async () => {
+  if (cachedUserName) {
+    return cachedUserName
+  }
+
+  if (!config.enableAuth) {
+    return null
+  }
+
+  try {
+    const response = await getCurrentUserInfo()
+    const name = response?.data?.cn || response?.cn || null
+    if (name) {
+      cachedUserName = name
+    }
+    return name
+  } catch (error) {
+    console.warn('Security Agent chat: unable to fetch current user info', error)
+    return null
+  }
+}
 
 /**
  * Send a chat message to the external Security Agent API.
@@ -23,6 +48,12 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
   const authStore = useAuthStore()
   const sanitizedMessage = (message || '').trim()
   const hasFiles = Array.isArray(files) && files.length > 0
+  const storeUserName =
+    authStore.user?.username ||
+    authStore.user?.name ||
+    authStore.user?.cn ||
+    null
+  const resolvedUserName = storeUserName || (await fetchCurrentUserName()) || 'Guest'
 
   if (!sanitizedMessage && !hasFiles) {
     throw new Error('Message content is required')
@@ -44,7 +75,7 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
       inputs: {},
       query: sanitizedMessage,
       response_mode: 'streaming',
-      user: 'Botond Varhalmi 84400683'
+      user: resolvedUserName
     })
     headers['Content-Type'] = 'application/json'
  // }
