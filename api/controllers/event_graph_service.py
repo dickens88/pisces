@@ -8,7 +8,7 @@ import requests
 
 from utils.app_config import config
 from utils.logger_init import logger
-
+from utils.common_utils import get_proxy
 
 class EventGraphGenerationError(Exception):
     """Custom exception for LightRAG graph generation failures."""
@@ -177,7 +177,7 @@ class _LightRAGClient:
             params.setdefault("api_key_header_value", self.api_key)
 
         # Get proxies from config and set verify=False
-        proxies = config.get("application.proxies", None)
+        proxies = get_proxy("proxyde.huawei.com", "8080") 
 
         try:
             response = requests.request(
