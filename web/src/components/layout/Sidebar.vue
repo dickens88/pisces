@@ -31,6 +31,7 @@
               ? 'bg-primary text-white' 
               : 'text-gray-300 hover:bg-primary/20 hover:text-white'
           ]"
+          :title="appStore.sidebarCollapsed ? $t(item.label) : null"
         >
           <span 
             class="material-symbols-outlined flex-shrink-0"

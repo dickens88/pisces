@@ -1,8 +1,13 @@
 import { defineStore } from 'pinia'
 
+const getInitialSidebarState = () => {
+  const storedValue = localStorage.getItem('sidebarCollapsed')
+  return storedValue !== null ? storedValue === 'true' : true
+}
+
 export const useAppStore = defineStore('app', {
   state: () => ({
-    sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+    sidebarCollapsed: getInitialSidebarState(),
     locale: localStorage.getItem('locale') || 'zh-CN'
   }),
   
