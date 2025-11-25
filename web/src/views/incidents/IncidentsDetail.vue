@@ -398,13 +398,13 @@
                   <div class="flex-1 overflow-y-auto pr-1 space-y-5">
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.id') }}</p>
+                        <p class="text-sm font-semibold text-white">{{ $t('incidents.detail.eventGraph.nodeDetail.id') }}</p>
                         <p class="text-sm text-slate-200 break-all whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.id) }}
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide">
+                        <p class="text-sm font-semibold text-white">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.label', 'Label') }}
                         </p>
                         <p class="text-sm text-slate-200 whitespace-pre-wrap">
@@ -412,7 +412,7 @@
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide">{{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}</p>
+                        <p class="text-sm font-semibold text-white">{{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}</p>
                         <p class="text-sm text-slate-200 whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
                         </p>
@@ -420,7 +420,7 @@
                     </div>
                     <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide">
+                        <p class="text-sm font-semibold text-white">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescription', '属性描述') }}
                         </p>
                         <p
