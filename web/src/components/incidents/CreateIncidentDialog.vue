@@ -82,13 +82,13 @@
                   </select>
                 </div>
 
-                <!-- 事件发生时间 -->
+                <!-- 事件创建时间 -->
                 <div>
                   <label class="block text-sm font-medium text-white mb-2">
                     {{ $t('incidents.create.occurrenceTime') }} <span class="text-red-400">*</span>
                   </label>
                   <VueDatePicker
-                    v-model="formData.occurrenceTime"
+                    v-model="formData.createTime"
                     :enable-time-picker="true"
                     :dark="true"
                     format="yyyy-MM-dd HH:mm"
@@ -223,7 +223,7 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
 import { associateAlertsToIncident } from '@/api/incidents'
-import { formatDateTimeWithOffset } from '@/utils/dateTime'
+import { formatDateTimeWithOffset, parseToDate } from '@/utils/dateTime'
 
 const props = defineProps({
   visible: {
@@ -261,7 +261,7 @@ const getInitialFormData = () => {
   return {
     title: '',
     category: '',
-    occurrenceTime: now,
+    createTime: now,
     responsiblePerson: '',
     responsibleDepartment: '',
     rootCause: '',
@@ -293,12 +293,12 @@ watch(() => props.visible, (newVal) => {
       if (props.initialData.title) {
         formData.value.title = props.initialData.title
       }
-      if (props.initialData.occurrenceTime) {
-        // 确保 occurrenceTime 是 Date 对象
-        formData.value.occurrenceTime = props.initialData.occurrenceTime instanceof Date 
-          ? props.initialData.occurrenceTime 
-          : new Date(props.initialData.occurrenceTime)
-      }
+      const initialCreateTime =
+        parseToDate(props.initialData.createTime)
+        || parseToDate(props.initialData.create_time)
+        || parseToDate(props.initialData.occurrenceTime)
+        || new Date()
+      formData.value.createTime = initialCreateTime
       if (props.initialData.description) {
         formData.value.description = props.initialData.description
       }
@@ -340,7 +340,7 @@ const handleSubmit = async () => {
       action: action,
       title: formData.value.title,
       description: formData.value.description,
-      create_time: formatTimestamp(formData.value.occurrenceTime),
+      create_time: formatTimestamp(formData.value.createTime),
       severity: formData.value.severity,
       resource_list: [{
         owner: formData.value.responsiblePerson,

@@ -173,7 +173,7 @@
       "riskLevel": "风险等级",
       "selectRiskLevel": "请选择风险等级",
       "status": "状态",
-      "timestamp": "发生时间",
+      "timestamp": "创建时间",
       "owner": "责任人",
       "ownerPlaceholder": "请输入责任人",
       "ruleName": "规则名称",
@@ -182,7 +182,9 @@
       "descriptionPlaceholder": "请输入告警描述"
     },
     "edit": {
-      "title": "编辑告警"
+      "title": "编辑告警",
+      "success": "告警更新成功",
+      "error": "告警更新失败，请稍后重试"
     },
     "detail": {
       "title": "告警详情",
@@ -258,7 +260,7 @@
       "incidentName": "事件名称",
       "responsibleDepartment": "责任部门",
       "rootCause": "根因",
-      "occurrenceTime": "发生时间",
+      "occurrenceTime": "创建时间",
       "status": "状态",
       "owner": "责任人",
       "actor": "调查员",
@@ -312,7 +314,7 @@
       "selectCategory": "请选择分类",
       "categoryPlatform": "平台安全",
       "categoryTenant": "租户安全",
-      "occurrenceTime": "事件发生时间",
+      "occurrenceTime": "创建时间",
       "responsiblePerson": "责任人",
       "responsiblePersonPlaceholder": "请输入责任人",
       "responsibleDepartment": "责任部门",

@@ -380,7 +380,7 @@ export const createAlert = (data) => {
  * @param {string} data.owner - 责任人
  * @param {string} data.description - 描述
  * @param {string} data.ruleName - 规则名称（可选）
- * @param {string|Date} data.timestamp - 时间戳（可选）
+ * @param {string|Date} data.createTime - 创建时间（可选）
  * @returns {Promise} 返回更新的告警数据
  */
 export const updateAlert = (alertId, data) => {
@@ -389,7 +389,7 @@ export const updateAlert = (alertId, data) => {
     action: 'update',
     data: {
       title: data.title,
-      create_time: formatTimestamp(data.timestamp),
+      create_time: formatTimestamp(data.createTime || data.timestamp),
       severity: CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium',
       handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
       owner: data.owner,

@@ -735,7 +735,7 @@ import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
 import { sendSecurityAgentMessage } from '@/api/securityAgent'
-import { formatDateTime, calculateTTR } from '@/utils/dateTime'
+import { formatDateTime, calculateTTR, parseToDate } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
@@ -1354,20 +1354,7 @@ const openCreateIncidentDialog = () => {
   }
   
   // 解析告警的创建时间
-  let occurrenceTime = new Date()
-  try {
-    // 尝试解析告警的创建时间
-    if (alert.value.createTime || alert.value.timestamp) {
-      occurrenceTime = new Date(alert.value.createTime || alert.value.timestamp)
-      // 如果解析失败，使用当前时间
-      if (isNaN(occurrenceTime.getTime())) {
-        occurrenceTime = new Date()
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to parse alert create time:', error)
-    occurrenceTime = new Date()
-  }
+  const createTime = getAlertCreateTime()
   
   // 获取告警描述（优先使用 aiAnalysis.description，否则使用 description）
   const alertDescription = alert.value.aiAnalysis?.description || alert.value.description || ''
@@ -1375,7 +1362,7 @@ const openCreateIncidentDialog = () => {
   // 设置初始数据
   createIncidentInitialData.value = {
     title: alert.value.title || '',
-    occurrenceTime: occurrenceTime,
+    createTime,
     description: alertDescription
   }
   
@@ -1439,6 +1426,15 @@ const handleVulnerabilityCreated = () => {
   emit('created')
 }
 
+const getAlertCreateTime = () => {
+  if (!alert.value) return new Date()
+  return (
+    parseToDate(alert.value.createTime)
+    || parseToDate(alert.value.create_time)
+    || new Date()
+  )
+}
+
 const openEditAlertDialog = () => {
   if (!alert.value) {
     console.warn('Alert data not loaded')
@@ -1446,19 +1442,7 @@ const openEditAlertDialog = () => {
   }
   
   // 解析告警的时间戳
-  let timestamp = new Date()
-  try {
-    if (alert.value.timestamp || alert.value.createTime) {
-      timestamp = new Date(alert.value.timestamp || alert.value.createTime)
-      // 如果解析失败，使用当前时间
-      if (isNaN(timestamp.getTime())) {
-        timestamp = new Date()
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to parse alert timestamp:', error)
-    timestamp = new Date()
-  }
+  const timestamp = getAlertCreateTime()
   
   // 设置初始数据
   editAlertInitialData.value = {
@@ -1467,7 +1451,7 @@ const openEditAlertDialog = () => {
     status: alert.value.status || 'open',
     owner: alert.value.owner || '',
     ruleName: alert.value.ruleName || '',
-    timestamp: timestamp,
+    createTime: timestamp,
     description: alert.value.description || ''
   }
   
