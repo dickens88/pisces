@@ -704,7 +704,7 @@ import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { severityToNumber } from '@/utils/severity'
 import DOMPurify from 'dompurify'
@@ -2816,15 +2816,17 @@ const openEditDialog = () => {
     return
   }
   
+  const createTime =
+    parseToDate(incident.value?.createTime)
+    || parseToDate(incident.value?.create_time)
+    || parseToDate(incident.value?.occurrenceTime)
+    || new Date()
+
   editIncidentInitialData.value = {
     title: incident.value.name || incident.value.title || '',
     category: incident.value.category || 'platform',
     status: incident.value.status || 'Open',
-    occurrenceTime: incident.value.occurrenceTime 
-      ? (incident.value.occurrenceTime instanceof Date 
-          ? incident.value.occurrenceTime 
-          : new Date(incident.value.occurrenceTime))
-      : new Date(),
+    createTime,
     responsiblePerson: incident.value.responsiblePerson || '',
     responsibleDepartment: incident.value.responsibleDept || '',
     actor: incident.value.actor || '',

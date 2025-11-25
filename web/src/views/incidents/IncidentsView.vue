@@ -154,8 +154,8 @@
       :current-page="currentPage"
       :page-size="pageSize"
       :total="total"
-      @update:current-page="currentPage = $event"
-      @update:page-size="pageSize = $event"
+      @update:current-page="handlePageChange"
+      @update:page-size="handlePageSizeChange"
       @select="handleSelect"
       @select-all="handleSelectAll"
       @page-size-change="handlePageSizeChange"
@@ -304,7 +304,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { getIncidents, deleteIncidents } from '@/api/incidents'
@@ -493,6 +493,18 @@ const loadIncidents = async () => {
   }
 }
 
+const handlePageChange = (page) => {
+  currentPage.value = page
+  return loadIncidents()
+}
+
+const reloadIncidentsFromFirstPage = () => {
+  if (currentPage.value === 1) {
+    return loadIncidents()
+  }
+  return handlePageChange(1)
+}
+
 /**
  * @brief 刷新事件列表
  */
@@ -518,7 +530,7 @@ const addKeyword = () => {
     searchKeywords.value.push(keyword)
     currentSearchInput.value = ''
     saveSearchKeywords()
-    loadIncidents()
+    reloadIncidentsFromFirstPage()
   }
 }
 
@@ -529,7 +541,7 @@ const addKeyword = () => {
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
   saveSearchKeywords()
-  loadIncidents()
+  reloadIncidentsFromFirstPage()
 }
 
 /**
@@ -545,7 +557,7 @@ const handleSearchInput = () => {
  * @brief 处理筛选器变化
  */
 const handleFilter = () => {
-  loadIncidents()
+  reloadIncidentsFromFirstPage()
 }
 
 const handleSelect = (items) => {
@@ -594,15 +606,14 @@ const handleCloseSelectedIncident = () => {
 }
 
 const handlePageSizeChange = (newPageSize) => {
-  pageSize.value = newPageSize
-  currentPage.value = 1
+  pageSize.value = Number(newPageSize)
   // 保存到 localStorage
   try {
-    localStorage.setItem('incidents-pageSize', String(newPageSize))
+    localStorage.setItem('incidents-pageSize', String(pageSize.value))
   } catch (error) {
     console.warn('Failed to save page size to localStorage:', error)
   }
-  loadIncidents()
+  handlePageChange(1)
 }
 
 const router = useRouter()
@@ -669,14 +680,14 @@ const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
-    loadIncidents()
+    reloadIncidentsFromFirstPage()
   }
 }
 
 const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
-    loadIncidents()
+    reloadIncidentsFromFirstPage()
   }
 }
 
@@ -819,10 +830,6 @@ const handleClickOutside = (event) => {
     showMoreMenu.value = false
   }
 }
-
-watch([currentPage, pageSize], () => {
-  loadIncidents()
-})
 
 onMounted(() => {
   loadIncidents()

@@ -175,7 +175,7 @@
       "riskLevel": "Risk Level",
       "selectRiskLevel": "Please select risk level",
       "status": "Status",
-      "timestamp": "Timestamp",
+      "timestamp": "Create Time",
       "owner": "Owner",
       "ownerPlaceholder": "Please enter owner",
       "ruleName": "Rule Name",
@@ -184,7 +184,9 @@
       "descriptionPlaceholder": "Please enter alert description"
     },
     "edit": {
-      "title": "Edit Alert"
+      "title": "Edit Alert",
+      "success": "Alert updated successfully",
+      "error": "Failed to update alert, please try again later"
     },
     "detail": {
       "title": "Alert Details",
@@ -260,7 +262,7 @@
       "incidentName": "Incident Name",
       "responsibleDepartment": "Responsible Department",
       "rootCause": "Root Cause",
-      "occurrenceTime": "Occurrence Time",
+      "occurrenceTime": "Create Time",
       "status": "Status",
       "owner": "Owner",
       "actor": "Actor",
@@ -314,7 +316,7 @@
       "selectCategory": "Please select category",
       "categoryPlatform": "Platform Security",
       "categoryTenant": "Tenant Security",
-      "occurrenceTime": "Occurrence Time",
+      "occurrenceTime": "Create Time",
       "responsiblePerson": "Responsible Person",
       "responsiblePersonPlaceholder": "Please enter responsible person",
       "responsibleDepartment": "Responsible Department",

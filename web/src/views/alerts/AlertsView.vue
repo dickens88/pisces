@@ -301,7 +301,7 @@
         :current-page="currentPage"
         :page-size="pageSize"
         :total="total"
-        @update:current-page="currentPage = $event"
+        @update:current-page="handlePageChange"
         @update:page-size="pageSize = $event"
         @select="handleSelect"
         @select-all="handleSelectAll"
@@ -560,7 +560,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
@@ -573,7 +573,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import { formatDateTime } from '@/utils/dateTime'
+import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
@@ -679,7 +679,7 @@ const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('alerts', 'la
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
 const closeConclusion = ref({
-  category: '',
+  category: 'falsePositive',
   notes: ''
 })
 const {
@@ -1087,6 +1087,18 @@ const loadAlerts = async () => {
   }
 }
 
+const handlePageChange = (page) => {
+  currentPage.value = page
+  return loadAlerts()
+}
+
+const reloadAlertsFromFirstPage = () => {
+  if (currentPage.value === 1) {
+    return loadAlerts()
+  }
+  return handlePageChange(1)
+}
+
 const handleRefresh = async () => {
   if (isRefreshing.value) return
   
@@ -1160,7 +1172,7 @@ const addKeyword = () => {
     searchKeywords.value.push(keyword)
     currentSearchInput.value = ''
     saveSearchKeywords()
-    loadAlerts()
+    reloadAlertsFromFirstPage()
   }
 }
 
@@ -1171,7 +1183,7 @@ const addKeyword = () => {
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
   saveSearchKeywords()
-  loadAlerts()
+  reloadAlertsFromFirstPage()
 }
 
 /**
@@ -1190,21 +1202,20 @@ const handleFilter = () => {
   } catch (error) {
     console.warn('Failed to save status filter to localStorage:', error)
   }
-  loadAlerts()
+  reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()  // Reload chart data when status filter changes
   // Note: Alert trend chart doesn't use status filter, only time range
 }
 
 const handlePageSizeChange = () => {
   pageSize.value = Number(pageSize.value) // Ensure it's a number type
-  currentPage.value = 1 // Reset to first page
   // 保存到 localStorage
   try {
     localStorage.setItem('alerts-pageSize', String(pageSize.value))
   } catch (error) {
     console.warn('Failed to save page size to localStorage:', error)
   }
-  loadAlerts()
+  handlePageChange(1)
 }
 
 const handleSelect = (items) => {
@@ -1390,7 +1401,7 @@ const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
   // Reset form
   closeConclusion.value = {
-    category: '',
+    category: 'falsePositive',
     notes: ''
   }
   hideRecentCloseCommentsDropdown()
@@ -1476,8 +1487,12 @@ const openCreateIncidentDialog = () => {
   // Use the first alert's data for initial form data
   const firstAlert = selectedAlertObjects[0]
   
-  // Use browser current time for occurrence time
-  const occurrenceTime = new Date()
+  // Determine initial create time from alert data
+  const createTime =
+    parseToDate(firstAlert?.createTime)
+    || parseToDate(firstAlert?.create_time)
+    || parseToDate(firstAlert?.timestamp)
+    || new Date()
   
   // Get title and description from first alert only
   const incidentTitle = firstAlert.title || ''
@@ -1499,7 +1514,7 @@ const openCreateIncidentDialog = () => {
   // Set initial data - use first alert's title and description, current time for occurrence
   createIncidentInitialData.value = {
     title: incidentTitle,
-    occurrenceTime: occurrenceTime,
+    createTime,
     description: alertDescription
   }
   
@@ -1547,7 +1562,7 @@ const handleTimeRangeChange = async (rangeKey) => {
     // Load data based on selected time range
     // These can run in parallel as they don't depend on each other
     await Promise.all([
-      loadAlerts(),
+      reloadAlertsFromFirstPage(),
       loadStatistics(), // Load automation closure rate statistics with new time range
       loadAlertTypeDistribution()
     ])
@@ -1560,17 +1575,13 @@ const handleCustomRangeChange = async (newRange) => {
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
     // These can run in parallel as they don't depend on each other
     await Promise.all([
-      loadAlerts(),
+      reloadAlertsFromFirstPage(),
       loadStatistics(), // Load automation closure rate statistics with new time range
       loadAlertTypeDistribution()
     ])
     await loadAlertTrend() // Load after others to ensure alertCount is updated when custom range changes
   }
 }
-
-watch([currentPage], () => {
-  loadAlerts()
-})
 
 onMounted(async () => {
   ensureAlertTypeChart()

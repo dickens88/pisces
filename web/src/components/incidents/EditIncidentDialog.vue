@@ -80,13 +80,13 @@
                   </select>
                 </div>
 
-                <!-- 事件发生时间 -->
+                <!-- 事件创建时间 -->
                 <div>
                   <label class="block text-sm font-medium text-white mb-2">
                     {{ $t('incidents.create.occurrenceTime') }} <span class="text-red-400">*</span>
                   </label>
                   <VueDatePicker
-                    v-model="formData.occurrenceTime"
+                    v-model="formData.createTime"
                     :enable-time-picker="true"
                     :dark="true"
                     format="yyyy-MM-dd HH:mm"
@@ -232,7 +232,7 @@ import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
-import { formatDateTimeWithOffset } from '@/utils/dateTime'
+import { formatDateTimeWithOffset, parseToDate } from '@/utils/dateTime'
 
 const props = defineProps({
   visible: {
@@ -270,7 +270,7 @@ const getInitialFormData = () => {
   return {
     title: '',
     category: '',
-    occurrenceTime: now,
+    createTime: now,
     responsiblePerson: '',
     responsibleDepartment: '',
     actor: '',
@@ -301,13 +301,11 @@ const fillFormData = () => {
     formData.value.category = props.initialData.category || 'platform'
     formData.value.status = props.initialData.status || 'Open'
     
-    if (props.initialData.occurrenceTime) {
-      formData.value.occurrenceTime = props.initialData.occurrenceTime instanceof Date 
-        ? props.initialData.occurrenceTime 
-        : new Date(props.initialData.occurrenceTime)
-    } else {
-      formData.value.occurrenceTime = new Date()
-    }
+    formData.value.createTime =
+      parseToDate(props.initialData.createTime)
+      || parseToDate(props.initialData.create_time)
+      || parseToDate(props.initialData.occurrenceTime)
+      || new Date()
     
     formData.value.responsiblePerson = props.initialData.responsiblePerson || ''
     formData.value.responsibleDepartment = props.initialData.responsibleDepartment || ''
@@ -360,7 +358,7 @@ const handleSubmit = async () => {
       action: 'update',
       title: formData.value.title,
       description: formData.value.description,
-      create_time: formatTimestamp(formData.value.occurrenceTime),
+      create_time: formatTimestamp(formData.value.createTime),
       severity: formData.value.severity || '',
       actor: formData.value.actor || '',
       resource_list: [{

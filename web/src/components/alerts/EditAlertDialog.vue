@@ -89,7 +89,7 @@
                     {{ $t('alerts.create.timestamp') }} <span class="text-red-400">*</span>
                   </label>
                   <VueDatePicker
-                    v-model="formData.timestamp"
+                    v-model="formData.createTime"
                     :enable-time-picker="true"
                     :dark="true"
                     format="yyyy-MM-dd HH:mm"
@@ -181,6 +181,7 @@ import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
+import { parseToDate } from '@/utils/dateTime'
 
 const props = defineProps({
   visible: {
@@ -220,7 +221,7 @@ const getInitialFormData = () => {
     status: 'open',
     owner: '',
     ruleName: '',
-    timestamp: now,
+    createTime: now,
     description: ''
   }
 }
@@ -236,13 +237,10 @@ const fillFormData = () => {
     formData.value.riskLevel = props.initialData.riskLevel || ''
     formData.value.status = props.initialData.status || 'open'
     
-    if (props.initialData.timestamp) {
-      formData.value.timestamp = props.initialData.timestamp instanceof Date 
-        ? props.initialData.timestamp 
-        : new Date(props.initialData.timestamp)
-    } else {
-      formData.value.timestamp = new Date()
-    }
+    formData.value.createTime =
+      parseToDate(props.initialData.createTime)
+      || parseToDate(props.initialData.create_time)
+      || new Date()
     
     formData.value.owner = props.initialData.owner || ''
     formData.value.ruleName = props.initialData.ruleName || ''
@@ -297,9 +295,7 @@ const handleSubmit = async () => {
     isSubmitting.value = true
     
     // 直接传递 Date 对象，让 formatTimestamp 统一处理时区转换
-    const timestamp = formData.value.timestamp instanceof Date 
-      ? formData.value.timestamp
-      : new Date(formData.value.timestamp)
+    const createTime = parseToDate(formData.value.createTime) || new Date()
     
     const alertData = {
       title: formData.value.title,
@@ -307,7 +303,7 @@ const handleSubmit = async () => {
       status: formData.value.status,
       owner: formData.value.owner,
       ruleName: formData.value.ruleName || undefined,
-      timestamp: timestamp,
+      createTime,
       description: formData.value.description
     }
 
