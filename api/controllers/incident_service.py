@@ -58,7 +58,7 @@ class IncidentService:
                 if cls.VULSCAN_LABEL not in item['data_object'].get('labels'):
                     continue
             else:
-                if cls.VULSCAN_LABEL in item['data_object']['labels']:
+                if cls.VULSCAN_LABEL in item['data_object'].get('labels'):
                     continue
 
             row = {

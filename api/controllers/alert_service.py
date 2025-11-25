@@ -103,7 +103,7 @@ class AlertService:
             alert_content["description"] = json.loads(item['data_object']['description'])
             # standard model_name field
             model_name = alert_content["description"].get("model_name")
-            alert_content["description"]["model_name"] = model_name if model_name else alert_content["description"]["modelname"]
+            alert_content["description"]["model_name"] = model_name if model_name else alert_content["description"].get("modelname")
         except Exception as ex:
             alert_content["description"] = item['data_object']['description']
             logger.error(ex)
