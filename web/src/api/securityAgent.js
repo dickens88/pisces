@@ -1,29 +1,35 @@
 import { getAppConfig } from '@config'
 import { useAuthStore } from '@/stores/auth'
-import { getCurrentUserInfo } from '@/api/auth'
 
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 
-let cachedUserName = null
+const resolveUserIdentity = async (authStore) => {
+  const immediateName =
+    authStore.user?.username ||
+    authStore.user?.cn ||
+    authStore.user?.name ||
+    authStore.user?.user_name ||
+    null
 
-const fetchCurrentUserName = async () => {
-  if (cachedUserName) {
-    return cachedUserName
+  if (immediateName) {
+    return immediateName
   }
 
-  if (!config.enableAuth) {
+  if (!config.enableAuth || typeof authStore.fetchCurrentUser !== 'function') {
     return null
   }
 
   try {
-    const response = await getCurrentUserInfo()
-    const name = response?.data?.cn || response?.cn || null
-    if (name) {
-      cachedUserName = name
-    }
-    return name
+    const user = await authStore.fetchCurrentUser()
+    return (
+      user?.username ||
+      user?.cn ||
+      user?.name ||
+      user?.user_name ||
+      null
+    )
   } catch (error) {
-    console.warn('Security Agent chat: unable to fetch current user info', error)
+    console.warn('Security Agent chat: unable to resolve user identity', error)
     return null
   }
 }
@@ -48,12 +54,7 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
   const authStore = useAuthStore()
   const sanitizedMessage = (message || '').trim()
   const hasFiles = Array.isArray(files) && files.length > 0
-  const storeUserName =
-    authStore.user?.username ||
-    authStore.user?.name ||
-    authStore.user?.cn ||
-    null
-  const resolvedUserName = storeUserName || (await fetchCurrentUserName()) || 'Guest'
+  const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
 
   if (!sanitizedMessage && !hasFiles) {
     throw new Error('Message content is required')

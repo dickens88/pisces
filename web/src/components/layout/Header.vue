@@ -170,7 +170,6 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { getSystemInfo } from '@/api/system'
-import { getCurrentUserInfo } from '@/api/auth'
 import { getAppConfig } from '@config'
 import { redirectToTianyanLogin } from '@/utils/auth'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -197,15 +196,13 @@ const languageButtonRef = ref(null)
 const userMenuRef = ref(null)
 const userMenuButtonRef = ref(null)
 const systemVersion = ref('')
-const userName = ref('')
-
 const isAuthenticated = computed(() => {
   return authStore.isAuthenticated
 })
 
 // 如果能获取到用户名就显示，否则显示 Guest
 const displayName = computed(() => {
-  return userName.value || 'Guest'
+  return authStore.user?.cn || authStore.user?.username || authStore.user?.name || 'Guest'
 })
 
 const openAbout = () => {
@@ -268,13 +265,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside)
 
   if (config.enableAuth) {
-    getCurrentUserInfo()
-      .then((res) => {
-        const name = res?.data?.cn || res?.cn
-        if (name) {
-          userName.value = name
-        }
-      })
+    authStore.fetchCurrentUser().catch(() => {})
   }
 
   getSystemInfo()

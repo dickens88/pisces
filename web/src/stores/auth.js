@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { getCurrentUserInfo } from '@/api/auth'
 
 // 从cookie读取指定名称的cookie值
 function getCookie(name) {
@@ -27,6 +28,8 @@ function getInitialToken() {
   return null
 }
 
+let fetchUserPromise = null
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: getInitialToken(),
@@ -51,6 +54,45 @@ export const useAuthStore = defineStore('auth', {
       this.user = user
     },
     
+    async fetchCurrentUser({ force = false } = {}) {
+      if (!force && this.user) {
+        return this.user
+      }
+
+      if (fetchUserPromise) {
+        return fetchUserPromise
+      }
+
+      fetchUserPromise = getCurrentUserInfo()
+        .then((res) => {
+          const payload = res?.data && typeof res.data === 'object'
+            ? res.data
+            : (res && typeof res === 'object' ? res : null)
+
+          if (payload) {
+            const normalized = {
+              ...payload,
+              username: payload.cn || payload.username || payload.name || payload.user_name || null
+            }
+            this.setUser(normalized)
+            return normalized
+          }
+
+          this.setUser(null)
+          return null
+        })
+        .catch((error) => {
+          console.warn('authStore.fetchCurrentUser failed', error)
+          this.setUser(null)
+          return null
+        })
+        .finally(() => {
+          fetchUserPromise = null
+        })
+
+      return fetchUserPromise
+    },
+
     logout() {
       this.token = null
       this.user = null
