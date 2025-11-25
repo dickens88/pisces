@@ -154,6 +154,12 @@ class IncidentService:
                 alert = AlertService.retrieve_alert_by_id(alert_id)
                 associated_alerts.append(alert)
 
+                # Cache alert locally for next retrieval
+                try:
+                    Alert.upsert_alert(alert)
+                except Exception as exc:
+                    logger.warning("[Incident] Failed to cache alert %s locally: %s", alert_id, exc)
+
         # sort by create_time in descending order
         associated_alerts.sort(key=lambda x: x.get('create_time', ''), reverse=True)
         row["associated_alerts"] = associated_alerts

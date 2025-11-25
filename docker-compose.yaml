@@ -26,8 +26,8 @@ services:
     ports:
       - "8000:80"
 
-  lightrag:
-    container_name: lightrag
+  lightrag_eu:
+    container_name: lightrag_eu
     image: lightrag:latest
     build:
       context: ./LightRAG
@@ -38,10 +38,25 @@ services:
       - "9621:9621"
     volumes:
       - ./LightRAG/lightrag:/app/lightrag:delegated
-      - ./LightRAG/data/rag_storage:/app/data/rag_storage
-      - ./LightRAG/data/inputs:/app/data/inputs
+      - ./LightRAG/data/rag_storage_eu:/app/data/rag_storage
+      - ./LightRAG/data/inputs_eu:/app/data/inputs
       - ./LightRAG/config.ini:/app/config.ini
-      - ./LightRAG/.env:/app/.env
+      - ./LightRAG/.env.eu:/app/.env
     env_file:
-      - ./LightRAG/.env
+      - ./LightRAG/.env.eu
+    restart: always
+
+  lightrag_cn:
+    container_name: lightrag_cn
+    image: lightrag:latest
+    ports:
+      - "9622:9622"
+    volumes:
+      - ./LightRAG/lightrag:/app/lightrag:delegated
+      - ./LightRAG/data/rag_storage_cn:/app/data/rag_storage
+      - ./LightRAG/data/inputs_cn:/app/data/inputs
+      - ./LightRAG/config.ini:/app/config.ini
+      - ./LightRAG/.env.cn:/app/.env
+    env_file:
+      - ./LightRAG/.env.cn
     restart: always
