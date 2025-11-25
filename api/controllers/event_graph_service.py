@@ -47,27 +47,8 @@ class _LightRAGClient:
         start = time.monotonic()
         while True:
             counts = self._get_status_counts()
-            total = sum(counts.values())
-            if total == 0:
+            if sum(counts.values()) == 0:
                 return
-
-            in_progress = (
-                counts.get("pending", 0)
-                + counts.get("processing", 0)
-                + counts.get("preprocessed", 0)
-            )
-            processed_only = in_progress == 0 and counts.get("processed", 0) > 0
-            if processed_only:
-                logger.info(
-                    "[LightRAG] Residual processed docs detected (%s), attempting cleanup",
-                    counts.get("processed", 0),
-                )
-                try:
-                    self.clear_documents(retries=2)
-                except EventGraphGenerationError as exc:
-                    logger.warning("[LightRAG] Cleanup attempt failed: %s", exc)
-                time.sleep(self.poll_interval)
-                continue
 
             if time.monotonic() - start > self.workspace_timeout:
                 raise EventGraphGenerationError(
@@ -184,34 +165,11 @@ class _LightRAGClient:
         data = self._safe_json(response)
         return data.get("response") or data.get("data")
 
-    def clear_documents(self, retries: int = 0):
-        attempts = max(1, retries + 1)
-        last_error = None
-
-        for attempt in range(1, attempts + 1):
-            try:
-                response = self._request("DELETE", "/documents")
-                data = self._safe_json(response)
-                status = ""
-                if isinstance(data, dict):
-                    status = str(data.get("status", "")).lower()
-                if status == "busy":
-                    raise EventGraphGenerationError("LightRAG workspace busy, cannot clear documents")
-                return
-            except EventGraphGenerationError as exc:
-                last_error = exc
-                logger.warning(
-                    "Failed to clear LightRAG workspace (attempt %s/%s): %s",
-                    attempt,
-                    attempts,
-                    exc,
-                )
-                if attempt >= attempts:
-                    break
-                time.sleep(self.poll_interval)
-
-        if last_error:
-            raise last_error
+    def clear_documents(self):
+        try:
+            self._request("DELETE", "/documents")
+        except EventGraphGenerationError as exc:
+            logger.warning("Failed to clear LightRAG workspace: %s", exc)
 
     def _get_status_counts(self) -> Dict[str, int]:
         response = self._request("GET", "/documents/status_counts")
@@ -298,7 +256,7 @@ class EventGraphService:
             payload_text = cls._build_insert_payload(incident_payload, associated_alerts)
             label_candidates = cls._build_graph_label_candidates(incident_payload, associated_alerts)
             file_source = cls._build_file_source(incident_payload)
-            summary_prompt = cls._build_summary_prompt(incident_payload)
+            summary_prompt = cls._build_summary_prompt(incident_payload, payload_text)
             max_attempts = max(1, config.get("application.lightrag.max_retry_attempts", 1))
 
             for attempt in range(1, max_attempts + 1):
@@ -411,11 +369,18 @@ class EventGraphService:
         return deduped
 
     @staticmethod
-    def _build_summary_prompt(incident_payload: dict) -> str:
-        del incident_payload  # title currently unused but keep signature for future context
+    def _build_summary_prompt(incident_payload: dict, incident_context: str) -> str:
         configured_prompt = config.get("application.lightrag.prompt")
-        prompt = configured_prompt or DEFAULT_SUMMARY_PROMPT
-        return str(prompt).strip()
+        prompt = str(configured_prompt or DEFAULT_SUMMARY_PROMPT).strip()
+
+        incident_id = incident_payload.get("id") or incident_payload.get("incident_id") or "-"
+        context = incident_context.strip()
+        if context:
+            prompt = (
+                f"{prompt}\n\n"
+                f"Incident Context (ID={incident_id}):\n"
+            )
+        return prompt
 
     @staticmethod
     def _stringify_value(value: Any) -> str:
