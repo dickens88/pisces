@@ -2270,6 +2270,8 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       responsiblePerson: data.responsible_person || data.owner,
       responsibleDept: data.responsible_dept || '',
       category: data.category || 'platform',
+      rootCause: data.root_cause || '',
+      resource_list: data.resource_list || data.resourceList || [],
       creator: data.creator,
       labels: data.labels,
       closeReason: data.close_reason,

@@ -306,7 +306,9 @@
       }
     },
     "edit": {
-      "title": "Edit Incident"
+      "title": "Edit Incident",
+      "success": "Incident updated successfully",
+      "error": "Failed to update incident, please try again later"
     },
     "create": {
       "title": "Create Incident",

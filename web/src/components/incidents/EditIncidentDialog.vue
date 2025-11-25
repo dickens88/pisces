@@ -174,11 +174,13 @@
                     class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('incidents.create.selectSeverity') || '请选择严重程度' }}</option>
-                    <option value="Tips">{{ $t('common.severity.tips') }}</option>
-                    <option value="Low">{{ $t('common.severity.low') }}</option>
-                    <option value="Medium">{{ $t('common.severity.medium') }}</option>
-                    <option value="High">{{ $t('common.severity.high') }}</option>
-                    <option value="Fatal">{{ $t('common.severity.fatal') }}</option>
+                    <option
+                      v-for="option in severityOptions"
+                      :key="option.value"
+                      :value="option.value"
+                    >
+                      {{ option.label }}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -233,6 +235,7 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
 import { formatDateTimeWithOffset, parseToDate } from '@/utils/dateTime'
+import { severityToNumber, numberToSeverity } from '@/utils/severity'
 
 const props = defineProps({
   visible: {
@@ -262,6 +265,14 @@ const isSubmitting = ref(false)
 const datePickerLocale = computed(() => {
   return locale.value === 'zh-CN' ? zhCN : enUS
 })
+
+const severityOptions = computed(() => ([
+  { value: '1', label: `1 - ${t('common.severity.fatal')}` },
+  { value: '2', label: `2 - ${t('common.severity.high')}` },
+  { value: '3', label: `3 - ${t('common.severity.medium')}` },
+  { value: '4', label: `4 - ${t('common.severity.low')}` },
+  { value: '5', label: `5 - ${t('common.severity.tips')}` }
+]))
 
 // 初始化表单数据
 const getInitialFormData = () => {
@@ -310,8 +321,13 @@ const fillFormData = () => {
     formData.value.responsiblePerson = props.initialData.responsiblePerson || ''
     formData.value.responsibleDepartment = props.initialData.responsibleDepartment || ''
     formData.value.actor = props.initialData.actor || ''
-    formData.value.rootCause = props.initialData.rootCause || ''
-    formData.value.severity = props.initialData.severity || ''
+    const initialRootCause = props.initialData.rootCause
+    formData.value.rootCause = initialRootCause || ''
+    const rawSeverity = props.initialData.severity
+    const severityNumber = typeof rawSeverity === 'number'
+      ? rawSeverity
+      : severityToNumber(rawSeverity)
+    formData.value.severity = severityNumber ? String(severityNumber) : ''
     formData.value.description = props.initialData.description || ''
   } else {
     console.warn('No initial data provided to EditIncidentDialog')
@@ -359,7 +375,7 @@ const handleSubmit = async () => {
       title: formData.value.title,
       description: formData.value.description,
       create_time: formatTimestamp(formData.value.createTime),
-      severity: formData.value.severity || '',
+      severity: numberToSeverity(Number(formData.value.severity)) || '',
       actor: formData.value.actor || '',
       resource_list: [{
         owner: formData.value.responsiblePerson,
