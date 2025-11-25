@@ -1,6 +1,5 @@
 import json
 import time
-from textwrap import dedent
 from threading import Lock
 from typing import List, Tuple, Optional, Dict, Any
 
@@ -9,6 +8,21 @@ import requests
 from utils.app_config import config
 from utils.logger_init import logger
 from utils.common_utils import get_proxy
+
+DEFAULT_SUMMARY_PROMPT = """
+You are a cybersecurity analyst. Based on the following incident information retrieved from the SIEM system and knowledge base, generate a concise and structured security incident summary. The summary should include:
+1. Overview: incident ID/name, occurrence time, attack type (e.g., ransomware, APT, DDoS, intrusion)
+2. Attack progression: attack trigger, propagation path, key alerts, and incident chain
+3. Impact: affected assets (servers, applications, network devices), business systems, users, alert severity and count
+4. Related alerts: highlight key or high-severity alerts associated with this incident
+5. Possible causes or context: exploited vulnerabilities, attack techniques, attacker behavior patterns (if available)
+6. Recommendations or preliminary mitigation steps (if available)
+
+Requirements:
+- Present the summary in readable paragraphs, not just a list of alerts or logs
+- Include comprehensive but concise information, focusing on key points, around 200–300 words
+- Keep only critical alert information, ignore duplicates or low-priority alerts
+""".strip()
 
 class EventGraphGenerationError(Exception):
     """Custom exception for LightRAG graph generation failures."""
@@ -356,25 +370,10 @@ class EventGraphService:
 
     @staticmethod
     def _build_summary_prompt(incident_payload: dict) -> str:
-        incident_title = incident_payload.get("title") or incident_payload.get("name") or incident_payload.get("id")
-        prompt = dedent(
-            f"""
-			You are a cybersecurity analyst. Based on the following incident information retrieved from the SIEM system and knowledge base, generate a concise and structured security incident summary. The summary should include:
-			1. Overview: incident ID/name, occurrence time, attack type (e.g., ransomware, APT, DDoS, intrusion)
-			2. Attack progression: attack trigger, propagation path, key alerts, and incident chain
-			3. Impact: affected assets (servers, applications, network devices), business systems, users, alert severity and count
-			4. Related alerts: highlight key or high-severity alerts associated with this incident
-			5. Possible causes or context: exploited vulnerabilities, attack techniques, attacker behavior patterns (if available)
-			6. Recommendations or preliminary mitigation steps (if available)
-
-			Requirements:
-			- Present the summary in readable paragraphs, not just a list of alerts or logs
-			- Include comprehensive but concise information, focusing on key points, around 200–300 words
-			- Keep only critical alert information, ignore duplicates or low-priority alerts
-
-            """
-        )
-        return prompt.strip()
+        del incident_payload  # title currently unused but keep signature for future context
+        configured_prompt = config.get("application.lightrag.prompt")
+        prompt = configured_prompt or DEFAULT_SUMMARY_PROMPT
+        return str(prompt).strip()
 
     @staticmethod
     def _stringify_value(value: Any) -> str:
