@@ -167,39 +167,54 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
-        <div class="relative w-full max-w-sm">
-          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-            <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
-            </div>
-            <!-- Search keyword tags -->
-            <div
-              v-for="(keyword, index) in searchKeywords"
-              :key="index"
-              class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
-            >
-              <span>{{ keyword }}</span>
-              <button
-                @click="removeKeyword(index)"
-                class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
-                type="button"
-                :aria-label="$t('common.delete')"
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+          <div class="relative w-full max-w-sm">
+            <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0">
+                <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
+              </div>
+              <!-- Search keyword tags -->
+              <div
+                v-for="(keyword, index) in searchKeywords"
+                :key="index"
+                class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
               >
-                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
-              </button>
+                <span>{{ keyword }}</span>
+                <button
+                  @click="removeKeyword(index)"
+                  class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                  type="button"
+                  :aria-label="$t('common.delete')"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                </button>
+              </div>
+              <!-- Input field -->
+              <input
+                v-model="currentSearchInput"
+                @keydown.enter.prevent="addKeyword"
+                @input="handleSearchInput"
+                class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
+                type="text"
+              />
             </div>
-            <!-- Input field -->
-            <input
-              v-model="currentSearchInput"
-              @keydown.enter.prevent="addKeyword"
-              @input="handleSearchInput"
-              class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
-              :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
-              type="text"
-            />
           </div>
-        </div>
-        <div class="flex items-center gap-3">
+          <div class="relative w-full max-w-[12rem]">
+            <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0">
+                <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">person</span>
+              </div>
+              <input
+                v-model="ownerSearch"
+                @keydown.enter.prevent="handleOwnerSearch"
+                @input="handleOwnerSearchInput"
+                class="flex-1 min-w-[80px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="$t('alerts.list.ownerSearchPlaceholder')"
+                type="text"
+              />
+            </div>
+          </div>
           <div class="relative">
             <select
               v-model="statusFilter"
@@ -215,6 +230,8 @@
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
+        </div>
+        <div class="flex items-center gap-3">
           <button
             :disabled="selectedAlerts.length === 0"
             @click="openBatchCloseDialog"
@@ -638,6 +655,7 @@ const getStoredSearchKeywords = () => {
 
 const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
+const ownerSearch = ref('')
 // 从localStorage读取保存的status筛选器设置，如果没有则默认为'all'
 const getStoredStatusFilter = () => {
   try {
@@ -1070,6 +1088,11 @@ const loadAlerts = async () => {
       pageSize: pageSize.value
     }
     
+    // Add owner search condition if provided
+    if (ownerSearch.value && ownerSearch.value.trim()) {
+      params.owner = ownerSearch.value.trim()
+    }
+    
     const range = computeSelectedRange()
     if (range) {
       params.startTime = range.start
@@ -1193,6 +1216,21 @@ const removeKeyword = (index) => {
 const handleSearchInput = () => {
   // If real-time search is needed, call loadAlerts() here
   // Currently only searches when adding/removing keywords
+}
+
+/**
+ * @brief 处理责任人搜索输入
+ * @details 输入时不触发搜索，只在按回车时搜索
+ */
+const handleOwnerSearchInput = () => {
+  // Do nothing on input, only search on Enter key
+}
+
+/**
+ * @brief 处理责任人搜索（回车键）
+ */
+const handleOwnerSearch = () => {
+  reloadAlertsFromFirstPage()
 }
 
 const handleFilter = () => {

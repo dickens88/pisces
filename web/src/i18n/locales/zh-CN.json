@@ -115,6 +115,7 @@
       "owner": "责任人",
       "actor": "调查员",
       "searchPlaceholder": "输入关键字后按回车搜索标题...",
+      "ownerSearchPlaceholder": "搜索责任人...",
       "allStatus": "所有状态",
       "open": "打开",
       "block": "阻塞",

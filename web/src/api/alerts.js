@@ -79,9 +79,10 @@ const transformAlertData = (apiAlert) => {
  * @brief 构建查询条件
  * @param {Array<string>|string} searchKeywords - 搜索关键字
  * @param {string} status - 状态过滤
+ * @param {string} owner - 责任人搜索关键字
  * @returns {Array} 条件数组，格式为 [{field_name: value}, ...]
  */
-const buildConditions = (searchKeywords, status) => {
+const buildConditions = (searchKeywords, status, owner) => {
   const conditions = []
   
   // Add status condition
@@ -108,6 +109,13 @@ const buildConditions = (searchKeywords, status) => {
     }
   }
   
+  // Add owner condition (owner search)
+  if (owner && owner.trim()) {
+    conditions.push({
+      'owner': owner.trim()
+    })
+  }
+  
   return conditions
 }
 
@@ -125,6 +133,7 @@ const formatTimestamp = (timestamp) => {
  * @param {Object} params - 查询参数
  * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
  * @param {string} params.status - 状态过滤
+ * @param {string} params.owner - 责任人搜索关键字
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
  * @param {string} params.startTime - 开始时间（ISO字符串）
@@ -139,7 +148,7 @@ export const getAlerts = async (params = {}) => {
   const offset = (page - 1) * pageSize
   
   // Build query conditions
-  const conditions = buildConditions(params.searchKeywords, params.status)
+  const conditions = buildConditions(params.searchKeywords, params.status, params.owner)
   
   // Build request body
   const requestBody = {

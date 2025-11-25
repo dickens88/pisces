@@ -115,6 +115,7 @@
       "owner": "Owner",
       "actor": "Actor",
       "searchPlaceholder": "Enter keyword and press Enter to search title...",
+      "ownerSearchPlaceholder": "Search owner...",
       "allStatus": "All Status",
       "open": "Open",
       "block": "Block",
