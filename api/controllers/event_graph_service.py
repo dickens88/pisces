@@ -47,8 +47,27 @@ class _LightRAGClient:
         start = time.monotonic()
         while True:
             counts = self._get_status_counts()
-            if sum(counts.values()) == 0:
+            total = sum(counts.values())
+            if total == 0:
                 return
+
+            in_progress = (
+                counts.get("pending", 0)
+                + counts.get("processing", 0)
+                + counts.get("preprocessed", 0)
+            )
+            processed_only = in_progress == 0 and counts.get("processed", 0) > 0
+            if processed_only:
+                logger.info(
+                    "[LightRAG] Residual processed docs detected (%s), attempting cleanup",
+                    counts.get("processed", 0),
+                )
+                try:
+                    self.clear_documents(retries=2)
+                except EventGraphGenerationError as exc:
+                    logger.warning("[LightRAG] Cleanup attempt failed: %s", exc)
+                time.sleep(self.poll_interval)
+                continue
 
             if time.monotonic() - start > self.workspace_timeout:
                 raise EventGraphGenerationError(
@@ -165,11 +184,34 @@ class _LightRAGClient:
         data = self._safe_json(response)
         return data.get("response") or data.get("data")
 
-    def clear_documents(self):
-        try:
-            self._request("DELETE", "/documents")
-        except EventGraphGenerationError as exc:
-            logger.warning("Failed to clear LightRAG workspace: %s", exc)
+    def clear_documents(self, retries: int = 0):
+        attempts = max(1, retries + 1)
+        last_error = None
+
+        for attempt in range(1, attempts + 1):
+            try:
+                response = self._request("DELETE", "/documents")
+                data = self._safe_json(response)
+                status = ""
+                if isinstance(data, dict):
+                    status = str(data.get("status", "")).lower()
+                if status == "busy":
+                    raise EventGraphGenerationError("LightRAG workspace busy, cannot clear documents")
+                return
+            except EventGraphGenerationError as exc:
+                last_error = exc
+                logger.warning(
+                    "Failed to clear LightRAG workspace (attempt %s/%s): %s",
+                    attempt,
+                    attempts,
+                    exc,
+                )
+                if attempt >= attempts:
+                    break
+                time.sleep(self.poll_interval)
+
+        if last_error:
+            raise last_error
 
     def _get_status_counts(self) -> Dict[str, int]:
         response = self._request("GET", "/documents/status_counts")
