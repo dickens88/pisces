@@ -45,7 +45,13 @@ const resolveUserIdentity = async (authStore) => {
  * @param {(event: object) => void} [params.onEvent] - Callback for each streamed event.
  * @returns {Promise<any>} The last event received from the stream.
  */
-export const sendSecurityAgentMessage = async ({ alertId, message, files = [], onEvent }) => {
+export const sendSecurityAgentMessage = async ({
+  alertId,
+  message,
+  files = [],
+  conversationId,
+  onEvent
+}) => {
   const endpoint = config.aiChatApi
   if (!endpoint) {
     throw new Error('AI chat API endpoint is not configured (VITE_AI_CHAT_API)')
@@ -63,13 +69,18 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
   let body
   const headers = {}
 
-    body = JSON.stringify({
+    const requestBody = {
       inputs: { alert_id: alertId },
       query: sanitizedMessage,
       response_mode: 'streaming',
-      user: resolvedUserName,
-      conversation_id: `${alertId}-${resolvedUserName}`
-    })
+      user: resolvedUserName
+    }
+
+    if (conversationId) {
+      requestBody.conversation_id = conversationId
+    }
+
+    body = JSON.stringify(requestBody)
     headers['Content-Type'] = 'application/json'
 
   if (config.aiChatKey) {

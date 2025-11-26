@@ -784,6 +784,7 @@ const isRightSidebarAiDragging = ref(false)
 const isSendingSecurityAgentMessage = ref(false)
 const securityAgentMessages = ref([])
 const securityAgentChatRef = ref(null)
+const conversationId = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
@@ -1060,6 +1061,7 @@ const loadAlertDetail = async () => {
   // 重置状态
   alert.value = null
   isLoading.value = true
+  conversationId.value = null
   
   // 先显示面板，确保滑入动画能触发
   visible.value = true
@@ -1240,6 +1242,7 @@ const formatToolkitResult = (result) => {
 
 const handleClose = async () => {
   showMoreActionsMenu.value = false
+  conversationId.value = null
   
   // 如果还在加载，等待加载完成，但最多等待动画时间
   const closeDelay = 300 // 动画持续时间
@@ -1752,7 +1755,8 @@ const handleRightSidebarAiSend = async (data) => {
   const payload = {
     alertId: alert.value.id,
     message: sanitizedUserMessage,
-    files: data.files
+    files: data.files,
+    conversationId: conversationId.value
   }
 
   if (sanitizedUserMessage) {
@@ -1778,6 +1782,10 @@ const handleRightSidebarAiSend = async (data) => {
     await sendSecurityAgentMessage({
       ...payload,
       onEvent: (event) => {
+        const receivedConversationId = event?.conversation_id || event?.conversationId
+        if (receivedConversationId) {
+          conversationId.value = receivedConversationId
+        }
         if (!event) return
         const eventType = event.event || event.type
         if (eventType === 'message') {
@@ -2095,6 +2103,7 @@ onUnmounted(() => {
   // 移除点击外部关闭下拉菜单的监听器
   document.removeEventListener('click', handleClickOutside)
   hideRecentCloseCommentsDropdown()
+  conversationId.value = null
 })
 </script>
 
