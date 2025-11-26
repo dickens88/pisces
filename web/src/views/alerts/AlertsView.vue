@@ -970,12 +970,20 @@ const updateAlertTrendChart = () => {
   // Clear previous option to ensure new settings take effect
   alertTrendChartInstance.clear()
 
-  // Format dates for display (show date)
+  // Format dates for display (show hours for last24Hours, date for others)
   const formatDateLabel = (dateStr) => {
     const date = new Date(dateStr)
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    return `${month}/${day}`
+    if (selectedTimeRange.value === 'last24Hours') {
+      // Show hours in HH:mm format
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    } else {
+      // Show date in MM/DD format
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const day = date.getDate().toString().padStart(2, '0')
+      return `${month}/${day}`
+    }
   }
 
   const option = {
@@ -990,7 +998,7 @@ const updateAlertTrendChart = () => {
     },
     grid: {
       top: 5,
-      right: 5,
+      right: 30,
       bottom: 25,
       left: 20,
       containLabel: false
@@ -1001,7 +1009,8 @@ const updateAlertTrendChart = () => {
       boundaryGap: false,
       axisLabel: {
         color: '#94a3b8',
-        fontSize: 10
+        fontSize: 10,
+        margin: 8
       },
       axisLine: {
         show: true,
