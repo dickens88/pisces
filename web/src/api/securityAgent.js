@@ -63,23 +63,14 @@ export const sendSecurityAgentMessage = async ({ alertId, message, files = [], o
   let body
   const headers = {}
 
-//   if (hasFiles) {
-//     const formData = new FormData()
-//     formData.append('alertId', alertId)
-//     formData.append('message', sanitizedMessage)
-//     files.forEach((file, index) => {
-//       formData.append('files', file, file?.name || `attachment-${index + 1}`)
-//     })
-//     body = formData
-//   } else {
     body = JSON.stringify({
-      inputs: {},
+      inputs: { alert_id: alertId },
       query: sanitizedMessage,
       response_mode: 'streaming',
-      user: resolvedUserName
+      user: resolvedUserName,
+      conversation_id: `${alertId}-${resolvedUserName}`
     })
     headers['Content-Type'] = 'application/json'
- // }
 
   if (config.aiChatKey) {
     headers.Authorization = `Bearer ${config.aiChatKey}`
