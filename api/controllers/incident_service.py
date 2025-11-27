@@ -55,10 +55,10 @@ class IncidentService:
         total = data['total']
         for item in data['data']:
             if search_vulscan:
-                if cls.VULSCAN_LABEL not in item['data_object'].get('labels'):
+                if cls.VULSCAN_LABEL not in item['data_object'].get('labels', '-'):
                     continue
             else:
-                if cls.VULSCAN_LABEL in item['data_object'].get('labels'):
+                if cls.VULSCAN_LABEL in item['data_object'].get('labels', '-'):
                     continue
 
             row = {
