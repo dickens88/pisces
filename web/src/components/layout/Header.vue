@@ -31,23 +31,6 @@
           ref="userMenuRef"
           class="absolute right-0 mt-2 w-64 bg-white dark:bg-[#0b1220] border border-gray-200 dark:border-[#1f2937] rounded-xl shadow-xl overflow-hidden z-50"
         >
-          <!-- 关于：左侧图标+文字，右侧版本号+状态点 -->
-          <button
-            @click="openAbout"
-            class="w-full px-4 py-2.5 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center"
-          >
-            <div class="flex items-center gap-2 flex-1">
-              <span class="material-symbols-outlined text-base text-gray-600 dark:text-white/80">info</span>
-              <span>About</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 dark:text-white/70">{{ systemVersion || '-' }}</span>
-              <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
-            </div>
-          </button>
-
-          <div class="border-t border-gray-200 dark:border-[#1f2937]" />
-
           <div class="px-4 py-3 space-y-3">
             <div>
               <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Preferences</div>
@@ -104,6 +87,23 @@
               </div>
             </div>
           </div>
+
+          <div class="border-t border-gray-200 dark:border-[#1f2937]" />
+
+          <!-- 关于：左侧图标+文字，右侧版本号+状态点 -->
+          <button
+            @click="openAbout"
+            class="w-full px-4 py-2.5 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center"
+          >
+            <div class="flex items-center gap-2 flex-1">
+              <span class="material-symbols-outlined text-base text-gray-600 dark:text-white/80">info</span>
+              <span>About</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 dark:text-white/70">{{ systemVersion || '-' }}</span>
+              <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
+            </div>
+          </button>
 
           <div class="border-t border-gray-200 dark:border-[#1f2937]" />
 
