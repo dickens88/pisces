@@ -57,7 +57,13 @@
       "low": "Low",
       "tips": "Tips"
     },
-    "github": "Report an Issue"
+    "github": "Report an Issue",
+    "userMenu": {
+      "preferences": "Preferences",
+      "theme": "Theme",
+      "language": "Language",
+      "about": "About"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",

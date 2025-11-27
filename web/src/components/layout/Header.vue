@@ -33,9 +33,9 @@
         >
           <div class="px-4 py-3 space-y-3">
             <div>
-              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Preferences</div>
+              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{{ $t('common.userMenu.preferences') }}</div>
               <div class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-gray-50 dark:bg-[#111827] border border-gray-200 dark:border-[#1f2937]">
-                <span class="text-xs font-medium text-gray-700 dark:text-white">Theme</span>
+                <span class="text-xs font-medium text-gray-700 dark:text-white">{{ $t('common.userMenu.theme') }}</span>
                 <div class="flex items-center gap-1 rounded-full bg-white dark:bg-[#0f1729] px-1 py-0.5 border border-gray-200 dark:border-[#1f2937]">
                   <button
                     type="button"
@@ -64,7 +64,7 @@
             </div>
 
             <div>
-              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Language</div>
+              <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">{{ $t('common.userMenu.language') }}</div>
               <div class="grid grid-cols-2 gap-2">
                 <button
                   @click="selectLanguage('zh-CN')"
@@ -97,7 +97,7 @@
           >
             <div class="flex items-center gap-2 flex-1">
               <span class="material-symbols-outlined text-base text-gray-600 dark:text-white/80">info</span>
-              <span>About</span>
+              <span>{{ $t('common.userMenu.about') }}</span>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-xs text-gray-500 dark:text-white/70">{{ systemVersion || '-' }}</span>
@@ -108,15 +108,6 @@
           <div class="border-t border-gray-200 dark:border-[#1f2937]" />
 
           <button
-            v-if="!isAuthenticated"
-            @click="handleLogin"
-            class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center gap-2"
-          >
-            <span class="material-symbols-outlined text-base">login</span>
-            <span>{{ $t('common.login.login') }}</span>
-          </button>
-          <button
-            v-if="isAuthenticated"
             @click="handleLogout"
             class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center gap-2"
           >

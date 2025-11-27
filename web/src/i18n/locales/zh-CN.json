@@ -57,7 +57,13 @@
       "low": "低",
       "tips": "提示"
     },
-    "github": "提个问题单"
+    "github": "提个问题单",
+    "userMenu": {
+      "preferences": "偏好设置",
+      "theme": "主题",
+      "language": "语言",
+      "about": "关于"
+    }
   },
   "nav": {
     "dashboard": "安全态势",
