@@ -1,15 +1,6 @@
 import service from './axios.js'
 
 /**
- * @brief 获取Dashboard统计数据
- * @details 返回告警数量、事件数、漏洞数、平均检测时间等统计信息
- * @return {Promise} 返回统计数据
- */
-export const getDashboardStatistics = () => {
-  return service.get('/dashboard/statistics')
-}
-
-/**
  * @brief 获取最近未关闭的告警
  * @details 返回最近未关闭的告警列表
  * @param {Object} params 查询参数

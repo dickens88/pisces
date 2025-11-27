@@ -621,9 +621,11 @@ const updateVulnerabilityTrendChart = () => {
     }
   }
   
+  // Get data points count
+  const dataPoints = vulnerabilityTrendChartDates.value.length
+  
   // Calculate interval for x-axis labels based on data points
   const calculateLabelInterval = () => {
-    const dataPoints = vulnerabilityTrendChartDates.value.length
     if (daysDiff <= 30) {
       // Show every day if <= 30 days
       return 0
@@ -640,6 +642,12 @@ const updateVulnerabilityTrendChart = () => {
   }
   
   const labelInterval = calculateLabelInterval()
+  
+  // Determine if labels should be rotated based on data points count
+  // Rotate when there are many data points to prevent overlap
+  const shouldRotateLabels = dataPoints > 10 || daysDiff > 7
+  const labelRotation = shouldRotateLabels ? -45 : 0  // -45 degrees for downward rotation
+  const bottomMargin = shouldRotateLabels ? 50 : 30  // Increase bottom margin for rotated labels
 
   // Severity colors mapping
   const severityColors = {
@@ -705,7 +713,7 @@ const updateVulnerabilityTrendChart = () => {
     grid: {
       top: 40,
       right: 10,
-      bottom: 30,
+      bottom: bottomMargin,
       left: 40,
       containLabel: false
     },
@@ -716,8 +724,9 @@ const updateVulnerabilityTrendChart = () => {
       axisLabel: {
         color: '#94a3b8',
         fontSize: 10,
-        rotate: daysDiff > 30 ? 45 : 0,
+        rotate: labelRotation,
         interval: labelInterval,
+        margin: shouldRotateLabels ? 12 : 8,
         // Auto hide labels if too many
         showMinLabel: true,
         showMaxLabel: true

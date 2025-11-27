@@ -88,16 +88,16 @@
         </p>
       </div>
 
-      <!-- Average accuracy -->
+      <!-- Automation Closure Rate -->
       <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50">
         <p class="text-gray-600 dark:text-white/70 text-sm font-medium">
-          {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
+          {{ $t('alerts.list.statistics.automationClosureRate') || 'Automation Closure Rate' }}
         </p>
         <p class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
-          {{ aiAccuracyAverage }}%
+          {{ automationClosureRate }}%
         </p>
         <p class="text-sm text-gray-600 dark:text-white/60">
-          {{ $t('dashboard.charts.aiAccuracy') }}
+          {{ dashboardTimeRangeLabel }}
         </p>
       </div>
     </div>
@@ -181,30 +181,10 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getDashboardStatistics } from '@/api/dashboard'
-import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel } from '@/api/alerts'
+import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel, getAlertStatistics } from '@/api/alerts'
 import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
 
 const { t } = useI18n()
-
-/**
- * @brief 统计数据
- */
-const statistics = ref({
-  alertCount24h: 0,
-  alertCount24hChange: 0,
-  alertCount24hTrend: 'up',
-  incidentCount24h: 0,
-  incidentCount24hChange: 0,
-  incidentCount24hTrend: 'down',
-  vulnerabilityCount: 0,
-  vulnerabilityCountChange: 0,
-  vulnerabilityCountTrend: 'down',
-  mttd: '0m 0s',
-  mttdChange: 0,
-  mttdTrend: 'down'
-})
-
 
 /**
  * @brief 时间范围存储
@@ -224,6 +204,10 @@ const alertSourceLoading = ref(false)
 
 let alertSourceChartInstance = null
 let alertSourceResizeListenerBound = false
+
+// Automation Closure Rate
+const automationClosureRate = ref('0.0')
+const automationClosureRateLoading = ref(false)
 
 const aiAccuracyChartRef = ref(null)
 const aiAccuracyData = ref([])
@@ -698,6 +682,25 @@ const loadAlertSourceStatistics = async () => {
   }
 }
 
+const loadAutomationClosureRate = async () => {
+  automationClosureRateLoading.value = true
+  try {
+    const { start, end } = getDashboardTimeRange()
+    const response = await getAlertStatistics(start, end)
+    const rate = response?.data?.automation_rate
+    if (rate !== undefined && rate !== null) {
+      automationClosureRate.value = Number(rate).toFixed(1)
+    } else {
+      automationClosureRate.value = '0.0'
+    }
+  } catch (error) {
+    console.error('Failed to load automation closure rate:', error)
+    automationClosureRate.value = '0.0'
+  } finally {
+    automationClosureRateLoading.value = false
+  }
+}
+
 const loadAiAccuracyStatistics = async () => {
   aiAccuracyLoading.value = true
   try {
@@ -723,39 +726,6 @@ const loadAiAccuracyStatistics = async () => {
     updateAiAccuracyChart()
   }
 }
-
-/**
- * @brief 加载统计数据
- */
-const loadStatistics = async () => {
-  try {
-    const response = await getDashboardStatistics()
-    if (response && response.data) {
-      // Handle each field separately to avoid overwriting default values
-      const data = response.data
-      
-      // Update basic statistics fields
-      // Note: alertCount24h is now handled by loadAlertCount24hData()
-      // Note: incidentCount30d is now handled by loadIncidentCount30dData()
-      // Note: vulnerabilityCount30d is now handled by loadVulnerabilityCount30dData()
-      
-      if (data.mttd !== undefined) statistics.value.mttd = data.mttd
-      if (data.mttdChange !== undefined) statistics.value.mttdChange = data.mttdChange
-      if (data.mttdTrend !== undefined) statistics.value.mttdTrend = data.mttdTrend
-    }
-  } catch (error) {
-    console.error('Failed to load statistics:', error)
-    // Use default mock data when API call fails, but keep existing chart data
-    // Note: alertCount24h is now handled by loadAlertCount24hData()
-    // Note: incidentCount30d is now handled by loadIncidentCount30dData()
-    // Note: vulnerabilityCount30d is now handled by loadVulnerabilityCount30dData()
-    statistics.value.mttd = '12m 34s'
-    statistics.value.mttdChange = -1.2
-    statistics.value.mttdTrend = 'down'
-    // Chart data remains at default values
-  }
-}
-
 
 /**
  * @brief 处理时间范围变化
@@ -798,11 +768,11 @@ const handleRefresh = async () => {
  */
 const loadData = async () => {
   await Promise.all([
-    loadStatistics(),
     loadAlertSourceStatistics(),
     loadAlertCount24hData(),
     loadIncidentCount30dData(),
     loadVulnerabilityCount30dData(),
+    loadAutomationClosureRate(),
     loadAiAccuracyStatistics()
   ])
 }
