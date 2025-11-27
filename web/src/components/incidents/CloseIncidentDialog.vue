@@ -4,34 +4,34 @@
     class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
     @click.self="handleClose"
   >
-    <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+    <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-semibold text-white">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
           {{ title }}
         </h2>
         <button
           @click="handleClose"
-          class="text-gray-400 hover:text-white transition-colors"
+          class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           <span class="material-symbols-outlined text-base">close</span>
         </button>
       </div>
 
       <!-- 提示信息 -->
-      <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-        <p class="text-sm text-gray-400">
+      <div class="mb-4 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
           {{ confirmMessage }}
         </p>
       </div>
 
       <!-- 结论分类下拉框 -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-white mb-2">
+        <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
           {{ $t('incidents.detail.closeDialog.conclusionCategory') }}
         </label>
         <select
           v-model="closeConclusion.category"
-          class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+          class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
         >
           <option value="">{{ $t('incidents.detail.closeDialog.selectCategory') }}</option>
           <option value="falsePositive">{{ $t('incidents.detail.closeDialog.categories.falsePositive') }}</option>
@@ -43,7 +43,7 @@
 
       <!-- 调查结论输入框 -->
       <div class="mb-6 relative">
-        <label class="block text-sm font-medium text-white mb-2">
+        <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
           {{ $t('incidents.detail.closeDialog.conclusion') }}
         </label>
         <div class="relative">
@@ -52,20 +52,20 @@
             @focus="showHistoryDropdown = true"
             @blur="handleTextareaBlur"
             rows="4"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+            class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
             :placeholder="$t('incidents.detail.closeDialog.conclusionPlaceholder')"
           ></textarea>
           <!-- 历史记录下拉菜单 -->
           <div
             v-if="showHistoryDropdown && commentHistory.length > 0"
-            class="absolute z-10 w-full mt-1 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg max-h-48 overflow-y-auto"
+            class="absolute z-10 w-full mt-1 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-[#324867] rounded-md shadow-lg max-h-48 overflow-y-auto"
             @mousedown.prevent
           >
             <div
               v-for="(item, index) in commentHistory"
               :key="index"
               @click="selectHistoryItem(item)"
-              class="px-4 py-2 text-sm text-white hover:bg-[#324867] cursor-pointer border-b border-[#324867] last:border-b-0"
+              class="px-4 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] cursor-pointer border-b border-gray-200 dark:border-[#324867] last:border-b-0"
             >
               <div class="truncate">{{ item }}</div>
             </div>
@@ -77,7 +77,7 @@
       <div class="flex items-center justify-end gap-3">
         <button
           @click="handleClose"
-          class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
         >
           {{ $t('common.cancel') }}
         </button>

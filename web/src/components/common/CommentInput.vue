@@ -5,7 +5,7 @@
       <div class="flex-1">
         <!-- Input container -->
         <div 
-          class="relative rounded-xl border-2 border-[#3c4a60] bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
+          class="relative rounded-xl border-2 border-gray-200 dark:border-[#3c4a60] bg-white dark:bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
           :class="{ 
             'border-primary shadow-lg shadow-primary/20 drag-active': isDragging,
             'border-primary/50': isDragging
@@ -16,7 +16,7 @@
         >
           <textarea
             v-model="commentText"
-            class="w-full rounded-xl bg-transparent p-4 pr-32 text-white placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]"
+            class="w-full rounded-xl bg-transparent p-4 pr-32 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]"
             :placeholder="placeholder"
             rows="3"
             @input="handleTextareaInput"
@@ -38,7 +38,7 @@
             <button
               type="button"
               @click="triggerFileInput"
-              class="flex items-center justify-center w-8 h-8 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] text-text-light hover:text-white transition-all duration-200 group"
+              class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] text-gray-600 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
               :title="$t('incidents.detail.comments.attachFile') || 'Upload file'"
             >
               <span class="material-symbols-outlined text-lg">attach_file</span>
@@ -66,16 +66,16 @@
           <div
             v-for="(file, index) in uploadedFiles"
             :key="index"
-            class="group relative flex items-center gap-2 rounded-lg bg-[#2a3546] border border-[#3c4a60] px-3 py-2 hover:bg-[#3c4a60] transition-colors"
+            class="group relative flex items-center gap-2 rounded-lg bg-gray-100 dark:bg-[#2a3546] border border-gray-200 dark:border-[#3c4a60] px-3 py-2 hover:bg-gray-200 dark:hover:bg-[#3c4a60] transition-colors"
           >
             <span class="material-symbols-outlined text-primary text-sm">
               {{ getFileIcon(file.type) }}
             </span>
-            <span class="text-sm text-white max-w-[200px] truncate">{{ file.name }}</span>
-            <span class="text-xs text-text-light">{{ formatFileSize(file.size) }}</span>
+            <span class="text-sm text-gray-900 dark:text-white max-w-[200px] truncate">{{ file.name }}</span>
+            <span class="text-xs text-gray-600 dark:text-text-light">{{ formatFileSize(file.size) }}</span>
             <button
               @click="removeFile(0)"
-              class="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+              class="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <span class="material-symbols-outlined text-xs">close</span>
             </button>

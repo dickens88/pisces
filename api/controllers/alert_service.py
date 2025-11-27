@@ -61,7 +61,7 @@ class AlertService:
                 "ttr": item['data_object'].get('ttr'),
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
             }
-            row["owner"] = row["actor"] if row["actor"] else row["owner"]
+            row["actor"] = row["actor"] if row["actor"] else row["owner"]
             result.append(row)
 
         return result, total
@@ -98,7 +98,7 @@ class AlertService:
             "ttr": item['data_object'].get('ttr'),
             "data_source_product_name": item['data_object']['data_source']['product_name'],
         }
-        alert_content["owner"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
+        alert_content["actor"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
         try:
             alert_content["description"] = json.loads(item['data_object']['description'])
             # standard model_name field

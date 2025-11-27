@@ -19,15 +19,27 @@ body {
 }
 
 ::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+.dark ::-webkit-scrollbar-track {
   background: #1a1a1a;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
+  background: #9ca3af;
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+}
+
 ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #5a5a5a;
 }
 
@@ -44,14 +56,3 @@ body {
 .slide-leave-to {
   transform: translateX(100%);
 }
-
-/* Dify Chatbot Styles */
-#dify-chatbot-bubble-button {
-  background-color: #1C64F2 !important;
-}
-
-#dify-chatbot-bubble-window {
-  width: 24rem !important;
-  height: 40rem !important;
-}
-

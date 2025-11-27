@@ -12,9 +12,13 @@ export default {
         "background-light": "#f6f7f8",
         "background-dark": "#101822",
         "panel-dark": "#161d26",
+        "panel-light": "#ffffff",
         "border-dark": "#2a3546",
+        "border-light": "#e5e7eb",
         "text-light": "#9ca3af",
         "text-dark": "#6b7280",
+        "text-primary-light": "#111827",
+        "text-primary-dark": "#f9fafb",
       },
       fontFamily: {
         "display": ["Inter", "sans-serif"]

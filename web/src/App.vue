@@ -11,8 +11,8 @@ import Toast from '@/components/common/Toast.vue'
 const appStore = useAppStore()
 
 onMounted(() => {
-  // 设置暗色主题
-  document.documentElement.classList.add('dark')
+  // 应用保存的主题设置
+  appStore.setTheme(appStore.theme)
 })
 </script>
 

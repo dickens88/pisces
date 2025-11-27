@@ -21,8 +21,8 @@
       </main>
       
       <!-- 页脚 -->
-      <footer class="px-6 py-4 border-t border-[#324867] bg-[#111822]">
-        <div class="text-center text-gray-400 text-sm">
+      <footer class="px-6 py-4 border-t border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822]">
+        <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
           © 2025 Pisces Platform by CBU SOC EU Team
         </div>
       </footer>

@@ -2,14 +2,14 @@
   <div class="w-full">
     <!-- Page header -->
     <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
-      <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+      <h1 class="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
         {{ $t('alerts.title') }}
       </h1>
       <div class="flex gap-2 items-center">
         <button
           @click="handleRefresh"
           :disabled="isRefreshing"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -34,26 +34,26 @@
       v-if="alertChartsEnabled"
       class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
     >
-      <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
-        <p class="text-white text-base font-medium leading-normal">
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.alertTypeStats') }}
         </p>
-        <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
+        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
           {{ alertTypeChartTotal.toLocaleString() }}
         </p>
-        <p class="text-gray-400 text-sm font-normal leading-normal">
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
           {{ alertsTimeRangeLabel }}
         </p>
         <div class="relative h-40 w-full">
           <div
             v-if="alertTypeChartLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div
             v-else-if="alertTypeChartValues.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.noData') }}
           </div>
@@ -66,26 +66,26 @@
         </div>
       </div>
 
-      <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
-        <p class="text-white text-base font-medium leading-normal">
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.alertTrend') }}
         </p>
-        <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
+        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
           {{ statistics.alertCount || 0 }}
         </p>
-        <p class="text-gray-400 text-sm font-normal leading-normal">
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
           {{ alertsTimeRangeLabel }}
         </p>
         <div class="relative h-40 w-full">
           <div
             v-if="alertTrendChartLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div
             v-else-if="alertTrendChartValues.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.noData') }}
           </div>
@@ -98,26 +98,26 @@
         </div>
       </div>
 
-      <div class="flex flex-col gap-2 rounded-xl border border-[#324867] bg-[#111822] p-6">
-        <p class="text-white text-base font-medium leading-normal">
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.automationClosureRate') }}
         </p>
-        <p class="text-white tracking-light text-[32px] font-bold leading-tight truncate">
+        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
           {{ statistics.automationRate || '0' }}%
         </p>
-        <p class="text-gray-400 text-sm font-normal leading-normal">
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
           {{ alertsTimeRangeLabel }}
         </p>
         <div class="relative h-40 w-full">
           <div
             v-if="automationRateLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div
             v-else-if="!statistics.totalClosed && !statistics.autoClosed"
-            class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
           >
             {{ $t('common.noData') }}
           </div>
@@ -126,24 +126,24 @@
             class="absolute inset-0 flex flex-col justify-between py-3"
           >
             <!-- Progress bar -->
-            <div class="relative h-6 w-full bg-[#233348] rounded-full mt-4">
+            <div class="relative h-6 w-full bg-gray-200 dark:bg-[#233348] rounded-full mt-4">
               <div
                 class="bg-primary h-6 rounded-full transition-all"
                 :style="{ width: (statistics.automationRate || 0) + '%' }"
               ></div>
               <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-white text-sm font-medium">{{ statistics.automationRate || '0' }}%</span>
+                <span class="text-gray-900 dark:text-white text-sm font-medium">{{ statistics.automationRate || '0' }}%</span>
               </div>
             </div>
             <!-- Two metrics -->
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <p class="text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.autoClosed') }}</p>
-                <p class="text-white text-2xl font-bold">{{ (statistics.autoClosed || 0).toLocaleString() }}</p>
+                <p class="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.autoClosed') }}</p>
+                <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ (statistics.autoClosed || 0).toLocaleString() }}</p>
               </div>
               <div class="text-right">
-                <p class="text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.totalAlerts') }}</p>
-                <p class="text-white text-2xl font-bold">{{ (statistics.totalClosed || 0).toLocaleString() }}</p>
+                <p class="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.totalAlerts') }}</p>
+                <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ (statistics.totalClosed || 0).toLocaleString() }}</p>
               </div>
             </div>
           </div>
@@ -152,73 +152,93 @@
     </section>
 
     <!-- Alert list table -->
-    <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
+    <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative">
       <!-- Loading overlay -->
       <div
         v-if="loadingAlerts"
-        class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+        class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
       >
         <div class="flex flex-col items-center gap-4">
           <div class="relative w-16 h-16">
             <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
             <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
           </div>
-          <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
         </div>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
-        <div class="relative w-full max-w-sm">
-          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-            <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+          <div class="relative w-full max-w-sm">
+            <div class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0 pt-[2px]">
+                <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
+              </div>
+              <div class="flex flex-1 flex-wrap items-center gap-2 max-h-32 overflow-y-auto pr-1">
+                <!-- Search keyword tags -->
+                <div
+                  v-for="(keyword, index) in searchKeywords"
+                  :key="index"
+                  class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm max-w-full min-w-0"
+                >
+                  <span class="min-w-0 break-all">{{ keyword }}</span>
+                  <button
+                    @click="removeKeyword(index)"
+                    class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                    type="button"
+                    :aria-label="$t('common.delete')"
+                  >
+                    <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                  </button>
+                </div>
+                <!-- Input field -->
+                <input
+                  v-model="currentSearchInput"
+                  @keydown.enter.prevent="addKeyword"
+                  @keydown.delete="handleKeywordDeleteKey"
+                  @input="handleSearchInput"
+                  class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                  :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
+                  type="text"
+                />
+              </div>
             </div>
-            <!-- Search keyword tags -->
-            <div
-              v-for="(keyword, index) in searchKeywords"
-              :key="index"
-              class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
-            >
-              <span>{{ keyword }}</span>
-              <button
-                @click="removeKeyword(index)"
-                class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
-                type="button"
-                :aria-label="$t('common.delete')"
-              >
-                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
-              </button>
-            </div>
-            <!-- Input field -->
-            <input
-              v-model="currentSearchInput"
-              @keydown.enter.prevent="addKeyword"
-              @input="handleSearchInput"
-              class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
-              :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
-              type="text"
-            />
           </div>
-        </div>
-        <div class="flex items-center gap-3">
+          <div class="relative w-full max-w-[12rem]">
+            <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+                <div class="pointer-events-none flex items-center shrink-0">
+                <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person</span>
+              </div>
+              <input
+                v-model="ownerSearch"
+                @keydown.enter.prevent="handleOwnerSearch"
+                @input="handleOwnerSearchInput"
+                class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="$t('alerts.list.ownerSearchPlaceholder')"
+                type="text"
+              />
+            </div>
+          </div>
           <div class="relative">
             <select
               v-model="statusFilter"
               @change="handleFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-[#233348] h-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
             >
               <option value="all">{{ $t('alerts.list.allStatus') }}</option>
               <option value="open">{{ $t('alerts.list.open') }}</option>
               <option value="block">{{ $t('alerts.list.block') }}</option>
               <option value="closed">{{ $t('alerts.list.closed') }}</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
+        </div>
+        <div class="flex items-center gap-3">
           <button
             :disabled="selectedAlerts.length === 0"
             @click="openBatchCloseDialog"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
           >
             <span class="material-symbols-outlined text-base">close</span>
             <span>{{ $t('alerts.list.batchClose') }}</span>
@@ -226,7 +246,7 @@
           <button
             :disabled="selectedAlerts.length === 0"
             @click="openAssociateIncidentDialog"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
           >
             <span class="material-symbols-outlined text-base">link</span>
             <span>{{ $t('alerts.list.associateIncident') }}</span>
@@ -234,7 +254,7 @@
           <button
             :disabled="selectedAlerts.length === 0"
             @click="openCreateIncidentDialog"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
           >
             <span class="material-symbols-outlined text-base">transform</span>
             <span>{{ $t('alerts.list.batchConvert') }}</span>
@@ -243,7 +263,7 @@
           <div class="relative">
             <button
               @click="showMoreMenu = !showMoreMenu"
-              class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
+              class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
               :title="$t('common.more')"
             >
               <span class="material-symbols-outlined text-base">more_vert</span>
@@ -251,11 +271,11 @@
             <!-- Dropdown menu -->
             <div
               v-if="showMoreMenu"
-              class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+              class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
             >
               <button
                 @click="handleToggleWordWrap"
-                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
               >
                 <span class="material-symbols-outlined text-base">
                   {{ isWordWrap ? 'wrap_text' : 'text_fields' }}
@@ -264,7 +284,7 @@
               </button>
               <button
                 @click="handleCreateAlertFromMenu"
-                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
               >
                 <span class="material-symbols-outlined text-base">add</span>
                 <span>{{ $t('alerts.list.createAlert') }}</span>
@@ -272,7 +292,7 @@
               <button
                 @click="handleConvertToVulnerability"
                 :disabled="selectedAlerts.length === 0"
-                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
               >
                 <span class="material-symbols-outlined text-base">bug_report</span>
                 <span>{{ $t('alerts.detail.convertToVulnerability') }}</span>
@@ -280,7 +300,7 @@
               <button
                 @click="openBatchDeleteDialog"
                 :disabled="selectedAlerts.length === 0"
-                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
               >
                 <span class="material-symbols-outlined text-base">delete</span>
                 <span>{{ $t('alerts.list.batchDelete') }}</span>
@@ -314,7 +334,7 @@
           <div class="flex items-center gap-2">
             <button
               @click.stop="openAlertDetailInNewWindow(item.id)"
-              class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+              class="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors p-1"
               :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
             >
               <span class="material-symbols-outlined text-base">open_in_new</span>
@@ -407,36 +427,36 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeBatchDeleteDialog"
     >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             {{ $t('alerts.list.batchDeleteDialog.title') }}
           </h2>
           <button
             @click="closeBatchDeleteDialog"
-            class="text-gray-400 hover:text-white transition-colors"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <span class="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         <!-- Prompt message -->
-        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
+        <div class="mb-4 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ $t('alerts.list.batchDeleteDialog.confirmMessage', { count: selectedAlerts.length }) }}
           </p>
         </div>
 
         <!-- Confirmation input -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchDeleteDialog.confirmInputLabel') }}
           </label>
           <input
             v-model="deleteConfirmInput"
             @keydown.enter.prevent="handleBatchDelete"
             type="text"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
             :placeholder="$t('alerts.list.batchDeleteDialog.confirmInputPlaceholder')"
             autocomplete="off"
           />
@@ -446,7 +466,7 @@
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeBatchDeleteDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
           >
             {{ $t('common.cancel') }}
           </button>
@@ -468,35 +488,35 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeBatchCloseDialog"
     >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             {{ $t('alerts.list.batchCloseDialog.title') }}
           </h2>
           <button
             @click="closeBatchCloseDialog"
-            class="text-gray-400 hover:text-white transition-colors"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <span class="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         <!-- Prompt message -->
-        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
+        <div class="mb-4 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ $t('alerts.list.batchCloseDialog.confirmMessage', { count: selectedAlerts.length }) }}
           </p>
         </div>
 
         <!-- Conclusion category dropdown -->
         <div class="mb-4">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusionCategory') }}
             <span class="text-red-500 ml-1">*</span>
           </label>
           <select
             v-model="closeConclusion.category"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
           >
             <option value="">{{ $t('alerts.list.batchCloseDialog.selectCategory') }}</option>
             <option value="falsePositive">{{ $t('alerts.list.batchCloseDialog.categories.falsePositive') }}</option>
@@ -508,14 +528,14 @@
 
         <!-- Investigation conclusion input -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
           <div class="relative">
             <textarea
               v-model="closeConclusion.notes"
               rows="4"
-              class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+              class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
               :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
               @focus="handleCloseNotesFocus"
               @click="handleCloseNotesClick"
@@ -523,12 +543,12 @@
             ></textarea>
             <div
               v-if="showRecentCloseComments && recentCloseComments.length"
-              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+              class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
             >
               <p
                 v-for="(comment, index) in recentCloseComments"
                 :key="index"
-                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                class="px-4 py-2 text-sm text-gray-900 dark:text-white border-b border-gray-200 dark:border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#22324a]"
                 @mousedown.prevent="handleRecentCommentSelect(comment)"
               >
                 {{ comment }}
@@ -541,7 +561,7 @@
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeBatchCloseDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
           >
             {{ $t('common.cancel') }}
           </button>
@@ -638,6 +658,7 @@ const getStoredSearchKeywords = () => {
 
 const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
+const ownerSearch = ref('')
 // 从localStorage读取保存的status筛选器设置，如果没有则默认为'all'
 const getStoredStatusFilter = () => {
   try {
@@ -949,12 +970,20 @@ const updateAlertTrendChart = () => {
   // Clear previous option to ensure new settings take effect
   alertTrendChartInstance.clear()
 
-  // Format dates for display (show date)
+  // Format dates for display (show hours for last24Hours, date for others)
   const formatDateLabel = (dateStr) => {
     const date = new Date(dateStr)
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    return `${month}/${day}`
+    if (selectedTimeRange.value === 'last24Hours') {
+      // Show hours in HH:mm format
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    } else {
+      // Show date in MM/DD format
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const day = date.getDate().toString().padStart(2, '0')
+      return `${month}/${day}`
+    }
   }
 
   const option = {
@@ -969,7 +998,7 @@ const updateAlertTrendChart = () => {
     },
     grid: {
       top: 5,
-      right: 5,
+      right: 30,
       bottom: 25,
       left: 20,
       containLabel: false
@@ -980,7 +1009,8 @@ const updateAlertTrendChart = () => {
       boundaryGap: false,
       axisLabel: {
         color: '#94a3b8',
-        fontSize: 10
+        fontSize: 10,
+        margin: 8
       },
       axisLine: {
         show: true,
@@ -1068,6 +1098,11 @@ const loadAlerts = async () => {
       status: statusFilter.value,
       page: currentPage.value,
       pageSize: pageSize.value
+    }
+    
+    // Add owner search condition if provided
+    if (ownerSearch.value && ownerSearch.value.trim()) {
+      params.owner = ownerSearch.value.trim()
     }
     
     const range = computeSelectedRange()
@@ -1187,12 +1222,37 @@ const removeKeyword = (index) => {
 }
 
 /**
+ * Remove the most recent keyword when the Delete key is pressed with an empty input
+ */
+const handleKeywordDeleteKey = (event) => {
+  if (event.key === 'Delete' && !currentSearchInput.value && searchKeywords.value.length > 0) {
+    event.preventDefault()
+    removeKeyword(searchKeywords.value.length - 1)
+  }
+}
+
+/**
  * @brief 处理搜索输入
  * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
  */
 const handleSearchInput = () => {
   // If real-time search is needed, call loadAlerts() here
   // Currently only searches when adding/removing keywords
+}
+
+/**
+ * @brief 处理责任人搜索输入
+ * @details 输入时不触发搜索，只在按回车时搜索
+ */
+const handleOwnerSearchInput = () => {
+  // Do nothing on input, only search on Enter key
+}
+
+/**
+ * @brief 处理责任人搜索（回车键）
+ */
+const handleOwnerSearch = () => {
+  reloadAlertsFromFirstPage()
 }
 
 const handleFilter = () => {
@@ -1228,11 +1288,11 @@ const handleSelectAll = (items) => {
 
 const getRiskLevelClass = (level) => {
   const classes = {
-    fatal: 'bg-red-950 text-red-200',
-    high: 'bg-red-900 text-red-300',
-    medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300',
-    tips: 'bg-gray-700 text-gray-300'
+    fatal: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-200',
+    high: 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300',
+    medium: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300',
+    low: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300',
+    tips: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
   }
   return classes[level] || classes.low
 }

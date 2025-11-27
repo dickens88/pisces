@@ -1,26 +1,26 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[#0f1419] px-4">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0f1419] px-4">
     <div class="w-full max-w-md">
       <!-- Logo and Title -->
       <div class="text-center mb-8">
-        <h1 class="text-white text-3xl font-bold mb-2">Pisces</h1>
-        <p class="text-white/60 text-sm">{{ $t('common.login.subtitle') }}</p>
+        <h1 class="text-gray-900 dark:text-white text-3xl font-bold mb-2">Pisces</h1>
+        <p class="text-gray-600 dark:text-white/60 text-sm">{{ $t('common.login.subtitle') }}</p>
       </div>
 
       <!-- Login Card -->
-      <div class="bg-[#19222c] border border-[#324867]/50 rounded-xl p-8 shadow-xl">
-        <h2 class="text-white text-xl font-semibold mb-6 text-center">
+      <div class="bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50 rounded-xl p-8 shadow-xl">
+        <h2 class="text-gray-900 dark:text-white text-xl font-semibold mb-6 text-center">
           {{ $t('common.login.title') }}
         </h2>
 
         <form @submit.prevent="handleLogin" class="space-y-6">
           <!-- Username -->
           <div>
-            <label for="username" class="block text-white/80 text-sm font-medium mb-2">
+            <label for="username" class="block text-gray-700 dark:text-white/80 text-sm font-medium mb-2">
               {{ $t('common.login.username') }}
             </label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 text-lg">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 text-lg">
                 person
               </span>
               <input
@@ -30,7 +30,7 @@
                 :placeholder="$t('common.login.usernamePlaceholder')"
                 required
                 autocomplete="username"
-                class="w-full pl-10 pr-4 py-3 bg-[#0f1419] border border-[#324867]/50 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#4a90e2] focus:border-transparent transition-all"
+                class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-[#0f1419] border border-gray-300 dark:border-[#324867]/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 :disabled="isLoading"
               />
             </div>
@@ -38,11 +38,11 @@
 
           <!-- Password -->
           <div>
-            <label for="password" class="block text-white/80 text-sm font-medium mb-2">
+            <label for="password" class="block text-gray-700 dark:text-white/80 text-sm font-medium mb-2">
               {{ $t('common.login.password') }}
             </label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 text-lg">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 text-lg">
                 lock
               </span>
               <input
@@ -52,15 +52,15 @@
                 :placeholder="$t('common.login.passwordPlaceholder')"
                 required
                 autocomplete="current-password"
-                class="w-full pl-10 pr-4 py-3 bg-[#0f1419] border border-[#324867]/50 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-[#4a90e2] focus:border-transparent transition-all"
+                class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-[#0f1419] border border-gray-300 dark:border-[#324867]/50 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 :disabled="isLoading"
               />
             </div>
           </div>
 
           <!-- Error Message -->
-          <div v-if="errorMessage" class="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-            <p class="text-red-400 text-sm flex items-center gap-2">
+          <div v-if="errorMessage" class="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg p-3">
+            <p class="text-red-600 dark:text-red-400 text-sm flex items-center gap-2">
               <span class="material-symbols-outlined text-base">error</span>
               {{ errorMessage }}
             </p>
@@ -70,7 +70,7 @@
           <button
             type="submit"
             :disabled="isLoading"
-            class="w-full bg-[#4a90e2] hover:bg-[#5ba0f2] text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#4a90e2]"
+            class="w-full bg-primary hover:bg-blue-600 dark:hover:bg-[#5ba0f2] text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
           >
             <span
               v-if="isLoading"
@@ -85,7 +85,7 @@
       </div>
 
       <!-- Footer -->
-      <p class="text-center text-white/40 text-xs mt-6">
+      <p class="text-center text-gray-500 dark:text-white/40 text-xs mt-6">
         {{ $t('common.login.footer') }}
       </p>
     </div>

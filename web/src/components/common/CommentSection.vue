@@ -1,7 +1,7 @@
 <template>
   <div class="comment-section flex flex-col">
     <!-- 标题（可选） -->
-    <h3 v-if="title" class="text-lg font-semibold mb-4 text-white shrink-0">{{ title }}</h3>
+    <h3 v-if="title" class="text-lg font-semibold mb-4 text-gray-900 dark:text-white shrink-0">{{ title }}</h3>
     
     <!-- 评论列表 -->
     <div class="space-y-6 mb-6">
@@ -29,10 +29,10 @@
         <!-- 评论内容 -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between">
-            <p class="font-semibold text-white">{{ comment.author }}</p>
-            <p class="text-xs shrink-0 text-slate-400">{{ comment.time }}</p>
+            <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
+            <p class="text-xs shrink-0 text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
           </div>
-          <div class="mt-2 text-sm leading-relaxed text-slate-300 bg-slate-800 p-3 rounded-lg border border-slate-700">
+          <div class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
             <div 
               v-html="sanitizeHtml(comment.content)"
               class="comment-content"
@@ -45,10 +45,10 @@
                 <img
                   :src="comment.file.data"
                   :alt="comment.file.file_name || 'Uploaded image'"
-                  class="max-w-full max-h-96 rounded-lg border border-slate-600 cursor-pointer hover:opacity-90 transition-opacity"
+                  class="max-w-full max-h-96 rounded-lg border border-gray-200 dark:border-slate-600 cursor-pointer hover:opacity-90 transition-opacity"
                   @click="openImageModal(comment.file.data)"
                 />
-                <p v-if="comment.file.file_name" class="mt-1 text-xs text-slate-400">
+                <p v-if="comment.file.file_name" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
                   {{ comment.file.file_name }}
                 </p>
               </div>
@@ -57,14 +57,14 @@
                 <a
                   :href="comment.file.download_url"
                   target="_blank"
-                  class="inline-flex items-center gap-2 rounded-md bg-slate-700 border border-slate-600 px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:border-primary/50 transition-colors"
+                  class="inline-flex items-center gap-2 rounded-md bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 px-2.5 py-1.5 text-xs text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:border-primary/50 transition-colors"
                   @click.prevent="handleDownloadFile(comment.file.download_url, comment.file.type, comment.file.file_name)"
                 >
                   <span class="material-symbols-outlined text-primary text-sm">
                     {{ getFileIcon(comment.file.type) }}
                   </span>
                   <span>{{ comment.file.file_name || '下载文件' }}</span>
-                  <span v-if="!comment.file.file_name" class="text-slate-400/60">
+                  <span v-if="!comment.file.file_name" class="text-gray-500 dark:text-slate-400/60">
                     ({{ comment.file.type }})
                   </span>
                 </a>
@@ -77,13 +77,13 @@
                 v-for="(file, fileIndex) in comment.files"
                 :key="fileIndex"
                 href="#"
-                class="inline-flex items-center gap-2 rounded-md bg-slate-700 border border-slate-600 px-2.5 py-1.5 text-xs text-slate-300 hover:text-white hover:border-primary/50 transition-colors"
+                class="inline-flex items-center gap-2 rounded-md bg-gray-100 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 px-2.5 py-1.5 text-xs text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:border-primary/50 transition-colors"
               >
                 <span class="material-symbols-outlined text-primary text-sm">
                   {{ getFileIcon(file.type) }}
                 </span>
                 <span class="max-w-[150px] truncate">{{ file.name }}</span>
-                <span class="text-slate-400/60">
+                <span class="text-gray-500 dark:text-slate-400/60">
                   {{ formatFileSize(file.size) }}
                 </span>
               </a>
@@ -93,13 +93,13 @@
       </div>
       
       <!-- 空状态 -->
-      <div v-if="!comments || comments.length === 0" class="text-center py-8 text-slate-400">
+      <div v-if="!comments || comments.length === 0" class="text-center py-8 text-gray-500 dark:text-slate-400">
         {{ $t('common.noComments') || 'No comments yet' }}
       </div>
     </div>
     
     <!-- 评论输入框 -->
-    <div class="border-t border-slate-700 bg-slate-800/80 rounded-b-lg p-4 shrink-0">
+    <div class="border-t border-gray-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/80 rounded-b-lg p-4 shrink-0">
       <CommentInput
         v-model="newCommentText"
         :placeholder="$t('common.addComment') || 'Add a comment...'"

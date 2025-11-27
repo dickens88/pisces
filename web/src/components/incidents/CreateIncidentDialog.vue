@@ -15,16 +15,16 @@
       <Transition name="slide">
         <div
           v-if="showPanel"
-          class="relative w-[70vw] h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
+          class="relative w-[70vw] h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
           @click.stop
         >
           <!-- 头部 -->
-          <div class="sticky top-0 z-20 bg-panel-dark/80 backdrop-blur-sm border-b border-border-dark">
+          <div class="sticky top-0 z-20 bg-white/90 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
-              <h2 class="text-xl font-bold text-white">{{ $t('incidents.create.title') }}</h2>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t('incidents.create.title') }}</h2>
               <button
                 @click="handleClose"
-                class="p-2 text-text-light hover:text-white transition-colors"
+                class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <span class="material-symbols-outlined">close</span>
               </button>
@@ -32,18 +32,18 @@
           </div>
 
           <!-- 内容区 -->
-          <div class="flex-1 p-6 overflow-y-auto custom-scrollbar">
+          <div class="flex-1 p-6 overflow-y-auto custom-scrollbar bg-gray-50 dark:bg-transparent">
             <form @submit.prevent="handleSubmit" class="space-y-6">
               <!-- 事件标题 - 独占一行 -->
               <div>
-                <label class="block text-sm font-medium text-white mb-2">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {{ $t('incidents.create.incidentTitle') }} <span class="text-red-400">*</span>
                 </label>
                 <input
                   v-model="formData.title"
                   type="text"
                   required
-                  class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                  class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                   :placeholder="$t('incidents.create.incidentTitlePlaceholder')"
                 />
               </div>
@@ -52,13 +52,13 @@
               <div class="grid grid-cols-3 gap-4">
                 <!-- 事件分类 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.category') }} <span class="text-red-400">*</span>
                   </label>
                   <select
                     v-model="formData.category"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('incidents.create.selectCategory') }}</option>
                     <option value="platform">{{ $t('incidents.create.categoryPlatform') }}</option>
@@ -68,13 +68,13 @@
 
                 <!-- 当前状态 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.currentStatus') }} <span class="text-red-400">*</span>
                   </label>
                   <select
                     v-model="formData.status"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="Open">{{ $t('incidents.list.open') }}</option>
                     <option value="Block">{{ $t('incidents.list.block') }}</option>
@@ -84,13 +84,13 @@
 
                 <!-- 事件创建时间 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.occurrenceTime') }} <span class="text-red-400">*</span>
                   </label>
                   <VueDatePicker
                     v-model="formData.createTime"
                     :enable-time-picker="true"
-                    :dark="true"
+                    :dark="isDarkMode"
                     format="yyyy-MM-dd HH:mm"
                     :locale="datePickerLocale"
                     :teleport="true"
@@ -106,27 +106,27 @@
               <div class="grid grid-cols-2 gap-4">
                 <!-- 责任人 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.responsiblePerson') }} <span class="text-red-400">*</span>
                   </label>
                   <input
                     v-model="formData.responsiblePerson"
                     type="text"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                     :placeholder="$t('incidents.create.responsiblePersonPlaceholder')"
                   />
                 </div>
 
                 <!-- 责任部门 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.responsibleDepartment') }}
                   </label>
                   <input
                     v-model="formData.responsibleDepartment"
                     type="text"
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                     :placeholder="$t('incidents.create.responsibleDepartmentPlaceholder')"
                   />
                 </div>
@@ -136,12 +136,12 @@
               <div class="grid grid-cols-2 gap-4">
                 <!-- 事件根因 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.create.rootCause') }}
                   </label>
                   <select
                     v-model="formData.rootCause"
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('incidents.create.selectRootCause') }}</option>
                     <option value="exposedPort">{{ $t('incidents.create.rootCauseExposedPort') }}</option>
@@ -155,13 +155,13 @@
 
                 <!-- 严重程度 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('incidents.detail.severity') }} <span class="text-red-400">*</span>
                   </label>
                   <select
                     v-model="formData.severity"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('incidents.create.selectSeverity') || '请选择严重程度' }}</option>
                     <option
@@ -177,24 +177,24 @@
 
               <!-- 事件描述 - 独占一行 -->
               <div>
-                <label class="block text-sm font-medium text-white mb-2">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {{ $t('incidents.create.description') }} <span class="text-red-400">*</span>
                 </label>
                 <textarea
                   v-model="formData.description"
                   required
                   rows="6"
-                  class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-colors"
+                  class="w-full bg-white dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-colors"
                   :placeholder="$t('incidents.create.descriptionPlaceholder')"
                 ></textarea>
               </div>
 
               <!-- 按钮组 -->
-              <div class="flex items-center justify-end gap-4 pt-4 border-t border-border-dark">
+              <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200 dark:border-border-dark">
                 <button
                   type="button"
                   @click="handleClose"
-                  class="px-6 py-2 text-sm font-medium text-white bg-[#2a3546] rounded-md hover:bg-[#3c4a60] transition-colors"
+                  class="px-6 py-2 text-sm font-medium text-gray-700 dark:text-white bg-gray-100 dark:bg-[#2a3546] border border-gray-200 dark:border-transparent rounded-md hover:bg-gray-200 dark:hover:bg-[#3c4a60] transition-colors"
                 >
                   {{ $t('common.cancel') }}
                 </button>
@@ -220,6 +220,7 @@ import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/app'
 import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
@@ -248,6 +249,7 @@ const emit = defineEmits(['close', 'created'])
 const { t, locale } = useI18n()
 const toast = useToast()
 const authStore = useAuthStore()
+const appStore = useAppStore()
 
 const showPanel = ref(false)
 const isSubmitting = ref(false)
@@ -256,6 +258,8 @@ const isSubmitting = ref(false)
 const datePickerLocale = computed(() => {
   return locale.value === 'zh-CN' ? zhCN : enUS
 })
+
+const isDarkMode = computed(() => appStore.theme === 'dark')
 
 const severityOptions = computed(() => ([
   { value: '1', label: `1 - ${t('common.severity.fatal')}` },
@@ -492,16 +496,26 @@ onUnmounted(() => {
 /* 自定义日期选择器输入框样式 */
 :deep(.datepicker-input) {
   width: 100%;
-  background-color: #1e293b;
-  color: white;
-  border: 1px solid #324867;
+  background-color: #ffffff;
+  color: #111827;
+  border: 1px solid #d1d5db;
   border-radius: 0.375rem;
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   transition: all 0.2s;
 }
 
+.dark :deep(.datepicker-input) {
+  background-color: #1e293b;
+  color: white;
+  border: 1px solid #324867;
+}
+
 :deep(.datepicker-input:hover) {
+  border-color: #9ca3af;
+}
+
+.dark :deep(.datepicker-input:hover) {
   border-color: #3c4a60;
 }
 
@@ -548,15 +562,26 @@ select:focus {
 }
 
 select option {
+  background-color: #ffffff;
+  color: #111827;
+  padding: 0.5rem;
+}
+
+.dark select option {
   background-color: #1e293b;
   color: white;
-  padding: 0.5rem;
 }
 
 /* 输入框和选择框的 hover 效果 */
 input:hover:not(:focus),
 select:hover:not(:focus),
 textarea:hover:not(:focus) {
+  border-color: #9ca3af;
+}
+
+.dark input:hover:not(:focus),
+.dark select:hover:not(:focus),
+.dark textarea:hover:not(:focus) {
   border-color: #3c4a60;
 }
 

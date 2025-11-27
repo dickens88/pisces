@@ -13,16 +13,16 @@
       <Transition name="slide">
         <div
           v-if="showPanel"
-          class="relative w-[70vw] h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
+          class="relative w-[70vw] h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
           @click.stop
         >
           <!-- 头部 -->
-          <div class="sticky top-0 z-20 bg-panel-dark/80 backdrop-blur-sm border-b border-border-dark">
+          <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
-              <h2 class="text-xl font-bold text-white">{{ $t('alerts.create.title') }}</h2>
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white">{{ $t('alerts.create.title') }}</h2>
               <button
                 @click="handleClose"
-                class="p-2 text-text-light hover:text-white transition-colors"
+                class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
               >
                 <span class="material-symbols-outlined">close</span>
               </button>
@@ -34,14 +34,14 @@
             <form @submit.prevent="handleSubmit" class="space-y-6">
               <!-- 告警标题 - 独占一行 -->
               <div>
-                <label class="block text-sm font-medium text-white mb-2">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {{ $t('alerts.create.alertTitle') }} <span class="text-red-400">*</span>
                 </label>
                 <input
                   v-model="formData.title"
                   type="text"
                   required
-                  class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                  class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                   :placeholder="$t('alerts.create.alertTitlePlaceholder')"
                 />
               </div>
@@ -50,13 +50,13 @@
               <div class="grid grid-cols-3 gap-4">
                 <!-- 风险等级 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('alerts.create.riskLevel') }} <span class="text-red-400">*</span>
                   </label>
                   <select
                     v-model="formData.riskLevel"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('alerts.create.selectRiskLevel') }}</option>
                     <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -69,13 +69,13 @@
 
                 <!-- 状态 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('alerts.create.status') }} <span class="text-red-400">*</span>
                   </label>
                   <select
                     v-model="formData.status"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
                   >
                     <option value="open">{{ $t('alerts.list.open') }}</option>
                     <option value="block">{{ $t('alerts.list.block') }}</option>
@@ -85,20 +85,20 @@
 
                 <!-- 发生时间 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('alerts.create.timestamp') }} <span class="text-red-400">*</span>
                   </label>
                   <VueDatePicker
                     v-model="formData.timestamp"
                     :enable-time-picker="true"
-                    :dark="true"
+                    :dark="isDarkMode"
                     format="yyyy-MM-dd HH:mm"
                     :locale="datePickerLocale"
                     :teleport="true"
                     :auto-apply="true"
                     :required="true"
                     class="w-full"
-                    input-class-name="datepicker-input"
+                    :input-class-name="isDarkMode ? 'datepicker-input-dark' : 'datepicker-input-light'"
                   />
                 </div>
               </div>
@@ -107,27 +107,27 @@
               <div class="grid grid-cols-2 gap-4">
                 <!-- 责任人 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('alerts.create.owner') }} <span class="text-red-400">*</span>
                   </label>
                   <input
                     v-model="formData.owner"
                     type="text"
                     required
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                     :placeholder="$t('alerts.create.ownerPlaceholder')"
                   />
                 </div>
 
                 <!-- 规则名称 -->
                 <div>
-                  <label class="block text-sm font-medium text-white mb-2">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     {{ $t('alerts.create.ruleName') }}
                   </label>
                   <input
                     v-model="formData.ruleName"
                     type="text"
-                    class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
                     :placeholder="$t('alerts.create.ruleNamePlaceholder')"
                   />
                 </div>
@@ -135,24 +135,24 @@
 
               <!-- 告警描述 - 独占一行 -->
               <div>
-                <label class="block text-sm font-medium text-white mb-2">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   {{ $t('alerts.create.description') }} <span class="text-red-400">*</span>
                 </label>
                 <textarea
                   v-model="formData.description"
                   required
                   rows="6"
-                  class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-colors"
+                  class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-colors"
                   :placeholder="$t('alerts.create.descriptionPlaceholder')"
                 ></textarea>
               </div>
 
               <!-- 按钮组 -->
-              <div class="flex items-center justify-end gap-4 pt-4 border-t border-border-dark">
+              <div class="flex items-center justify-end gap-4 pt-4 border-t border-gray-200 dark:border-border-dark">
                 <button
                   type="button"
                   @click="handleClose"
-                  class="px-6 py-2 text-sm font-medium text-white bg-[#2a3546] rounded-md hover:bg-[#3c4a60] transition-colors"
+                  class="px-6 py-2 text-sm font-medium text-gray-700 dark:text-white bg-gray-200 dark:bg-[#2a3546] rounded-md hover:bg-gray-300 dark:hover:bg-[#3c4a60] transition-colors"
                 >
                   {{ $t('common.cancel') }}
                 </button>
@@ -195,6 +195,8 @@ const emit = defineEmits(['close', 'created'])
 const { t, locale } = useI18n()
 const toast = useToast()
 const authStore = useAuthStore()
+
+const isDarkMode = computed(() => document.documentElement.classList.contains('dark'))
 
 const showPanel = ref(false)
 const isSubmitting = ref(false)
@@ -340,8 +342,8 @@ onUnmounted(() => {
   background-color: rgba(59, 130, 246, 0.5);
 }
 
-/* 自定义日期选择器输入框样式 */
-:deep(.datepicker-input) {
+/* 自定义日期选择器输入框样式 - 深色模式 */
+:deep(.datepicker-input-dark) {
   width: 100%;
   background-color: #1e293b;
   color: white;
@@ -352,11 +354,33 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-:deep(.datepicker-input:hover) {
+:deep(.datepicker-input-dark:hover) {
   border-color: #3c4a60;
 }
 
-:deep(.datepicker-input:focus) {
+:deep(.datepicker-input-dark:focus) {
+  border-color: #2b7cee;
+  box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
+  outline: none;
+}
+
+/* 自定义日期选择器输入框样式 - 浅色模式 */
+:deep(.datepicker-input-light) {
+  width: 100%;
+  background-color: #f3f4f6;
+  color: #111827;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+:deep(.datepicker-input-light:hover) {
+  border-color: #9ca3af;
+}
+
+:deep(.datepicker-input-light:focus) {
   border-color: #2b7cee;
   box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
   outline: none;
@@ -385,6 +409,17 @@ onUnmounted(() => {
   --dp-highlight-color: rgba(43, 124, 238, 0.1);
 }
 
+:root select option {
+  background-color: #f3f4f6;
+  color: #111827;
+  padding: 0.5rem;
+}
+
+:root.dark select option {
+  background-color: #1e293b;
+  color: white;
+}
+
 /* 美化 select 下拉框 */
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -398,17 +433,17 @@ select:focus {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232b7cee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
-select option {
-  background-color: #1e293b;
-  color: white;
-  padding: 0.5rem;
+/* 输入框和选择框的 hover 效果 */
+:root.dark input:hover:not(:focus),
+:root.dark select:hover:not(:focus),
+:root.dark textarea:hover:not(:focus) {
+  border-color: #3c4a60;
 }
 
-/* 输入框和选择框的 hover 效果 */
-input:hover:not(:focus),
-select:hover:not(:focus),
-textarea:hover:not(:focus) {
-  border-color: #3c4a60;
+:root:not(.dark) input:hover:not(:focus),
+:root:not(.dark) select:hover:not(:focus),
+:root:not(.dark) textarea:hover:not(:focus) {
+  border-color: #9ca3af;
 }
 
 /* 输入框和选择框的 focus 效果增强 */
