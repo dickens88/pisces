@@ -4,7 +4,7 @@
     <div class="relative">
       <button
         @click.stop="showTimeRangeDropdown = !showTimeRangeDropdown"
-        class="time-range-button flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg px-3 transition-colors bg-[#233348] hover:bg-[#324867] text-white border border-[#324867]"
+        class="time-range-button flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg px-3 transition-colors bg-gray-100 dark:bg-[#233348] hover:bg-gray-200 dark:hover:bg-[#324867] text-gray-700 dark:text-white border border-gray-200 dark:border-[#324867]"
       >
         <span class="material-symbols-outlined" style="font-size: 20px;">schedule</span>
         <p class="text-sm font-medium leading-normal">{{ getCurrentTimeRangeLabel() }}</p>
@@ -14,7 +14,7 @@
       <div
         v-if="showTimeRangeDropdown"
         @click.stop
-        class="time-range-dropdown absolute top-full left-0 mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[140px]"
+        class="time-range-dropdown absolute top-full left-0 mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[140px]"
       >
         <button
           v-for="range in presetTimeRanges"
@@ -24,20 +24,20 @@
             'w-full flex items-center gap-x-2 px-4 py-2 text-sm font-medium transition-colors text-left',
             selectedTimeRange === range.key
               ? 'bg-primary/30 text-primary'
-              : 'text-white hover:bg-[#324867]'
+              : 'text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]'
           ]"
         >
           <span class="material-symbols-outlined" style="font-size: 18px;">{{ range.icon }}</span>
           <span>{{ $t(`${i18nPrefix}.${range.key}`) }}</span>
         </button>
-        <div class="border-t border-[#324867] my-1"></div>
+        <div class="border-t border-gray-200 dark:border-[#324867] my-1"></div>
         <button
           @click="handleTimeRangeChange('customRange')"
           :class="[
             'w-full flex items-center gap-x-2 px-4 py-2 text-sm font-medium transition-colors text-left',
             selectedTimeRange === 'customRange'
               ? 'bg-primary/30 text-primary'
-              : 'text-white hover:bg-[#324867]'
+              : 'text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]'
           ]"
         >
           <span class="material-symbols-outlined" style="font-size: 18px;">date_range</span>
@@ -50,7 +50,7 @@
       <VueDatePicker
         v-model="customTimeRange"
         :enable-time-picker="true"
-        :dark="true"
+        :dark="isDarkMode"
         range
         format="yyyy-MM-dd HH:mm"
         :locale="datePickerLocale"
@@ -65,6 +65,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores/app'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { zhCN, enUS } from 'date-fns/locale'
 import '@vuepic/vue-datepicker/dist/main.css'
@@ -91,6 +92,10 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change', 'customRangeChange'])
 
 const { locale, t } = useI18n()
+const appStore = useAppStore()
+
+// Check if dark mode is enabled
+const isDarkMode = computed(() => appStore.theme === 'dark')
 
 // 从 localStorage 读取保存的时间范围
 const getStoredTimeRange = () => {
@@ -242,16 +247,26 @@ onUnmounted(() => {
 }
 
 :deep(.custom-date-picker .dp__input) {
-  background-color: #1e293b;
-  color: white;
-  border: 1px solid #324867;
+  background-color: #f9fafb;
+  color: #111827;
+  border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   min-width: 280px;
 }
 
+.dark :deep(.custom-date-picker .dp__input) {
+  background-color: #1e293b;
+  color: white;
+  border: 1px solid #324867;
+}
+
 :deep(.custom-date-picker .dp__input:hover) {
+  border-color: #d1d5db;
+}
+
+.dark :deep(.custom-date-picker .dp__input:hover) {
   border-color: #3c4a60;
 }
 

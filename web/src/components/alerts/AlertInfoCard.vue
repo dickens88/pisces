@@ -8,7 +8,7 @@
           </span>
           <h4
             v-if="primaryHeaderText"
-            class="text-base font-semibold text-white truncate"
+            class="text-base font-semibold text-gray-900 dark:text-white truncate"
             :title="primaryHeaderText"
           >
             {{ primaryHeaderText }}
@@ -16,7 +16,7 @@
         </div>
         <div
           v-if="displayHeaderMeta"
-          class="flex items-center gap-1 text-xs text-text-light whitespace-nowrap"
+          class="flex items-center gap-1 text-xs text-gray-500 dark:text-text-light whitespace-nowrap"
         >
           <span v-if="headerMetaIconToShow" class="material-symbols-outlined text-base">
             {{ headerMetaIconToShow }}
@@ -29,19 +29,19 @@
     <slot>
       <div
         v-if="sanitizedHtmlContent"
-        class="mt-3 text-sm text-[#c3d3e8] alert-info-card__html"
+        class="mt-3 text-sm text-gray-700 dark:text-[#c3d3e8] alert-info-card__html"
         v-html="sanitizedHtmlContent"
       ></div>
       <p
         v-else-if="summary"
-        class="mt-3 text-sm text-[#c3d3e8] whitespace-pre-wrap"
+        class="mt-3 text-sm text-gray-700 dark:text-[#c3d3e8] whitespace-pre-wrap"
       >
         {{ summary }}
       </p>
     </slot>
 
     <slot name="footer" v-if="showFooter">
-      <div class="mt-4 flex items-center justify-between text-xs text-text-light">
+      <div class="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-text-light">
         <slot name="footer-right">
           <div v-if="footerRightText" :class="footerRightWrapperClass">
             <span v-if="footerRightIcon" class="material-symbols-outlined text-base">{{ footerRightIcon }}</span>
@@ -120,7 +120,7 @@ const sanitizedHtmlContent = computed(() => {
 const primaryHeaderText = computed(() => props.owner || props.title)
 
 const cardClass = computed(() => [
-  'rounded-lg border border-border-dark bg-[#1f2937]/30 p-4 transition-all',
+  'rounded-lg border border-gray-200 dark:border-border-dark bg-white dark:bg-[#1f2937]/30 p-4 transition-all',
   'cursor-default'
 ])
 
@@ -164,20 +164,36 @@ const headerMetaIconToShow = computed(() => (displayHeaderMeta.value ? props.hea
 
 <style scoped>
 .alert-info-card__html :deep(pre) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  color: #0f172a;
   padding: 12px;
   border-radius: 6px;
   white-space: pre-wrap;
   margin: 10px 0;
 }
 
+:global(.dark) .alert-info-card__html :deep(pre) {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
 .alert-info-card__html :deep(code) {
   font-family: 'Fira Code', 'Source Code Pro', monospace;
   font-size: 13px;
+  color: #0f172a;
+}
+
+:global(.dark) .alert-info-card__html :deep(code) {
+  color: #e2e8f0;
 }
 
 .alert-info-card__html :deep(b) {
+  color: #0f172a;
+}
+
+:global(.dark) .alert-info-card__html :deep(b) {
   color: #e2e8f0;
 }
 </style>

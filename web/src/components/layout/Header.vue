@@ -1,12 +1,23 @@
 <template>
-  <header class="flex items-center justify-end px-6 py-4 border-b border-[#324867] bg-[#111822]">
+  <header class="flex items-center justify-end px-6 py-4 border-b border-border-light dark:border-[#324867] bg-panel-light dark:bg-[#111822]">
     <div class="flex items-center gap-4">
+      <!-- Theme Switcher -->
+      <button
+        @click="appStore.toggleTheme()"
+        class="flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-[#233348] hover:bg-gray-200 dark:hover:bg-[#2a3d52] text-gray-700 dark:text-white rounded-lg transition-all duration-200 border border-gray-200 dark:border-transparent hover:border-gray-300 dark:hover:border-[#324867]"
+        :title="appStore.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+      >
+        <span class="material-symbols-outlined text-lg">
+          {{ appStore.theme === 'dark' ? 'light_mode' : 'dark_mode' }}
+        </span>
+      </button>
+      
       <!-- GitHub 图标 -->
       <a
         href="https://codehub-g.huawei.com/csirt_hunting/Tianyan-WEB/issues"
         target="_blank"
         rel="noopener noreferrer"
-        class="flex items-center justify-center w-9 h-9 bg-[#233348] hover:bg-[#2a3d52] text-white rounded-lg transition-all duration-200 border border-transparent hover:border-[#324867]"
+        class="flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-[#233348] hover:bg-gray-200 dark:hover:bg-[#2a3d52] text-gray-700 dark:text-white rounded-lg transition-all duration-200 border border-gray-200 dark:border-transparent hover:border-gray-300 dark:hover:border-[#324867]"
         :title="$t('common.github')"
       >
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -18,7 +29,7 @@
       <div class="relative group" ref="languageButtonRef">
         <button
           @click.stop="showLanguageMenu = !showLanguageMenu"
-          class="flex items-center gap-2 bg-[#233348] hover:bg-[#2a3d52] text-white px-3 py-2 rounded-lg text-sm transition-all duration-200 border border-transparent hover:border-[#324867]"
+          class="flex items-center gap-2 bg-gray-100 dark:bg-[#233348] hover:bg-gray-200 dark:hover:bg-[#2a3d52] text-gray-700 dark:text-white px-3 py-2 rounded-lg text-sm transition-all duration-200 border border-gray-200 dark:border-transparent hover:border-gray-300 dark:hover:border-[#324867]"
         >
           <span class="material-symbols-outlined text-base">language</span>
           <span class="min-w-[60px] text-left">{{ currentLocale === 'zh-CN' ? '中文' : 'English' }}</span>
@@ -29,20 +40,20 @@
         <div
           v-if="showLanguageMenu"
           ref="languageMenuRef"
-          class="absolute right-0 mt-2 w-36 bg-[#1a2332] border border-[#324867] rounded-lg shadow-xl overflow-hidden z-50"
+          class="absolute right-0 mt-2 w-36 bg-white dark:bg-[#1a2332] border border-gray-200 dark:border-[#324867] rounded-lg shadow-xl overflow-hidden z-50"
         >
           <button
             @click="selectLanguage('zh-CN')"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2"
-            :class="{ 'bg-[#233348]': currentLocale === 'zh-CN' }"
+            class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#233348] transition-colors flex items-center gap-2"
+            :class="{ 'bg-gray-100 dark:bg-[#233348]': currentLocale === 'zh-CN' }"
           >
             <span class="material-symbols-outlined text-base" v-if="currentLocale === 'zh-CN'">check</span>
             <span :class="{ 'ml-6': currentLocale !== 'zh-CN' }">中文</span>
           </button>
           <button
             @click="selectLanguage('en-US')"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#233348] transition-colors flex items-center gap-2 border-t border-[#324867]"
-            :class="{ 'bg-[#233348]': currentLocale === 'en-US' }"
+            class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#233348] transition-colors flex items-center gap-2 border-t border-gray-200 dark:border-[#324867]"
+            :class="{ 'bg-gray-100 dark:bg-[#233348]': currentLocale === 'en-US' }"
           >
             <span class="material-symbols-outlined text-base" v-if="currentLocale === 'en-US'">check</span>
             <span :class="{ 'ml-6': currentLocale !== 'en-US' }">English</span>
@@ -54,41 +65,41 @@
       <div class="relative group" ref="userMenuButtonRef">
         <button
           @click.stop="showUserMenu = !showUserMenu"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#1a2332] transition-colors"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-100 dark:bg-[#233348] border border-gray-200 dark:border-transparent hover:bg-gray-200 dark:hover:bg-[#1a2332] transition-colors"
         >
           <!-- 已登录但用户名尚未加载时，不再显示 Guest，而是暂时留空 -->
           <UserAvatar :name="displayName" />
-          <span class="text-white text-sm font-medium">{{ displayName }}</span>
-          <span class="material-symbols-outlined text-sm text-white/60 transition-transform duration-200" :class="{ 'rotate-180': showUserMenu }">expand_more</span>
+          <span class="text-gray-700 dark:text-white text-sm font-medium">{{ displayName }}</span>
+          <span class="material-symbols-outlined text-sm text-gray-500 dark:text-white/60 transition-transform duration-200" :class="{ 'rotate-180': showUserMenu }">expand_more</span>
         </button>
         
         <!-- 用户菜单 -->
         <div
           v-if="showUserMenu"
           ref="userMenuRef"
-          class="absolute right-0 mt-2 w-56 bg-[#0b1220] border border-[#1f2937] rounded-xl shadow-xl overflow-hidden z-50"
+          class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#0b1220] border border-gray-200 dark:border-[#1f2937] rounded-xl shadow-xl overflow-hidden z-50"
         >
           <!-- 关于：左侧图标+文字，右侧版本号+状态点 -->
           <button
             @click="openAbout"
-            class="w-full px-4 py-2.5 text-sm text-white hover:bg-[#111827] transition-colors flex items-center"
+            class="w-full px-4 py-2.5 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center"
           >
             <div class="flex items-center gap-2 flex-1">
-              <span class="material-symbols-outlined text-base text-white/80">info</span>
+              <span class="material-symbols-outlined text-base text-gray-600 dark:text-white/80">info</span>
               <span>About</span>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-xs text-white/70">{{ systemVersion || '-' }}</span>
+              <span class="text-xs text-gray-500 dark:text-white/70">{{ systemVersion || '-' }}</span>
               <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.9)]"></span>
             </div>
           </button>
 
-          <div class="border-t border-[#1f2937]" />
+          <div class="border-t border-gray-200 dark:border-[#1f2937]" />
 
           <button
             v-if="!isAuthenticated"
             @click="handleLogin"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#111827] transition-colors flex items-center gap-2"
+            class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center gap-2"
           >
             <span class="material-symbols-outlined text-base">login</span>
             <span>{{ $t('common.login.login') }}</span>
@@ -96,7 +107,7 @@
           <button
             v-if="isAuthenticated"
             @click="handleLogout"
-            class="w-full px-4 py-2.5 text-left text-sm text-white hover:bg-[#111827] transition-colors flex items-center gap-2"
+            class="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-[#111827] transition-colors flex items-center gap-2"
           >
             <span class="material-symbols-outlined text-base">logout</span>
             <span>{{ $t('common.login.logout') }}</span>
@@ -110,9 +121,9 @@
       v-if="showAboutDialog"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     >
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md pt-8 pb-4 px-8 relative text-center">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md pt-8 pb-4 px-8 relative text-center">
         <button
-          class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+          class="absolute top-4 right-4 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
           @click="showAboutDialog = false"
         >
           <span class="material-symbols-outlined text-lg">close</span>
@@ -128,31 +139,31 @@
               class="h-10 w-10 object-contain"
             >
           </div>
-          <h3 class="text-xl font-semibold text-slate-900 tracking-tight">
+          <h3 class="text-xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">
             Pisces
           </h3>
-          <p class="text-sm text-slate-500 mt-1">
+          <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Version {{ systemVersion || '-' }}
           </p>
         </div>
 
         <!-- 版权与链接信息 -->
-        <div class="mt-4 space-y-1 text-xs text-slate-500">
+        <div class="mt-4 space-y-1 text-xs text-slate-500 dark:text-slate-400">
           <div>© {{ new Date().getFullYear() }} Pisces Platform.</div>
           <div class="space-x-2">
-            <a href="javascript:void(0)" class="text-sky-500 hover:underline">Privacy Policy</a>
-            <span class="text-slate-400">•</span>
-            <a href="javascript:void(0)" class="text-sky-500 hover:underline">Terms of Service</a>
+            <a href="javascript:void(0)" class="text-sky-500 dark:text-sky-400 hover:underline">Privacy Policy</a>
+            <span class="text-slate-400 dark:text-slate-500">•</span>
+            <a href="javascript:void(0)" class="text-sky-500 dark:text-sky-400 hover:underline">Terms of Service</a>
           </div>
         </div>
 
         <!-- 底部提示和按钮 -->
-        <div class="mt-6 flex items-center justify-between border-t border-slate-200 pt-3 text-xs text-slate-500">
+        <div class="mt-6 flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-3 text-xs text-slate-500 dark:text-slate-400">
           <span>
             Pisces {{ systemVersion || '-' }} is the latest version available.
           </span>
           <button
-            class="ml-4 inline-flex items-center rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            class="ml-4 inline-flex items-center rounded-full border border-slate-300 dark:border-slate-600 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
             type="button"
           >
             Changelog

@@ -1,9 +1,9 @@
 <template>
-  <div class="bg-[#111822] border border-[#324867] rounded-lg overflow-hidden">
+  <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden">
     <!-- Table -->
     <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-300" style="table-layout: fixed;">
-        <thead class="text-xs text-white uppercase bg-[#1e293b]">
+      <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300" style="table-layout: fixed;">
+        <thead class="text-xs text-gray-900 dark:text-white uppercase bg-gray-50 dark:bg-[#1e293b]">
           <tr>
             <!-- Checkbox column -->
             <th
@@ -16,7 +16,7 @@
                 <input
                   :checked="selectAll"
                   @change="handleSelectAll"
-                  class="w-4 h-4 text-primary bg-gray-700 border-gray-600 rounded focus:ring-primary focus:ring-2"
+                  class="w-4 h-4 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary focus:ring-2"
                   type="checkbox"
                 />
               </div>
@@ -27,7 +27,7 @@
               :key="column.key"
               :scope="'col'"
               :style="{ width: getColumnWidth(column.key) + 'px', minWidth: '80px' }"
-              class="px-4 py-2 relative border-r border-[#324867]/50 overflow-hidden text-ellipsis whitespace-nowrap"
+              class="px-4 py-2 relative border-r border-gray-200 dark:border-[#324867]/50 overflow-hidden text-ellipsis whitespace-nowrap"
             >
               <div class="flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
                 <slot :name="`header-${column.key}`" :column="column">
@@ -63,7 +63,7 @@
                   <input
                     :checked="isSelected(item)"
                     @change="handleItemSelect(item, $event.target.checked)"
-                    class="w-4 h-4 text-primary bg-gray-700 border-gray-600 rounded focus:ring-primary focus:ring-2"
+                    class="w-4 h-4 text-primary bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-primary focus:ring-2"
                     type="checkbox"
                   />
                 </div>
@@ -73,7 +73,7 @@
                 v-for="column in columns"
                 :key="column.key"
                 :class="[
-                  'px-4 py-2 border-r border-[#324867]/30',
+                  'px-4 py-2 border-r border-gray-200 dark:border-[#324867]/30',
                   wordWrap ? 'cell-content-wrap' : 'cell-content-nowrap'
                 ]"
               >
@@ -85,7 +85,7 @@
           </slot>
           <!-- Empty state -->
           <tr v-if="items.length === 0">
-            <td :colspan="selectable ? columns.length + 1 : columns.length" class="px-4 py-8 text-center text-gray-400">
+            <td :colspan="selectable ? columns.length + 1 : columns.length" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
               <slot name="empty">
                 {{ emptyMessage }}
               </slot>
@@ -102,7 +102,7 @@
       class="flex items-center justify-between p-4"
     >
       <div class="flex items-center gap-4">
-        <span class="text-sm font-normal text-gray-400">
+        <span class="text-sm font-normal text-gray-600 dark:text-gray-400">
           {{ $t('common.pagination.showing', {
             start: (currentPage - 1) * pageSize + 1,
             end: Math.min(currentPage * pageSize, total),
@@ -110,18 +110,18 @@
           }) }}
         </span>
         <div v-if="showPageSizeSelector" class="flex items-center gap-2">
-          <span class="text-sm text-gray-400">{{ $t('common.pagination.itemsPerPage') }}</span>
+          <span class="text-sm text-gray-600 dark:text-gray-400">{{ $t('common.pagination.itemsPerPage') }}</span>
           <div class="relative">
             <select
               :value="pageSize"
               @change="handlePageSizeChange"
-              class="pl-3 pr-8 appearance-none block rounded-lg border-0 bg-[#233348] h-8 text-white text-sm focus:ring-2 focus:ring-inset focus:ring-primary"
+              class="pl-3 pr-8 appearance-none block rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-8 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-inset focus:ring-primary"
             >
               <option v-for="size in pageSizeOptions" :key="size" :value="size">
                 {{ size }}
               </option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
               <span class="material-symbols-outlined" style="font-size: 16px;">arrow_drop_down</span>
             </div>
           </div>
@@ -132,7 +132,7 @@
           <button
             @click="handlePreviousPage"
             :disabled="currentPage === 1"
-            class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-400 bg-[#233348] border border-gray-700 rounded-s-lg hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#233348] border border-gray-300 dark:border-gray-700 rounded-s-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ $t('common.pagination.previous') }}
           </button>
@@ -142,16 +142,16 @@
             <button
               @click="handlePageChange(item.value)"
               :class="[
-                'flex items-center justify-center px-3 h-8 leading-tight border border-gray-700',
+                'flex items-center justify-center px-3 h-8 leading-tight border border-gray-300 dark:border-gray-700',
                 currentPage === item.value
                   ? 'text-white bg-primary hover:bg-primary/90'
-                  : 'text-gray-400 bg-[#233348] hover:bg-gray-700 hover:text-white'
+                  : 'text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#233348] hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
               ]"
             >
               {{ item.value }}
             </button>
           </li>
-          <li v-else-if="item.type === 'ellipsis'" class="flex items-center justify-center px-2 h-8 text-gray-400 bg-[#233348] border border-gray-700">
+          <li v-else-if="item.type === 'ellipsis'" class="flex items-center justify-center px-2 h-8 text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#233348] border border-gray-300 dark:border-gray-700">
             <span class="material-symbols-outlined" style="font-size: 18px;">more_horiz</span>
           </li>
         </template>
@@ -159,7 +159,7 @@
           <button
             @click="handleNextPage"
             :disabled="currentPage === totalPages"
-            class="flex items-center justify-center px-3 h-8 leading-tight text-gray-400 bg-[#233348] border border-gray-700 rounded-e-lg hover:bg-gray-700 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="flex items-center justify-center px-3 h-8 leading-tight text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-[#233348] border border-gray-300 dark:border-gray-700 rounded-e-lg hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {{ $t('common.pagination.next') }}
           </button>
@@ -251,7 +251,7 @@ const props = defineProps({
   // Row style class
   rowClass: {
     type: String,
-    default: 'border-b border-[#324867] hover:bg-white/5'
+    default: 'border-b border-gray-200 dark:border-[#324867] hover:bg-gray-50 dark:hover:bg-white/5'
   }
 })
 

@@ -3,26 +3,26 @@
     <!-- 加载遮罩层 -->
     <div
       v-if="loadingIncident"
-      class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+      class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
     >
       <div class="flex flex-col items-center gap-4">
         <div class="relative w-16 h-16">
           <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
           <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
         </div>
-        <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
       </div>
     </div>
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
-        <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
+        <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
           {{ incident?.name }}
         </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-base font-normal leading-normal">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-base font-normal leading-normal">
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.actor') }}:</span>
-            <span class="text-white">{{ incident?.actor }}</span>
+            <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
@@ -39,7 +39,7 @@
       <div class="flex flex-1 gap-3 flex-wrap justify-start sm:justify-end min-w-max">
         <button
           @click="openEditDialog"
-          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
         >
           <span class="material-symbols-outlined text-base">edit</span>
           <span class="truncate">{{ $t('incidents.detail.edit') }}</span>
@@ -54,7 +54,7 @@
         <button
           @click="handleRefresh"
           :disabled="loadingIncident"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -66,7 +66,7 @@
         </button>
         <button
           @click="handleShare"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
           :title="$t('incidents.detail.share') || 'Share'"
         >
           <span class="material-symbols-outlined text-base">share</span>
@@ -76,8 +76,8 @@
 
     <!-- 统计卡片 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.status') }}
         </p>
         <div class="flex items-center gap-2">
@@ -87,13 +87,13 @@
               getIncidentStatusDotClass(incident?.status)
             ]"
           ></span>
-          <p class="text-white text-xl font-bold leading-tight">
+          <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
             {{ getStatusText(incident?.status) }}
           </p>
         </div>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.severity') }}
         </p>
         <div class="flex items-center gap-2">
@@ -113,35 +113,35 @@
           </p>
         </div>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.category') }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ $t(`incidents.create.category${incident?.category ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1) : 'Platform'}`) }}
         </p>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.countOfAlarms') }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ alarmCount }}
         </p>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.responsibleDepartment') }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ incident?.responsibleDept || '-' }}
         </p>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('incidents.detail.responsiblePerson') }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight break-all">
           {{ incident?.owner || incident?.responsiblePerson || '-' }}
         </p>
       </div>
@@ -170,21 +170,21 @@
     <div class="mt-6 flex-grow">
       <!-- Event Graph Intelligence -->
       <div v-if="activeTab === 'eventGraph'" class="space-y-6">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 space-y-4 relative overflow-hidden">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-2xl p-6 space-y-4 relative overflow-hidden">
           <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div class="space-y-2">
-              <h3 class="text-white font-bold text-lg">
+              <h3 class="text-gray-900 dark:text-white font-bold text-lg">
                 {{ $t('incidents.detail.eventGraph.summaryTitle') }}
               </h3>
               <p
                 v-if="graphStatus === 'processing'"
-                class="text-slate-400 text-sm"
+                class="text-gray-500 dark:text-slate-400 text-sm"
               >
                 {{ translateOr('incidents.detail.eventGraph.graphBuildingMessage', '图谱数据尚未准备完毕，已自动触发 LightRAG 构建，请稍后刷新查看。') }}
               </p>
               <p
                 v-else-if="!isGraphReady"
-                class="text-slate-400 text-sm"
+                class="text-gray-500 dark:text-slate-400 text-sm"
               >
                 {{ translateOr('incidents.detail.eventGraph.summaryUnavailable', '图谱摘要暂不可用') }}
               </p>
@@ -207,11 +207,11 @@
               <div
                 v-if="incident?.graphSummary"
                 ref="graphSummaryRef"
-                class="text-slate-200 leading-relaxed prose prose-invert max-w-none summary-content"
+                class="text-gray-700 dark:text-slate-200 leading-relaxed prose dark:prose-invert max-w-none summary-content"
                 :class="{ 'summary-collapsed': !isSummaryExpanded }"
                 v-html="graphSummaryHtml"
               ></div>
-              <p v-else class="text-slate-400 text-sm">
+              <p v-else class="text-gray-500 dark:text-slate-400 text-sm">
                 {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
               </p>
               <button
@@ -228,7 +228,7 @@
             </div>
           </template>
           <div class="graph-status-hint">
-            <div class="flex flex-col gap-y-1 text-slate-500 text-xs">
+            <div class="flex flex-col gap-y-1 text-gray-500 dark:text-slate-500 text-xs">
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span class="inline-flex items-center gap-1">
                   <span class="graph-status-dot" :class="graphStatusDotClass"></span>
@@ -238,7 +238,7 @@
                 <span>{{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}</span>
               </div>
               <template v-if="isGraphReady">
-                <div class="text-slate-500 text-xs">
+                <div class="text-gray-500 dark:text-slate-500 text-xs">
                   {{
                     $t('incidents.detail.eventGraph.summaryParagraph2', {
                       nodes: eventGraphStats.totalNodes,
@@ -252,7 +252,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-slate-900/60 border border-slate-700 rounded-2xl overflow-hidden">
+        <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
           <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[600px]">
             <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
@@ -496,32 +496,32 @@
       <!-- Overview 标签页 -->
       <div v-if="activeTab === 'overview'" class="flex flex-col gap-6">
         <!-- 事件描述 -->
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-white font-bold text-lg">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
               {{ $t('incidents.detail.overview.eventDescription') }}
             </h3>
           </div>
           <div class="overflow-x-hidden">
-            <p class="text-slate-300 leading-relaxed whitespace-pre-wrap break-all event-description-text">
+            <p class="text-gray-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-all event-description-text">
               {{ incident?.description || '-' }}
             </p>
-            <p v-if="incident?.descriptionLastModified" class="text-slate-500 text-xs mt-3">
+            <p v-if="incident?.descriptionLastModified" class="text-gray-500 dark:text-slate-500 text-xs mt-3">
               {{ $t('incidents.detail.overview.lastModified') }} {{ formatLastModified(incident.descriptionLastModified) }} {{ $t('incidents.detail.overview.by') }} {{ incident.descriptionLastModifiedBy || '-' }}
             </p>
           </div>
         </div>
 
         <!-- 关联告警 -->
-        <div class="bg-[#111822] border border-[#324867] rounded-xl">
-          <div class="p-6 border-b border-[#324867] flex items-center justify-between">
-            <h3 class="text-white font-bold text-lg">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl">
+          <div class="p-6 border-b border-gray-200 dark:border-[#324867] flex items-center justify-between">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
               {{ $t('incidents.detail.overview.associatedAlerts') }}
             </h3>
             <button
               :disabled="selectedAlerts.length === 0"
               @click="openDisassociateDialog"
-              class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+              class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-200 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-[#324867] transition-colors"
             >
               <span class="material-symbols-outlined text-base">link_off</span>
               <span>{{ $t('incidents.detail.disassociate') }}</span>
@@ -594,7 +594,7 @@
 
       <!-- Comments 标签页 -->
       <div v-if="activeTab === 'comments'" class="flex-grow">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col">
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
@@ -2540,11 +2540,11 @@ const getAlertSeverityLabel = (severity) => {
 // 复用告警管理页面的样式函数
 const getRiskLevelClass = (level) => {
   const classes = {
-    fatal: 'bg-red-950 text-red-200',
-    high: 'bg-red-900 text-red-300',
-    medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300',
-    tips: 'bg-gray-700 text-gray-300'
+    fatal: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-200',
+    high: 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300',
+    medium: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300',
+    low: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300',
+    tips: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
   }
   return classes[level] || classes.low
 }

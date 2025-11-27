@@ -2,14 +2,14 @@
   <div class="w-full">
     <!-- Page header -->
     <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-      <h1 class="text-white text-3xl font-bold tracking-tight">
+      <h1 class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
         {{ $t('dashboard.title') }}
       </h1>
       <div class="flex items-center gap-2">
         <button
           @click="handleRefresh"
           :disabled="isRefreshing"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-9"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-9"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -32,9 +32,9 @@
     <!-- Statistics cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <!-- Alert count -->
-      <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.alertCount24h') }}</p>
-        <p class="text-white text-3xl font-bold tracking-tight">
+      <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50">
+        <p class="text-gray-600 dark:text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.alertCount24h') }}</p>
+        <p class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
           {{ alertCount24hTotal?.toLocaleString() || 0 }}
         </p>
         <p 
@@ -51,9 +51,9 @@
       </div>
 
       <!-- Incident count -->
-      <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.incidentCount30d') }}</p>
-        <p class="text-white text-3xl font-bold tracking-tight">
+      <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50">
+        <p class="text-gray-600 dark:text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.incidentCount30d') }}</p>
+        <p class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
           {{ incidentCount30dTotal?.toLocaleString() || 0 }}
         </p>
         <p 
@@ -70,9 +70,9 @@
       </div>
 
       <!-- Vulnerability count -->
-      <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.vulnerabilityCount30d') }}</p>
-        <p class="text-white text-3xl font-bold tracking-tight">
+      <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50">
+        <p class="text-gray-600 dark:text-white/70 text-sm font-medium">{{ $t('dashboard.statistics.vulnerabilityCount30d') }}</p>
+        <p class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
           {{ vulnerabilityCount30dTotal?.toLocaleString() || 0 }}
         </p>
         <p 
@@ -89,14 +89,14 @@
       </div>
 
       <!-- Average accuracy -->
-      <div class="flex flex-col gap-2 rounded-xl p-6 bg-[#19222c] border border-[#324867]/50">
-        <p class="text-white/70 text-sm font-medium">
+      <div class="flex flex-col gap-2 rounded-xl p-6 bg-white dark:bg-[#19222c] border border-gray-200 dark:border-[#324867]/50">
+        <p class="text-gray-600 dark:text-white/70 text-sm font-medium">
           {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
         </p>
-        <p class="text-white text-3xl font-bold tracking-tight">
+        <p class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
           {{ aiAccuracyAverage }}%
         </p>
-        <p class="text-sm text-white/60">
+        <p class="text-sm text-gray-600 dark:text-white/60">
           {{ $t('dashboard.charts.aiAccuracy') }}
         </p>
       </div>
@@ -105,25 +105,25 @@
     <!-- Charts area -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Alert type statistics -->
-      <div class="flex flex-col rounded-xl border border-[#324867]/50 bg-[#19222c] p-0">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center p-3 pt-2">
-          <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.alertTypeStats') }}</p>
-          <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
+          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.alertTypeStats') }}</p>
+          <span class="text-xs text-gray-600 dark:text-white/60">{{ dashboardTimeRangeLabel }}</span>
         </div>
         <div class="flex flex-col gap-1 px-3 pb-2">
-          <span class="text-white/60 text-sm font-medium uppercase tracking-wide">{{ $t('common.totalAlerts') }}</span>
-          <span class="text-white text-3xl font-bold tracking-tight">{{ alertSourceTotal.toLocaleString() }}</span>
+          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">{{ $t('common.totalAlerts') }}</span>
+          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">{{ alertSourceTotal.toLocaleString() }}</span>
         </div>
         <div class="relative h-80">
           <div 
             v-if="alertSourceLoading"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-white/50 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div 
             v-else-if="alertSourceValues.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-white/50 text-sm"
           >
             {{ $t('dashboard.charts.noData') }}
           </div>
@@ -137,16 +137,16 @@
       </div>
 
       <!-- AI accuracy rate -->
-      <div class="flex flex-col rounded-xl border border-[#324867]/50 bg-[#19222c] p-0">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center p-3 pt-2">
-          <p class="text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
-          <span class="text-xs text-white/60">{{ dashboardTimeRangeLabel }}</span>
+          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
+          <span class="text-xs text-gray-600 dark:text-white/60">{{ dashboardTimeRangeLabel }}</span>
         </div>
         <div class="flex flex-col gap-1 px-3 pb-2">
-          <span class="text-white/60 text-sm font-medium uppercase tracking-wide">
+          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
             {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
           </span>
-          <span class="text-white text-3xl font-bold tracking-tight">
+          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
             {{ aiAccuracyAverage }}%
           </span>
         </div>

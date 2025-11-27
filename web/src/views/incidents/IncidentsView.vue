@@ -3,7 +3,7 @@
     <!-- Page title and actions -->
     <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
       <div class="flex min-w-72 flex-col gap-2">
-        <h1 class="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+        <h1 class="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
           {{ $t('incidents.title') }}
         </h1>
       </div>
@@ -11,7 +11,7 @@
         <button
           @click="handleRefresh"
           :disabled="loadingIncidents"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -32,7 +32,7 @@
         <div class="relative">
           <button
             @click="showMoreMenu = !showMoreMenu"
-            class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-[#233348] text-white hover:bg-[#324867] transition-colors"
+            class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
             :title="$t('common.more')"
           >
             <span class="material-symbols-outlined text-base">more_vert</span>
@@ -40,11 +40,11 @@
           <!-- Dropdown menu -->
           <div
             v-if="showMoreMenu"
-            class="more-menu-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+            class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
           >
             <button
               @click="handleCreateIncident"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
             >
               <span class="material-symbols-outlined text-base">add</span>
               <span>{{ $t('incidents.list.createIncident') }}</span>
@@ -52,7 +52,7 @@
             <button
               @click="handleCloseSelectedIncident"
               :disabled="!canCloseSelectedIncident"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
             >
               <span class="material-symbols-outlined text-base">archive</span>
               <span>{{ $t('incidents.detail.closeIncident') }}</span>
@@ -60,7 +60,7 @@
             <button
               @click="openBatchDeleteDialog"
               :disabled="selectedIncidents.length === 0"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
             >
               <span class="material-symbols-outlined text-base">delete</span>
               <span>{{ $t('incidents.list.batchDelete') }}</span>
@@ -71,25 +71,25 @@
     </header>
 
     <!-- Incident list table -->
-    <section class="bg-[#111822] border border-[#324867] rounded-xl relative">
+    <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative">
       <!-- Loading overlay -->
       <div
         v-if="loadingIncidents"
-        class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+        class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
       >
         <div class="flex flex-col items-center gap-4">
           <div class="relative w-16 h-16">
             <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
             <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
           </div>
-          <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
         </div>
       </div>
-      <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
+      <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-gray-200 dark:border-[#324867]">
         <div class="relative w-full max-w-sm">
-          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
             <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-400" style="font-size: 20px;">search</span>
+              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
             </div>
             <!-- Search keyword tags -->
             <div
@@ -112,7 +112,7 @@
               v-model="currentSearchInput"
               @keydown.enter.prevent="addKeyword"
               @input="handleSearchInput"
-              class="flex-1 min-w-[120px] border-0 bg-transparent text-white placeholder:text-gray-400 focus:outline-none sm:text-sm"
+              class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
               :placeholder="searchKeywords.length === 0 ? $t('incidents.list.searchPlaceholder') : ''"
               type="text"
             />
@@ -123,20 +123,20 @@
             <select
               v-model="statusFilter"
               @change="handleFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-[#233348] h-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
             >
               <option value="all">{{ $t('incidents.list.allStatus') }}</option>
               <option value="Open">{{ $t('incidents.list.open') }}</option>
               <option value="Block">{{ $t('incidents.list.block') }}</option>
               <option value="Closed">{{ $t('incidents.list.closed') }}</option>
             </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
           <button
             :disabled="selectedIncidents.length === 0"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-[#233348] text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#324867] transition-colors"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
           >
             <span class="material-symbols-outlined text-base">ios_share</span>
             <span>{{ $t('incidents.list.export') }}</span>
@@ -170,7 +170,7 @@
         <div class="flex items-center gap-2">
           <button
             @click.stop="openIncidentDetailInNewWindow(item.id)"
-            class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+            class="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors p-1"
             :title="$t('incidents.list.openInNewWindow') || '在新窗口打开'"
           >
             <span class="material-symbols-outlined text-base">open_in_new</span>

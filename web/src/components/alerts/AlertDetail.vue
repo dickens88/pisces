@@ -17,14 +17,14 @@
           v-if="visible"
           :class="[
             rightSidebarTab === 'securityAgent' ? 'w-[80vw]' : 'w-[70vw]',
-            'relative h-full bg-panel-dark shadow-2xl flex flex-col overflow-hidden'
+            'relative h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden'
           ]"
           @click.stop="handlePanelClick"
         >
           <!-- Header -->
-          <div class="sticky top-0 z-20 bg-panel-dark/80 backdrop-blur-sm border-b border-border-dark">
+          <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
-              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <span class="material-symbols-outlined text-base">security</span>
                 {{ $t('alerts.detail.title') }}
               </h2>
@@ -32,7 +32,7 @@
                 <button
                   @click="openBatchCloseDialog"
                   :disabled="!canCloseAlert"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
+                  class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546]"
                 >
                   <span class="material-symbols-outlined text-base">archive</span>
                   {{ $t('alerts.detail.closeAlert') }}
@@ -41,7 +41,7 @@
                 <div class="relative">
                   <button
                     @click.stop="showMoreActionsMenu = !showMoreActionsMenu"
-                    class="more-actions-button bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                    class="more-actions-button bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
                   >
                     <span class="material-symbols-outlined text-base">more_vert</span>
                     {{ $t('alerts.detail.moreActions') }}
@@ -51,40 +51,40 @@
                   <div
                     v-if="showMoreActionsMenu"
                     @click.stop
-                    class="more-actions-dropdown absolute right-0 top-full mt-2 bg-[#233348] border border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+                    class="more-actions-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
                   >
                     <button
                       @click="handleOpenAlertFromMenu"
                       :disabled="!canOpenAlert"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-white hover:bg-[#324867] disabled:hover:bg-transparent"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
                     >
                       <span class="material-symbols-outlined text-base">unarchive</span>
                       {{ $t('alerts.detail.openAlert') }}
                     </button>
                     <button
                       @click="handleEditAlertFromMenu"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
                     >
                       <span class="material-symbols-outlined text-base">edit</span>
                       {{ $t('alerts.detail.editAlert') }}
                     </button>
                     <button
                       @click="handleConvertToIncidentFromMenu"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
                     >
                       <span class="material-symbols-outlined text-base">shield</span>
                       {{ $t('alerts.detail.convertToIncident') }}
                     </button>
                     <button
                       @click="handleAssociateIncidentFromMenu"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
                     >
                       <span class="material-symbols-outlined text-base">link</span>
                       {{ $t('alerts.list.associateIncident') }}
                     </button>
                     <button
                       @click="handleConvertToVulnerabilityFromMenu"
-                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-white hover:bg-[#324867]"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
                     >
                       <span class="material-symbols-outlined text-base">bug_report</span>
                       {{ $t('alerts.detail.convertToVulnerability') }}
@@ -94,7 +94,7 @@
                 <button
                   @click="handleRefresh"
                   :disabled="isRefreshing"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546]"
+                  class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546]"
                   :title="$t('common.refresh') || 'Refresh'"
                 >
                   <span
@@ -106,14 +106,14 @@
                 </button>
                 <button
                   @click="handleShare"
-                  class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center"
+                  class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center"
                   :title="$t('alerts.detail.share') || 'Share'"
                 >
                   <span class="material-symbols-outlined text-base">share</span>
                 </button>
                 <button
                   @click="handleClose"
-                  class="p-2 text-text-light hover:text-white transition-colors"
+                  class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
                 >
                   <span class="material-symbols-outlined">close</span>
                 </button>
@@ -125,13 +125,13 @@
           <div class="flex flex-1 overflow-hidden relative">
             <!-- Loading animation - shown when loading or when closing if still loading -->
             <Transition name="fade">
-              <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-[#111822]/90 z-10">
+              <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-[#111822]/90 z-10">
                 <div class="flex flex-col items-center gap-4">
                   <div class="relative w-20 h-20">
                     <div class="absolute inset-0 border-4 border-primary/30 rounded-full"></div>
                     <div class="absolute inset-0 border-4 border-transparent border-t-primary border-r-primary/50 rounded-full animate-spin"></div>
                   </div>
-                  <p class="text-white text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+                  <p class="text-gray-900 dark:text-white text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
                 </div>
               </div>
             </Transition>
@@ -140,7 +140,7 @@
             <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
               <!-- Title and severity -->
               <div>
-                <h1 class="text-xl font-bold text-white">{{ alert.title }}</h1>
+                <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ alert.title }}</h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-light">
                   <div class="flex items-center gap-1.5">
                     <span
@@ -157,7 +157,7 @@
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
+                    <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
                     <span
                       :class="[
                         'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset',
@@ -169,24 +169,24 @@
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.actor') }}:</span>
-                    <span class="font-mono text-white">{{ alert.actor || '-' }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ $t('alerts.detail.actor') }}:</span>
+                    <span class="font-mono text-gray-900 dark:text-white">{{ alert.actor || '-' }}</span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.created') }}:</span>
-                    <span class="text-white">{{ formatDateTime(alert.timestamp || alert.createTime) }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ $t('alerts.detail.created') }}:</span>
+                    <span class="text-gray-900 dark:text-white">{{ formatDateTime(alert.timestamp || alert.createTime) }}</span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
-                    <span class="font-semibold text-white mr-1">{{ $t('alerts.detail.responseTime') }}:</span>
-                    <span class="text-white">{{ alert.responseTime || '2m 15s' }}</span>
+                    <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ $t('alerts.detail.responseTime') }}:</span>
+                    <span class="text-gray-900 dark:text-white">{{ alert.responseTime || '2m 15s' }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- Tabs -->
-              <div class="border-b border-border-dark">
+              <div class="border-b border-gray-200 dark:border-border-dark">
                 <nav aria-label="Tabs" class="-mb-px flex space-x-6">
                   <button
                     v-for="tab in tabs"
@@ -196,7 +196,7 @@
                       'shrink-0 border-b-2 px-1 pb-3 text-sm font-medium transition-colors flex items-center gap-2',
                       activeTab === tab.key
                         ? 'border-primary text-primary font-semibold'
-                        : 'border-transparent text-text-light hover:border-text-dark hover:text-white'
+                        : 'border-transparent text-gray-500 dark:text-text-light hover:border-gray-600 dark:hover:border-text-dark hover:text-gray-900 dark:hover:text-white'
                     ]"
                   >
                     <span>{{ $t(tab.label) }}</span>
@@ -206,7 +206,7 @@
                         'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-medium rounded-full',
                         activeTab === tab.key
                           ? 'bg-primary/20 text-primary'
-                          : 'bg-[#2a3546] text-text-light'
+                          : 'bg-gray-100 dark:bg-[#2a3546] text-gray-700 dark:text-text-light'
                       ]"
                     >
                       {{ getTabCount(tab.key) }}
@@ -217,7 +217,7 @@
 
               <!-- Tab content -->
               <div v-if="activeTab === 'overview'">
-                <h3 class="text-lg font-semibold mb-3 text-white">{{ $t('alerts.detail.alertInfo') }}</h3>
+                <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{ $t('alerts.detail.alertInfo') }}</h3>
                 <div class="grid grid-cols-1 @lg:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono @container">
                   
                   <!-- Dynamically display all fields in description -->
@@ -231,9 +231,9 @@
                         v-if="value !== null && value !== undefined && value !== ''"
                         class="flex items-baseline gap-2"
                       >
-                        <p class="text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
+                        <p class="text-gray-600 dark:text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
                         <div class="flex-1 min-w-0 flex items-center gap-1.5">
-                          <p class="font-medium text-[#E3E3E3] break-all">
+                          <p class="font-medium text-gray-900 dark:text-[#E3E3E3] break-all">
                             <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
                             <span v-else>{{ value }}</span>
                           </p>
@@ -255,8 +255,8 @@
                   </template>
                   <!-- 如果 description 不是对象（字符串、数字、布尔值等），直接显示 -->
                   <div v-else-if="alert?.description !== null && alert?.description !== undefined" class="flex items-baseline">
-                    <p class="w-40 shrink-0 font-bold text-[#f5f5f5]">{{ $t('alerts.detail.description') || '描述' }}:</p>
-                    <p class="font-medium text-[#f5f5f5] break-all">{{ alert.description }}</p>
+                    <p class="w-40 shrink-0 font-bold text-gray-900 dark:text-[#f5f5f5]">{{ $t('alerts.detail.description') || '描述' }}:</p>
+                    <p class="font-medium text-gray-900 dark:text-[#f5f5f5] break-all">{{ alert.description }}</p>
                   </div>
                 </div>
                 
@@ -281,10 +281,10 @@
               <div v-if="activeTab === 'associatedAlerts'">
 
                 <div v-if="loadingAssociatedAlerts" class="flex items-center justify-center py-12">
-                  <div class="text-text-light text-sm">加载中...</div>
+                  <div class="text-gray-600 dark:text-text-light text-sm">加载中...</div>
                 </div>
                 
-                <div v-else-if="associatedAlerts.length === 0" class="text-text-light text-sm py-12 text-center">
+                <div v-else-if="associatedAlerts.length === 0" class="text-gray-600 dark:text-text-light text-sm py-12 text-center">
                   {{ $t('alerts.detail.noAssociatedAlerts') }}
                 </div>
                 
@@ -324,7 +324,7 @@
               </div>
 
               <div v-if="activeTab === 'aiAgent'">
-                <h3 class="text-lg font-semibold mb-4 text-white">{{ $t('alerts.detail.aiAgent') }}</h3>
+                <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{{ $t('alerts.detail.aiAgent') }}</h3>
                 <div class="space-y-6">
                   <!-- Display AI data returned from backend -->
                   <div
@@ -335,14 +335,15 @@
                     <div
                       class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
                     >
-                      <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
+                      <span class="material-symbols-outlined text-gray-900 dark:text-white text-sm">smart_toy</span>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
-                        <p class="font-semibold text-white">{{ aiItem.author || 'AI Agent' }}</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ aiItem.author || 'AI Agent' }}</p>
                         <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
                       </div>
-                      <div class="mt-1 text-sm text-[#c3d3e8] bg-[#2a3546] p-3 rounded-lg rounded-tl-none ai-agent__html max-w-full overflow-hidden" v-html="sanitizeHtml(aiItem.content || '')">
+                      <div class="mt-1 text-sm text-gray-700 dark:text-[#c3d3e8] bg-white dark:bg-[#2a3546] border border-gray-200 dark:border-transparent p-3 rounded-lg rounded-tl-none max-w-full overflow-hidden">
+                        <div class="bg-gray-50 dark:bg-transparent text-gray-800 dark:text-inherit rounded-md p-2 border border-gray-200 dark:border-transparent ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')"></div>
                       </div>
                     </div>
                   </div>
@@ -366,7 +367,7 @@
               v-if="!isLoading && alert"
               :class="[
                 rightSidebarTab === 'securityAgent' ? 'w-[32rem]' : 'w-80',
-                'border-l border-border-dark bg-[#1f2937]/20 flex flex-col overflow-hidden'
+                'border-l border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-[#1f2937]/20 flex flex-col overflow-hidden'
               ]"
             >
               <!-- 页签导航 -->
@@ -378,7 +379,7 @@
                       'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
                       rightSidebarTab === 'response'
                         ? 'text-primary border-primary'
-                        : 'text-slate-400 hover:text-white border-transparent'
+                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
                     ]"
                   >
                     {{ $t('alerts.detail.responseTab') }}
@@ -389,7 +390,7 @@
                       'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
                       rightSidebarTab === 'securityAgent'
                         ? 'text-primary border-primary'
-                        : 'text-slate-400 hover:text-white border-transparent'
+                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
                     ]"
                   >
                     {{ $t('alerts.detail.securityAgentTab') }}
@@ -402,7 +403,7 @@
                 <div class="pr-6 space-y-6">
                 <!-- 自动化响应 -->
                 <div class="space-y-4">
-                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
                   
                   <!-- 加载状态 -->
                   <div v-if="loadingToolkits || loadingToolkitRecords" class="flex items-center justify-center py-8">
@@ -412,26 +413,26 @@
                   <div v-else class="space-y-4">
                     <!-- 工具清单部分：显示所有可用工具 -->
                     <div v-if="toolkits.length" class="space-y-2">
-                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
+                      <h4 class="text-sm font-medium text-gray-600 dark:text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
                       <template v-for="tool in toolkits" :key="tool.app_id">
-                        <details class="group rounded-lg bg-[#2a3546]">
-                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                        <details class="group rounded-lg bg-gray-100 dark:bg-[#2a3546]">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-[#3c4a60]">
                             <div class="flex items-center gap-3">
                               <span class="material-symbols-outlined text-primary">play_circle</span>
                               <div>
-                                <p class="font-medium text-white text-sm">{{ tool.title }}</p>
-                                <p class="text-xs text-text-light">{{ $t('alerts.detail.toolkitClickToConfigure') }}</p>
+                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ tool.title }}</p>
+                                <p class="text-xs text-gray-600 dark:text-text-light">{{ $t('alerts.detail.toolkitClickToConfigure') }}</p>
                               </div>
                             </div>
-                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                            <span class="material-symbols-outlined text-gray-600 dark:text-text-light group-hover:text-gray-900 dark:group-hover:text-white marker">expand_more</span>
                           </summary>
-                          <div class="px-3 pb-3 pt-2 text-sm text-text-light space-y-3 border-t border-border-dark/50">
+                          <div class="px-3 pb-3 pt-2 text-sm text-gray-600 dark:text-text-light space-y-3 border-t border-gray-200 dark:border-border-dark/50">
                             <div v-for="param in tool.params" :key="param.name">
-                              <label class="block text-xs font-medium text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
+                              <label class="block text-xs font-medium text-gray-600 dark:text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
                                 {{ param.label }}
                               </label>
                               <input 
-                                class="w-full rounded-md border border-border-dark bg-[#1a202c] p-2 text-white placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
+                                class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
                                 :id="`toolkit-${tool.app_id}-${param.name}`"
                                 :placeholder="`e.g., ${param.label}`"
                                 type="text" 
@@ -456,10 +457,10 @@
                     
                     <!-- 执行记录部分 -->
                     <div v-if="toolkitRecords.length" class="space-y-2">
-                      <h4 class="text-sm font-medium text-text-light">{{ $t('alerts.detail.executionRecords') }}</h4>
+                      <h4 class="text-sm font-medium text-gray-600 dark:text-text-light">{{ $t('alerts.detail.executionRecords') }}</h4>
                       <template v-for="record in toolkitRecords" :key="record.id">
-                        <details :class="['group rounded-lg bg-[#2a3546]', record.status === 'running' && 'animate-pulse']">
-                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-[#3c4a60]">
+                        <details :class="['group rounded-lg bg-gray-100 dark:bg-[#2a3546]', record.status === 'running' && 'animate-pulse']">
+                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-[#3c4a60]">
                             <div class="flex items-center gap-3">
                               <span :class="[
                                 'material-symbols-outlined',
@@ -470,12 +471,12 @@
                                 {{ record.status === 'completed' ? 'task_alt' : record.status === 'running' ? 'hourglass_top' : 'error' }}
                               </span>
                               <div>
-                                <p class="font-medium text-white text-sm">{{ record.title }}</p>
+                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ record.title }}</p>
                                 <p :class="[
                                   'text-xs',
-                                  record.status === 'completed' && 'text-green-300/80',
-                                  record.status === 'running' && 'text-yellow-300/80',
-                                  record.status === 'failed' && 'text-red-300/80'
+                                  record.status === 'completed' && 'text-green-600 dark:text-green-300/80',
+                                  record.status === 'running' && 'text-yellow-600 dark:text-yellow-300/80',
+                                  record.status === 'failed' && 'text-red-600 dark:text-red-300/80'
                                 ]">
                                   {{ record.status === 'completed' ? $t('alerts.detail.toolkitStatusSuccess') : 
                                      record.status === 'running' ? $t('alerts.detail.toolkitStatusInProgress') : 
@@ -483,13 +484,13 @@
                                 </p>
                               </div>
                             </div>
-                            <span class="material-symbols-outlined text-text-light group-hover:text-white marker">expand_more</span>
+                            <span class="material-symbols-outlined text-gray-600 dark:text-text-light group-hover:text-gray-900 dark:group-hover:text-white marker">expand_more</span>
                           </summary>
-                          <div class="px-3 pb-3 pt-2 text-sm text-text-light font-mono space-y-1 border-t border-border-dark/50">
-                            <p><span class="text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
-                            <p><span class="text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
-                            <div v-if="record.result" :class="['mt-2 pt-2 border-t border-border-dark/50', record.status === 'failed' && 'text-red-300']">
-                              <span class="text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
+                          <div class="px-3 pb-3 pt-2 text-sm text-gray-600 dark:text-text-light font-mono space-y-1 border-t border-gray-200 dark:border-border-dark/50">
+                            <p><span class="text-gray-500 dark:text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
+                            <p><span class="text-gray-500 dark:text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
+                            <div v-if="record.result" :class="['mt-2 pt-2 border-t border-gray-200 dark:border-border-dark/50', record.status === 'failed' && 'text-red-600 dark:text-red-300']">
+                              <span class="text-gray-500 dark:text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
                               <pre class="mt-1 text-xs whitespace-pre-wrap">{{ formatToolkitResult(record.result) }}</pre>
                             </div>
                           </div>
@@ -506,20 +507,20 @@
 
                 <!-- 关联实体 -->
                 <div class="space-y-4" v-if="alert?.associatedEntities">
-                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
                   <div class="space-y-3">
                     <div
                       v-for="(entity, index) in alert.associatedEntities"
                       :key="index"
                       @click="handleSendEntityToSecurityAgent(entity)"
-                      class="flex items-center gap-3 p-3 rounded-lg bg-[#2a3546] hover:bg-[#3c4a60] cursor-pointer transition-colors"
+                      class="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] cursor-pointer transition-colors border border-gray-200 dark:border-transparent"
                     >
                       <span class="material-symbols-outlined text-primary">
                         {{ getEntityIcon(entity.type) }}
                       </span>
                       <div class="text-sm flex-1 min-w-0">
-                        <p class="font-medium text-white truncate">{{ entity.name }}</p>
-                        <p class="text-text-light truncate">{{ entity.label }}</p>
+                        <p class="font-medium text-gray-900 dark:text-white truncate">{{ entity.name }}</p>
+                        <p class="text-gray-600 dark:text-text-light truncate">{{ entity.label }}</p>
                       </div>
                     </div>
                   </div>
@@ -527,9 +528,9 @@
 
                 <!-- 事件时间线 -->
                 <div class="space-y-4" v-if="alert?.timeline">
-                  <h3 class="text-base font-semibold text-white">{{ $t('alerts.detail.eventTimeline') }}</h3>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.eventTimeline') }}</h3>
                   <div class="relative pl-6">
-                    <div class="absolute left-0 h-full w-0.5 bg-border-dark"></div>
+                    <div class="absolute left-0 h-full w-0.5 bg-gray-200 dark:bg-border-dark"></div>
                     <div class="relative space-y-6">
                       <div
                         v-for="(event, index) in alert.timeline"
@@ -538,12 +539,12 @@
                       >
                         <div
                           :class="[
-                            'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-panel-dark',
-                            index === 0 ? 'bg-primary' : 'bg-border-dark'
+                            'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-gray-100 dark:ring-panel-dark',
+                            index === 0 ? 'bg-primary' : 'bg-gray-300 dark:bg-border-dark'
                           ]"
                         ></div>
-                        <p class="text-xs text-text-light">{{ event.time }}</p>
-                        <p class="text-sm text-white">{{ event.event }}</p>
+                        <p class="text-xs text-gray-500 dark:text-text-light">{{ event.time }}</p>
+                        <p class="text-sm text-gray-900 dark:text-white">{{ event.event }}</p>
                       </div>
                     </div>
                   </div>
@@ -578,35 +579,35 @@
       class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
       @click.self="closeBatchCloseDialog"
     >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             {{ $t('alerts.list.batchCloseDialog.title') }}
           </h2>
           <button
             @click="closeBatchCloseDialog"
-            class="text-gray-400 hover:text-white transition-colors"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <span class="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         <!-- 提示信息 -->
-        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
+        <div class="mb-4 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ $t('alerts.list.batchCloseDialog.confirmMessage', { count: 1 }) }}
           </p>
         </div>
 
         <!-- 结论分类下拉框 -->
         <div class="mb-4">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusionCategory') }}
             <span class="text-red-500 ml-1">*</span>
           </label>
           <select
             v-model="closeConclusion.category"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
           >
             <option value="">{{ $t('alerts.list.batchCloseDialog.selectCategory') }}</option>
             <option value="falsePositive">{{ $t('alerts.list.batchCloseDialog.categories.falsePositive') }}</option>
@@ -618,14 +619,14 @@
 
         <!-- 调查结论输入框 -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchCloseDialog.conclusion') }}
           </label>
           <div class="relative">
             <textarea
               v-model="closeConclusion.notes"
               rows="4"
-              class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
+              class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary resize-none"
               :placeholder="$t('alerts.list.batchCloseDialog.conclusionPlaceholder')"
               @focus="handleNotesFocus"
               @click="handleNotesClick"
@@ -633,12 +634,12 @@
             ></textarea>
             <div
               v-if="showRecentCloseComments && recentCloseComments.length"
-              class="absolute left-0 right-0 top-full mt-2 bg-[#1e293b] border border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
+              class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-[#324867] rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
             >
               <p
                 v-for="(comment, index) in recentCloseComments"
                 :key="index"
-                class="px-4 py-2 text-sm text-white border-b border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-[#22324a]"
+                class="px-4 py-2 text-sm text-gray-900 dark:text-white border-b border-gray-200 dark:border-[#324867]/40 last:border-b-0 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#22324a]"
                 @mousedown.prevent="handleRecentCommentSelect(comment)"
               >
                 {{ comment }}
@@ -651,7 +652,7 @@
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeBatchCloseDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
           >
             {{ $t('common.cancel') }}
           </button>
@@ -2179,8 +2180,8 @@ onUnmounted(() => {
 }
 
 .ai-agent__html :deep(pre) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(226, 232, 240, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.5);
   padding: 12px;
   border-radius: 6px;
   white-space: pre-wrap;
@@ -2192,12 +2193,27 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
+:global(.dark) .ai-agent__html :deep(pre) {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
 .ai-agent__html :deep(code) {
   font-family: 'Fira Code', 'Source Code Pro', monospace;
   font-size: 13px;
+  color: #0f172a;
+}
+
+:global(.dark) .ai-agent__html :deep(code) {
+  color: #e2e8f0;
 }
 
 .ai-agent__html :deep(b) {
+  color: #0f172a;
+}
+
+:global(.dark) .ai-agent__html :deep(b) {
   color: #e2e8f0;
 }
 

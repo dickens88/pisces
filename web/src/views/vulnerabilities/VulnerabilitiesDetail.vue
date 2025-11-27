@@ -3,43 +3,43 @@
     <!-- 加载遮罩层 -->
     <div
       v-if="loadingVulnerability"
-      class="absolute inset-0 bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
+      class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
     >
       <div class="flex flex-col items-center gap-4">
         <div class="relative w-16 h-16">
           <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
           <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
         </div>
-        <p class="text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
       </div>
     </div>
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
-        <h1 class="text-white text-xl font-bold leading-tight tracking-tight">
+        <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
           {{ vulnerability?.title || vulnerability?.name || 'CVE-' + route.params.id }}
         </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-base font-normal leading-normal">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-base font-normal leading-normal">
           <div class="flex items-center gap-1.5">
             <span>{{ $t('vulnerabilities.detail.actor') || 'Actor' }}:</span>
-            <span class="text-white">{{ vulnerability?.actor || '-' }}</span>
+            <span class="text-gray-900 dark:text-white">{{ vulnerability?.actor || '-' }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('vulnerabilities.detail.createTime') || 'Create Time' }}:</span>
-            <span class="text-white">{{ formatDateTime(vulnerability?.createTime || vulnerability?.create_time) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.createTime || vulnerability?.create_time) }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('vulnerabilities.detail.updateTime') || 'Update Time' }}:</span>
-            <span class="text-white">{{ formatDateTime(vulnerability?.updateTime || vulnerability?.update_time) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.updateTime || vulnerability?.update_time) }}</span>
           </div>
         </div>
       </div>
       <div class="flex flex-1 gap-3 flex-wrap justify-start sm:justify-end min-w-max">
         <button
           @click="openEditDialog"
-          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
         >
           <span class="material-symbols-outlined text-base">edit</span>
           <span class="truncate">{{ $t('vulnerabilities.detail.edit') || '编辑' }}</span>
@@ -54,7 +54,7 @@
         <button
           @click="handleRefresh"
           :disabled="loadingVulnerability"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a3546] h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -66,7 +66,7 @@
         </button>
         <button
           @click="handleShare"
-          class="bg-[#2a3546] hover:bg-[#3c4a60] text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
           :title="$t('vulnerabilities.detail.share') || 'Share'"
         >
           <span class="material-symbols-outlined text-base">share</span>
@@ -76,8 +76,8 @@
 
     <!-- 统计卡片 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('vulnerabilities.detail.statusLabel') || 'Status' }}
         </p>
         <div class="flex items-center gap-2">
@@ -87,13 +87,13 @@
               getStatusDotClass(vulnerability?.status || vulnerability?.handle_status)
             ]"
           ></span>
-          <p class="text-white text-xl font-bold leading-tight">
+          <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
             {{ getStatusText(vulnerability?.status || vulnerability?.handle_status) }}
           </p>
         </div>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('vulnerabilities.detail.riskLevel') || 'Risk Level' }}
         </p>
         <div class="flex items-center gap-2">
@@ -113,19 +113,19 @@
           </p>
         </div>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('vulnerabilities.detail.responsibleDepartment') || 'Responsible Department' }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ vulnerability?.responsibleDept || vulnerability?.responsible_dept || '-' }}
         </p>
       </div>
-      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-slate-800/50 border border-slate-700">
-        <p class="text-slate-300 text-sm font-medium leading-normal">
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('vulnerabilities.detail.responsiblePerson') || 'Responsible Person' }}
         </p>
-        <p class="text-white text-xl font-bold leading-tight">
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ vulnerability?.owner || vulnerability?.responsiblePerson || '-' }}
         </p>
       </div>
@@ -155,14 +155,14 @@
       <!-- Overview 标签页 -->
       <div v-if="activeTab === 'overview'" class="flex flex-col gap-6">
         <!-- 漏洞描述 -->
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg p-6">
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-white font-bold text-lg">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
               {{ $t('vulnerabilities.detail.description') || 'Description' }}
             </h3>
           </div>
           <div class="overflow-x-hidden">
-            <p class="text-slate-300 leading-relaxed whitespace-pre-wrap break-all vulnerability-description-text">
+            <p class="text-gray-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-all vulnerability-description-text">
               {{ vulnerability?.description || vulnerability?.aiAnalysis?.description || $t('vulnerabilities.detail.noDescription') || 'No description available.' }}
             </p>
           </div>
@@ -171,7 +171,7 @@
 
       <!-- Comments 标签页 -->
       <div v-if="activeTab === 'comments'" class="flex-grow">
-        <div class="bg-slate-800/50 border border-slate-700 rounded-lg flex flex-col">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col">
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="vulnerability?.comments || []"

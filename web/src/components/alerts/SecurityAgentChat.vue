@@ -12,8 +12,8 @@
           :key="`msg-${index}`"
           class="min-w-0"
         >
-          <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-            <span class="font-semibold text-slate-200">
+          <div class="flex items-center justify-between text-xs text-gray-500 dark:text-slate-400 mb-1">
+            <span class="font-semibold text-gray-700 dark:text-slate-200">
               {{ getMessageAuthorLabel(item) }}
             </span>
             <span>
@@ -23,7 +23,7 @@
           <!-- 如果是最后一条消息且是assistant且内容为空且正在loading，显示loading动画 -->
           <div 
             v-if="isLastMessageLoading(item, index)"
-            class="text-sm text-slate-200 bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
+            class="text-sm text-gray-900 dark:text-slate-200 bg-gray-100 dark:bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
           >
             <div class="typing-indicator">
               <span></span>
@@ -33,7 +33,7 @@
           </div>
           <div 
             v-else
-            class="text-sm text-slate-200 bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
+            class="text-sm text-gray-900 dark:text-slate-200 bg-gray-100 dark:bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
             v-html="sanitizeHtml(item.content || '')"
           ></div>
         </div>
@@ -41,7 +41,7 @@
         <!-- 如果没有消息，显示提示 -->
         <div 
           v-if="!messages || messages.length === 0" 
-          class="text-slate-400 text-center py-8 text-sm"
+          class="text-gray-500 dark:text-slate-400 text-center py-8 text-sm"
         >
           {{ $t('alerts.detail.noAiResponse') || '暂无消息' }}
         </div>
@@ -49,7 +49,7 @@
     </div>
     
     <!-- 输入框 -->
-    <div class="border-t border-slate-700 pt-3 mt-3 security-agent-input">
+    <div class="border-t border-gray-200 dark:border-slate-700 pt-3 mt-3 security-agent-input">
       <CommentInput
         v-model="message"
         :placeholder="$t('alerts.detail.aiAgentPlaceholder') || '输入消息...'"
@@ -173,8 +173,8 @@ const isLastMessageLoading = (item, index) => {
 }
 
 .security-agent__html :deep(pre) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(249, 250, 251, 0.9);
+  border: 1px solid rgba(209, 213, 219, 0.8);
   padding: 8px;
   border-radius: 4px;
   white-space: pre-wrap;
@@ -184,6 +184,11 @@ const isLastMessageLoading = (item, index) => {
   max-width: 100%;
   margin: 8px 0;
   font-size: 12px;
+}
+
+.dark .security-agent__html :deep(pre) {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .security-agent__html :deep(code) {
