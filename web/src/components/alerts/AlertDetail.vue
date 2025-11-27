@@ -2218,10 +2218,9 @@ onUnmounted(() => {
 :global(.dark) .ai-agent__html :deep(code),
 .ai-agent__html--dark :deep(code) {
   color: #f1f5f9;
-  background: rgba(15, 23, 42, 0.55);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  border: 1px solid rgba(94, 114, 164, 0.4);
+  background: transparent;
+  padding: 0;
+  border: none;
 }
 
 .ai-agent__html :deep(b) {
