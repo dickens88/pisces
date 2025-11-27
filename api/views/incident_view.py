@@ -88,7 +88,10 @@ class IncidentView(Resource):
     @auth_required
     def put(self, username=None, incident_id=None):
         data = json.loads(request.data)
+        search_vulscan = data.get('search_vulscan', False)
+
         try:
+            data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
             result = IncidentService.update_incident(data, incident_id)
             logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
             return {"data": data, "total": result}, 201
