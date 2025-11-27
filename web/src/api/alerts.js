@@ -165,28 +165,15 @@ export const getAlerts = async (params = {}) => {
     requestBody.end_time = end_time
   }
   
-  // Use axios to directly call /alerts, forwarded to backend by vite proxy
-  // In development, vite proxy will forward /alerts to http://localhost:8080/alerts
-  // In production, need to configure nginx or use full URL
+  // Use service (axios instance with interceptors) to call /alerts
+  // This ensures 403 errors are properly handled by the interceptor
   try {
-    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
-    const url = apiBaseURL ? `${apiBaseURL}/alerts` : '/alerts'
-    
-    // Get authentication token
-    const authStore = useAuthStore()
-    const headers = {
-      'Content-Type': 'application/json'
-    }
-    if (authStore.token) {
-      headers['Authorization'] = `Bearer ${authStore.token}`
-    }
-    
-    const response = await axios.post(url, requestBody, { headers })
+    const response = await service.post('/alerts', requestBody)
     
     // Transform response data
     const transformedData = {
-      data: (response.data.data || []).map(transformAlertData),
-      total: response.data.total || 0
+      data: (response.data || []).map(transformAlertData),
+      total: response.total || 0
     }
     
     return transformedData

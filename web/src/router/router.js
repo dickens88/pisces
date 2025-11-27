@@ -13,6 +13,12 @@ const routes = [
     meta: { title: '登录', requiresAuth: false }
   },
   {
+    path: '/403',
+    name: 'Forbidden',
+    component: () => import('@/views/errors/ForbiddenView.vue'),
+    meta: { title: '访问被拒绝', requiresAuth: false }
+  },
+  {
     path: '/',
     component: Layout,
     redirect: '/alerts',

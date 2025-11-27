@@ -120,6 +120,33 @@ function handleUnauthorized() {
   redirectToLogin()
 }
 
+function handleForbidden() {
+  const currentRoute = router.currentRoute?.value
+  const isAlreadyOnForbidden = currentRoute?.name === 'Forbidden' || window.location.pathname === '/403'
+  
+  if (isAlreadyOnForbidden) {
+    return
+  }
+  
+  setTimeout(() => {
+    try {
+      router.replace({ name: 'Forbidden' }).catch(() => {
+        const base = getRouterBase()
+        window.location.href = `${base}403`.replace('//', '/')
+      })
+    } catch (err) {
+      const base = getRouterBase()
+      window.location.href = `${base}403`.replace('//', '/')
+    }
+  }, 0)
+}
+
+function getRouterBase() {
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  if (!raw || raw === '/') return '/'
+  return raw.startsWith('/') ? raw : `/${raw}`
+}
+
 function isUnauthorizedCode(code) {
   if (!code) return false
   const normalized = Number(code)
@@ -136,6 +163,8 @@ service.interceptors.response.use(
     if (res.code && res.code !== 200) {
       if (isUnauthorizedCode(res.code)) {
         handleUnauthorized()
+      } else if (res.code === 403) {
+        handleForbidden()
       }
       console.error('API Error:', res.message || 'Error')
       return Promise.reject(new Error(res.message || 'Error'))
@@ -154,7 +183,7 @@ service.interceptors.response.use(
           handleUnauthorized()
           break
         case 403:
-          console.error('Forbidden: Access denied')
+          handleForbidden()
           break
         case 404:
           console.error('Not Found: The requested resource was not found')
