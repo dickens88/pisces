@@ -29,7 +29,10 @@
     <slot>
       <div
         v-if="sanitizedHtmlContent"
-        class="mt-3 text-sm text-gray-700 dark:text-[#c3d3e8] alert-info-card__html"
+        :class="[
+          'mt-3 text-sm text-gray-700 dark:text-[#c3d3e8] alert-info-card__html',
+          { 'alert-info-card__html--dark': isDarkMode }
+        ]"
         v-html="sanitizedHtmlContent"
       ></div>
       <p
@@ -59,6 +62,7 @@ import { computed } from 'vue'
 import DOMPurify from 'dompurify'
 
 import { formatDateTime } from '@/utils/dateTime'
+import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
 
 const props = defineProps({
   title: {
@@ -106,6 +110,8 @@ const props = defineProps({
     default: 'schedule'
   }
 })
+
+const { isDarkMode } = useDarkModeObserver()
 
 const sanitizedHtmlContent = computed(() => {
   if (!props.htmlContent) {
@@ -173,10 +179,12 @@ const headerMetaIconToShow = computed(() => (displayHeaderMeta.value ? props.hea
   margin: 10px 0;
 }
 
-:global(.dark) .alert-info-card__html :deep(pre) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #e2e8f0;
+:global(.dark) .alert-info-card__html :deep(pre),
+.alert-info-card__html--dark :deep(pre) {
+  background: #111b2e;
+  border: 1px solid rgba(94, 114, 164, 0.45);
+  color: #f1f5f9;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
 }
 
 .alert-info-card__html :deep(code) {
@@ -185,15 +193,17 @@ const headerMetaIconToShow = computed(() => (displayHeaderMeta.value ? props.hea
   color: #0f172a;
 }
 
-:global(.dark) .alert-info-card__html :deep(code) {
-  color: #e2e8f0;
+:global(.dark) .alert-info-card__html :deep(code),
+.alert-info-card__html--dark :deep(code) {
+  color: #f1f5f9;
 }
 
 .alert-info-card__html :deep(b) {
   color: #0f172a;
 }
 
-:global(.dark) .alert-info-card__html :deep(b) {
+:global(.dark) .alert-info-card__html :deep(b),
+.alert-info-card__html--dark :deep(b) {
   color: #e2e8f0;
 }
 </style>

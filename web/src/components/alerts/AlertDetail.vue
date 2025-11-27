@@ -343,7 +343,13 @@
                         <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
                       </div>
                       <div class="mt-1 text-sm text-gray-700 dark:text-[#c3d3e8] bg-white dark:bg-[#2a3546] border border-gray-200 dark:border-transparent p-3 rounded-lg rounded-tl-none max-w-full overflow-hidden">
-                        <div class="bg-gray-50 dark:bg-transparent text-gray-800 dark:text-inherit rounded-md p-2 border border-gray-200 dark:border-transparent ai-agent__html" v-html="sanitizeHtml(aiItem.content || '')"></div>
+                        <div
+                          :class="[
+                            'bg-gray-50 dark:bg-transparent text-gray-800 dark:text-inherit rounded-md p-2 border border-gray-200 dark:border-transparent ai-agent__html',
+                            { 'ai-agent__html--dark': isDarkMode }
+                          ]"
+                          v-html="sanitizeHtml(aiItem.content || '')"
+                        ></div>
                       </div>
                     </div>
                   </div>
@@ -743,6 +749,7 @@ import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import { useToast } from '@/composables/useToast'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
+import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
 
 const props = defineProps({
   alertId: {
@@ -792,6 +799,7 @@ const closeConclusion = ref({
   category: '',
   notes: ''
 })
+const { isDarkMode } = useDarkModeObserver()
 const {
   recentComments: recentCloseComments,
   showDropdown: showRecentCloseComments,
@@ -2193,10 +2201,12 @@ onUnmounted(() => {
   word-break: break-word;
 }
 
-:global(.dark) .ai-agent__html :deep(pre) {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  color: #e2e8f0;
+:global(.dark) .ai-agent__html :deep(pre),
+.ai-agent__html--dark :deep(pre) {
+  background: #111b2e;
+  border: 1px solid rgba(94, 114, 164, 0.45);
+  color: #f1f5f9;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.4);
 }
 
 .ai-agent__html :deep(code) {
@@ -2205,15 +2215,21 @@ onUnmounted(() => {
   color: #0f172a;
 }
 
-:global(.dark) .ai-agent__html :deep(code) {
-  color: #e2e8f0;
+:global(.dark) .ai-agent__html :deep(code),
+.ai-agent__html--dark :deep(code) {
+  color: #f1f5f9;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid rgba(94, 114, 164, 0.4);
 }
 
 .ai-agent__html :deep(b) {
   color: #0f172a;
 }
 
-:global(.dark) .ai-agent__html :deep(b) {
+:global(.dark) .ai-agent__html :deep(b),
+.ai-agent__html--dark :deep(b) {
   color: #e2e8f0;
 }
 
