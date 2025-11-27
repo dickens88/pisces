@@ -1,14 +1,16 @@
 import datetime
 
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, get_jwt_identity, verify_jwt_in_request
 from flask_restful import Api
 
 from controllers.incident_graph_scheduler import IncidentGraphIntelligenceJob
 from models import user
 from utils.app_config import config
+from utils.auth_util import parse_w3_token, TokenCache
 from utils.common_utils import scheduler
+from utils.logger_init import logger
 from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view
 
 app = Flask(__name__)
@@ -30,6 +32,27 @@ app.config['JWT_BLOCKLIST_TOKEN_CHECKS'] = ['access']
 def check_if_token_in_blacklist(jwt_header, decrypted_token):
     jti = decrypted_token['jti']
     return user.RevokedTokenModel.is_jti_blacklisted(jti)
+
+
+@app.after_request
+def after_request(response):
+    client_ip = request.headers.get("X-Real-IP", request.remote_addr)
+    try:
+        if config.get("application.auth.method", "jwt") == "jwt":
+            verify_jwt_in_request(optional=True)
+            username = get_jwt_identity() or 'anonymous'
+        else:
+            cached_user = TokenCache().get_token(token=parse_w3_token(request))
+            username = cached_user.get("cn", "anonymous") if cached_user else 'anonymous'
+    except Exception as e:
+        username = 'anonymous'
+
+    logger.info(
+        f'{client_ip} - - url="{request.method} {request.url}",user_agent="{request.headers.get("User-Agent", "-")}",'
+        f'status={response.status_code},length={request.content_length},user="{username}"'
+    )
+    
+    return response
 
 
 api.add_resource(auth_view.UserLogin, '/login')
