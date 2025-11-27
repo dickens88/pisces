@@ -638,22 +638,22 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeDisassociateDialog"
     >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             {{ $t('incidents.detail.disassociateDialog.title') }}
           </h2>
           <button
             @click="closeDisassociateDialog"
-            class="text-gray-400 hover:text-white transition-colors"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <span class="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         <!-- Prompt message -->
-        <div class="mb-6 p-3 bg-[#1e293b] rounded-md">
-          <p class="text-sm text-gray-400">
+        <div class="mb-6 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
             {{ $t('incidents.detail.disassociateDialog.confirmMessage', { count: selectedAlerts.length }) }}
           </p>
         </div>
@@ -662,7 +662,7 @@
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeDisassociateDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
           >
             {{ $t('common.cancel') }}
           </button>

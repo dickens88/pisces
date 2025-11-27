@@ -427,9 +427,9 @@
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeBatchDeleteDialog"
     >
-      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-semibold text-white">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
             {{ $t('alerts.list.batchDeleteDialog.title') }}
           </h2>
           <button
@@ -449,14 +449,14 @@
 
         <!-- Confirmation input -->
         <div class="mb-6">
-          <label class="block text-sm font-medium text-white mb-2">
+          <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
             {{ $t('alerts.list.batchDeleteDialog.confirmInputLabel') }}
           </label>
           <input
             v-model="deleteConfirmInput"
             @keydown.enter.prevent="handleBatchDelete"
             type="text"
-            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
             :placeholder="$t('alerts.list.batchDeleteDialog.confirmInputPlaceholder')"
             autocomplete="off"
           />
@@ -466,7 +466,7 @@
         <div class="flex items-center justify-end gap-3">
           <button
             @click="closeBatchDeleteDialog"
-            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
           >
             {{ $t('common.cancel') }}
           </button>
