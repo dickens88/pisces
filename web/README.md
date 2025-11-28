@@ -134,9 +134,6 @@ VITE_WEB_BASE_PATH=https://huntingportal.dearcharles.cn/pisces
 # 是否启用认证（默认：true）
 VITE_ENABLE_AUTH=true
 
-# 告警管理顶部图表开关（默认：true）
-VITE_ALERTS_CHARTS_ENABLED=true
-
 # 认证模式：'local' 使用pisces本地认证，'tianyan' 使用tianyan-web认证
 # 当设置为 'tianyan' 时，将关闭pisces的登录页面，401错误会重定向到tianyan-web登录页面
 VITE_AUTH_MODE=local

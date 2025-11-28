@@ -162,6 +162,8 @@
         "autoClosed": "自动关闭",
         "totalAlerts": "总关闭数"
       },
+      "showCharts": "显示图表",
+      "hideCharts": "隐藏图表",
       "createAlert": "新建告警",
       "batchDelete": "删除告警",
       "batchDeleteDialog": {

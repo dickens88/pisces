@@ -31,7 +31,7 @@
 
     <!-- Statistics cards -->
     <section
-      v-if="alertChartsEnabled"
+      v-if="showCharts"
       class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
     >
       <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
@@ -282,6 +282,16 @@
                 </span>
                 <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
               </button>
+              <button
+                @click="handleToggleChartsVisibility"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ showCharts ? 'monitoring' : 'visibility_off' }}
+                </span>
+                <span>{{ showCharts ? $t('alerts.list.hideCharts') : $t('alerts.list.showCharts') }}</span>
+              </button>
+              <div class="mx-3 my-1 h-px bg-gray-200 dark:bg-[#3b4c65]"></div>
               <button
                 @click="handleCreateAlertFromMenu"
                 class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
@@ -597,14 +607,9 @@ import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
-import { getAppConfig } from '@config'
 
 const { t } = useI18n()
 const toast = useToast()
-const appConfig = getAppConfig(import.meta.env, import.meta.env.PROD)
-const alertChartsEnabled = appConfig.alertsChartsEnabled !== false
-
-
 // Define column configuration (using computed to ensure reactivity)
 const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
@@ -622,6 +627,20 @@ const defaultWidths = {
   status: 120,
   owner: 50
 }
+
+const chartsVisibilityStorageKey = 'alerts-showCharts-visible'
+const getStoredChartsVisibility = () => {
+  try {
+    const stored = localStorage.getItem(chartsVisibilityStorageKey)
+    if (stored === 'true' || stored === 'false') {
+      return stored === 'true'
+    }
+  } catch (error) {
+    console.warn('Failed to read charts visibility preference:', error)
+  }
+  return true
+}
+const showCharts = ref(getStoredChartsVisibility())
 
 const alerts = ref([])
 const loadingAlerts = ref(false)
@@ -732,6 +751,14 @@ const showBatchDeleteDialog = ref(false)
 const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
 
+const persistChartsVisibilityPreference = (value) => {
+  try {
+    localStorage.setItem(chartsVisibilityStorageKey, value ? 'true' : 'false')
+  } catch (error) {
+    console.warn('Failed to save charts visibility preference:', error)
+  }
+}
+
 const alertTypeChartRef = ref(null)
 const alertTypeChartCategories = ref([])
 const alertTypeChartValues = ref([])
@@ -801,7 +828,7 @@ const handleAlertTrendResize = () => {
 }
 
 const ensureAlertTypeChart = () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   if (!alertTypeChartInstance && alertTypeChartRef.value) {
@@ -825,7 +852,7 @@ const disposeAlertTypeChart = () => {
 }
 
 const ensureAlertTrendChart = () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   if (!alertTrendChartInstance && alertTrendChartRef.value) {
@@ -849,7 +876,7 @@ const disposeAlertTrendChart = () => {
 }
 
 const updateAlertTypeChart = () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   ensureAlertTypeChart()
@@ -928,7 +955,7 @@ const updateAlertTypeChart = () => {
 }
 
 const loadAlertTypeDistribution = async () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   alertTypeChartLoading.value = true
@@ -959,7 +986,7 @@ const loadAlertTypeDistribution = async () => {
 }
 
 const updateAlertTrendChart = () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   ensureAlertTrendChart()
@@ -1060,7 +1087,7 @@ const updateAlertTrendChart = () => {
 }
 
 const loadAlertTrend = async () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   alertTrendChartLoading.value = true
@@ -1153,7 +1180,7 @@ const handleRefresh = async () => {
 }
 
 const loadStatistics = async () => {
-  if (!alertChartsEnabled) {
+  if (!showCharts.value) {
     return
   }
   automationRateLoading.value = true
@@ -1367,6 +1394,26 @@ const handleToggleWordWrap = () => {
   if (dataTableRef.value) {
     dataTableRef.value.toggleWordWrap()
     showMoreMenu.value = false
+  }
+}
+
+const handleToggleChartsVisibility = async () => {
+  const next = !showCharts.value
+  showCharts.value = next
+  persistChartsVisibilityPreference(next)
+  showMoreMenu.value = false
+
+  if (next) {
+    ensureAlertTypeChart()
+    ensureAlertTrendChart()
+    await Promise.all([
+      loadStatistics(),
+      loadAlertTypeDistribution()
+    ])
+    await loadAlertTrend()
+  } else {
+    disposeAlertTypeChart()
+    disposeAlertTrendChart()
   }
 }
 
@@ -1644,12 +1691,16 @@ const handleCustomRangeChange = async (newRange) => {
 }
 
 onMounted(async () => {
-  ensureAlertTypeChart()
-  ensureAlertTrendChart()
+  if (showCharts.value) {
+    ensureAlertTypeChart()
+    ensureAlertTrendChart()
+  }
   loadAlerts()
-  await loadStatistics()
-  loadAlertTypeDistribution()
-  await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
+  if (showCharts.value) {
+    await loadStatistics()
+    loadAlertTypeDistribution()
+    await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
+  }
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()

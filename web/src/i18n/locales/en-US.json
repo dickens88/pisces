@@ -164,6 +164,8 @@
         "autoClosed": "Auto Closed",
         "totalAlerts": "Total Closed"
       },
+      "showCharts": "Show Charts",
+      "hideCharts": "Hide Charts",
       "createAlert": "Create Alert",
       "batchDelete": "Delete Alerts",
       "batchDeleteDialog": {
