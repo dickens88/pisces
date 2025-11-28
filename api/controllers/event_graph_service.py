@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from threading import Lock
 from typing import List, Tuple, Optional, Dict, Any
@@ -26,6 +27,37 @@ Requirements:
  - Focus almost entirely on the attack process clarity; all non‑essential details can be omitted.
  - No separate Impact/Critical Alerts sections unless required to explain the chain.
 """.strip()
+
+
+def _load_prompt_from_json() -> Optional[str]:
+    """Load prompt from JSON file based on proxy configuration."""
+    try:
+        # Determine site based on proxy.enabled configuration
+        enable_proxy = config.get("application.proxy.enabled", False)
+        site = "cn_site" if enable_proxy else "eu_site"
+        
+        # Get the path to the JSON file (relative to current working directory, consistent with other files)
+        json_path = "resources/event_graph_prompts.json"
+        
+        if not os.path.exists(json_path):
+            logger.warning(f"Prompt JSON file not found at {json_path}, using default prompt")
+            return None
+        
+        with open(json_path, "r", encoding="utf-8") as f:
+            prompts_data = json.load(f)
+        
+        site_prompts = prompts_data.get(site, {})
+        prompt = site_prompts.get("summary_prompt")
+        
+        if prompt:
+            logger.info(f"Loaded prompt from JSON for site: {site}")
+            return prompt.strip()
+        else:
+            logger.warning(f"No prompt found for site {site} in JSON file, using default prompt")
+            return None
+    except Exception as e:
+        logger.warning(f"Failed to load prompt from JSON file: {e}, using default prompt")
+        return None
 
 class EventGraphGenerationError(Exception):
     """Custom exception for LightRAG graph generation failures."""
@@ -373,8 +405,12 @@ class EventGraphService:
 
     @staticmethod
     def _build_summary_prompt(incident_payload: dict, incident_context: str) -> str:
+        # Try to load prompt from JSON file first
+        prompt_from_json = _load_prompt_from_json()
+        
+        # Fallback to configured prompt or default
         configured_prompt = config.get("application.lightrag.prompt")
-        prompt = str(configured_prompt or DEFAULT_SUMMARY_PROMPT).strip()
+        prompt = str(prompt_from_json or configured_prompt or DEFAULT_SUMMARY_PROMPT).strip()
 
         incident_id = incident_payload.get("id") or incident_payload.get("incident_id") or "-"
         context = incident_context.strip()
