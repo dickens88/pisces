@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 
 import requests
+from tenacity import retry, stop_after_attempt
 
 from utils.apig_sdk import signer
 from utils.app_config import config
@@ -129,6 +130,7 @@ def _wrap_http_auth_headers(method, url, headers, body=None):
     return url, headers
 
 
+@retry(stop=stop_after_attempt(3))
 def request_with_auth(method, url, headers, data=None):
     """
     request url with auth headers

@@ -30,7 +30,6 @@ class ToolkitRecordView(Resource):
             
             # Query records by event_id (which stores alert_id)
             records = ToolkitRecord.list_toolkit_records(event_id=alert_id)
-            logger.info(f"[Toolkit] Query toolkit records for alert_id={alert_id} successfully. Found {len(records)} records. [{username}]")
             return {"data": records, "total": len(records)}, 200
         except Exception as ex:
             logger.exception(ex)
