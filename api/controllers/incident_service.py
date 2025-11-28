@@ -264,6 +264,8 @@ class IncidentService:
         if resp.status_code > 300:
             raise Exception(resp.text)
 
+        Incident.delete_incidents(batch_ids)
+
         result = json.loads(resp.text)
         return result
 

@@ -124,6 +124,24 @@ class Alert(Base):
         finally:
             session.close()
 
+    @classmethod
+    def delete_alerts(cls, alert_ids):
+        """Delete alerts from local DB by their alert_ids."""
+        if not alert_ids:
+            return 0
+        session = Session()
+        try:
+            deleted = session.query(cls).filter(cls.alert_id.in_(alert_ids)).delete(synchronize_session=False)
+            session.commit()
+            logger.debug("Deleted %s alerts from local DB", deleted)
+            return deleted
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
     @staticmethod
     def _build_alert_entity(payload: dict):
         """Build Alert ORM instance from payload without persisting."""
