@@ -10,18 +10,21 @@ from utils.logger_init import logger
 from utils.common_utils import get_proxy
 
 DEFAULT_SUMMARY_PROMPT = """
-You are a cybersecurity analyst. Based on the following incident information retrieved from the SIEM system and knowledge base, generate a concise and structured security incident summary. The summary should include:
-1. Overview: incident ID/name, occurrence time, attack type (e.g., ransomware, APT, DDoS, intrusion)
-2. Attack progression: attack trigger, propagation path, key alerts, and incident chain
-3. Impact: affected assets (servers, applications, network devices), business systems, users, alert severity and count
-4. Related alerts: highlight key or high-severity alerts associated with this incident
-5. Possible causes or context: exploited vulnerabilities, attack techniques, attacker behavior patterns (if available)
-6. Recommendations or preliminary mitigation steps (if available)
+You are a cybersecurity analyst. Based on the incident information from the SIEM system and the knowledge base, generate a concise, clear, and attack‑centric incident summary. Focus primarily on the attack sequence and how the incident unfolded. The summary should include:
+1. overview: incident ID/name, time, and attack type (one or two sentences only).
+2. Attack progression (core section):
+ - Describe how the attack started (initial trigger).
+ - Show the progression path with key steps in chronological order.
+ - Explain how alerts relate to each stage and how the attack chain forms end‑to‑end.
+ - Merge duplicate or low‑value alerts; keep only those necessary to explain the sequence.
+3. Root cause/context: vulnerabilities, misconfigurations, attacker techniques, or behavioral indicators.
+4. Mitigation (if available): direct and actionable containment or remediation steps.
 
 Requirements:
-- Present the summary in readable paragraphs, not just a list of alerts or logs
-- Include comprehensive but concise information, focusing on key points, around 200–300 words
-- Keep only critical alert information, ignore duplicates or low-priority alerts
+ - Write in clear paragraphs, not as a list of alerts.
+ - Around 150–220 words.
+ - Focus almost entirely on the attack process clarity; all non‑essential details can be omitted.
+ - No separate Impact/Critical Alerts sections unless required to explain the chain.
 """.strip()
 
 class EventGraphGenerationError(Exception):
