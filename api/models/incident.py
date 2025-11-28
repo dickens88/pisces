@@ -239,6 +239,24 @@ class Incident(Base):
         finally:
             session.close()
 
+    @classmethod
+    def delete_incidents(cls, incident_ids):
+        """Delete incidents from local DB by their incident_ids."""
+        if not incident_ids:
+            return 0
+        session = Session()
+        try:
+            deleted = session.query(cls).filter(cls.incident_id.in_(incident_ids)).delete(synchronize_session=False)
+            session.commit()
+            logger.debug("Deleted %s incidents from local DB", deleted)
+            return deleted
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
     @staticmethod
     def _build_incident_entity(payload: dict):
         """Build Incident ORM instance from payload without persisting."""

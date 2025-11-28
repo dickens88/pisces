@@ -2,6 +2,7 @@ import json
 from typing import List
 
 from controllers.comment_service import CommentService
+from models.alert import Alert
 from utils.app_config import config
 from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
@@ -241,6 +242,8 @@ class AlertService:
         resp = request_with_auth("DELETE", url=base_url, headers=headers, data=body)
         if resp.status_code > 300:
             raise Exception(resp.text)
+
+        Alert.delete_alerts(alert_ids)
 
         result = json.loads(resp.text)
         return result
