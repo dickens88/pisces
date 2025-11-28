@@ -54,12 +54,22 @@ def auth_required(func):
                 user = json.loads(resp.text)
                 logger.info(f'[AUTH] Request w3 new token for user={user["user"]["cn"]},status={resp.status_code}')
                 user = user["user"]
+            else:
+                logger.info(f'[AUTH] Fail to request w3 token, status={resp.status_code}')
+                return {"error_message": resp.text}, 401
+
+            # 3. verify user permission
+            resp = requests.request(method="GET",
+                                    url=f"https://sectools.cloudbu.huawei.com/api/robot/proxy?action=check_permission&permission=0x200&w3account={user.get('uid', '-')}",
+                                    headers={"Content-Type": "application/json"},
+                                    verify=False)
+            if resp.status_code == 200 and json.loads(resp.text)["message"]["result"] == "true":
                 TokenCache().set_token(token=token_data, user=user)
                 kwargs.setdefault("username", user.get("cn", "debug"))
                 return func(*args, **kwargs)
             else:
-                logger.info(f'[AUTH] Fail to request w3 token, status={resp.status_code}')
-                return {"error_message": resp.text}, 401
+                logger.info(f'[AUTH] The user {user.get("uid", "debug")} dont have permission, status={resp.status_code}')
+                return {"error_message": resp.text}, 403
 
     return wrapper
 
