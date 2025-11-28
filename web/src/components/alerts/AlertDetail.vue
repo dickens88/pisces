@@ -269,6 +269,7 @@
                     :comments="alert?.comments || []"
                     :title="$t('alerts.detail.comments.title')"
                     use-avatar-component
+                    :loading="isSubmittingComment"
                     @submit="handleAddComment"
                   />
                   
@@ -827,6 +828,7 @@ const showMoreActionsMenu = ref(false)
 const isRefreshing = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
+const isSubmittingComment = ref(false)
 
 // Toolkit related state
 const toolkits = ref([])
@@ -843,26 +845,17 @@ const tabs = [
   { key: 'aiAgent', label: 'alerts.detail.aiAgent' }
 ]
 
-/**
- * @brief 获取页签的计数
- * @param {string} tabKey - 页签的key
- * @returns {number} 该页签下的数据条数
- */
 const getTabCount = (tabKey) => {
   if (!alert.value) return 0
   
   switch (tabKey) {
     case 'overview':
-      // Overview 页签显示 comments 的数量
       return alert.value.comments?.length || 0
     case 'associatedAlerts':
-      // Associated Alerts 页签显示关联告警的数量
       return associatedAlerts.value?.length || 0
     case 'threatIntelligence':
-      // Threat Intelligence 页签显示威胁情报的数量
       return alert.value.intelligence?.length || 0
     case 'aiAgent':
-      // AI Agent 页签显示 AI 分析结果的数量
       return alert.value.ai?.length || 0
     default:
       return 0
@@ -937,15 +930,9 @@ const transformAssociatedAlertsResponse = (data = []) => {
   })
 }
 
-/**
- * @brief 转换后端返回的告警详情数据为前端期望的格式
- * @param {Object} apiData - 后端返回的告警数据
- * @returns {Object} 转换后的告警对象
- */
 const transformAlertDetailData = (apiData) => {
   if (!apiData) return null
 
-  // 转换severity为riskLevel (Fatal/High/Medium/Low/Tips -> fatal/high/medium/low/tips)
   const severityMap = {
     'Fatal': 'fatal',
     'High': 'high',
@@ -954,15 +941,12 @@ const transformAlertDetailData = (apiData) => {
     'Tips': 'tips'
   }
   
-  // 转换handle_status为status (Open/Block/Closed -> open/block/closed)
   const statusMap = {
     'Open': 'open',
     'Block': 'block',
     'Closed': 'closed'
   }
 
-  // 从description中提取字段
-  // 保留原始的 description 值（可能是字符串或对象）
   const description = apiData.description !== null && apiData.description !== undefined
     ? apiData.description
     : {}
@@ -974,17 +958,15 @@ const transformAlertDetailData = (apiData) => {
   )
   const normalizedTtr = computedTtr === '-' && apiData.ttr ? apiData.ttr : computedTtr
 
-  // 转换comments格式
   const comments = (apiData.comments || []).map(comment => ({
     id: comment.id || Date.now(),
     author: comment.author || 'Unknown',
     authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
     time: formatDateTime(comment.create_time || comment.time),
     content: comment.content || '',
-    file: comment.file || null  // 保留文件信息
+    file: comment.file || null
   }))
 
-  // 转换intelligence格式
   const intelligence = (apiData.intelligence || []).map(item => ({
     id: item.id || Date.now(),
     author: item.author || 'Unknown',
@@ -992,7 +974,6 @@ const transformAlertDetailData = (apiData) => {
     content: item.content || ''
   }))
 
-  // 转换ai格式
   const ai = (apiData.ai || []).map(item => ({
     id: item.id || Date.now(),
     author: item.author || 'AI Agent',
@@ -1000,14 +981,12 @@ const transformAlertDetailData = (apiData) => {
     content: item.content || ''
   }))
 
-  // 转换entities格式
   const entities = (apiData.entities || []).map(entity => ({
     type: entity.type || 'unknown',
     name: entity.name || '',
     label: entity.from || entity.label || ''
   }))
 
-  // 转换timeline格式（时间使用本地时区显示）
   const timeline = (apiData.timeline || []).map(event => {
     const formattedTime = formatDateTime(event.time || event.timestamp)
     return {
@@ -1016,7 +995,6 @@ const transformAlertDetailData = (apiData) => {
     }
   })
 
-  // 从description中提取字段（只有当description是对象时才尝试访问属性）
   const descriptionObj = typeof description === 'object' && description !== null ? description : {}
   const sourceIp = descriptionObj.srcip || descriptionObj.sourceIp || descriptionObj.src_ip
   const userName = descriptionObj.username || descriptionObj.userName || descriptionObj.user_name
@@ -1060,59 +1038,44 @@ const transformAlertDetailData = (apiData) => {
   }
 }
 
-/**
- * @brief 加载告警详情
- * @details 从API获取告警详细信息并显示
- */
-const loadAlertDetail = async () => {
+const loadAlertDetail = async (showLoading = true) => {
   if (!currentAlertId.value) return
   
-  // 重置状态
-  alert.value = null
-  isLoading.value = true
+  if (showLoading) {
+    alert.value = null
+    isLoading.value = true
+  }
   conversationId.value = null
   
-  // 先显示面板，确保滑入动画能触发
   visible.value = true
-  
-  // 添加一个小延迟确保动画能显示
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
     const response = await getAlertDetail(currentAlertId.value)
-    // 转换后端返回的数据格式
     alert.value = transformAlertDetailData(response.data)
     securityAgentMessages.value = []
-    // 加载关联告警
     loadAssociatedAlerts()
-    // 加载工具列表和执行记录
     loadToolkits()
     loadToolkitRecords()
   } catch (error) {
     console.error('Failed to load alert detail:', error)
-    // 加载失败时只触发 close 事件，不进行路由跳转
     emit('close')
   } finally {
-    // 确保加载状态在数据加载完成后才关闭
-    isLoading.value = false
+    if (showLoading) {
+      isLoading.value = false
+    }
   }
 }
 
-/**
- * @brief 加载关联告警数据
- * @details 从 historic 数据中提取关联告警列表
- */
 const loadAssociatedAlerts = async () => {
   if (!currentAlertId.value) return
 
   loadingAssociatedAlerts.value = true
   try {
-    // 只使用 historic 数据，不调用其他接口
     if (alert.value?.historic?.length) {
       const data = transformHistoricEntries(alert.value.historic, alert.value?.id)
       associatedAlerts.value = data
     } else {
-      // 如果没有 historic 数据，使用空数组
       associatedAlerts.value = []
     }
   } catch (error) {
@@ -1123,18 +1086,12 @@ const loadAssociatedAlerts = async () => {
   }
 }
 
-/**
- * @brief 加载工具列表
- */
 const loadToolkits = async () => {
   loadingToolkits.value = true
   try {
     const response = await getToolkits()
-    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
-    // 后端返回格式: { "tools": [...] }
     toolkits.value = response.tools || []
     console.log('Loaded toolkits:', toolkits.value, 'Response:', response)
-    // 初始化每个工具的参数
     toolkits.value.forEach(tool => {
       if (!toolkitParams.value[tool.app_id]) {
         toolkitParams.value[tool.app_id] = {}
@@ -1149,23 +1106,17 @@ const loadToolkits = async () => {
   }
 }
 
-/**
- * @brief 加载工具执行记录
- */
 const loadToolkitRecords = async () => {
   if (!currentAlertId.value) return
 
   loadingToolkitRecords.value = true
   try {
     const response = await getToolkitRecords(currentAlertId.value)
-    // axios 拦截器已经返回了 response.data，所以 response 就是后端返回的数据
-    // 后端返回格式: { "data": [...], "total": ... }
     toolkitRecords.value = response.data || []
     console.log('Loaded toolkit records:', toolkitRecords.value, 'Response:', response)
   } catch (error) {
     console.error('Failed to load toolkit records:', error)
     toolkitRecords.value = []
-    // 如果接口返回 400 或没有数据，不显示错误提示
     if (error?.response?.status !== 400) {
       toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitRecordsError') || '加载执行记录失败')
     }
@@ -1174,17 +1125,12 @@ const loadToolkitRecords = async () => {
   }
 }
 
-/**
- * @brief 执行工具
- * @param {Object} tool - 工具对象
- */
 const handleExecuteToolkit = async (tool) => {
   if (!currentAlertId.value) {
     toast.error(t('alerts.detail.alertIdRequired') || '告警ID不存在')
     return
   }
 
-  // 验证必填参数
   const params = toolkitParams.value[tool.app_id] || {}
   const requiredParams = tool.params || []
   const missingParams = requiredParams.filter(p => !params[p.name] || params[p.name].trim() === '')
@@ -1206,8 +1152,6 @@ const handleExecuteToolkit = async (tool) => {
 
     await executeToolkit(currentAlertId.value, requestData)
     toast.success(t('alerts.detail.toolkitExecuteSuccess') || '工具执行成功')
-    
-    // 重新加载执行记录
     await loadToolkitRecords()
   } catch (error) {
     console.error('Failed to execute toolkit:', error)
@@ -1217,12 +1161,6 @@ const handleExecuteToolkit = async (tool) => {
   }
 }
 
-/**
- * @brief 更新工具参数值
- * @param {string} appId - 工具应用ID
- * @param {string} paramName - 参数名
- * @param {string} value - 参数值
- */
 const updateToolkitParam = (appId, paramName, value) => {
   if (!toolkitParams.value[appId]) {
     toolkitParams.value[appId] = {}
@@ -1230,11 +1168,6 @@ const updateToolkitParam = (appId, paramName, value) => {
   toolkitParams.value[appId][paramName] = value
 }
 
-/**
- * @brief 格式化工具执行结果
- * @param {string|Object} result - 执行结果
- * @returns {string} 格式化后的结果字符串
- */
 const formatToolkitResult = (result) => {
   if (typeof result === 'string') {
     try {
@@ -1253,18 +1186,15 @@ const handleClose = async () => {
   showMoreActionsMenu.value = false
   conversationId.value = null
   
-  // 如果还在加载，等待加载完成，但最多等待动画时间
-  const closeDelay = 300 // 动画持续时间
+  const closeDelay = 300
   const startTime = Date.now()
   
-  // 如果还在加载，等待加载完成（但不超过动画时间）
   if (isLoading.value) {
     while (isLoading.value && (Date.now() - startTime) < closeDelay) {
       await new Promise(resolve => setTimeout(resolve, 50))
     }
   }
   
-  // 开始关闭动画
   visible.value = false
   
   setTimeout(() => {
@@ -1283,13 +1213,11 @@ const openBatchCloseDialog = () => {
 
 const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
-  // 重置表单
   closeConclusion.value = {
     category: '',
     notes: ''
   }
   hideRecentCloseCommentsDropdown()
-  // 重置加载状态
   isClosing.value = false
 }
 
@@ -1302,26 +1230,19 @@ const handleBatchClose = async () => {
     return
   }
 
-  // 设置加载状态
   isClosing.value = true
 
   try {
-    // 调用单个告警关闭接口
     await closeAlert(currentAlertId.value, {
       category: closeConclusion.value.category,
       notes: closeConclusion.value.notes.trim()
     })
     persistRecentCloseComment(closeConclusion.value.notes.trim())
-    
-    // 关闭对话框并重置表单
     closeBatchCloseDialog()
-    
     await loadAlertDetail()
-    
     emit('closed')
   } catch (error) {
     console.error('Failed to close alert:', error)
-    // 发生错误时，保持对话框打开，但重置加载状态
     isClosing.value = false
   }
 }
@@ -1330,17 +1251,14 @@ const handleRecentCommentSelect = (comment) => {
   applyRecentCloseComment(comment)
 }
 
-// 计算是否可以关闭告警（只有状态不是closed时才可关闭）
 const canCloseAlert = computed(() => {
   return alert.value && alert.value.status !== 'closed'
 })
 
-// 计算是否可以开启告警（只有状态为closed时才可开启）
 const canOpenAlert = computed(() => {
   return alert.value && alert.value.status === 'closed'
 })
 
-// 开启告警
 const handleOpenAlert = async () => {
   if (!canOpenAlert.value || !currentAlertId.value) {
     return
@@ -1348,11 +1266,7 @@ const handleOpenAlert = async () => {
 
   try {
     await openAlert(currentAlertId.value)
-    
-    // 重新加载告警详情以更新状态
     await loadAlertDetail()
-    
-    // 触发刷新事件，让父组件知道需要刷新列表
     emit('closed')
   } catch (error) {
     console.error('Failed to open alert:', error)
@@ -1365,20 +1279,15 @@ const openCreateIncidentDialog = () => {
     return
   }
   
-  // 解析告警的创建时间
   const createTime = getAlertCreateTime()
-  
-  // 获取告警描述（优先使用 aiAnalysis.description，否则使用 description）
   const alertDescription = alert.value.aiAnalysis?.description || alert.value.description || ''
   
-  // 设置初始数据
   createIncidentInitialData.value = {
     title: alert.value.title || '',
     createTime,
     description: alertDescription
   }
   
-  // 打开对话框
   showCreateIncidentDialog.value = true
 }
 
@@ -1388,9 +1297,7 @@ const closeCreateIncidentDialog = () => {
 }
 
 const handleIncidentCreated = () => {
-  // 事件创建成功后，关闭对话框
   closeCreateIncidentDialog()
-  // 触发刷新事件，让父组件知道需要刷新列表
   emit('created')
 }
 
@@ -1400,7 +1307,6 @@ const openCreateVulnerabilityDialog = () => {
     return
   }
   
-  // 获取告警描述（优先使用 aiAnalysis.description，否则使用 description）
   let alertDescription = ''
   if (alert.value.aiAnalysis?.description) {
     alertDescription = typeof alert.value.aiAnalysis.description === 'string' 
@@ -1412,7 +1318,6 @@ const openCreateVulnerabilityDialog = () => {
       : JSON.stringify(alert.value.description)
   }
   
-  // 设置初始数据
   createVulnerabilityInitialData.value = {
     title: alert.value.title || '',
     riskLevel: alert.value.riskLevel || alert.value.severity?.toLowerCase() || 'medium',
@@ -1422,7 +1327,6 @@ const openCreateVulnerabilityDialog = () => {
     description: alertDescription
   }
   
-  // 打开对话框
   showCreateVulnerabilityDialog.value = true
 }
 
@@ -1432,9 +1336,7 @@ const closeCreateVulnerabilityDialog = () => {
 }
 
 const handleVulnerabilityCreated = () => {
-  // 漏洞创建成功后，关闭对话框
   closeCreateVulnerabilityDialog()
-  // 触发刷新事件，让父组件知道需要刷新列表
   emit('created')
 }
 
@@ -1453,10 +1355,8 @@ const openEditAlertDialog = () => {
     return
   }
   
-  // 解析告警的时间戳
   const timestamp = getAlertCreateTime()
   
-  // 设置初始数据
   editAlertInitialData.value = {
     title: alert.value.title || '',
     riskLevel: alert.value.riskLevel || alert.value.severity || '',
@@ -1467,7 +1367,6 @@ const openEditAlertDialog = () => {
     description: alert.value.description || ''
   }
   
-  // 打开对话框
   showEditAlertDialog.value = true
 }
 
@@ -1477,10 +1376,8 @@ const closeEditAlertDialog = () => {
 }
 
 const handleAlertUpdated = async () => {
-  // 告警更新成功后，关闭对话框并重新加载详情
   closeEditAlertDialog()
   await loadAlertDetail()
-  // 触发刷新事件，让父组件知道需要刷新列表
   emit('closed')
 }
 
@@ -1492,7 +1389,6 @@ const openAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = true
 }
 
-// 从菜单触发的包装函数
 const handleOpenAlertFromMenu = () => {
   handleOpenAlert()
   showMoreActionsMenu.value = false
@@ -1532,10 +1428,8 @@ const handlePanelClick = (event) => {
 }
 
 const handleAssociateIncidentSuccess = async () => {
-  // 关联成功后，关闭对话框并重新加载详情
   closeAssociateIncidentDialog()
   await loadAlertDetail()
-  // 触发刷新事件，让父组件知道需要刷新列表
   emit('closed')
 }
 
@@ -1554,53 +1448,43 @@ const handleRefresh = async () => {
   }
 }
 
-// Note: File handling functions (getFileIcon, formatFileSize, openImageModal, downloadFile) 
-// have been moved to CommentSection component
-
 const handleAddComment = async ({ comment, files }) => {
   if (!currentAlertId.value) {
     toast.error(t('alerts.detail.comments.postError') || '无法提交评论：告警ID不存在', 'ERROR')
     return
   }
   
+  const commentText = comment.trim()
+  if (!commentText && (!files || files.length === 0)) {
+    return
+  }
+  
+  isSubmittingComment.value = true
+  
   try {
-    const commentText = comment.trim()
-    // 允许只有文件没有文本的情况
-    if (!commentText && (!files || files.length === 0)) {
-      return
-    }
-    
-    // 调用 API 提交评论（包含文件）
     await postComment(currentAlertId.value, commentText, files || [])
-    
-    // 清空输入（组件会自动清空）
     newComment.value = ''
-    
-    // 重新加载告警详情以获取最新评论
-    await loadAlertDetail()
-    
-    // 显示成功提示
+    await loadAlertDetail(false)
     toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('alerts.detail.comments.postError') || '评论提交失败，请稍后重试'
     toast.error(errorMessage, 'ERROR')
+  } finally {
+    isSubmittingComment.value = false
   }
 }
 
-// AI 对话相关方法
 const canSubmitAiMessage = computed(() => {
   return newAiMessage.value.trim().length > 0 || uploadedAiFiles.value.length > 0
 })
 
 const handleAiMessageInput = () => {
-  // 可以在这里添加自动调整高度的逻辑
 }
 
 const handleAiFileSelect = (event) => {
   const files = Array.from(event.target.files || [])
   addAiFiles(files)
-  // 清空input，以便可以再次选择相同文件
   if (aiFileInput.value) {
     aiFileInput.value.value = ''
   }
@@ -1614,12 +1498,10 @@ const handleAiDrop = (event) => {
 
 const addAiFiles = (files) => {
   files.forEach(file => {
-    // 检查文件大小（限制为10MB）
     if (file.size > 10 * 1024 * 1024) {
       console.warn(`File ${file.name} is too large (max 10MB)`)
       return
     }
-    // 检查是否已存在
     if (!uploadedAiFiles.value.find(f => f.name === file.name && f.size === file.size)) {
       uploadedAiFiles.value.push(file)
     }
@@ -1633,28 +1515,23 @@ const removeAiFile = (index) => {
 const handleSendAiMessage = () => {
   if (!canSubmitAiMessage.value) return
   
-  // TODO: 实现发送 AI 消息的逻辑，包含文件上传
   console.log('Sending AI message:', newAiMessage.value)
   console.log('Files:', uploadedAiFiles.value)
   
-  // 清空输入
   newAiMessage.value = ''
   uploadedAiFiles.value = []
 }
 
-// 右侧侧边栏AI问答相关方法
 const canSubmitRightSidebarAiMessage = computed(() => {
   return rightSidebarAiMessage.value.trim().length > 0 || rightSidebarAiFiles.value.length > 0
 })
 
 const handleRightSidebarAiMessageInput = () => {
-  // 可以在这里添加自动调整高度的逻辑
 }
 
 const handleRightSidebarAiFileSelect = (event) => {
   const files = Array.from(event.target.files || [])
   addRightSidebarAiFiles(files)
-  // 清空input，以便可以再次选择相同文件
   if (rightSidebarAiFileInput.value) {
     rightSidebarAiFileInput.value.value = ''
   }
@@ -1668,12 +1545,10 @@ const handleRightSidebarAiDrop = (event) => {
 
 const addRightSidebarAiFiles = (files) => {
   files.forEach(file => {
-    // 检查文件大小（限制为10MB）
     if (file.size > 10 * 1024 * 1024) {
       console.warn(`File ${file.name} is too large (max 10MB)`)
       return
     }
-    // 检查是否已存在
     if (!rightSidebarAiFiles.value.find(f => f.name === file.name && f.size === file.size)) {
       rightSidebarAiFiles.value.push(file)
     }
@@ -1744,7 +1619,6 @@ const appendToSecurityAgentMessage = (messageId, chunk) => {
   })
 }
 
-// 处理复用的 AI 对话框组件发送事件
 const handleRightSidebarAiSend = async (data) => {
   if (!alert.value?.id) {
     const missingAlertMsg = t('alerts.detail.securityAgentSendError') || 'Unable to send message: missing alert context'
@@ -1873,39 +1747,27 @@ const getEntityIcon = (type) => {
   return icons[type] || 'help'
 }
 
-/**
- * @brief 判断字段值是否与Associated Entity匹配
- * @param {string} key - 字段名
- * @param {any} value - 字段值
- * @returns {boolean} 是否匹配
- */
 const isFieldMatchedWithEntity = (key, value) => {
   if (!alert.value?.associatedEntities || !value) {
     return false
   }
   
-  // 将值转换为字符串进行比较
   const valueStr = String(value).trim()
   if (!valueStr) {
     return false
   }
   
-  // 检查是否与任何associatedEntity匹配
-  // 匹配条件：字段值（value）与entity的name匹配，或者字段名（key）与entity的label匹配且值也匹配
   return alert.value.associatedEntities.some(entity => {
     if (!entity.name) return false
     const entityNameStr = String(entity.name).trim()
     const entityLabelStr = entity.label ? String(entity.label).trim().toLowerCase() : ''
     const keyLower = key.toLowerCase()
     
-    // 精确匹配：字段值完全等于entity的name
     if (entityNameStr === valueStr) {
       return true
     }
     
-    // 字段名匹配且值匹配：如果字段名与entity的label匹配，且值也匹配（支持部分匹配）
     if (entityLabelStr && (entityLabelStr === keyLower || keyLower.includes(entityLabelStr) || entityLabelStr.includes(keyLower))) {
-      // 值完全匹配或包含匹配
       if (entityNameStr === valueStr || valueStr.includes(entityNameStr) || entityNameStr.includes(valueStr)) {
         return true
       }
@@ -1915,26 +1777,18 @@ const isFieldMatchedWithEntity = (key, value) => {
   })
 }
 
-/**
- * @brief 将字段的key:value填充到Security Agent输入框
- * @param {string} key - 字段名
- * @param {any} value - 字段值
- */
 const handleSendFieldToSecurityAgent = (key, value) => {
   if (!alert.value) {
     return
   }
   
-  // 切换到Security Agent页签
   rightSidebarTab.value = 'securityAgent'
   
-  // 构建消息：key:value
   const valueStr = typeof value === 'object' && value !== null 
     ? JSON.stringify(value) 
     : String(value)
   const message = `${key}: ${valueStr}`
   
-  // 等待组件渲染后设置输入框的值
   setTimeout(() => {
     if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
       securityAgentChatRef.value.setMessage(message)
@@ -1942,24 +1796,17 @@ const handleSendFieldToSecurityAgent = (key, value) => {
   }, 100)
 }
 
-/**
- * @brief 将entity信息填充到Security Agent输入框
- * @param {Object} entity - 关联实体对象
- */
 const handleSendEntityToSecurityAgent = (entity) => {
   if (!alert.value || !entity) {
     return
   }
   
-  // 切换到Security Agent页签
   rightSidebarTab.value = 'securityAgent'
   
-  // 构建消息：entity.from: entity.name
   const from = entity.from || entity.label || ''
   const name = entity.name || ''
   const message = `${from}: ${name}`
   
-  // 等待组件渲染后设置输入框的值
   setTimeout(() => {
     if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
       securityAgentChatRef.value.setMessage(message)
@@ -1967,11 +1814,6 @@ const handleSendEntityToSecurityAgent = (entity) => {
   }, 100)
 }
 
-/**
- * @brief 获取风险等级样式类
- * @param {string} level - 风险等级（fatal/high/medium/low/tips）
- * @returns {string} 返回对应的CSS类名
- */
 const getRiskLevelClass = (level) => {
   const classes = {
     fatal: 'bg-red-950 text-red-200',
@@ -1983,11 +1825,6 @@ const getRiskLevelClass = (level) => {
   return classes[level] || classes.low
 }
 
-/**
- * @brief 获取状态样式类
- * @param {string} status - 状态（open/block/closed）
- * @returns {string} 返回对应的CSS类名
- */
 const getStatusClass = (status) => {
   const classes = {
     open: 'bg-primary/20 text-primary',
@@ -1997,11 +1834,6 @@ const getStatusClass = (status) => {
   return classes[status] || classes.open
 }
 
-/**
- * @brief 获取状态点样式类
- * @param {string} status - 状态（open/block/closed）
- * @returns {string} 返回对应的CSS类名
- */
 const getStatusDotClass = (status) => {
   const classes = {
     open: 'bg-primary',
@@ -2011,13 +1843,11 @@ const getStatusDotClass = (status) => {
   return classes[status] || classes.open
 }
 
-// 生成告警URL
 const getAlertUrl = () => {
   const raw = import.meta.env.VITE_WEB_BASE_PATH
   let basePath = '/'
   if (raw && raw !== '/') {
     basePath = raw.startsWith('/') ? raw : `/${raw}`
-    // Remove trailing slash if present
     basePath = basePath.replace(/\/$/, '')
   }
   const origin = window.location.origin
@@ -2025,7 +1855,6 @@ const getAlertUrl = () => {
   return `${origin}${path}/${currentAlertId.value}`
 }
 
-// 分享告警（复制标题和链接到剪切板）
 const handleShare = async () => {
   if (!alert.value) return
   
@@ -2035,14 +1864,12 @@ const handleShare = async () => {
   
   try {
     await navigator.clipboard.writeText(textToCopy)
-    // 显示成功提示
     showShareSuccess.value = true
     setTimeout(() => {
       showShareSuccess.value = false
     }, 2000)
   } catch (err) {
     console.error('Failed to copy to clipboard:', err)
-    // 降级方案：使用传统的复制方法
     const textArea = document.createElement('textarea')
     textArea.value = textToCopy
     textArea.style.position = 'fixed'
@@ -2051,7 +1878,6 @@ const handleShare = async () => {
     textArea.select()
     try {
       document.execCommand('copy')
-      // 显示成功提示
       showShareSuccess.value = true
       setTimeout(() => {
         showShareSuccess.value = false
@@ -2063,7 +1889,6 @@ const handleShare = async () => {
   }
 }
 
-// 监听告警ID变化，避免重复加载
 watch(currentAlertId, async (newId, oldId) => {
   if (!newId) {
     visible.value = false
@@ -2073,7 +1898,6 @@ watch(currentAlertId, async (newId, oldId) => {
     return
   }
   
-  // 如果面板已经打开，先短暂隐藏以触发新的滑入动画
   if (visible.value && oldId) {
     visible.value = false
     await new Promise(resolve => setTimeout(resolve, 50))
@@ -2082,14 +1906,12 @@ watch(currentAlertId, async (newId, oldId) => {
   loadAlertDetail()
 }, { immediate: true })
 
-// 监听标签页切换，按需加载数据
 watch(activeTab, (newTab) => {
   if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value) {
     loadAssociatedAlerts()
   }
 })
 
-// 点击外部关闭下拉菜单
 const handleClickOutside = (event) => {
   const dropdown = event.target.closest('.more-actions-dropdown')
   const button = event.target.closest('.more-actions-button')
@@ -2099,17 +1921,13 @@ const handleClickOutside = (event) => {
 }
 
 onMounted(() => {
-  // 阻止背景滚动
   document.body.style.overflow = 'hidden'
-  // 添加点击外部关闭下拉菜单的监听器
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
 })
 
-// 组件卸载时恢复滚动
 onUnmounted(() => {
   document.body.style.overflow = ''
-  // 移除点击外部关闭下拉菜单的监听器
   document.removeEventListener('click', handleClickOutside)
   hideRecentCloseCommentsDropdown()
   conversationId.value = null

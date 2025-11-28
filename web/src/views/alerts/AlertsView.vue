@@ -1161,17 +1161,27 @@ const reloadAlertsFromFirstPage = () => {
   return handlePageChange(1)
 }
 
+const loadAllData = async (reloadFromFirstPage = false) => {
+  const loadAlertsFn = reloadFromFirstPage ? reloadAlertsFromFirstPage : loadAlerts
+  const tasks = [loadAlertsFn()]
+  
+  if (showCharts.value) {
+    tasks.push(
+      loadStatistics(),
+      loadAlertTypeDistribution(),
+      loadAlertTrend()
+    )
+  }
+  
+  await Promise.all(tasks)
+}
+
 const handleRefresh = async () => {
   if (isRefreshing.value) return
   
   isRefreshing.value = true
   try {
-    await Promise.all([
-      loadAlerts(),
-      loadStatistics(),
-      loadAlertTypeDistribution()
-    ])
-    await loadAlertTrend()
+    await loadAllData()
   } catch (error) {
     console.error('Failed to refresh:', error)
   } finally {
@@ -1654,39 +1664,20 @@ const closeCreateAlertDialog = () => {
 
 const handleAlertCreated = async () => {
   // Reload alert list after alert is created
-  // These can run in parallel as they don't depend on each other
-  await Promise.all([
-    loadAlerts(),
-    loadStatistics(),
-    loadAlertTypeDistribution()
-  ])
-  await loadAlertTrend() // Load after others to ensure alertCount is set correctly
+  await loadAllData()
 }
 
 const handleTimeRangeChange = async (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
-    // Load data based on selected time range
-    // These can run in parallel as they don't depend on each other
-    await Promise.all([
-      reloadAlertsFromFirstPage(),
-      loadStatistics(), // Load automation closure rate statistics with new time range
-      loadAlertTypeDistribution()
-    ])
-    await loadAlertTrend() // Load after others to ensure alertCount is updated when time range changes
+    await loadAllData(true)
   }
 }
 
 const handleCustomRangeChange = async (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
-    // These can run in parallel as they don't depend on each other
-    await Promise.all([
-      reloadAlertsFromFirstPage(),
-      loadStatistics(), // Load automation closure rate statistics with new time range
-      loadAlertTypeDistribution()
-    ])
-    await loadAlertTrend() // Load after others to ensure alertCount is updated when custom range changes
+    await loadAllData(true)
   }
 }
 
@@ -1695,12 +1686,7 @@ onMounted(async () => {
     ensureAlertTypeChart()
     ensureAlertTrendChart()
   }
-  loadAlerts()
-  if (showCharts.value) {
-    await loadStatistics()
-    loadAlertTypeDistribution()
-    await loadAlertTrend() // Load after loadStatistics to ensure alertCount is set correctly
-  }
+  await loadAllData()
   // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()

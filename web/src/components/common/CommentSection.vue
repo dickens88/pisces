@@ -104,6 +104,7 @@
         v-model="newCommentText"
         :placeholder="$t('common.addComment') || 'Add a comment...'"
         :disabled="disabled"
+        :loading="loading"
         @submit="handleSubmit"
       />
     </div>
@@ -136,6 +137,11 @@ const props = defineProps({
   },
   // 是否使用 UserAvatar 组件（告警详情使用，事件和漏洞使用自定义头像）
   useAvatarComponent: {
+    type: Boolean,
+    default: false
+  },
+  // 是否正在提交评论（显示发送按钮loading状态）
+  loading: {
     type: Boolean,
     default: false
   }
