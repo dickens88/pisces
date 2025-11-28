@@ -253,7 +253,7 @@
           </div>
         </div>
         <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
-          <div v-if="hasGraphData" class="flex flex-col lg:flex-row min-h-[600px]">
+          <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex flex-col lg:flex-row min-h-[600px]">
             <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
@@ -772,6 +772,7 @@ const selectedGraphNodeId = ref('')
 const prunedNodeIds = ref(new Set())
 const graphCanvasRef = ref(null)
 const graphContainerRef = ref(null)
+const graphWorkspaceRef = ref(null)
 const d3SvgRef = ref(null)
 const d3ZoomLayerRef = ref(null)
 const d3LinkSelection = ref(null)
@@ -828,6 +829,17 @@ const destroyD3Graph = () => {
   d3NodeSelection.value = null
   d3ZoomBehaviorRef.value = null
   d3CurrentTransform.value = d3.zoomIdentity
+}
+
+const isGraphSvgAttached = () => {
+  if (!graphCanvasRef.value || !d3SvgRef.value || typeof d3SvgRef.value.node !== 'function') {
+    return false
+  }
+  const svgNode = d3SvgRef.value.node()
+  if (!svgNode) {
+    return false
+  }
+  return graphCanvasRef.value.contains(svgNode)
 }
 
 const tickSimulation = () => {
@@ -1906,6 +1918,7 @@ const handleGraphResetView = () => {
 }
 
 const fullscreenEventNames = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']
+const getGraphFullscreenTarget = () => graphWorkspaceRef.value || graphContainerRef.value
 
 const syncGraphFullscreenState = () => {
   if (typeof document === 'undefined') {
@@ -1916,7 +1929,8 @@ const syncGraphFullscreenState = () => {
     document.webkitFullscreenElement ||
     document.mozFullScreenElement ||
     document.msFullscreenElement
-  isGraphFullscreen.value = fullscreenElement === graphContainerRef.value
+  const fullscreenTarget = getGraphFullscreenTarget()
+  isGraphFullscreen.value = fullscreenTarget ? fullscreenElement === fullscreenTarget : false
   if (isGraphFullscreen.value) {
     nextTick(() => {
       resizeD3Graph()
@@ -1925,18 +1939,18 @@ const syncGraphFullscreenState = () => {
 }
 
 const toggleGraphFullscreen = () => {
-  const container = graphContainerRef.value
-  if (!container || typeof document === 'undefined') {
+  const target = getGraphFullscreenTarget()
+  if (!target || typeof document === 'undefined') {
     return
   }
   try {
     if (!isGraphFullscreen.value) {
       const request =
-        container.requestFullscreen ||
-        container.webkitRequestFullscreen ||
-        container.mozRequestFullScreen ||
-        container.msRequestFullscreen
-      request?.call(container)
+        target.requestFullscreen ||
+        target.webkitRequestFullscreen ||
+        target.mozRequestFullScreen ||
+        target.msRequestFullscreen
+      request?.call(target)
     } else {
       const exit =
         document.exitFullscreen ||
@@ -2097,7 +2111,8 @@ watch(
       const maxRetries = 10
       const tryInit = () => {
         if (graphCanvasRef.value) {
-          if (!d3SvgRef.value) {
+          const shouldRecreate = !d3SvgRef.value || !isGraphSvgAttached()
+          if (shouldRecreate) {
             initD3Graph()
           } else {
             nextTick(() => {
