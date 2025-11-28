@@ -13,6 +13,29 @@
         <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
       </div>
     </div>
+    <!-- 面包屑导航 -->
+    <nav class="mb-5">
+      <ol class="flex items-center gap-2.5 text-sm">
+        <li>
+          <router-link
+            to="/incidents"
+            class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 font-medium"
+          >
+            <span class="material-symbols-outlined text-base">folder</span>
+            <span>{{ $t('incidents.title') || '事件管理' }}</span>
+          </router-link>
+        </li>
+        <li class="flex items-center text-gray-300 dark:text-gray-600">
+          <span class="material-symbols-outlined text-lg">chevron_right</span>
+        </li>
+        <li class="flex items-center gap-2">
+          <span class="text-gray-400 dark:text-gray-500 font-medium">ID:</span>
+          <span class="text-gray-900 dark:text-white font-semibold font-mono text-sm bg-gray-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-md border border-gray-200 dark:border-slate-600">
+            {{ route.params.id || '--' }}
+          </span>
+        </li>
+      </ol>
+    </nav>
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
@@ -27,12 +50,12 @@
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.createTime') }}:</span>
-            <span class="text-white">{{ formatDateTime(incident?.createTime) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.updateTime') }}:</span>
-            <span class="text-white">{{ formatDateTime(incident?.updateTime) }}</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.updateTime) }}</span>
           </div>
         </div>
       </div>
