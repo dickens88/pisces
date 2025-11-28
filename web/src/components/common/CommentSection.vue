@@ -160,7 +160,12 @@ const getInitials = (name) => {
 // 清理 HTML
 const sanitizeHtml = (html) => {
   if (!html || typeof html !== 'string') return ''
-  return DOMPurify.sanitize(html, {
+  
+  let processedHtml = html
+    .replace(/<div\s*\/?>/gi, '<br>')  // 将 <div> 和 <div/> 转换为 <br>
+    .replace(/<\/div>/gi, '')          // 移除 </div> 标签
+  
+  return DOMPurify.sanitize(processedHtml, {
     ALLOWED_TAGS: ['br', 'strong', 'em', 'pre', 'code', 'b', 'i', 'u', 'p'],
     ALLOWED_ATTR: []
   })
