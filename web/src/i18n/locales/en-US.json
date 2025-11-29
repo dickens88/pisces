@@ -76,11 +76,11 @@
     "lastUpdated": "Last updated: Just now",
     "refresh": "Refresh",
     "statistics": {
-      "alertCount24h": "Alert Count (24h)",
+      "alertCount24h": "Alert Count",
       "incidentCount24h": "Incident Count (24h)",
-      "incidentCount30d": "Incident Count (30d)",
+      "incidentCount30d": "Incident Count",
       "vulnerabilityCount": "Vulnerability Count",
-      "vulnerabilityCount30d": "Vulnerability Count (30d)",
+      "vulnerabilityCount30d": "Vulnerability Count",
       "mttd": "Mean Time To Detect (MTTD)"
     },
     "charts": {

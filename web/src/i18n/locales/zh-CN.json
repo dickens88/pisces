@@ -76,11 +76,11 @@
     "lastUpdated": "最后更新: 刚刚",
     "refresh": "刷新",
     "statistics": {
-      "alertCount24h": "告警数量 (24小时)",
+      "alertCount24h": "告警数量",
       "incidentCount24h": "事件数 (24小时)",
-      "incidentCount30d": "事件数 (30天)",
+      "incidentCount30d": "事件数",
       "vulnerabilityCount": "漏洞数",
-      "vulnerabilityCount30d": "漏洞数 (30天)",
+      "vulnerabilityCount30d": "漏洞数",
       "mttd": "平均检测时间 (MTTD)"
     },
     "charts": {

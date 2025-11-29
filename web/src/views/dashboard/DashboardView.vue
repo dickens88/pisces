@@ -307,32 +307,30 @@ const disposeAiAccuracyChart = () => {
 
 const loadAlertCount24hData = async () => {
   try {
-    const now = new Date()
-    const end = new Date(now)
-    const start24h = new Date(end)
-    start24h.setHours(start24h.getHours() - 24)
-    const start48h = new Date(start24h)
-    start48h.setHours(start48h.getHours() - 24)
-
-    // Fetch a single 48h window and split into current and previous 24h buckets
-    const response = await getAlertTrend(start48h, end)
-    const data = response?.data || []
+    const { start, end } = getDashboardTimeRange()
+    const timeRange = end.getTime() - start.getTime()
+    const previousStart = new Date(start.getTime() - timeRange)
+    const previousEnd = new Date(start)
+    
+    // Fetch data for current period
+    const currentResponse = await getAlertTrend(start, end)
+    const currentData = currentResponse?.data || []
+    
+    // Fetch data for previous period
+    const previousResponse = await getAlertTrend(previousStart, previousEnd)
+    const previousData = previousResponse?.data || []
 
     let currentTotal = 0
     let previousTotal = 0
 
-    data.forEach((item) => {
+    currentData.forEach((item) => {
       const count = Number(item.count) || 0
-      const timestamp = item.date ? new Date(item.date) : null
-      if (!timestamp || Number.isNaN(timestamp.getTime())) {
-        currentTotal += count
-        return
-      }
-      if (timestamp >= start24h) {
-        currentTotal += count
-      } else if (timestamp >= start48h) {
-        previousTotal += count
-      }
+      currentTotal += count
+    })
+
+    previousData.forEach((item) => {
+      const count = Number(item.count) || 0
+      previousTotal += count
     })
 
     alertCount24hTotal.value = currentTotal
@@ -356,31 +354,30 @@ const loadAlertCount24hData = async () => {
 
 const loadIncidentCount30dData = async () => {
   try {
-    const now = new Date()
-    const end = new Date(now)
-    const start30d = new Date(end)
-    start30d.setDate(start30d.getDate() - 30)
-    const start60d = new Date(start30d)
-    start60d.setDate(start60d.getDate() - 30)
-
-    const response = await getIncidentTrend(start60d, end)
-    const data = response?.data || []
+    const { start, end } = getDashboardTimeRange()
+    const timeRange = end.getTime() - start.getTime()
+    const previousStart = new Date(start.getTime() - timeRange)
+    const previousEnd = new Date(start)
+    
+    // Fetch data for current period
+    const currentResponse = await getIncidentTrend(start, end)
+    const currentData = currentResponse?.data || []
+    
+    // Fetch data for previous period
+    const previousResponse = await getIncidentTrend(previousStart, previousEnd)
+    const previousData = previousResponse?.data || []
 
     let currentTotal = 0
     let previousTotal = 0
 
-    data.forEach((item) => {
+    currentData.forEach((item) => {
       const count = Number(item.count) || 0
-      const timestamp = item.date ? new Date(item.date) : null
-      if (!timestamp || Number.isNaN(timestamp.getTime())) {
-        currentTotal += count
-        return
-      }
-      if (timestamp >= start30d) {
-        currentTotal += count
-      } else if (timestamp >= start60d) {
-        previousTotal += count
-      }
+      currentTotal += count
+    })
+
+    previousData.forEach((item) => {
+      const count = Number(item.count) || 0
+      previousTotal += count
     })
 
     incidentCount30dTotal.value = currentTotal
@@ -403,31 +400,30 @@ const loadIncidentCount30dData = async () => {
 
 const loadVulnerabilityCount30dData = async () => {
   try {
-    const now = new Date()
-    const end = new Date(now)
-    const start30d = new Date(end)
-    start30d.setDate(start30d.getDate() - 30)
-    const start60d = new Date(start30d)
-    start60d.setDate(start60d.getDate() - 30)
-
-    const response = await getVulnerabilityTrend(start60d, end)
-    const data = response?.data || []
+    const { start, end } = getDashboardTimeRange()
+    const timeRange = end.getTime() - start.getTime()
+    const previousStart = new Date(start.getTime() - timeRange)
+    const previousEnd = new Date(start)
+    
+    // Fetch data for current period
+    const currentResponse = await getVulnerabilityTrend(start, end)
+    const currentData = currentResponse?.data || []
+    
+    // Fetch data for previous period
+    const previousResponse = await getVulnerabilityTrend(previousStart, previousEnd)
+    const previousData = previousResponse?.data || []
 
     let currentTotal = 0
     let previousTotal = 0
 
-    data.forEach((item) => {
+    currentData.forEach((item) => {
       const count = Number(item.count) || 0
-      const timestamp = item.date ? new Date(item.date) : null
-      if (!timestamp || Number.isNaN(timestamp.getTime())) {
-        currentTotal += count
-        return
-      }
-      if (timestamp >= start30d) {
-        currentTotal += count
-      } else if (timestamp >= start60d) {
-        previousTotal += count
-      }
+      currentTotal += count
+    })
+
+    previousData.forEach((item) => {
+      const count = Number(item.count) || 0
+      previousTotal += count
     })
 
     vulnerabilityCount30dTotal.value = currentTotal
