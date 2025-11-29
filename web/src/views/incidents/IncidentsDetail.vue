@@ -980,10 +980,19 @@ const initD3Graph = () => {
 
   const simulation = d3
     .forceSimulation()
+    .alphaDecay(0.02)
+    .velocityDecay(0.4)
     .force('link', d3.forceLink().id((node) => node.id))
-    .force('charge', d3.forceManyBody().strength(-180))
+    .force('charge', d3.forceManyBody()
+      .strength((node) => {
+        const degree = nodeDegreeMap.value[node.id] || 0
+        if (degree === 0) return -1500
+        if (degree === 1) return -800
+        return -400
+      })
+      .distanceMax(600))
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 12))
+    .force('collision', d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 50))
 
   simulation.on('tick', tickSimulation)
   d3SimulationRef.value = simulation
@@ -1014,16 +1023,33 @@ const updateD3Graph = ({ fitView = false } = {}) => {
 
   pruneInvalidFixedPositions()
 
-  const nodes = displayGraphNodes.value.map((node) => {
+  const { width, height } = getGraphSize()
+  const centerX = width / 2
+  const centerY = height / 2
+  const radius = Math.min(width, height) * 0.35
+  const nodeCount = displayGraphNodes.value.length
+  const angleStep = (2 * Math.PI) / Math.max(nodeCount, 1)
+
+  const nodes = displayGraphNodes.value.map((node, index) => {
     const visual = buildNodeVisualMeta(node)
     const fixedPosition = fixedNodePositions.value.get(node.id)
+    let initialX = fixedPosition?.x ?? node.x
+    let initialY = fixedPosition?.y ?? node.y
+    
+    if (initialX == null || initialY == null) {
+      const angle = index * angleStep
+      const r = radius * (0.7 + Math.random() * 0.3)
+      initialX = centerX + r * Math.cos(angle)
+      initialY = centerY + r * Math.sin(angle)
+    }
+    
     return {
       ...node,
       visual,
       fx: fixedPosition?.x ?? node.fx ?? null,
       fy: fixedPosition?.y ?? node.fy ?? null,
-      x: fixedPosition?.x ?? node.x ?? null,
-      y: fixedPosition?.y ?? node.y ?? null
+      x: initialX,
+      y: initialY
     }
   })
 
@@ -1034,29 +1060,41 @@ const updateD3Graph = ({ fitView = false } = {}) => {
 
   d3SimulationRef.value.nodes(nodes)
   const linkForce = d3SimulationRef.value.force('link')
-  
-  // 先设置链接，这样 D3 会将 source/target 转换为节点对象
   linkForce.links(links)
   
-  // 然后设置距离函数，此时 edge.source 和 edge.target 已经是节点对象
   linkForce
     .distance((edge) => {
       const sourceId = typeof edge.source === 'object' ? edge.source.id : edge.source
       const targetId = typeof edge.target === 'object' ? edge.target.id : edge.target
-      const degree =
-        (nodeDegreeMap.value[sourceId] || 0) + (nodeDegreeMap.value[targetId] || 0)
-      if (degree > 6) return 220
-      if (degree > 3) return 160
+      const totalDegree = (nodeDegreeMap.value[sourceId] || 0) + (nodeDegreeMap.value[targetId] || 0)
+      if (totalDegree > 6) return 200
+      if (totalDegree > 3) return 150
       return 120
     })
-    .strength(0.6)
+    .strength(0.8)
+
+  d3SimulationRef.value.force(
+    'charge',
+    d3.forceManyBody()
+      .strength((node) => {
+        const degree = nodeDegreeMap.value[node.id] || 0
+        if (degree === 0) return -1500
+        if (degree === 1) return -800
+        return -400
+      })
+      .distanceMax(600)
+  )
 
   d3SimulationRef.value.force(
     'collision',
-    d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 12)
+    d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 50)
   )
 
-  d3SimulationRef.value.alpha(0.9).restart()
+  d3SimulationRef.value
+    .alpha(1.0)
+    .alphaDecay(0.02)
+    .velocityDecay(0.4)
+    .restart()
 
   // 从正确的父元素获取选择器
   const linkGroup = d3ZoomLayerRef.value?.select('.graph-links')
@@ -1148,12 +1186,11 @@ const updateD3Graph = ({ fitView = false } = {}) => {
     .select('text')
     .attr('fill', getTextColor())
 
-  // 确保节点有初始位置
   d3NodeSelection.value.attr('transform', (d) => {
     if (d.x == null || d.y == null) {
-      // 如果没有位置，设置一个随机初始位置
-      d.x = d.x ?? (Math.random() * (getGraphSize().width - 100) + 50)
-      d.y = d.y ?? (Math.random() * (getGraphSize().height - 100) + 50)
+      const { width, height } = getGraphSize()
+      d.x = width / 2
+      d.y = height / 2
     }
     return `translate(${d.x}, ${d.y})`
   })
