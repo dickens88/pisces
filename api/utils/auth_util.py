@@ -55,7 +55,7 @@ def auth_required(func):
                 logger.info(f'[AUTH] Request w3 new token for user={user["user"]["cn"]},status={resp.status_code}')
                 user = user["user"]
             else:
-                logger.info(f'[AUTH] Fail to request w3 token, status={resp.status_code}')
+                logger.warn(f'[AUTH] Fail to request w3 token, reason={resp.text}, status={resp.status_code}')
                 return {"error_message": resp.text}, 401
 
             # 3. verify user permission
@@ -68,7 +68,7 @@ def auth_required(func):
                 kwargs.setdefault("username", user.get("cn", "debug"))
                 return func(*args, **kwargs)
             else:
-                logger.info(f'[AUTH] The user {user.get("uid", "debug")} dont have permission, status={resp.status_code}')
+                logger.warn(f'[AUTH] The user {user.get("uid", "debug")} dont have permission, status={resp.status_code}')
                 return {"error_message": resp.text}, 403
 
     return wrapper

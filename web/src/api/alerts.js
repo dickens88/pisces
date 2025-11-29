@@ -317,7 +317,12 @@ export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
 
 // 开启告警
 export const openAlert = (alertId) => {
-  return service.post(`/alerts/${alertId}/open`)
+  return service.put(`/alerts/${alertId}`, {
+    action: 'update',
+    data: {
+      handle_status: 'Open'
+    }
+  })
 }
 
 // 关联告警到事件
