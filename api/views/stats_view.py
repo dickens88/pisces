@@ -45,15 +45,15 @@ class AlertCountBySourceView(Resource):
                 data = StatisticsService.get_automation_closure_rate(start_date, end_date)
                 return {"data": data}, 200
             elif chart_name_normalized == "data-source-count":
-                # end_date is optional for data-source-count chart
-                end_date = None
-                if end_date_str:
-                    try:
-                        end_date = parse_datetime_with_timezone(end_date_str)
-                        if end_date is None:
-                            return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
-                    except Exception as e:
-                        return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                # For data-source-count chart, end_date is required to ensure accurate time range filtering
+                if not end_date_str:
+                    return {"error_message": "end_date is required for data-source-count chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_alert_count_by_product_name(start_date, end_date=end_date, status=status)
                 return {"data": data}, 200
             elif chart_name_normalized == "alert-trend":
