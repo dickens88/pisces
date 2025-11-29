@@ -941,6 +941,7 @@ const initD3Graph = () => {
   // 检测当前主题模式
   const isDarkMode = document.documentElement.classList.contains('dark')
   const graphBackgroundColor = isDarkMode ? '#0f172a' : '#f9fafb'
+  const graphTextColor = isDarkMode ? '#e2e8f0' : '#374151'
 
   const svg = d3
     .select(graphCanvasRef.value)
@@ -950,6 +951,7 @@ const initD3Graph = () => {
     .attr('class', 'event-graph-svg')
     .attr('viewBox', `0 0 ${width} ${height}`)
     .style('background', graphBackgroundColor)
+    .attr('data-text-color', graphTextColor)
 
   const zoomLayer = svg.append('g').attr('class', 'graph-zoom-layer')
   const linkGroup = zoomLayer.append('g').attr('class', 'graph-links')
@@ -1096,12 +1098,23 @@ const updateD3Graph = ({ fitView = false } = {}) => {
     .attr('stroke-width', 1.2)
     .attr('fill-opacity', 0.9)
 
+  // 获取文字颜色（从 SVG 的 data 属性或检测主题）
+  const getTextColor = () => {
+    const svgElement = d3SvgRef.value?.node()
+    if (svgElement) {
+      const dataColor = svgElement.getAttribute('data-text-color')
+      if (dataColor) return dataColor
+    }
+    const isDark = document.documentElement.classList.contains('dark')
+    return isDark ? '#e2e8f0' : '#374151'
+  }
+
   nodeEnter
     .append('text')
     .attr('class', 'graph-node__label')
     .attr('x', (d) => (d.visual?.size || 30) / 2 + 6)
     .attr('dy', '0.32em')
-    .attr('fill', '#e2e8f0')
+    .attr('fill', getTextColor())
     .text((d) => formatNodeLabel(d))
 
   nodeEnter
@@ -1129,6 +1142,11 @@ const updateD3Graph = ({ fitView = false } = {}) => {
   nodeSelection.call(dragBehavior)
 
   d3NodeSelection.value = nodeEnter.merge(nodeSelection)
+
+  // 更新所有节点的文字颜色（包括新创建的和已存在的）
+  d3NodeSelection.value
+    .select('text')
+    .attr('fill', getTextColor())
 
   // 确保节点有初始位置
   d3NodeSelection.value.attr('transform', (d) => {
@@ -1182,6 +1200,17 @@ const updateNodeStyles = () => {
       (node) => !selectedId && searchActive && highlightSet.has(node.id)
     )
 
+  // 获取文字颜色
+  const getTextColor = () => {
+    const svgElement = d3SvgRef.value?.node()
+    if (svgElement) {
+      const dataColor = svgElement.getAttribute('data-text-color')
+      if (dataColor) return dataColor
+    }
+    const isDark = document.documentElement.classList.contains('dark')
+    return isDark ? '#e2e8f0' : '#374151'
+  }
+
   d3NodeSelection.value
     .select('circle')
     .attr('stroke', (node) => (selectedId === node.id ? '#60a5fa' : '#94a3b8'))
@@ -1195,6 +1224,11 @@ const updateNodeStyles = () => {
       }
       return 0.9
     })
+
+  // 更新文字颜色
+  d3NodeSelection.value
+    .select('text')
+    .attr('fill', getTextColor())
 
   const isEdgeRelated = (edge) => {
     const sourceId = getNodeId(edge.source)
