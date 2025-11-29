@@ -277,7 +277,7 @@
         </div>
         <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
           <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex flex-col lg:flex-row min-h-[600px]">
-            <div ref="graphContainerRef" class="flex-1 relative bg-[#0f172a] min-h-[600px]">
+            <div ref="graphContainerRef" class="flex-1 relative bg-gray-50 dark:bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
                   <div class="flex flex-col md:flex-row gap-4 flex-1 w-full">
@@ -938,6 +938,10 @@ const initD3Graph = () => {
   const { width, height } = getGraphSize()
   console.log('Graph size:', { width, height })
 
+  // 检测当前主题模式
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  const graphBackgroundColor = isDarkMode ? '#0f172a' : '#f9fafb'
+
   const svg = d3
     .select(graphCanvasRef.value)
     .append('svg')
@@ -945,7 +949,7 @@ const initD3Graph = () => {
     .attr('height', height)
     .attr('class', 'event-graph-svg')
     .attr('viewBox', `0 0 ${width} ${height}`)
-    .style('background', '#0f172a')
+    .style('background', graphBackgroundColor)
 
   const zoomLayer = svg.append('g').attr('class', 'graph-zoom-layer')
   const linkGroup = zoomLayer.append('g').attr('class', 'graph-links')
