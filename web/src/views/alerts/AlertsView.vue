@@ -166,74 +166,74 @@
           <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
         </div>
       </div>
-      <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-[#324867]">
-        <div class="flex flex-wrap items-center gap-3 flex-1">
-          <div class="relative w-full max-w-sm">
-            <div class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-              <div class="pointer-events-none flex items-center shrink-0 pt-[2px]">
-                <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
-              </div>
-              <div class="flex flex-1 flex-wrap items-center gap-2 max-h-32 overflow-y-auto pr-1">
-                <!-- Search keyword tags -->
-                <div
-                  v-for="(keyword, index) in searchKeywords"
-                  :key="index"
-                  class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm max-w-full min-w-0"
-                >
-                  <span class="min-w-0 break-all">{{ keyword }}</span>
-                  <button
-                    @click="removeKeyword(index)"
-                    class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
-                    type="button"
-                    :aria-label="$t('common.delete')"
-                  >
-                    <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
-                  </button>
-                </div>
-                <!-- Input field -->
-                <input
-                  v-model="currentSearchInput"
-                  @keydown.enter.prevent="addKeyword"
-                  @keydown.delete="handleKeywordDeleteKey"
-                  @input="handleSearchInput"
-                  class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-                  :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
-                  type="text"
-                />
-              </div>
+      <div class="flex flex-wrap items-center gap-3 p-4 border-b border-[#324867]">
+        <div class="relative w-[20%] min-w-[200px] max-w-sm">
+          <div class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+            <div class="pointer-events-none flex items-center shrink-0 pt-[2px]">
+              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
             </div>
-          </div>
-          <div class="relative w-full max-w-[12rem]">
-            <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-                <div class="pointer-events-none flex items-center shrink-0">
-                <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person</span>
+            <div class="flex flex-1 flex-wrap items-center gap-2 max-h-32 overflow-y-auto pr-1">
+              <!-- Search keyword tags -->
+              <div
+                v-for="(keyword, index) in searchKeywords"
+                :key="index"
+                class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm max-w-full min-w-0"
+              >
+                <span class="min-w-0 break-all">{{ keyword }}</span>
+                <button
+                  @click="removeKeyword(index)"
+                  class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                  type="button"
+                  :aria-label="$t('common.delete')"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                </button>
               </div>
+              <!-- Input field -->
               <input
-                v-model="ownerSearch"
-                @keydown.enter.prevent="handleOwnerSearch"
-                @input="handleOwnerSearchInput"
-                class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-                :placeholder="$t('alerts.list.ownerSearchPlaceholder')"
+                v-model="currentSearchInput"
+                @keydown.enter.prevent="addKeyword"
+                @keydown.delete="handleKeywordDeleteKey"
+                @input="handleSearchInput"
+                class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
                 type="text"
               />
             </div>
           </div>
-          <div class="relative">
-            <select
-              v-model="statusFilter"
-              @change="handleFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
-            >
-              <option value="all">{{ $t('alerts.list.allStatus') }}</option>
-              <option value="open">{{ $t('alerts.list.open') }}</option>
-              <option value="block">{{ $t('alerts.list.block') }}</option>
-              <option value="closed">{{ $t('alerts.list.closed') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+        </div>
+        <div class="relative min-w-[140px] max-w-[12rem]">
+          <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0">
+              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person</span>
             </div>
+            <input
+              v-model="ownerSearch"
+              @keydown.enter.prevent="handleOwnerSearch"
+              @input="handleOwnerSearchInput"
+              class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+              :placeholder="$t('alerts.list.ownerSearchPlaceholder')"
+              type="text"
+            />
           </div>
-          <!-- Alert Filter Mode Switch -->
+        </div>
+        <div class="relative">
+          <select
+            v-model="statusFilter"
+            @change="handleFilter"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm min-w-[120px]"
+          >
+            <option value="all">{{ $t('alerts.list.allStatus') }}</option>
+            <option value="open">{{ $t('alerts.list.open') }}</option>
+            <option value="block">{{ $t('alerts.list.block') }}</option>
+            <option value="closed">{{ $t('alerts.list.closed') }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+          </div>
+        </div>
+        <!-- Alert Filter Mode Switch -->
+        <div class="flex-shrink-0">
           <ThreeWaySwitch
             v-model="alertFilterMode"
             :options="alertFilterOptions"
@@ -241,7 +241,9 @@
             :label="$t('alerts.list.riskFilter') || '风险过滤'"
           />
         </div>
-        <div class="flex items-center gap-3">
+        <!-- Spacer to push right buttons to the right -->
+        <div class="flex-1 min-w-0"></div>
+        <div class="flex items-center gap-3 flex-shrink-0">
           <button
             :disabled="selectedAlerts.length === 0"
             @click="openBatchCloseDialog"
