@@ -233,6 +233,13 @@
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
+          <!-- Alert Filter Mode Switch -->
+          <ThreeWaySwitch
+            v-model="alertFilterMode"
+            :options="alertFilterOptions"
+            i18n-prefix="alerts.list.filterMode"
+            :label="$t('alerts.list.riskFilter') || '风险过滤'"
+          />
         </div>
         <div class="flex items-center gap-3">
           <button
@@ -242,22 +249,6 @@
           >
             <span class="material-symbols-outlined text-base">close</span>
             <span>{{ $t('alerts.list.batchClose') }}</span>
-          </button>
-          <button
-            :disabled="selectedAlerts.length === 0"
-            @click="openAssociateIncidentDialog"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
-          >
-            <span class="material-symbols-outlined text-base">link</span>
-            <span>{{ $t('alerts.list.associateIncident') }}</span>
-          </button>
-          <button
-            :disabled="selectedAlerts.length === 0"
-            @click="openCreateIncidentDialog"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
-          >
-            <span class="material-symbols-outlined text-base">transform</span>
-            <span>{{ $t('alerts.list.batchConvert') }}</span>
           </button>
           <!-- More actions button -->
           <div class="relative">
@@ -292,6 +283,22 @@
                 <span>{{ showCharts ? $t('alerts.list.hideCharts') : $t('alerts.list.showCharts') }}</span>
               </button>
               <div class="mx-3 my-1 h-px bg-gray-200 dark:bg-[#3b4c65]"></div>
+              <button
+                @click="handleAssociateIncidentFromMenu"
+                :disabled="selectedAlerts.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">link</span>
+                <span>{{ $t('alerts.list.associateIncident') }}</span>
+              </button>
+              <button
+                @click="handleCreateIncidentFromMenu"
+                :disabled="selectedAlerts.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">transform</span>
+                <span>{{ $t('alerts.list.batchConvert') }}</span>
+              </button>
               <button
                 @click="handleCreateAlertFromMenu"
                 class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
@@ -590,7 +597,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
@@ -603,6 +610,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import ThreeWaySwitch from '@/components/common/ThreeWaySwitch.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
@@ -610,7 +618,7 @@ import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCo
 
 const { t } = useI18n()
 const toast = useToast()
-// Define column configuration (using computed to ensure reactivity)
+
 const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
@@ -619,9 +627,8 @@ const columns = computed(() => [
   { key: 'owner', label: t('alerts.list.owner') }
 ])
 
-// Default column widths
 const defaultWidths = {
-  createTime: 200, // Adjusted to 200 to fit yyyy-MM-dd HH:mm:ss format
+  createTime: 200,
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
@@ -659,7 +666,6 @@ const statistics = ref({
   typeStats: []
 })
 
-// 从 localStorage 读取保存的搜索关键词
 const getStoredSearchKeywords = () => {
   try {
     const stored = localStorage.getItem('alerts-searchKeywords')
@@ -678,11 +684,10 @@ const getStoredSearchKeywords = () => {
 const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
 const ownerSearch = ref('')
-// 从localStorage读取保存的status筛选器设置，如果没有则默认为'all'
+
 const getStoredStatusFilter = () => {
   try {
     const stored = localStorage.getItem('alerts-status-filter')
-    // 验证存储的值是否有效
     if (stored && ['all', 'open', 'block', 'closed'].includes(stored)) {
       return stored
     }
@@ -692,10 +697,41 @@ const getStoredStatusFilter = () => {
   return 'all'
 }
 const statusFilter = ref(getStoredStatusFilter())
+
+const getStoredAlertFilterMode = () => {
+  try {
+    const stored = localStorage.getItem('alerts-filter-mode')
+    if (stored && ['allAlerts', 'normal', 'highRisk', 'unclosedHighRisk'].includes(stored)) {
+      return stored === 'normal' ? 'allAlerts' : stored
+    }
+  } catch (error) {
+    console.warn('Failed to read alert filter mode from localStorage:', error)
+  }
+  return 'allAlerts'
+}
+const alertFilterMode = ref(getStoredAlertFilterMode())
+
+const alertFilterOptions = computed(() => [
+  {
+    value: 'allAlerts',
+    icon: 'list_alt_check',
+    i18nKey: 'allAlerts'
+  },
+  {
+    value: 'highRisk',
+    icon: 'data_alert',
+    i18nKey: 'highRisk'
+  },
+  {
+    value: 'unclosedHighRisk',
+    icon: 'release_alert',
+    i18nKey: 'unclosedHighRisk'
+  }
+])
+
 const selectedAlerts = ref([])
 const currentPage = ref(1)
 
-// 从 localStorage 读取保存的分页大小
 const getStoredPageSize = () => {
   try {
     const stored = localStorage.getItem('alerts-pageSize')
@@ -714,7 +750,6 @@ const getStoredPageSize = () => {
 const pageSize = ref(getStoredPageSize())
 const total = ref(0)
 
-// Time range picker
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('alerts', 'last24Hours')
 const showBatchCloseDialog = ref(false)
 const isBatchClosing = ref(false)
@@ -884,7 +919,6 @@ const updateAlertTypeChart = () => {
     return
   }
 
-  // Clear previous option to ensure new settings take effect
   alertTypeChartInstance.clear()
 
   const option = {
@@ -948,7 +982,6 @@ const updateAlertTypeChart = () => {
   }
 
   alertTypeChartInstance.setOption(option, true)
-  // Force resize to ensure grid changes take effect
   nextTick(() => {
     alertTypeChartInstance.resize()
   })
@@ -994,19 +1027,15 @@ const updateAlertTrendChart = () => {
     return
   }
 
-  // Clear previous option to ensure new settings take effect
   alertTrendChartInstance.clear()
 
-  // Format dates for display (show hours for last24Hours, date for others)
   const formatDateLabel = (dateStr) => {
     const date = new Date(dateStr)
     if (selectedTimeRange.value === 'last24Hours') {
-      // Show hours in HH:mm format
       const hours = date.getHours().toString().padStart(2, '0')
       const minutes = date.getMinutes().toString().padStart(2, '0')
       return `${hours}:${minutes}`
     } else {
-      // Show date in MM/DD format
       const month = (date.getMonth() + 1).toString().padStart(2, '0')
       const day = date.getDate().toString().padStart(2, '0')
       return `${month}/${day}`
@@ -1080,7 +1109,6 @@ const updateAlertTrendChart = () => {
   }
 
   alertTrendChartInstance.setOption(option, true)
-  // Force resize to ensure grid changes take effect
   nextTick(() => {
     alertTrendChartInstance.resize()
   })
@@ -1100,7 +1128,6 @@ const loadAlertTrend = async () => {
     const trendData = response?.data || []
     alertTrendChartDates.value = trendData.map(item => item.date)
     alertTrendChartValues.value = trendData.map(item => Number(item.count) || 0)
-    // Calculate total alert count from trend data
     statistics.value.alertCount = alertTrendChartValues.value.reduce((sum, count) => sum + count, 0)
   } catch (error) {
     console.error('Failed to load alert trend:', error)
@@ -1124,10 +1151,10 @@ const loadAlerts = async () => {
       searchKeywords: searchKeywords.value,
       status: statusFilter.value,
       page: currentPage.value,
-      pageSize: pageSize.value
+      pageSize: pageSize.value,
+      risk_mode: alertFilterMode.value
     }
     
-    // Add owner search condition if provided
     if (ownerSearch.value && ownerSearch.value.trim()) {
       params.owner = ownerSearch.value.trim()
     }
@@ -1200,9 +1227,7 @@ const loadStatistics = async () => {
       range.start,
       range.end
     )
-    // Merge response data instead of completely replacing to preserve alertCount set by loadAlertTrend
     if (response && response.data) {
-      // Map API response fields to frontend statistics fields
       if (response.data.automation_rate !== undefined) {
         statistics.value.automationRate = response.data.automation_rate
       }
@@ -1212,7 +1237,6 @@ const loadStatistics = async () => {
       if (response.data.auto_closed !== undefined) {
         statistics.value.autoClosed = response.data.auto_closed
       }
-      // For now, set default trend values (can be enhanced later to calculate from historical data)
       if (statistics.value.automationRateChange === 0) {
         statistics.value.automationRateChange = 0
         statistics.value.automationRateTrend = 'down'
@@ -1225,7 +1249,6 @@ const loadStatistics = async () => {
   }
 }
 
-// 保存搜索关键词到 localStorage
 const saveSearchKeywords = () => {
   try {
     localStorage.setItem('alerts-searchKeywords', JSON.stringify(searchKeywords.value))
@@ -1234,10 +1257,6 @@ const saveSearchKeywords = () => {
   }
 }
 
-/**
- * @brief 添加搜索关键字
- * @details 当用户按回车时，将当前输入添加到关键字列表
- */
 const addKeyword = () => {
   const keyword = currentSearchInput.value.trim()
   if (keyword && !searchKeywords.value.includes(keyword)) {
@@ -1248,19 +1267,12 @@ const addKeyword = () => {
   }
 }
 
-/**
- * @brief 删除搜索关键字
- * @param {number} index - 要删除的关键字索引
- */
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
   saveSearchKeywords()
   reloadAlertsFromFirstPage()
 }
 
-/**
- * Remove the most recent keyword when the Delete key is pressed with an empty input
- */
 const handleKeywordDeleteKey = (event) => {
   if (event.key === 'Delete' && !currentSearchInput.value && searchKeywords.value.length > 0) {
     event.preventDefault()
@@ -1268,45 +1280,38 @@ const handleKeywordDeleteKey = (event) => {
   }
 }
 
-/**
- * @brief 处理搜索输入
- * @details 实时搜索功能（可选，如果需要实时搜索可以启用）
- */
-const handleSearchInput = () => {
-  // If real-time search is needed, call loadAlerts() here
-  // Currently only searches when adding/removing keywords
-}
-
-/**
- * @brief 处理责任人搜索输入
- * @details 输入时不触发搜索，只在按回车时搜索
- */
-const handleOwnerSearchInput = () => {
-  // Do nothing on input, only search on Enter key
-}
-
-/**
- * @brief 处理责任人搜索（回车键）
- */
 const handleOwnerSearch = () => {
   reloadAlertsFromFirstPage()
 }
 
 const handleFilter = () => {
-  // 保存status筛选器设置到localStorage
   try {
     localStorage.setItem('alerts-status-filter', statusFilter.value)
   } catch (error) {
     console.warn('Failed to save status filter to localStorage:', error)
   }
   reloadAlertsFromFirstPage()
-  loadAlertTypeDistribution()  // Reload chart data when status filter changes
-  // Note: Alert trend chart doesn't use status filter, only time range
+  loadAlertTypeDistribution()
 }
 
+watch(alertFilterMode, (newMode) => {
+  localStorage.setItem('alerts-filter-mode', newMode)
+  
+  if (newMode === 'highRisk') {
+    statusFilter.value = 'all'
+    localStorage.setItem('alerts-status-filter', 'all')
+    loadAlertTypeDistribution()
+  } else if (newMode === 'unclosedHighRisk') {
+    statusFilter.value = 'open'
+    localStorage.setItem('alerts-status-filter', 'open')
+    loadAlertTypeDistribution()
+  }
+  
+  reloadAlertsFromFirstPage()
+})
+
 const handlePageSizeChange = () => {
-  pageSize.value = Number(pageSize.value) // Ensure it's a number type
-  // 保存到 localStorage
+  pageSize.value = Number(pageSize.value)
   try {
     localStorage.setItem('alerts-pageSize', String(pageSize.value))
   } catch (error) {
@@ -1357,27 +1362,21 @@ const route = useRoute()
 const currentAlertId = computed(() => route.params.id ?? null)
 
 const openAlertDetail = (alertId) => {
-  // Update URL without triggering page navigation
   router.push({ path: `/alerts/${alertId}`, replace: true })
 }
 
 const openAlertDetailInNewWindow = (alertId) => {
-  // Open alert detail in a new window
   const route = router.resolve({ path: `/alerts/${alertId}` })
-  // Build complete URL
   const url = window.location.origin + route.href
   window.open(url, '_blank')
 }
 
 const closeAlertDetail = () => {
-  // Clear alert ID from URL
   router.push({ path: '/alerts', replace: true })
 }
 
 const handleAlertClosed = () => {
-  // Reload alert list after alert is closed
   loadAlerts()
-  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -1385,21 +1384,17 @@ const handleAlertClosed = () => {
 }
 
 const handleAlertConvertedToIncident = () => {
-  // Reload alert list after alert is converted to incident
   loadAlerts()
-  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
   }
 }
 
-// Word wrap state
 const isWordWrap = computed(() => {
   return dataTableRef.value?.wordWrap?.value ?? true
 })
 
-// Toggle word wrap
 const handleToggleWordWrap = () => {
   if (dataTableRef.value) {
     dataTableRef.value.toggleWordWrap()
@@ -1432,7 +1427,16 @@ const handleCreateAlertFromMenu = () => {
   showMoreMenu.value = false
 }
 
-// Convert to vulnerability
+const handleAssociateIncidentFromMenu = () => {
+  openAssociateIncidentDialog()
+  showMoreMenu.value = false
+}
+
+const handleCreateIncidentFromMenu = () => {
+  openCreateIncidentDialog()
+  showMoreMenu.value = false
+}
+
 const handleConvertToVulnerability = () => {
   if (selectedAlerts.value.length === 0) {
     console.warn('No alerts selected')
@@ -1443,7 +1447,6 @@ const handleConvertToVulnerability = () => {
 }
 
 const openCreateVulnerabilityDialog = () => {
-  // Find selected alerts
   const selectedAlertObjects = alerts.value.filter(alert => selectedAlerts.value.includes(alert.id))
   
   if (selectedAlertObjects.length === 0) {
@@ -1451,10 +1454,8 @@ const openCreateVulnerabilityDialog = () => {
     return
   }
   
-  // Use the first alert's data for initial form data
   const firstAlert = selectedAlertObjects[0]
   
-  // Get description - handle both string and object types
   let alertDescription = ''
   if (firstAlert.aiAnalysis?.description) {
     alertDescription = typeof firstAlert.aiAnalysis.description === 'string' 
@@ -1466,7 +1467,6 @@ const openCreateVulnerabilityDialog = () => {
       : JSON.stringify(firstAlert.description)
   }
   
-  // Set initial data - use first alert's data
   createVulnerabilityInitialData.value = {
     title: firstAlert.title || '',
     riskLevel: firstAlert.riskLevel || 'medium',
@@ -1476,7 +1476,6 @@ const openCreateVulnerabilityDialog = () => {
     description: alertDescription
   }
   
-  // Open dialog
   showCreateVulnerabilityDialog.value = true
 }
 
@@ -1486,16 +1485,13 @@ const closeCreateVulnerabilityDialog = () => {
 }
 
 const handleVulnerabilityCreated = () => {
-  // Reload alert list after vulnerability is created
   loadAlerts()
-  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
   }
 }
 
-// Close dropdown menu when clicking outside
 const handleClickOutside = (event) => {
   const dropdown = event.target.closest('.more-menu-dropdown')
   const button = event.target.closest('.more-menu-button')
@@ -1516,7 +1512,6 @@ const openBatchCloseDialog = () => {
 
 const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
-  // Reset form
   closeConclusion.value = {
     category: 'falsePositive',
     notes: ''
@@ -1537,7 +1532,6 @@ const handleBatchClose = async () => {
   try {
     isBatchClosing.value = true
     
-    // 调用批量关闭接口
     await batchCloseAlertsByPut(
       selectedAlerts.value,
       closeConclusion.value.category,
@@ -1545,25 +1539,21 @@ const handleBatchClose = async () => {
     )
     persistRecentCloseComment(closeConclusion.value.notes.trim())
     
-    // 显示成功提示
     toast.success(
       t('alerts.list.batchCloseSuccess', { count: selectedAlerts.value.length }) || 
       `成功关闭 ${selectedAlerts.value.length} 个告警`, 
       t('common.operationSuccess')
     )
     
-    // Close dialog and reset form
     closeBatchCloseDialog()
     selectedAlerts.value = []
     if (dataTableRef.value) {
       dataTableRef.value.clearSelection()
     }
     
-    // Reload alert list
     loadAlerts()
   } catch (error) {
     console.error('Failed to batch close alerts:', error)
-    // 显示错误提示
     const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchCloseError') || '批量关闭告警失败，请稍后重试'
     toast.error(errorMessage, 'ERROR')
   } finally {
@@ -1585,57 +1575,44 @@ const closeAssociateIncidentDialog = () => {
 }
 
 const handleAssociateIncidentSuccess = () => {
-  // Close dialog and reset after successful association
   closeAssociateIncidentDialog()
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
   }
-  
-  // Reload alert list
   loadAlerts()
 }
 
 const openCreateIncidentDialog = () => {
-  // Find selected alerts
   const selectedAlertObjects = alerts.value.filter(alert => selectedAlerts.value.includes(alert.id))
 
-  
-  // Use the first alert's data for initial form data
   const firstAlert = selectedAlertObjects[0]
   
-  // Determine initial create time from alert data
   const createTime =
     parseToDate(firstAlert?.createTime)
     || parseToDate(firstAlert?.create_time)
     || parseToDate(firstAlert?.timestamp)
     || new Date()
   
-  // Get title and description from first alert only
   const incidentTitle = firstAlert.title || ''
   
-  // Get description - handle both string and object types
   let alertDescription = ''
   if (firstAlert.aiAnalysis?.description) {
-    // If aiAnalysis.description exists, use it (convert to string if object)
     alertDescription = typeof firstAlert.aiAnalysis.description === 'string' 
       ? firstAlert.aiAnalysis.description 
       : JSON.stringify(firstAlert.aiAnalysis.description)
   } else if (firstAlert.description) {
-    // If description exists, use it (convert to string if object)
     alertDescription = typeof firstAlert.description === 'string' 
       ? firstAlert.description 
       : JSON.stringify(firstAlert.description)
   }
   
-  // Set initial data - use first alert's title and description, current time for occurrence
   createIncidentInitialData.value = {
     title: incidentTitle,
     createTime,
     description: alertDescription
   }
   
-  // Open dialog
   showCreateIncidentDialog.value = true
 }
 
@@ -1645,9 +1622,7 @@ const closeCreateIncidentDialog = () => {
 }
 
 const handleIncidentCreated = () => {
-  // Reload alert list after incident is created
   loadAlerts()
-  // Clear selection
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -1663,7 +1638,6 @@ const closeCreateAlertDialog = () => {
 }
 
 const handleAlertCreated = async () => {
-  // Reload alert list after alert is created
   await loadAllData()
 }
 
@@ -1687,13 +1661,11 @@ onMounted(async () => {
     ensureAlertTrendChart()
   }
   await loadAllData()
-  // Add click outside listener to close dropdown menu
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
 })
 
 onUnmounted(() => {
-  // Remove click outside listener
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
   disposeAlertTrendChart()

@@ -146,6 +146,7 @@ export const getAlerts = async (params = {}) => {
   const pageSize = params.pageSize || 10
   const limit = pageSize
   const offset = (page - 1) * pageSize
+  const risk_mode = params.risk_mode || 'allAlerts'
   
   // Build query conditions
   const conditions = buildConditions(params.searchKeywords, params.status, params.owner)
@@ -155,7 +156,8 @@ export const getAlerts = async (params = {}) => {
     action: 'list',
     limit,
     offset,
-    conditions
+    conditions,
+    risk_mode
   }
 
   const start_time = formatDateTimeWithOffset(params.startTime)

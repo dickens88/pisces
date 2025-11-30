@@ -19,6 +19,7 @@ class AlertView(Resource):
         end_time = data.get('end_time')
         conditions = data.get('conditions', [])
         action = data.get('action')
+        risk_mode = data.get('risk_mode')
 
         try:
             if action == 'list':
@@ -30,7 +31,8 @@ class AlertView(Resource):
                     limit=limit,
                     offset=offset,
                     start_time=start_time,
-                    end_time=end_time
+                    end_time=end_time,
+                    high_risk=True if risk_mode == "highRisk" or risk_mode == "unclosedHighRisk" else False,
                 )
                 return {"data": data, "total": total}, 200
             elif action == 'create':

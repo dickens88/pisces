@@ -122,6 +122,7 @@
       "actor": "Actor",
       "searchPlaceholder": "Enter keyword and press Enter to search title...",
       "ownerSearchPlaceholder": "Search owner...",
+      "riskFilter": "Risk Filter",
       "allStatus": "All Status",
       "open": "Open",
       "block": "Block",
@@ -175,6 +176,11 @@
         "confirmInputPlaceholder": "Please enter delete",
         "deleteSuccess": "Successfully deleted {count} alert(s)",
         "deleteError": "Failed to delete alerts, please try again later"
+      },
+      "filterMode": {
+        "allAlerts": "All Alerts",
+        "highRisk": "High Risk Alerts",
+        "unclosedHighRisk": "Unclosed High Risk Alerts"
       }
     },
     "create": {

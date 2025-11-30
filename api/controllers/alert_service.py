@@ -14,10 +14,17 @@ class AlertService:
     workspace_id = config.get('application.secmaster.workspace_id')
 
     @classmethod
-    def list_alerts(cls, conditions: List, limit=50, offset=1, start_time=None, end_time=None):
+    def list_alerts(cls, conditions: List, limit=50, offset=1, start_time=None, end_time=None, high_risk=False):
         """Search and list alerts with conditions."""
 
         conditions, logics = build_conditions_and_logics(conditions)
+        if high_risk:
+            conditions.append({"data": ["severity", "!=", "Tips"], "name": "severity_ex_tips"})
+            conditions.append({"data": ["severity", "!=", "Low"], "name": "severity_ex_low"})
+            conditions.append({"data": ["severity", "!=", "Medium"], "name": "severity_ex_medium"})
+            if len(logics) > 0:
+                logics += ["and"]
+            logics += ["severity_ex_tips", "and", "severity_ex_low", "and", "severity_ex_medium"]
 
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/search"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
