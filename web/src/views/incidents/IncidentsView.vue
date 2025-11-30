@@ -86,39 +86,39 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-gray-200 dark:border-[#324867]">
-        <div class="relative w-full max-w-sm">
-          <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-            <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
-            </div>
-            <!-- Search keyword tags -->
-            <div
-              v-for="(keyword, index) in searchKeywords"
-              :key="index"
-              class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
-            >
-              <span>{{ keyword }}</span>
-              <button
-                @click="removeKeyword(index)"
-                class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
-                type="button"
-                :aria-label="$t('common.delete')"
+        <div class="flex flex-wrap items-center gap-3 flex-1">
+          <div class="relative w-full max-w-sm">
+            <div class="flex flex-wrap items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0">
+                <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
+              </div>
+              <!-- Search keyword tags -->
+              <div
+                v-for="(keyword, index) in searchKeywords"
+                :key="index"
+                class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm shrink-0"
               >
-                <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
-              </button>
+                <span>{{ keyword }}</span>
+                <button
+                  @click="removeKeyword(index)"
+                  class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
+                  type="button"
+                  :aria-label="$t('common.delete')"
+                >
+                  <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                </button>
+              </div>
+              <!-- Input field -->
+              <input
+                v-model="currentSearchInput"
+                @keydown.enter.prevent="addKeyword"
+                @input="handleSearchInput"
+                class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="searchKeywords.length === 0 ? $t('incidents.list.searchPlaceholder') : ''"
+                type="text"
+              />
             </div>
-            <!-- Input field -->
-            <input
-              v-model="currentSearchInput"
-              @keydown.enter.prevent="addKeyword"
-              @input="handleSearchInput"
-              class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-              :placeholder="searchKeywords.length === 0 ? $t('incidents.list.searchPlaceholder') : ''"
-              type="text"
-            />
           </div>
-        </div>
-        <div class="flex items-center gap-3">
           <div class="relative">
             <select
               v-model="statusFilter"
@@ -134,6 +134,8 @@
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
+        </div>
+        <div class="flex items-center gap-3">
           <button
             :disabled="selectedIncidents.length === 0"
             class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
