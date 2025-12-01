@@ -31,6 +31,7 @@
               class="mb-2"
             >
               <details
+                open
                 class="group rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 text-[11px] text-slate-600 dark:text-slate-300"
               >
                 <summary
@@ -90,7 +91,7 @@
                       v-if="node.tools && node.tools.length"
                       class="ml-5"
                     >
-                      <details class="group/tool text-[11px] text-slate-600 dark:text-slate-300">
+                      <details open class="group/tool text-[11px] text-slate-600 dark:text-slate-300">
                         <summary class="flex items-center gap-1 cursor-pointer select-none list-none">
                           <span class="material-symbols-outlined text-xs text-primary shrink-0">
                             build
