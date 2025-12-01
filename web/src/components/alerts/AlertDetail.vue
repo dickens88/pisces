@@ -1587,10 +1587,43 @@ const appendSecurityAgentMessage = (message) => {
     content: formatSecurityAgentContent(rawContent),
     create_time: message.create_time || new Date().toISOString(),
     role: message.role || 'assistant',
-    isLocal: message.isLocal || false
+    isLocal: message.isLocal || false,
+    // 执行节点信息（由 streaming 事件 node_started / node_finished 填充）
+    nodes: Array.isArray(message.nodes) ? [...message.nodes] : []
   }
   securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
   return normalizedMessage.id
+}
+
+// 根据 node_started / node_finished 事件更新某条消息上的节点状态
+const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
+  if (!messageId || !nodeTitle || !status) return
+  securityAgentMessages.value = securityAgentMessages.value.map(message => {
+    if (message.id !== messageId) return message
+
+    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
+    const existingIndex = nodes.findIndex(
+      n => n.title === nodeTitle || n.name === nodeTitle || n?.data?.title === nodeTitle
+    )
+
+    if (existingIndex === -1) {
+      nodes.push({
+        title: nodeTitle,
+        status
+      })
+    } else {
+      nodes[existingIndex] = {
+        ...nodes[existingIndex],
+        title: nodes[existingIndex].title || nodeTitle,
+        status
+      }
+    }
+
+    return {
+      ...message,
+      nodes
+    }
+  })
 }
 
 const setSecurityAgentMessageContent = (messageId, text) => {
@@ -1671,13 +1704,22 @@ const handleRightSidebarAiSend = async (data) => {
         }
         if (!event) return
         const eventType = event.event || event.type
-        if (eventType === 'message') {
+        if (eventType === 'message' || eventType === 'message_end') {
+          // 追加消息内容，实现真正的前端流式渲染
           if (assistantMessageId && typeof event.answer === 'string') {
             appendToSecurityAgentMessage(assistantMessageId, event.answer)
           }
-        } else if (eventType === 'message_end') {
-          if (assistantMessageId && typeof event.answer === 'string') {
-            appendToSecurityAgentMessage(assistantMessageId, event.answer)
+        } else if (eventType === 'node_started' || eventType === 'node_finished') {
+          // 处理节点执行状态，填充到当前 assistant 消息上
+          const nodeData = event.data || {}
+          const nodeTitle =
+            nodeData.title ||
+            nodeData.name ||
+            (typeof nodeData === 'string' ? nodeData : '') ||
+            ''
+          if (assistantMessageId && nodeTitle) {
+            const status = eventType === 'node_started' ? 'running' : 'finished'
+            updateSecurityAgentMessageNodes(assistantMessageId, nodeTitle, status)
           }
         } else if (eventType === 'error') {
           const streamError = event?.message || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'

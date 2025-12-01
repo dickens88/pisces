@@ -20,22 +20,88 @@
               {{ formatDateTime(item.create_time || item.time) }}
             </span>
           </div>
-          <!-- 如果是最后一条消息且是assistant且内容为空且正在loading，显示loading动画 -->
+
+          <!-- 将节点下拉和回答内容放在同一个气泡容器中 -->
           <div 
-            v-if="isLastMessageLoading(item, index)"
             class="text-sm text-gray-900 dark:text-slate-200 bg-gray-100 dark:bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
           >
-            <div class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+            <!-- 执行节点下拉列表（仅在存在节点时显示） -->
+            <div
+              v-if="item.nodes && item.nodes.length"
+              class="mb-2"
+            >
+              <details
+                class="group rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 text-[11px] text-slate-600 dark:text-slate-300"
+              >
+                <summary
+                  class="flex items-center justify-between px-2 py-1 cursor-pointer select-none list-none"
+                >
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="material-symbols-outlined text-primary text-sm shrink-0">
+                      route
+                    </span>
+                    <span class="truncate">
+                      {{ $t('alerts.detail.executedNodes') || 'Executed nodes' }}
+                    </span>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
+                      ({{ item.nodes.length }})
+                    </span>
+                  </div>
+                  <span 
+                    class="material-symbols-outlined text-slate-500 dark:text-slate-300 text-sm transition-transform duration-200 group-open:rotate-180 shrink-0"
+                  >
+                    expand_more
+                  </span>
+                </summary>
+                
+                <div class="border-t border-slate-200 dark:border-slate-700 px-2 py-1.5 space-y-1.5">
+                  <div
+                    v-for="(node, nIndex) in item.nodes"
+                    :key="`node-${nIndex}-${node.title || node.name || 'node'}`"
+                    class="flex items-center justify-between gap-2"
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span 
+                        class="material-symbols-outlined text-sm shrink-0"
+                        :class="node.status === 'running' ? 'text-amber-400 animate-pulse' : 'text-emerald-400'"
+                      >
+                        {{ node.status === 'running' ? 'autorenew' : 'check_circle' }}
+                      </span>
+                      <span 
+                        class="truncate text-[11px]"
+                      >
+                        {{ node.title || node.name || (node.data && node.data.title) || 'Unnamed node' }}
+                      </span>
+                    </div>
+                    <span
+                      class="text-[10px] shrink-0"
+                      :class="node.status === 'running' ? 'text-amber-500/90' : 'text-emerald-400/90'"
+                    >
+                      {{ node.status === 'running'
+                        ? ($t('common.running') || 'Running')
+                        : ($t('common.finished') || 'Finished')
+                      }}
+                    </span>
+                  </div>
+                </div>
+              </details>
             </div>
+
+            <!-- 如果是最后一条消息且是assistant且内容为空且正在loading，显示loading动画 -->
+            <div 
+              v-if="isLastMessageLoading(item, index)"
+            >
+              <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+            <div 
+              v-else
+              v-html="sanitizeHtml(item.content || '')"
+            ></div>
           </div>
-          <div 
-            v-else
-            class="text-sm text-gray-900 dark:text-slate-200 bg-gray-100 dark:bg-slate-800/50 rounded-md p-2.5 security-agent__html overflow-x-hidden break-words"
-            v-html="sanitizeHtml(item.content || '')"
-          ></div>
         </div>
         
         <!-- 如果没有消息，显示提示 -->

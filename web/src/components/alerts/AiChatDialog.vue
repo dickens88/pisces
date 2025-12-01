@@ -38,73 +38,76 @@
             >{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
           </div>
 
-          <!-- 执行节点下拉列表 -->
-          <div 
-            v-if="aiItem.nodes && aiItem.nodes.length"
-            class="mt-1"
-          >
-            <details
-              class="group rounded-md border border-[#3c4a60] bg-[#111827]/60 text-[11px] text-text-light"
-            >
-              <summary
-                class="flex items-center justify-between px-2 py-1 cursor-pointer select-none list-none"
-              >
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="material-symbols-outlined text-primary text-sm shrink-0">
-                    route
-                  </span>
-                  <span class="truncate">
-                    {{ $t('alerts.detail.executedNodes') || 'Executed nodes' }}
-                  </span>
-                  <span class="text-[10px] text-text-light/70 shrink-0">
-                    ({{ aiItem.nodes.length }})
-                  </span>
-                </div>
-                <span 
-                  class="material-symbols-outlined text-text-light text-sm transition-transform duration-200 group-open:rotate-180 shrink-0"
-                >
-                  expand_more
-                </span>
-              </summary>
-              
-              <div class="border-t border-[#3c4a60] px-2 py-1.5 space-y-1.5">
-                <div
-                  v-for="(node, nIndex) in aiItem.nodes"
-                  :key="`node-${nIndex}-${node.title || node.name || 'node'}`"
-                  class="flex items-center justify-between gap-2"
-                >
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <span 
-                      class="material-symbols-outlined text-sm shrink-0"
-                      :class="node.status === 'running' ? 'text-amber-300 animate-pulse' : 'text-emerald-300'"
-                    >
-                      {{ node.status === 'running' ? 'autorenew' : 'check_circle' }}
-                    </span>
-                    <span 
-                      class="truncate text-[11px]"
-                    >
-                      {{ node.title || node.name || (node.data && node.data.title) || 'Unnamed node' }}
-                    </span>
-                  </div>
-                  <span
-                    class="text-[10px] shrink-0"
-                    :class="node.status === 'running' ? 'text-amber-300/90' : 'text-emerald-300/90'"
-                  >
-                    {{ node.status === 'running'
-                      ? ($t('common.running') || 'Running')
-                      : ($t('common.finished') || 'Finished')
-                    }}
-                  </span>
-                </div>
-              </div>
-            </details>
-          </div>
-
+          <!-- 将节点下拉和回答内容放在同一个气泡容器中 -->
           <div 
             class="mt-1 text-[#c3d3e8] bg-[#2a3546] rounded-lg rounded-tl-none ai-chat__html overflow-x-hidden break-words"
             :class="compact ? 'text-xs p-2' : 'text-sm p-3'"
-            v-html="sanitizeHtml(aiItem.content || '')"
-          ></div>
+          >
+            <!-- 执行节点下拉列表 -->
+            <div 
+              v-if="aiItem.nodes && aiItem.nodes.length"
+              class="mb-2"
+            >
+              <details
+                class="group rounded-md border border-[#3c4a60] bg-[#111827]/60 text-[11px] text-text-light"
+              >
+                <summary
+                  class="flex items-center justify-between px-2 py-1 cursor-pointer select-none list-none"
+                >
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="material-symbols-outlined text-primary text-sm shrink-0">
+                      route
+                    </span>
+                    <span class="truncate">
+                      {{ $t('alerts.detail.executedNodes') || 'Executed nodes' }}
+                    </span>
+                    <span class="text-[10px] text-text-light/70 shrink-0">
+                      ({{ aiItem.nodes.length }})
+                    </span>
+                  </div>
+                  <span 
+                    class="material-symbols-outlined text-text-light text-sm transition-transform duration-200 group-open:rotate-180 shrink-0"
+                  >
+                    expand_more
+                  </span>
+                </summary>
+                
+                <div class="border-t border-[#3c4a60] px-2 py-1.5 space-y-1.5">
+                  <div
+                    v-for="(node, nIndex) in aiItem.nodes"
+                    :key="`node-${nIndex}-${node.title || node.name || 'node'}`"
+                    class="flex items-center justify-between gap-2"
+                  >
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span 
+                        class="material-symbols-outlined text-sm shrink-0"
+                        :class="node.status === 'running' ? 'text-amber-300 animate-pulse' : 'text-emerald-300'"
+                      >
+                        {{ node.status === 'running' ? 'autorenew' : 'check_circle' }}
+                      </span>
+                      <span 
+                        class="truncate text-[11px]"
+                      >
+                        {{ node.title || node.name || (node.data && node.data.title) || 'Unnamed node' }}
+                      </span>
+                    </div>
+                    <span
+                      class="text-[10px] shrink-0"
+                      :class="node.status === 'running' ? 'text-amber-300/90' : 'text-emerald-300/90'"
+                    >
+                      {{ node.status === 'running'
+                        ? ($t('common.running') || 'Running')
+                        : ($t('common.finished') || 'Finished')
+                      }}
+                    </span>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- AI 回答内容 -->
+            <div v-html="sanitizeHtml(aiItem.content || '')"></div>
+          </div>
         </div>
       </div>
       
