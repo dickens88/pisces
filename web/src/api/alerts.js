@@ -56,7 +56,7 @@ const transformAlertData = (apiAlert) => {
     title: apiAlert.title,
     riskLevel: API_SEVERITY_TO_CLIENT_MAP[apiAlert.severity] || apiAlert.severity?.toLowerCase() || 'medium',
     status: API_STATUS_TO_CLIENT_MAP[apiAlert.handle_status] || apiAlert.handle_status?.toLowerCase() || 'open',
-    owner: apiAlert.owner,
+    owner: apiAlert.creator,
     actor: apiAlert.actor,
     // Keep original fields for detail page use
     severity: apiAlert.severity,
@@ -109,10 +109,10 @@ const buildConditions = (searchKeywords, status, owner) => {
     }
   }
   
-  // Add owner condition (owner search)
+  // Add owner condition (mapped to API field `creator`)
   if (owner && owner.trim()) {
     conditions.push({
-      'owner': owner.trim()
+      'creator': owner.trim()
     })
   }
   
