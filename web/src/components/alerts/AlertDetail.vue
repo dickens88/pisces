@@ -1588,7 +1588,7 @@ const appendSecurityAgentMessage = (message) => {
     create_time: message.create_time || new Date().toISOString(),
     role: message.role || 'assistant',
     isLocal: message.isLocal || false,
-    // 执行节点信息（由 streaming 事件 node_started / node_finished 填充）
+    // 执行节点信息（由 streaming 事件 node_started / node_finished / agent_log 填充）
     nodes: Array.isArray(message.nodes) ? [...message.nodes] : []
   }
   securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
@@ -1618,6 +1618,47 @@ const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
         status
       }
     }
+
+    return {
+      ...message,
+      nodes
+    }
+  })
+}
+
+// 在当前运行中的节点下追加工具调用记录（由 agent_log 事件驱动）
+const appendToolCallToCurrentNode = (messageId, toolName) => {
+  if (!messageId || !toolName) return
+  securityAgentMessages.value = securityAgentMessages.value.map(message => {
+    if (message.id !== messageId) return message
+
+    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
+    if (!nodes.length) {
+      // 如果还没有节点，创建一个通用的 Agent 节点以容纳工具调用
+      nodes.push({
+        title: 'Agent',
+        status: 'running',
+        tools: []
+      })
+    }
+
+    // 尽量选择“当前运行中”的节点，否则选择最后一个节点
+    let targetIndex = nodes.slice().reverse().findIndex(n => n.status === 'running')
+    if (targetIndex !== -1) {
+      targetIndex = nodes.length - 1 - targetIndex
+    } else {
+      targetIndex = nodes.length - 1
+    }
+
+    const targetNode = { ...(nodes[targetIndex] || {}), tools: Array.isArray(nodes[targetIndex]?.tools) ? [...nodes[targetIndex].tools] : [] }
+
+    // 避免重复同名工具的连续插入（简单去重）
+    const alreadyExists = targetNode.tools.some(t => t.name === toolName)
+    if (!alreadyExists) {
+      targetNode.tools.push({ name: toolName })
+    }
+
+    nodes[targetIndex] = targetNode
 
     return {
       ...message,
@@ -1720,6 +1761,21 @@ const handleRightSidebarAiSend = async (data) => {
           if (assistantMessageId && nodeTitle) {
             const status = eventType === 'node_started' ? 'running' : 'finished'
             updateSecurityAgentMessageNodes(assistantMessageId, nodeTitle, status)
+          }
+        } else if (eventType === 'agent_log') {
+          // 处理智能体日志，用于展示工具调用
+          const logData = event.data || {}
+          const label = logData.label || ''
+
+          // 解析形如 "CALL <tool_name>" 的日志
+          let toolName = ''
+          const match = label.match(/CALL\s+([^\s]+)(?:\s+|$)/i)
+          if (match && match[1]) {
+            toolName = match[1]
+          }
+
+          if (assistantMessageId && toolName) {
+            appendToolCallToCurrentNode(assistantMessageId, toolName)
           }
         } else if (eventType === 'error') {
           const streamError = event?.message || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'

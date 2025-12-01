@@ -58,6 +58,8 @@
       "tips": "Tips"
     },
     "github": "Report an Issue",
+    "running": "Running",
+    "finished": "Finished",
     "userMenu": {
       "preferences": "Preferences",
       "theme": "Theme",
@@ -246,6 +248,8 @@
       "noThreatIntelligence": "No threat intelligence matches found",
       "noAssociatedAlerts": "No associated alerts found",
       "noAiResponse": "No AI analysis results",
+      "executedNodes": "Executed Nodes",
+      "agentTools": "Tools called",
       "responseTab": "Response",
       "securityAgentTab": "Security Agent",
       "securityAgentUserLabel": "You",

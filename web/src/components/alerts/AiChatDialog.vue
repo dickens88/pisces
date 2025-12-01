@@ -76,30 +76,66 @@
                   <div
                     v-for="(node, nIndex) in aiItem.nodes"
                     :key="`node-${nIndex}-${node.title || node.name || 'node'}`"
-                    class="flex items-center justify-between gap-2"
+                    class="space-y-1.5"
                   >
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span 
-                        class="material-symbols-outlined text-sm shrink-0"
-                        :class="node.status === 'running' ? 'text-amber-300 animate-pulse' : 'text-emerald-300'"
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <span 
+                          class="material-symbols-outlined text-sm shrink-0"
+                          :class="node.status === 'running' ? 'text-amber-300 animate-pulse' : 'text-emerald-300'"
+                        >
+                          {{ node.status === 'running' ? 'autorenew' : 'check_circle' }}
+                        </span>
+                        <span 
+                          class="truncate text-[11px]"
+                        >
+                          {{ node.title || node.name || (node.data && node.data.title) || 'Unnamed node' }}
+                        </span>
+                      </div>
+                      <span
+                        class="text-[10px] shrink-0"
+                        :class="node.status === 'running' ? 'text-amber-300/90' : 'text-emerald-300/90'"
                       >
-                        {{ node.status === 'running' ? 'autorenew' : 'check_circle' }}
-                      </span>
-                      <span 
-                        class="truncate text-[11px]"
-                      >
-                        {{ node.title || node.name || (node.data && node.data.title) || 'Unnamed node' }}
+                        {{ node.status === 'running'
+                          ? ($t('common.running') || 'Running')
+                          : ($t('common.finished') || 'Finished')
+                        }}
                       </span>
                     </div>
-                    <span
-                      class="text-[10px] shrink-0"
-                      :class="node.status === 'running' ? 'text-amber-300/90' : 'text-emerald-300/90'"
+
+                    <!-- 嵌套工具调用列表（仅在存在工具时显示） -->
+                    <div
+                      v-if="node.tools && node.tools.length"
+                      class="ml-5"
                     >
-                      {{ node.status === 'running'
-                        ? ($t('common.running') || 'Running')
-                        : ($t('common.finished') || 'Finished')
-                      }}
-                    </span>
+                      <details class="group/tool text-[11px] text-text-light/80">
+                        <summary class="flex items-center gap-1 cursor-pointer select-none list-none">
+                          <span class="material-symbols-outlined text-xs text-primary shrink-0">
+                            build
+                          </span>
+                          <span class="truncate">
+                            {{ $t('alerts.detail.agentTools') || 'Tools called' }}
+                          </span>
+                          <span class="text-[10px] text-text-light/60 shrink-0">
+                            ({{ node.tools.length }})
+                          </span>
+                        </summary>
+                        <div class="mt-1 pl-4 space-y-0.5">
+                          <div
+                            v-for="(tool, tIndex) in node.tools"
+                            :key="`tool-${tIndex}-${tool.name || 'tool'}`"
+                            class="flex items-center gap-1.5 text-[11px] text-text-light/90"
+                          >
+                            <span class="material-symbols-outlined text-[13px] text-primary shrink-0">
+                              play_arrow
+                            </span>
+                            <span class="truncate">
+                              {{ tool.name || 'Tool' }}
+                            </span>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
                   </div>
                 </div>
               </details>
