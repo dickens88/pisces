@@ -120,6 +120,7 @@
       "alertTitle": "Alert Title",
       "riskLevel": "Risk Level",
       "status": "Status",
+      "responseTime": "TTA",
       "owner": "Owner",
       "actor": "Actor",
       "searchPlaceholder": "Search title by keywords...",

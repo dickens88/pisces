@@ -120,6 +120,7 @@
       "alertTitle": "告警标题",
       "riskLevel": "风险等级",
       "status": "状态",
+      "responseTime": "TTA",
       "owner": "责任人",
       "actor": "调查员",
       "searchPlaceholder": "输入关键字后按回车搜索标题...",
@@ -228,7 +229,7 @@
       "unassigned": "未分配",
       "actor": "调查员",
       "created": "创建时间",
-      "responseTime": "调查时长",
+      "responseTime": "分析时长",
       "addComment": "添加评论...",
       "comments": {
         "title": "评论",

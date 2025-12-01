@@ -360,7 +360,12 @@
             </button>
             <a
               @click="openAlertDetail(item.id)"
-              class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+              :class="[
+                'hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium',
+                (item.handle_status?.toLowerCase() === 'closed' || item.status === 'closed') 
+                  ? 'text-gray-500 dark:text-gray-400' 
+                  : 'text-primary'
+              ]"
               :title="item.title"
             >
               {{ item.title }}
@@ -613,7 +618,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import ThreeWaySwitch from '@/components/common/ThreeWaySwitch.vue'
-import { formatDateTime, parseToDate } from '@/utils/dateTime'
+import { formatDateTime, parseToDate, calculateTTR } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
@@ -626,6 +631,7 @@ const columns = computed(() => [
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'status', label: t('alerts.list.status') },
+  { key: 'responseTime', label: t('alerts.list.responseTime') },
   { key: 'owner', label: t('alerts.list.owner') }
 ])
 
@@ -634,6 +640,7 @@ const defaultWidths = {
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
+  responseTime: 120,
   owner: 50
 }
 
@@ -1168,7 +1175,22 @@ const loadAlerts = async () => {
     }
     
     const response = await getAlerts(params)
-    alerts.value = response.data
+    const rawAlerts = response.data || []
+
+    // 为列表中的每条告警计算 TTA（responseTime），与详情页保持一致
+    alerts.value = rawAlerts.map(item => {
+      const createdAt = item.create_time || item.createTime
+      const closedAt = item.close_time || item.closeTime
+      const handleStatus = item.handle_status || item.status
+
+      const computedTtr = calculateTTR(createdAt, closedAt, handleStatus)
+      const normalizedTtr = computedTtr === '-' && item.ttr ? item.ttr : computedTtr
+
+      return {
+        ...item,
+        responseTime: normalizedTtr
+      }
+    })
     total.value = response.total
     
   } catch (error) {
