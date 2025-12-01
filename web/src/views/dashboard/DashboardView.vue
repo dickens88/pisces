@@ -102,7 +102,7 @@
       </div>
     </div>
 
-    <!-- Charts area -->
+    <!-- Charts area: alert type stats + alert trend -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Alert type statistics -->
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
@@ -136,7 +136,47 @@
         </div>
       </div>
 
-      <!-- AI accuracy rate -->
+      <!-- Alert trend (moved from alerts page) -->
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+        <div class="flex justify-between items-center p-3 pt-2">
+          <p class="text-gray-900 dark:text-white text-lg font-semibold">
+            {{ $t('alerts.list.statistics.alertTrend') }}
+          </p>
+          <span class="text-xs text-gray-600 dark:text-white/60">{{ dashboardTimeRangeLabel }}</span>
+        </div>
+        <div class="flex flex-col gap-1 px-3 pb-2">
+          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
+            {{ $t('common.totalAlerts') }}
+          </span>
+          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+            {{ alertTrendTotal.toLocaleString() }}
+          </span>
+        </div>
+        <div class="relative h-80">
+          <div
+            v-if="alertTrendLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-white/50 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="alertTrendValues.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-white/50 text-sm"
+          >
+            {{ $t('dashboard.charts.noData') }}
+          </div>
+          <div
+            v-show="!alertTrendLoading && alertTrendValues.length > 0"
+            ref="alertTrendChartRef"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI accuracy rate (moved to second row) -->
+    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center p-3 pt-2">
           <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
@@ -151,19 +191,19 @@
           </span>
         </div>
         <div class="relative h-80">
-          <div 
+          <div
             v-if="aiAccuracyLoading"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
-          <div 
+          <div
             v-else-if="aiAccuracyData.length === 0"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('dashboard.charts.noData') }}
           </div>
-          <div 
+          <div
             v-show="!aiAccuracyLoading && aiAccuracyData.length > 0"
             ref="aiAccuracyChartRef"
             class="absolute inset-0"
@@ -208,6 +248,15 @@ let alertSourceResizeListenerBound = false
 // Automation Closure Rate
 const automationClosureRate = ref('0.0')
 const automationClosureRateLoading = ref(false)
+
+// Alert trend chart
+const alertTrendChartRef = ref(null)
+const alertTrendDates = ref([])
+const alertTrendValues = ref([])
+const alertTrendLoading = ref(false)
+const alertTrendTotal = ref(0)
+let alertTrendChartInstance = null
+let alertTrendResizeListenerBound = false
 
 const aiAccuracyChartRef = ref(null)
 const aiAccuracyData = ref([])
@@ -257,6 +306,12 @@ const handleAlertSourceResize = () => {
   }
 }
 
+const handleAlertTrendResize = () => {
+  if (alertTrendChartInstance) {
+    alertTrendChartInstance.resize()
+  }
+}
+
 const handleAiAccuracyResize = () => {
   if (aiAccuracyChartInstance) {
     aiAccuracyChartInstance.resize()
@@ -302,6 +357,27 @@ const disposeAiAccuracyChart = () => {
   if (aiAccuracyResizeListenerBound) {
     window.removeEventListener('resize', handleAiAccuracyResize)
     aiAccuracyResizeListenerBound = false
+  }
+}
+
+const ensureAlertTrendChart = () => {
+  if (!alertTrendChartInstance && alertTrendChartRef.value) {
+    alertTrendChartInstance = echarts.init(alertTrendChartRef.value)
+    if (!alertTrendResizeListenerBound) {
+      window.addEventListener('resize', handleAlertTrendResize)
+      alertTrendResizeListenerBound = true
+    }
+  }
+}
+
+const disposeAlertTrendChart = () => {
+  if (alertTrendChartInstance) {
+    alertTrendChartInstance.dispose()
+    alertTrendChartInstance = null
+  }
+  if (alertTrendResizeListenerBound) {
+    window.removeEventListener('resize', handleAlertTrendResize)
+    alertTrendResizeListenerBound = false
   }
 }
 
@@ -453,14 +529,25 @@ const updateAlertSourceChart = () => {
   // Clear previous option to ensure new settings take effect
   alertSourceChartInstance.clear()
 
+  // Detect dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  
+  // Set colors based on theme
+  const axisLabelColor = isDarkMode ? '#cbd5f5' : '#374151'
+  const yAxisLabelColor = isDarkMode ? '#94a3b8' : '#6b7280'
+  const axisLineColor = isDarkMode ? '#334155' : '#e5e7eb'
+  const splitLineColor = isDarkMode ? '#1f2a37' : '#e5e7eb'
+  const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+  const tooltipTextColor = isDarkMode ? '#e2e8f0' : '#374151'
+
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      backgroundColor: tooltipBg,
       borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
+      textStyle: { color: tooltipTextColor },
       padding: [10, 12]
     },
     grid: {
@@ -475,21 +562,21 @@ const updateAlertSourceChart = () => {
       data: alertSourceCategories.value,
       boundaryGap: true,
       axisLabel: {
-        color: '#cbd5f5',
+        color: axisLabelColor,
         rotate: alertSourceCategories.value.length > 5 ? 20 : 0,
         margin: 2,
         fontSize: 10
       },
       axisLine: {
-        lineStyle: { color: '#334155' }
+        lineStyle: { color: axisLineColor }
       },
       axisTick: { show: true, inside: true, alignWithLabel: true }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#94a3b8' },
+      axisLabel: { color: yAxisLabelColor },
       splitLine: {
-        lineStyle: { color: '#1f2a37' }
+        lineStyle: { color: splitLineColor }
       },
       axisLine: { show: false }
     },
@@ -619,6 +706,99 @@ const updateAiAccuracyChart = () => {
   }, 0)
 }
 
+const updateAlertTrendChart = () => {
+  ensureAlertTrendChart()
+  if (!alertTrendChartInstance) {
+    return
+  }
+
+  alertTrendChartInstance.clear()
+
+  const formatDateLabel = (dateStr) => {
+    const date = new Date(dateStr)
+    if (selectedTimeRange.value === 'last24Hours') {
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    } else {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const day = date.getDate().toString().padStart(2, '0')
+      return `${month}/${day}`
+    }
+  }
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'line' },
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12]
+    },
+    grid: {
+      top: 8,
+      right: 24,
+      bottom: 20,
+      left: 28,
+      containLabel: false
+    },
+    xAxis: {
+      type: 'category',
+      data: alertTrendDates.value.map(formatDateLabel),
+      boundaryGap: false,
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: 10,
+        margin: 8
+      },
+      axisLine: {
+        show: true,
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
+      axisLine: { show: true, lineStyle: { color: '#334155' } },
+      axisTick: { show: true, inside: true }
+    },
+    series: [
+      {
+        name: t('alerts.title'),
+        type: 'line',
+        data: alertTrendValues.value,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: {
+          color: '#2b7cee',
+          width: 3
+        },
+        itemStyle: {
+          color: '#2b7cee'
+        },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(43, 124, 238, 0.4)' },
+            { offset: 1, color: 'rgba(43, 124, 238, 0)' }
+          ])
+        }
+      }
+    ]
+  }
+
+  alertTrendChartInstance.setOption(option, true)
+  nextTick(() => {
+    alertTrendChartInstance && alertTrendChartInstance.resize()
+  })
+}
+
 const getDashboardTimeRange = () => {
   if (selectedTimeRange.value === 'customRange') {
     if (customTimeRange.value && customTimeRange.value.length === 2) {
@@ -661,8 +841,27 @@ const loadAlertSourceStatistics = async () => {
     const { start, end } = getDashboardTimeRange()
     const response = await getAlertCountsBySource(start, end)
     const counts = response?.data || {}
-    const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
+    
+    // Check if data is in nested format (with is_auto_closed grouping)
+    const isNestedFormat = counts && Object.keys(counts).length > 0 && typeof Object.values(counts)[0] === 'object'
+    
+    let entries = []
+    if (isNestedFormat) {
+      // New format: { "ProductName": { "Manual": 10, "AutoClosed": 5, "None": 3 }, ... }
+      // For dashboard, we only need total count per product
+      entries = Object.entries(counts).map(([name, value]) => {
+        const productData = value || {}
+        const total = (productData.Manual || 0) + (productData.AutoClosed || 0) + (productData.None || 0)
+        return [name, total]
+      })
+    } else {
+      // Old format: { "ProductName": count, ... } - fallback for compatibility
+      entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
+    }
+    
+    // Sort by count descending
     entries.sort((a, b) => b[1] - a[1])
+    
     alertSourceCategories.value = entries.map(([name]) => name)
     alertSourceValues.value = entries.map(([, value]) => value)
     alertSourceTotal.value = alertSourceValues.value.reduce((sum, value) => sum + value, 0)
@@ -675,6 +874,28 @@ const loadAlertSourceStatistics = async () => {
     alertSourceLoading.value = false
     await nextTick()
     updateAlertSourceChart()
+  }
+}
+
+const loadAlertTrendStatistics = async () => {
+  alertTrendLoading.value = true
+  alertTrendTotal.value = 0
+  try {
+    const { start, end } = getDashboardTimeRange()
+    const response = await getAlertTrend(start, end)
+    const trendData = response?.data || []
+    alertTrendDates.value = trendData.map(item => item.date)
+    alertTrendValues.value = trendData.map(item => Number(item.count) || 0)
+    alertTrendTotal.value = alertTrendValues.value.reduce((sum, count) => sum + count, 0)
+  } catch (error) {
+    console.error('Failed to load alert trend statistics:', error)
+    alertTrendDates.value = []
+    alertTrendValues.value = []
+    alertTrendTotal.value = 0
+  } finally {
+    alertTrendLoading.value = false
+    await nextTick()
+    updateAlertTrendChart()
   }
 }
 
@@ -765,6 +986,7 @@ const handleRefresh = async () => {
 const loadData = async () => {
   await Promise.all([
     loadAlertSourceStatistics(),
+    loadAlertTrendStatistics(),
     loadAlertCount24hData(),
     loadIncidentCount30dData(),
     loadVulnerabilityCount30dData(),
@@ -779,12 +1001,14 @@ const loadData = async () => {
  */
 onMounted(() => {
   ensureAlertSourceChart()
+  ensureAlertTrendChart()
   ensureAiAccuracyChart()
   loadData()
 })
 
 onBeforeUnmount(() => {
   disposeAlertSourceChart()
+  disposeAlertTrendChart()
   disposeAiAccuracyChart()
 })
 

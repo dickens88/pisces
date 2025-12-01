@@ -89,6 +89,8 @@
       "alertTypeStats": "告警类型统计",
       "manual": "手动处理",
       "auto": "自动处理",
+      "autoClosed": "自动关闭",
+      "none": "打开",
       "aiAccuracy": "AI研判正确率",
       "noData": "暂无数据"
     },
@@ -162,6 +164,7 @@
         "alertTypeStats": "告警类型统计",
         "alertTrend": "告警数量趋势",
         "automationClosureRate": "自动化关单率",
+        "alertStatusBySeverity": "告警状态与风险等级分布",
         "past7Days": "过去7天",
         "autoClosed": "自动关闭",
         "totalAlerts": "总关闭数"

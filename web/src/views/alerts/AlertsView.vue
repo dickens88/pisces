@@ -36,6 +36,38 @@
     >
       <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
         <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
+          {{ $t('alerts.list.statistics.alertStatusBySeverity') }}
+        </p>
+        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
+          {{ alertStatusTotal.toLocaleString() }}
+        </p>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
+          {{ alertsTimeRangeLabel }}
+        </p>
+        <div class="relative h-40 w-full">
+          <div
+            v-if="alertStatusChartLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="alertStatusChartSeries.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+          >
+            {{ $t('common.noData') }}
+          </div>
+          <div
+            v-show="!alertStatusChartLoading && alertStatusChartSeries.length > 0"
+            ref="alertStatusChartRef"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
+          ></div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
           {{ $t('alerts.list.statistics.alertTypeStats') }}
         </p>
         <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
@@ -60,38 +92,6 @@
           <div
             v-show="!alertTypeChartLoading && alertTypeChartValues.length > 0"
             ref="alertTypeChartRef"
-            class="absolute inset-0"
-            style="margin: 0; padding: 0;"
-          ></div>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
-        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
-          {{ $t('alerts.list.statistics.alertTrend') }}
-        </p>
-        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
-          {{ statistics.alertCount || 0 }}
-        </p>
-        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
-          {{ alertsTimeRangeLabel }}
-        </p>
-        <div class="relative h-40 w-full">
-          <div
-            v-if="alertTrendChartLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {{ $t('common.loading') }}
-          </div>
-          <div
-            v-else-if="alertTrendChartValues.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {{ $t('common.noData') }}
-          </div>
-          <div
-            v-show="!alertTrendChartLoading && alertTrendChartValues.length > 0"
-            ref="alertTrendChartRef"
             class="absolute inset-0"
             style="margin: 0; padding: 0;"
           ></div>
@@ -608,7 +608,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertTrend, closeAlert, deleteAlerts } from '@/api/alerts'
+import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertStatusBySeverity, closeAlert, deleteAlerts } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
@@ -806,21 +806,23 @@ const persistChartsVisibilityPreference = (value) => {
 const alertTypeChartRef = ref(null)
 const alertTypeChartCategories = ref([])
 const alertTypeChartValues = ref([])
+const alertTypeChartSeries = ref([])
 const alertTypeChartLoading = ref(false)
 const alertTypeChartTotal = ref(0)
 
 let alertTypeChartInstance = null
 let alertTypeChartResizeBound = false
 
-const alertTrendChartRef = ref(null)
-const alertTrendChartDates = ref([])
-const alertTrendChartValues = ref([])
-const alertTrendChartLoading = ref(false)
-
-let alertTrendChartInstance = null
-let alertTrendChartResizeBound = false
-
 const automationRateLoading = ref(false)
+
+const alertStatusChartRef = ref(null)
+const alertStatusChartLoading = ref(false)
+const alertStatusTotal = ref(0)
+const alertStatusChartSeries = ref([])
+const alertStatusYAxisCategories = ref([])
+
+let alertStatusChartInstance = null
+let alertStatusChartResizeBound = false
 
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
@@ -865,12 +867,6 @@ const handleAlertTypeResize = () => {
   }
 }
 
-const handleAlertTrendResize = () => {
-  if (alertTrendChartInstance) {
-    alertTrendChartInstance.resize()
-  }
-}
-
 const ensureAlertTypeChart = () => {
   if (!showCharts.value) {
     return
@@ -895,27 +891,33 @@ const disposeAlertTypeChart = () => {
   }
 }
 
-const ensureAlertTrendChart = () => {
+const handleAlertStatusResize = () => {
+  if (alertStatusChartInstance) {
+    alertStatusChartInstance.resize()
+  }
+}
+
+const ensureAlertStatusChart = () => {
   if (!showCharts.value) {
     return
   }
-  if (!alertTrendChartInstance && alertTrendChartRef.value) {
-    alertTrendChartInstance = echarts.init(alertTrendChartRef.value)
-    if (!alertTrendChartResizeBound) {
-      window.addEventListener('resize', handleAlertTrendResize)
-      alertTrendChartResizeBound = true
+  if (!alertStatusChartInstance && alertStatusChartRef.value) {
+    alertStatusChartInstance = echarts.init(alertStatusChartRef.value)
+    if (!alertStatusChartResizeBound) {
+      window.addEventListener('resize', handleAlertStatusResize)
+      alertStatusChartResizeBound = true
     }
   }
 }
 
-const disposeAlertTrendChart = () => {
-  if (alertTrendChartInstance) {
-    alertTrendChartInstance.dispose()
-    alertTrendChartInstance = null
+const disposeAlertStatusChart = () => {
+  if (alertStatusChartInstance) {
+    alertStatusChartInstance.dispose()
+    alertStatusChartInstance = null
   }
-  if (alertTrendChartResizeBound) {
-    window.removeEventListener('resize', handleAlertTrendResize)
-    alertTrendChartResizeBound = false
+  if (alertStatusChartResizeBound) {
+    window.removeEventListener('resize', handleAlertStatusResize)
+    alertStatusChartResizeBound = false
   }
 }
 
@@ -930,18 +932,34 @@ const updateAlertTypeChart = () => {
 
   alertTypeChartInstance.clear()
 
+  // Detect dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  
+  // Set colors based on theme
+  const axisLabelColor = isDarkMode ? '#cbd5f5' : '#374151'
+  const yAxisLabelColor = isDarkMode ? '#94a3b8' : '#6b7280'
+  const legendColor = isDarkMode ? '#cbd5f5' : '#374151'
+  const axisLineColor = isDarkMode ? '#334155' : '#e5e7eb'
+  const splitLineColor = isDarkMode ? '#1f2a37' : '#e5e7eb'
+  const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+  const tooltipTextColor = isDarkMode ? '#e2e8f0' : '#374151'
+
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      backgroundColor: tooltipBg,
       borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
+      textStyle: { color: tooltipTextColor },
       padding: [10, 12]
     },
+    legend: {
+      top: 0,
+      textStyle: { color: legendColor, fontSize: 10 }
+    },
     grid: {
-      top: 5,
+      top: 20,
       right: 5,
       bottom: 25,
       left: 20,
@@ -952,47 +970,125 @@ const updateAlertTypeChart = () => {
       data: alertTypeChartCategories.value,
       boundaryGap: true,
       axisLabel: {
-        color: '#cbd5f5',
+        color: axisLabelColor,
         rotate: alertTypeChartCategories.value.length > 5 ? 20 : 0,
         margin: 8,
         fontSize: 10
       },
       axisLine: {
         show: true,
-        lineStyle: { color: '#334155' }
+        lineStyle: { color: axisLineColor }
       },
       axisTick: { show: true, inside: true, alignWithLabel: true }
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
+      axisLabel: { color: yAxisLabelColor, margin: 0, fontSize: 10 },
       splitLine: {
-        lineStyle: { color: '#1f2a37' }
+        lineStyle: { color: splitLineColor }
       },
-      axisLine: { show: true, lineStyle: { color: '#334155' } },
+      axisLine: { show: true, lineStyle: { color: axisLineColor } },
       axisTick: { show: true, inside: true }
     },
-    series: [
-      {
-        name: t('alerts.title'),
-        type: 'bar',
-        data: alertTypeChartValues.value,
-        barWidth: '45%',
-        itemStyle: {
-          borderRadius: [8, 8, 0, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#60a5fa' },
-            { offset: 0.7, color: '#3b82f6' },
-            { offset: 1, color: '#2563eb' }
-          ])
-        }
-      }
-    ]
+    series: alertTypeChartSeries.value.length > 0 
+      ? alertTypeChartSeries.value 
+      : [
+          {
+            name: t('alerts.title'),
+            type: 'bar',
+            data: alertTypeChartValues.value,
+            barWidth: '45%',
+            itemStyle: {
+              borderRadius: [8, 8, 0, 0],
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#60a5fa' },
+                { offset: 0.7, color: '#3b82f6' },
+                { offset: 1, color: '#2563eb' }
+              ])
+            }
+          }
+        ]
   }
 
   alertTypeChartInstance.setOption(option, true)
   nextTick(() => {
     alertTypeChartInstance.resize()
+  })
+}
+
+const updateAlertStatusChart = () => {
+  if (!showCharts.value) {
+    return
+  }
+  ensureAlertStatusChart()
+  if (!alertStatusChartInstance) {
+    return
+  }
+
+  alertStatusChartInstance.clear()
+
+  // Detect dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark')
+  
+  // Set colors based on theme
+  const axisLabelColor = isDarkMode ? '#cbd5f5' : '#374151'
+  const xAxisLabelColor = isDarkMode ? '#94a3b8' : '#6b7280'
+  const legendColor = isDarkMode ? '#cbd5f5' : '#374151'
+  const axisLineColor = isDarkMode ? '#334155' : '#e5e7eb'
+  const splitLineColor = isDarkMode ? '#1f2a37' : '#e5e7eb'
+  const tooltipBg = isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)'
+  const tooltipTextColor = isDarkMode ? '#e2e8f0' : '#374151'
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: tooltipBg,
+      borderWidth: 0,
+      textStyle: { color: tooltipTextColor },
+      padding: [10, 12]
+    },
+    legend: {
+      top: 0,
+      textStyle: { color: legendColor, fontSize: 10 }
+    },
+    grid: {
+      top: 20,
+      right: 10,
+      bottom: 5,
+      left: 0,
+      containLabel: true
+    },
+    xAxis: {
+      type: 'value',
+      axisLabel: { color: xAxisLabelColor, fontSize: 10 },
+      splitLine: {
+        lineStyle: { color: splitLineColor }
+      },
+      axisLine: { show: true, lineStyle: { color: axisLineColor } },
+      axisTick: { show: true, inside: true }
+    },
+    yAxis: {
+      type: 'category',
+      data: alertStatusYAxisCategories.value,
+      axisLabel: {
+        color: axisLabelColor,
+        fontSize: 10,
+        formatter: (value) => {
+          // value 已经是翻译后的文案，直接返回
+          return value
+        }
+      },
+      axisLine: { show: true, lineStyle: { color: axisLineColor } },
+      axisTick: { show: true, inside: true }
+    },
+    series: alertStatusChartSeries.value
+  }
+
+  alertStatusChartInstance.setOption(option, true)
+  nextTick(() => {
+    alertStatusChartInstance.resize()
   })
 }
 
@@ -1010,15 +1106,97 @@ const loadAlertTypeDistribution = async () => {
       statusFilter.value
     )
     const counts = response?.data || {}
-    const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
-    entries.sort((a, b) => b[1] - a[1])
-    alertTypeChartCategories.value = entries.map(([name]) => name)
-    alertTypeChartValues.value = entries.map(([, value]) => value)
-    alertTypeChartTotal.value = alertTypeChartValues.value.reduce((sum, value) => sum + value, 0)
+    
+    // Check if data is in new nested format (with is_auto_closed grouping)
+    const isNestedFormat = counts && Object.keys(counts).length > 0 && typeof Object.values(counts)[0] === 'object'
+    
+    if (isNestedFormat) {
+      // New format: { "ProductName": { "Manual": 10, "AutoClosed": 5, "None": 3 }, ... }
+      const productNames = Object.keys(counts)
+      
+      // Calculate total for each product to sort
+      const productTotals = productNames.map(name => {
+        const productData = counts[name] || {}
+        const total = (productData.Manual || 0) + (productData.AutoClosed || 0) + (productData.None || 0)
+        return { name, total }
+      })
+      
+      // Calculate total from all products (before limiting to TOP10)
+      alertTypeChartTotal.value = productTotals.reduce((sum, item) => sum + item.total, 0)
+      
+      // Sort and take only TOP10 for chart display
+      productTotals.sort((a, b) => b.total - a.total)
+      const top10Products = productTotals.slice(0, 10)
+      
+      alertTypeChartCategories.value = top10Products.map(item => item.name)
+      
+      // Build series data for each closure type (only TOP10)
+      const manualData = []
+      const autoClosedData = []
+      const noneData = []
+      
+      top10Products.forEach(item => {
+        const productData = counts[item.name] || {}
+        manualData.push(productData.Manual || 0)
+        autoClosedData.push(productData.AutoClosed || 0)
+        noneData.push(productData.None || 0)
+      })
+      
+      // Create series for stacked bar chart
+      alertTypeChartSeries.value = [
+        {
+          name: t('dashboard.charts.manual'),
+          type: 'bar',
+          stack: 'total',
+          data: manualData,
+          itemStyle: {
+            borderRadius: [0, 0, 0, 0],
+            color: '#2563eb' // Dark blue for manual
+          }
+        },
+        {
+          name: t('dashboard.charts.autoClosed'),
+          type: 'bar',
+          stack: 'total',
+          data: autoClosedData,
+          itemStyle: {
+            borderRadius: [0, 0, 0, 0],
+            color: '#3b82f6' // Medium blue for auto-closed
+          }
+        },
+        {
+          name: t('dashboard.charts.none'),
+          type: 'bar',
+          stack: 'total',
+          data: noneData,
+          itemStyle: {
+            borderRadius: [0, 0, 0, 0],
+            color: '#60a5fa' // Light blue for open/None
+          }
+        }
+      ]
+      
+      alertTypeChartValues.value = top10Products.map(item => item.total)
+    } else {
+      // Old format: { "ProductName": count, ... } - fallback for compatibility
+      const entries = Object.entries(counts).map(([name, value]) => [name, Number(value) || 0])
+      
+      // Calculate total from all products (before limiting to TOP10)
+      alertTypeChartTotal.value = entries.reduce((sum, [, value]) => sum + value, 0)
+      
+      // Sort and take only TOP10 for chart display
+      entries.sort((a, b) => b[1] - a[1])
+      const top10Entries = entries.slice(0, 10)
+      
+      alertTypeChartCategories.value = top10Entries.map(([name]) => name)
+      alertTypeChartValues.value = top10Entries.map(([, value]) => value)
+      alertTypeChartSeries.value = []
+    }
   } catch (error) {
     console.error('Failed to load alert type distribution:', error)
     alertTypeChartCategories.value = []
     alertTypeChartValues.value = []
+    alertTypeChartSeries.value = []
     alertTypeChartTotal.value = 0
   } finally {
     alertTypeChartLoading.value = false
@@ -1027,129 +1205,100 @@ const loadAlertTypeDistribution = async () => {
   }
 }
 
-const updateAlertTrendChart = () => {
+const loadAlertStatusBySeverity = async () => {
   if (!showCharts.value) {
     return
   }
-  ensureAlertTrendChart()
-  if (!alertTrendChartInstance) {
-    return
-  }
+  alertStatusChartLoading.value = true
+  alertStatusTotal.value = 0
+  alertStatusChartSeries.value = []
+  alertStatusYAxisCategories.value = []
 
-  alertTrendChartInstance.clear()
-
-  const formatDateLabel = (dateStr) => {
-    const date = new Date(dateStr)
-    if (selectedTimeRange.value === 'last24Hours') {
-      const hours = date.getHours().toString().padStart(2, '0')
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      return `${hours}:${minutes}`
-    } else {
-      const month = (date.getMonth() + 1).toString().padStart(2, '0')
-      const day = date.getDate().toString().padStart(2, '0')
-      return `${month}/${day}`
-    }
-  }
-
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'line' },
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
-      padding: [10, 12]
-    },
-    grid: {
-      top: 5,
-      right: 30,
-      bottom: 25,
-      left: 20,
-      containLabel: false
-    },
-    xAxis: {
-      type: 'category',
-      data: alertTrendChartDates.value.map(formatDateLabel),
-      boundaryGap: false,
-      axisLabel: {
-        color: '#94a3b8',
-        fontSize: 10,
-        margin: 8
-      },
-      axisLine: {
-        show: true,
-        lineStyle: { color: '#334155' }
-      },
-      axisTick: { show: false }
-    },
-    yAxis: {
-      type: 'value',
-      axisLabel: { color: '#94a3b8', margin: 0, fontSize: 10 },
-      splitLine: {
-        lineStyle: { color: '#1f2a37' }
-      },
-      axisLine: { show: true, lineStyle: { color: '#334155' } },
-      axisTick: { show: true, inside: true }
-    },
-    series: [
-      {
-        name: t('alerts.title'),
-        type: 'line',
-        data: alertTrendChartValues.value,
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 4,
-        lineStyle: {
-          color: '#2b7cee',
-          width: 3
-        },
-        itemStyle: {
-          color: '#2b7cee'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(43, 124, 238, 0.4)' },
-            { offset: 1, color: 'rgba(43, 124, 238, 0)' }
-          ])
-        }
-      }
-    ]
-  }
-
-  alertTrendChartInstance.setOption(option, true)
-  nextTick(() => {
-    alertTrendChartInstance.resize()
-  })
-}
-
-const loadAlertTrend = async () => {
-  if (!showCharts.value) {
-    return
-  }
-  alertTrendChartLoading.value = true
   try {
     const range = computeSelectedRange()
-    const response = await getAlertTrend(
+    const response = await getAlertStatusBySeverity(
       range.start,
-      range.end
+      range.end,
+      statusFilter.value
     )
-    const trendData = response?.data || []
-    alertTrendChartDates.value = trendData.map(item => item.date)
-    alertTrendChartValues.value = trendData.map(item => Number(item.count) || 0)
-    statistics.value.alertCount = alertTrendChartValues.value.reduce((sum, count) => sum + count, 0)
+    const rawData = response?.data || {}
+
+    // 固定状态顺序和枚举
+    const statusOrder = ['open', 'closed', 'block']
+    const statusApiMap = {
+      open: 'Open',
+      block: 'Block',
+      closed: 'Closed'
+    }
+    const severities = ['Fatal', 'High', 'Medium', 'Low', 'Tips']
+    const severityColors = {
+      Fatal: '#1e3a8a',      // 深蓝色
+      High: '#2563eb',       // 中深蓝色
+      Medium: '#3b82f6',     // 中蓝色
+      Low: '#60a5fa',        // 浅蓝色
+      Tips: '#93c5fd'        // 很浅的蓝色
+    }
+
+    const yAxisLabels = statusOrder.map(statusKey => {
+      return t(`alerts.list.${statusKey}`)
+    })
+    alertStatusYAxisCategories.value = yAxisLabels
+
+    const statusLabelMap = {}
+    statusOrder.forEach((key, idx) => {
+      statusLabelMap[statusApiMap[key]] = yAxisLabels[idx]
+    })
+
+    const yAxisIndexByStatusLabel = {}
+    alertStatusYAxisCategories.value.forEach((label, idx) => {
+      yAxisIndexByStatusLabel[label] = idx
+    })
+
+    const matrix = statusOrder.map(() => severities.map(() => 0))
+    let totalCount = 0
+
+    Object.entries(rawData).forEach(([statusApi, severityDict]) => {
+      const yLabel = statusLabelMap[statusApi] || statusApi
+      const rowIndex = yAxisIndexByStatusLabel[yLabel]
+      if (rowIndex === undefined) {
+        return
+      }
+
+      severities.forEach((sev, sevIdx) => {
+        const count = Number(severityDict?.[sev] || 0)
+        matrix[rowIndex][sevIdx] = count
+        totalCount += count
+      })
+    })
+
+    alertStatusTotal.value = totalCount
+
+    const series = severities.map((sev, sevIdx) => ({
+      name: t(`common.severity.${sev.toLowerCase()}`),
+      type: 'bar',
+      stack: 'total',
+      emphasis: {
+        focus: 'series'
+      },
+      itemStyle: {
+        color: severityColors[sev] || '#6366f1'
+      },
+      barWidth: 25,
+      data: matrix.map(row => row[sevIdx])
+    }))
+
+    alertStatusChartSeries.value = series
   } catch (error) {
-    console.error('Failed to load alert trend:', error)
-    alertTrendChartDates.value = []
-    alertTrendChartValues.value = []
-    statistics.value.alertCount = 0
+    console.error('Failed to load alert status by severity:', error)
+    alertStatusChartSeries.value = []
+    alertStatusYAxisCategories.value = []
+    alertStatusTotal.value = 0
   } finally {
-    alertTrendChartLoading.value = false
+    alertStatusChartLoading.value = false
     await nextTick()
-    updateAlertTrendChart()
+    updateAlertStatusChart()
   }
 }
-
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -1220,7 +1369,7 @@ const loadAllData = async (reloadFromFirstPage = false) => {
     tasks.push(
       loadStatistics(),
       loadAlertTypeDistribution(),
-      loadAlertTrend()
+      loadAlertStatusBySeverity()
     )
   }
   
@@ -1316,6 +1465,7 @@ const handleFilter = () => {
   }
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
+  loadAlertStatusBySeverity()
 }
 
 watch(alertFilterMode, (newMode) => {
@@ -1325,10 +1475,12 @@ watch(alertFilterMode, (newMode) => {
     statusFilter.value = 'all'
     localStorage.setItem('alerts-status-filter', 'all')
     loadAlertTypeDistribution()
+    loadAlertStatusBySeverity()
   } else if (newMode === 'unclosedHighRisk') {
     statusFilter.value = 'open'
     localStorage.setItem('alerts-status-filter', 'open')
     loadAlertTypeDistribution()
+    loadAlertStatusBySeverity()
   }
   
   reloadAlertsFromFirstPage()
@@ -1434,15 +1586,15 @@ const handleToggleChartsVisibility = async () => {
 
   if (next) {
     ensureAlertTypeChart()
-    ensureAlertTrendChart()
+    ensureAlertStatusChart()
     await Promise.all([
       loadStatistics(),
-      loadAlertTypeDistribution()
+      loadAlertTypeDistribution(),
+      loadAlertStatusBySeverity()
     ])
-    await loadAlertTrend()
   } else {
     disposeAlertTypeChart()
-    disposeAlertTrendChart()
+    disposeAlertStatusChart()
   }
 }
 
@@ -1682,7 +1834,7 @@ const handleCustomRangeChange = async (newRange) => {
 onMounted(async () => {
   if (showCharts.value) {
     ensureAlertTypeChart()
-    ensureAlertTrendChart()
+    ensureAlertStatusChart()
   }
   await loadAllData()
   document.addEventListener('click', handleClickOutside)
@@ -1692,7 +1844,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
-  disposeAlertTrendChart()
+  disposeAlertStatusChart()
   hideRecentCloseCommentsDropdown()
 })
 

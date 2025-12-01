@@ -89,6 +89,8 @@
       "alertTypeStats": "Alert Type Statistics",
       "manual": "Manual",
       "auto": "Auto",
+      "autoClosed": "Auto Closed",
+      "none": "Open",
       "aiAccuracy": "AI Accuracy Rate",
       "noData": "No data available"
     },
@@ -164,6 +166,7 @@
         "alertTypeStats": "Alert Type Statistics",
         "alertTrend": "Alert Trend",
         "automationClosureRate": "Automation Closure Rate",
+        "alertStatusBySeverity": "Alert Status by Severity",
         "past7Days": "Past 7 Days",
         "autoClosed": "Auto Closed",
         "totalAlerts": "Total Closed"
