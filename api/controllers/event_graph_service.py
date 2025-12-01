@@ -5,6 +5,11 @@ from threading import Lock
 from typing import List, Tuple, Optional, Dict, Any
 
 import requests
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_random_exponential,
+)
 
 from utils.app_config import config
 from utils.logger_init import logger
@@ -219,6 +224,7 @@ class _LightRAGClient:
                     counts[key] = 0
         return counts
 
+    @retry(reraise=True, stop=stop_after_attempt(2), wait=wait_random_exponential(min=1, max=3))
     def _request(self, method: str, path: str, *, params=None, json=None):
         url = f"{self.base_url.rstrip('/')}{path}"
         params = params.copy() if params else {}
@@ -239,14 +245,17 @@ class _LightRAGClient:
                 proxies=proxies
             )
         except requests.RequestException as exc:
+            # 网络/代理等异常，交给 tenacity 重试
             raise EventGraphGenerationError(f"LightRAG request error: {exc}") from exc
 
-        if response.status_code >= 400:
+        if response.status_code < 400:
+            self._log_response(method, path, response)
+            return response
+        else:
+            # 4xx/5xx 统一抛自定义异常，由上层或 tenacity 处理
             raise EventGraphGenerationError(
                 f"LightRAG API {method} {path} failed with status {response.status_code}: {response.text}"
             )
-        self._log_response(method, path, response)
-        return response
 
     @staticmethod
     def _safe_json(response: requests.Response) -> dict:
