@@ -55,6 +55,7 @@ def after_request(response):
     return response
 
 
+# for user login api
 api.add_resource(auth_view.UserLogin, '/login')
 api.add_resource(auth_view.UserLogoutAccess, '/logout')
 api.add_resource(auth_view.UserRefresh, '/refresh')
@@ -62,6 +63,7 @@ api.add_resource(auth_view.UserView, '/user/password')
 api.add_resource(auth_view.UserManagement, '/user/management')
 api.add_resource(auth_view.LoginRestToken, '/login/rest/token')
 
+# for alert and incident handling api
 api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
 api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
@@ -80,8 +82,10 @@ api.add_resource(toolkits_view.ToolkitRecordView, '/alerts/<alert_id>/toolkits')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
-api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')
+# for ASM functions api
 
+# for system common functions
+api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')
 api.add_resource(admin.SystemInfo, '/system/info')
 
 

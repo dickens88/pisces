@@ -28,7 +28,7 @@ const routes = [
         path: 'dashboard',
         name: 'Dashboard',
         component: () => import('@/views/dashboard/DashboardView.vue'),
-        meta: { title: '总览', requiresAuth: true }
+        meta: { title: '态势感知', requiresAuth: true }
       },
       {
         path: 'alerts',
@@ -53,6 +53,18 @@ const routes = [
         name: 'IncidentDetail',
         component: () => import('@/views/incidents/IncidentsDetail.vue'),
         meta: { title: '事件详情', requiresAuth: true }
+      },
+      {
+        path: 'asm',
+        name: 'ASM',
+        component: () => import('@/views/asm/ASMView.vue'),
+        meta: { title: '攻击面管理', requiresAuth: true }
+      },
+      {
+        path: 'asm/:id',
+        name: 'ASMWithDetail',
+        component: () => import('@/views/asm/ASMView.vue'),
+        meta: { title: '攻击面管理', requiresAuth: true }
       },
       {
         path: 'vulnerabilities',

@@ -23,14 +23,14 @@ class IncidentService:
 
     @classmethod
     def list_incidents(cls, conditions: List, limit=50, offset=1, search_vulscan=False,
-                       start_time=None, end_time=None):
+                       start_time=None, end_time=None, workspace_id=None):
         """
         search incident list
         """
-
+        ws_id = workspace_id or cls.workspace_id
         conditions, logics = build_conditions_and_logics(conditions)
 
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/search"
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/search"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "limit": limit,
@@ -95,8 +95,9 @@ class IncidentService:
 
 
     @classmethod
-    def retrieve_incident_by_id(cls, incident_id, *, include_graph=True, sync_local=True):
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}"
+    def retrieve_incident_by_id(cls, incident_id, *, include_graph=True, sync_local=True, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/{incident_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         resp = request_with_auth("GET", url=base_url, headers=headers)
@@ -151,7 +152,7 @@ class IncidentService:
                 associated_alerts.append(alert)
             else:
                 # Fallback to API if not found in database
-                alert = AlertService.retrieve_alert_by_id(alert_id)
+                alert = AlertService.retrieve_alert_by_id(alert_id, workspace_id=ws_id)
                 associated_alerts.append(alert)
 
                 # Cache alert locally for next retrieval
@@ -165,7 +166,7 @@ class IncidentService:
         row["associated_alerts"] = associated_alerts
 
         # retrieve comments by current alert ID
-        row["comments"] = cls._extract_info_from_comment(CommentService.retrieve_comments(incident_id))
+        row["comments"] = cls._extract_info_from_comment(CommentService.retrieve_comments(incident_id, workspace_id=ws_id))
 
         # Persist or update the incident snapshot locally so we can attach graph metadata.
         if sync_local:
@@ -198,9 +199,10 @@ class IncidentService:
         return row
 
     @classmethod
-    def create_incident(cls, data):
+    def create_incident(cls, data, workspace_id=None):
         """Create a new incident."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         SECMASTER_INCIDENT_TEMPLATE.update(data)
@@ -215,9 +217,10 @@ class IncidentService:
         return result
 
     @classmethod
-    def update_incident(cls, data, incident_id):
+    def update_incident(cls, data, incident_id, workspace_id=None):
         """update a new incident."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/{incident_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"data_object": data})
 
@@ -229,8 +232,9 @@ class IncidentService:
         return result
 
     @classmethod
-    def associate_alerts_to_incident(cls, incident_id: str, alert_ids: list):
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}/alerts"
+    def associate_alerts_to_incident(cls, incident_id: str, alert_ids: list, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/{incident_id}/alerts"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"ids": alert_ids})
 
@@ -240,8 +244,9 @@ class IncidentService:
         return json.loads(resp.text)
 
     @classmethod
-    def disassociate_alerts_from_incident(cls, incident_id: str, alert_ids: list):
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents/{incident_id}/alerts"
+    def disassociate_alerts_from_incident(cls, incident_id: str, alert_ids: list, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/{incident_id}/alerts"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = json.dumps({"ids": alert_ids})
 
@@ -251,9 +256,10 @@ class IncidentService:
         return json.loads(resp.text)
 
     @classmethod
-    def delete_incidents(cls, batch_ids):
+    def delete_incidents(cls, batch_ids, workspace_id=None):
         """Delete incidents."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/incidents"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {"batch_ids": batch_ids}
@@ -360,7 +366,7 @@ class IncidentService:
         return True
 
     @classmethod
-    def regenerate_graph(cls, incident_id: str) -> bool:
-        payload = cls.retrieve_incident_by_id(incident_id, include_graph=False)
+    def regenerate_graph(cls, incident_id: str, workspace_id=None) -> bool:
+        payload = cls.retrieve_incident_by_id(incident_id, include_graph=False, workspace_id=workspace_id)
         associated_alerts = payload.get("associated_alerts", [])
         return cls._schedule_graph_generation(incident_id, payload, associated_alerts, force=True)

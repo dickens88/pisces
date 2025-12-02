@@ -6,7 +6,6 @@
     ]"
   >
     <div class="flex flex-col gap-4">
-      <!-- Logo和标题 -->
       <div class="flex items-center gap-3">
         <img 
           src="/pisces_logo.png"
@@ -19,7 +18,6 @@
         </div>
       </div>
       
-      <!-- 导航菜单 -->
       <nav class="flex flex-col gap-2 mt-4">
         <router-link
           v-for="item in menuItems"
@@ -47,7 +45,6 @@
       </nav>
     </div>
     
-    <!-- 底部折叠按钮 -->
     <div class="mt-auto">
       <button 
         @click="appStore.toggleSidebar()"
@@ -71,12 +68,25 @@ const route = useRoute()
 const appStore = useAppStore()
 const { t } = useI18n()
 
-const menuItems = [
+const allMenuItems = [
   { path: '/dashboard', icon: 'dashboard', label: 'nav.dashboard' },
   { path: '/alerts', icon: 'security', label: 'nav.alerts' },
   { path: '/incidents', icon: 'list_alt', label: 'nav.incidents' },
+  { path: '/asm', icon: 'radar', label: 'nav.asm' },
   { path: '/vulnerabilities', icon: 'bug_report', label: 'nav.vulnerabilities' }
 ]
+
+const enabledRoutes = computed(() => {
+  const envRoutes = import.meta.env.VITE_ENABLED_MENU_ROUTES
+  if (!envRoutes || envRoutes.trim() === '') {
+    return allMenuItems.map(item => item.path)
+  }
+  return envRoutes.split(',').map(route => route.trim()).filter(route => route)
+})
+
+const menuItems = computed(() => {
+  return allMenuItems.filter(item => enabledRoutes.value.includes(item.path))
+})
 
 const isActive = (path) => {
   return route.path === path || route.path.startsWith(path + '/')

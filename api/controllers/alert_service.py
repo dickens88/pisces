@@ -14,8 +14,9 @@ class AlertService:
     workspace_id = config.get('application.secmaster.workspace_id')
 
     @classmethod
-    def list_alerts(cls, conditions: List, limit=50, offset=1, start_time=None, end_time=None, high_risk=False):
+    def list_alerts(cls, conditions: List, limit=50, offset=1, start_time=None, end_time=None, high_risk=False, workspace_id=None):
         """Search and list alerts with conditions."""
+        ws_id = workspace_id or cls.workspace_id
 
         conditions, logics = build_conditions_and_logics(conditions)
         if high_risk:
@@ -26,7 +27,7 @@ class AlertService:
                 logics += ["and"]
             logics += ["severity_ex_tips", "and", "severity_ex_low", "and", "severity_ex_medium"]
 
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/search"
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/search"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "limit": limit,
@@ -75,9 +76,10 @@ class AlertService:
         return result, total
 
     @classmethod
-    def retrieve_alert_by_id(cls, alert_id):
+    def retrieve_alert_by_id(cls, alert_id, workspace_id=None):
         """Get alert details by ID."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         resp = request_with_auth("GET", url=base_url, headers=headers)
@@ -118,9 +120,9 @@ class AlertService:
         return alert_content
 
     @classmethod
-    def retrieve_alert_and_comments(cls, alert_id):
+    def retrieve_alert_and_comments(cls, alert_id, workspace_id=None):
         """Get alert with comments, entities, and timeline."""
-        alert = cls.retrieve_alert_by_id(alert_id)
+        alert = cls.retrieve_alert_by_id(alert_id, workspace_id=workspace_id)
 
         # retrieve comments by current alert ID
         comment = CommentService.retrieve_comments(alert_id)
@@ -134,7 +136,7 @@ class AlertService:
         return alert
 
     @classmethod
-    def close_alert(cls, alert_id, close_reason, comment, owner=None):
+    def close_alert(cls, alert_id, close_reason, comment, owner=None, workspace_id=None):
         """
         Close an alert with reason and comment.
         close_reason:
@@ -143,7 +145,8 @@ class AlertService:
         重复 - Repeated
         其他 - Other
         """
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {
@@ -164,9 +167,10 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def batch_close_alert(cls, alert_ids, close_reason, comment, owner="-"):
+    def batch_close_alert(cls, alert_ids, close_reason, comment, owner="-", workspace_id=None):
         """Close a batch of alerts with reason and comment."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/batch-update"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/batch-update"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {
@@ -188,9 +192,10 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def update_alert(cls, alert_id, update_info):
+    def update_alert(cls, alert_id, update_info, workspace_id=None):
         """Update alert information."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/{alert_id}"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/{alert_id}"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {"data_object": update_info}
@@ -203,9 +208,10 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def convert_alert_to_incident(cls, alert_ids):
+    def convert_alert_to_incident(cls, alert_ids, workspace_id=None):
         """Convert alerts to incidents."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts/batch-order"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/batch-order"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {
@@ -220,9 +226,10 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def create_alert(cls, alert_data):
+    def create_alert(cls, alert_data, workspace_id=None):
         """Create a new alert."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         SECMASTER_ALERT_TEMPLATE.update(alert_data)
@@ -237,9 +244,10 @@ class AlertService:
         return result
 
     @classmethod
-    def delete_alerts(cls, alert_ids):
+    def delete_alerts(cls, alert_ids, workspace_id=None):
         """Delete alerts."""
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/alerts"
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {"batch_ids": alert_ids}

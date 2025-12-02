@@ -140,6 +140,12 @@ VITE_AUTH_MODE=local
 
 # tianyan-web项目的基础URL（当VITE_AUTH_MODE为'tianyan'时使用）
 VITE_TIANYAN_WEB_BASE_URL=http://localhost:3000
+
+# 导航菜单配置
+# 可显示的导航菜单路由路径（用逗号分隔，不设置则显示所有菜单）
+# 可选值: /dashboard, /alerts, /incidents, /vulnerabilities
+# 示例: VITE_ENABLED_MENU_ROUTES=/dashboard,/alerts,/incidents
+VITE_ENABLED_MENU_ROUTES=
 ```
 
 ### 使用 tianyan-web 认证

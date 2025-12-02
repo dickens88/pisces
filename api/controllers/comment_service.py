@@ -14,8 +14,9 @@ class CommentService:
     workspace_id = config.get('application.secmaster.workspace_id')
 
     @classmethod
-    def retrieve_comments(cls, event_id):
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/notes/search"
+    def retrieve_comments(cls, event_id, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes/search"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "war_room_id": event_id
@@ -29,8 +30,9 @@ class CommentService:
         return json.loads(resp.text)
 
     @classmethod
-    def create_comment(cls, event_id, comment, owner):
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{cls.workspace_id}/soc/notes"
+    def create_comment(cls, event_id, comment, owner, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
         body = {
             "type": "textMessage",

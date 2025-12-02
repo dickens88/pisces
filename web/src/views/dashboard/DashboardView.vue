@@ -1,15 +1,15 @@
 <template>
   <div class="w-full">
     <!-- Page header -->
-    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-      <h1 class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+    <header class="flex flex-wrap justify-between items-center gap-4 mb-6">
+      <h1 class="text-gray-900 dark:text-white text-4xl font-black leading-tight tracking-[-0.033em]">
         {{ $t('dashboard.title') }}
       </h1>
-      <div class="flex items-center gap-2">
+      <div class="flex gap-2 items-center">
         <button
           @click="handleRefresh"
           :disabled="isRefreshing"
-          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-9"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -27,7 +27,7 @@
           @custom-range-change="handleCustomRangeChange"
         />
       </div>
-    </div>
+    </header>
 
     <!-- Statistics cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
