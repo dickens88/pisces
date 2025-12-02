@@ -15,7 +15,9 @@
     "close": "Close",
     "loading": "Loading...",
     "noComments": "No comments yet",
+    "addComment": "Please input text message or paste image by ctrl+v...",
     "noData": "No data available",
+    "warning": "Warning",
     "login": {
       "title": "Login",
       "subtitle": "Security Management System",
@@ -216,7 +218,6 @@
       "editAlert": "Edit Alert",
       "convertToIncident": "Convert to Incident",
       "convertToVulnerability": "Convert to Vulnerability",
-      "moreActions": "More Actions",
       "share": "Share",
       "shareSuccess": "Copied to clipboard",
       "aiAnalysis": "AI-Powered Analysis",
@@ -358,7 +359,10 @@
       "selectSeverity": "Please select severity",
       "currentStatus": "Current Status",
       "description": "Description",
-      "descriptionPlaceholder": "Please enter incident description"
+      "descriptionPlaceholder": "Please enter incident description",
+      "success": "Incident created successfully",
+      "successWithAlerts": "Incident created successfully, alerts associated",
+      "error": "Failed to create incident, please try again later"
     },
     "detail": {
       "title": "Incident Details",
@@ -492,6 +496,7 @@
       "disassociate": "Disassociate",
       "disassociateSuccess": "Successfully disassociated {count} alert(s)",
       "disassociateError": "Failed to disassociate alerts, please try again later",
+      "associateError": "Failed to associate alerts, please try again later",
       "disassociateDialog": {
         "title": "Disassociate Alerts",
         "confirmMessage": "Are you sure you want to disassociate {count} alert(s)?"

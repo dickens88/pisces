@@ -16,12 +16,31 @@
         >
           <textarea
             v-model="commentText"
-            class="w-full rounded-xl bg-transparent p-4 pr-32 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]"
-            :placeholder="placeholder"
+            :class="[
+              'w-full rounded-xl bg-transparent p-4 pr-32 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]',
+              imagePreviewUrl ? 'pl-20' : ''
+            ]"
+            :placeholder="$t('common.addComment')"
             rows="3"
             @input="handleTextareaInput"
             @keydown="handleKeyDown"
+            @paste="handlePaste"
           ></textarea>
+          
+          <!-- 图片缩略图预览（显示在输入框内左上角） -->
+          <div v-if="imagePreviewUrl" class="group absolute top-3 left-3 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md">
+            <img
+              :src="imagePreviewUrl"
+              alt="Preview"
+              class="w-full h-full object-cover"
+            />
+            <button
+              @click.stop="removeFile(0)"
+              class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <span class="material-symbols-outlined text-xs">close</span>
+            </button>
+          </div>
 
           <!-- Toolbar -->
           <div
@@ -61,8 +80,8 @@
           </button>
         </div>
         
-        <!-- Uploaded files list -->
-        <div v-if="props.enableFileUpload && uploadedFiles.length > 0" class="mt-3 flex flex-wrap gap-2">
+        <!-- Uploaded files list (只显示非图片文件) -->
+        <div v-if="props.enableFileUpload && uploadedFiles.length > 0 && !imagePreviewUrl" class="mt-3 flex flex-wrap gap-2">
           <div
             v-for="(file, index) in uploadedFiles"
             :key="index"
@@ -93,10 +112,6 @@ import { useToast } from '@/composables/useToast'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
-  placeholder: {
-    type: String,
-    default: 'Add a comment...'
-  },
   disabled: {
     type: Boolean,
     default: false
@@ -130,6 +145,7 @@ const commentText = computed({
 })
 
 const uploadedFiles = ref([])
+const imagePreviewUrl = ref(null)
 const isDragging = ref(false)
 const fileInput = ref(null)
 
@@ -146,6 +162,44 @@ const handleKeyDown = (event) => {
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault()
     handleSubmit()
+  }
+}
+
+const handlePaste = async (event) => {
+  if (!props.enableFileUpload) return
+  
+  const clipboardData = event.clipboardData || window.clipboardData
+  if (!clipboardData) return
+  
+  const items = clipboardData.items
+  if (!items) return
+  
+  // 收集所有图片类型的粘贴项
+  const imageItems = []
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (item.type.indexOf('image') !== -1) {
+      imageItems.push(item)
+    }
+  }
+  
+  // 如果有图片，只处理最后一个
+  if (imageItems.length > 0) {
+    event.preventDefault() // 阻止默认粘贴行为
+    
+    const lastImageItem = imageItems[imageItems.length - 1]
+    const blob = lastImageItem.getAsFile()
+    
+    if (blob) {
+      // 将 Blob 转换为 File 对象
+      const file = new File([blob], `pasted-image-${Date.now()}.png`, {
+        type: blob.type || 'image/png',
+        lastModified: Date.now()
+      })
+      
+      // 使用现有的 addFiles 函数添加文件
+      addFiles([file])
+    }
   }
 }
 
@@ -199,9 +253,29 @@ const addFiles = (files) => {
   
   // 一条评论只能附加一个附件，直接替换现有文件
   uploadedFiles.value = [file]
+  
+  // 如果是图片，生成预览URL
+  if (file.type.startsWith('image/')) {
+    // 释放之前的预览URL
+    if (imagePreviewUrl.value) {
+      URL.revokeObjectURL(imagePreviewUrl.value)
+    }
+    imagePreviewUrl.value = URL.createObjectURL(file)
+  } else {
+    // 不是图片，清除预览
+    if (imagePreviewUrl.value) {
+      URL.revokeObjectURL(imagePreviewUrl.value)
+      imagePreviewUrl.value = null
+    }
+  }
 }
 
 const removeFile = (index) => {
+  // 释放预览URL
+  if (imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+    imagePreviewUrl.value = null
+  }
   uploadedFiles.value = []
 }
 
@@ -245,6 +319,11 @@ const handleSubmit = () => {
   
   // 清空输入和文件
   commentText.value = ''
+  // 释放预览URL
+  if (imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+    imagePreviewUrl.value = null
+  }
   uploadedFiles.value = []
 }
 
@@ -252,6 +331,11 @@ const handleSubmit = () => {
 defineExpose({
   clear: () => {
     commentText.value = ''
+    // 释放预览URL
+    if (imagePreviewUrl.value) {
+      URL.revokeObjectURL(imagePreviewUrl.value)
+      imagePreviewUrl.value = null
+    }
     uploadedFiles.value = []
   },
   getFiles: () => [...uploadedFiles.value]
@@ -259,8 +343,5 @@ defineExpose({
 </script>
 
 <style scoped>
-.comment-input-container {
-  /* 组件样式 */
-}
 </style>
 

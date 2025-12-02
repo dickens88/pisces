@@ -15,7 +15,9 @@
     "close": "关闭",
     "loading": "加载中...",
     "noComments": "暂无评论",
+    "addComment": "请输入文本，可以按crtl+v粘贴图片...",
     "noData": "暂无数据",
+    "warning": "警告",
     "login": {
       "title": "登录",
       "subtitle": "安全管理系统",
@@ -214,7 +216,6 @@
       "editAlert": "编辑告警",
       "convertToIncident": "转事件",
       "convertToVulnerability": "转漏洞",
-      "moreActions": "更多",
       "share": "分享",
       "shareSuccess": "已复制到剪切板",
       "aiAnalysis": "AI-Powered Analysis",
@@ -356,7 +357,10 @@
       "selectSeverity": "请选择严重程度",
       "currentStatus": "当前状态",
       "description": "事件描述",
-      "descriptionPlaceholder": "请输入事件描述"
+      "descriptionPlaceholder": "请输入事件描述",
+      "success": "事件创建成功",
+      "successWithAlerts": "事件创建成功，已关联告警",
+      "error": "事件创建失败，请稍后重试"
     },
     "detail": {
       "title": "事件详情",
@@ -490,6 +494,7 @@
       "disassociate": "解关联",
       "disassociateSuccess": "成功解关联 {count} 条告警",
       "disassociateError": "解关联告警失败，请稍后重试",
+      "associateError": "关联告警失败，请稍后重试",
       "disassociateDialog": {
         "title": "解关联告警",
         "confirmMessage": "请确认是否解关联 {count} 条告警？"
