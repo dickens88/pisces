@@ -795,7 +795,7 @@ const conversationId = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
-  category: '',
+  category: 'falsePositive',
   notes: ''
 })
 const { isDarkMode } = useDarkModeObserver()
@@ -1212,7 +1212,7 @@ const openBatchCloseDialog = () => {
 const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
   closeConclusion.value = {
-    category: '',
+    category: 'falsePositive',
     notes: ''
   }
   hideRecentCloseCommentsDropdown()
