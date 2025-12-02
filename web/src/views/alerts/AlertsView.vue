@@ -193,7 +193,7 @@
               <input
                 v-model="currentSearchInput"
                 @keydown.enter.prevent="addKeyword"
-                @keydown.delete="handleKeywordDeleteKey"
+                @keydown.backspace="handleKeywordDeleteKey"
                 @input="handleSearchInput"
                 class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
                 :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
@@ -1447,7 +1447,7 @@ const removeKeyword = (index) => {
 }
 
 const handleKeywordDeleteKey = (event) => {
-  if (event.key === 'Delete' && !currentSearchInput.value && searchKeywords.value.length > 0) {
+  if (event.key === 'Backspace' && !currentSearchInput.value && searchKeywords.value.length > 0) {
     event.preventDefault()
     removeKeyword(searchKeywords.value.length - 1)
   }
