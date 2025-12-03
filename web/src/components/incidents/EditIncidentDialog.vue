@@ -46,8 +46,8 @@
                 />
               </div>
 
-              <!-- 第一行：事件分类、当前状态和发生时间 -->
-              <div class="grid grid-cols-3 gap-4">
+              <!-- 第一行：事件分类、当前状态、发生时间和关闭时间 -->
+              <div class="grid grid-cols-4 gap-4">
                 <!-- 事件分类 -->
                 <div>
                   <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -94,6 +94,24 @@
                     :teleport="true"
                     :auto-apply="true"
                     :required="true"
+                    class="w-full"
+                    :input-class-name="isDarkMode ? 'datepicker-input-dark' : 'datepicker-input-light'"
+                  />
+                </div>
+
+                <!-- 关闭时间 -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    {{ $t('incidents.create.closeTime') }}
+                  </label>
+                  <VueDatePicker
+                    v-model="formData.closeTime"
+                    :enable-time-picker="true"
+                    :dark="isDarkMode"
+                    format="yyyy-MM-dd HH:mm"
+                    :locale="datePickerLocale"
+                    :teleport="true"
+                    :auto-apply="true"
                     class="w-full"
                     :input-class-name="isDarkMode ? 'datepicker-input-dark' : 'datepicker-input-light'"
                   />
@@ -284,6 +302,7 @@ const getInitialFormData = () => {
     title: '',
     category: '',
     createTime: now,
+    closeTime: null,
     responsiblePerson: '',
     responsibleDepartment: '',
     actor: '',
@@ -319,6 +338,8 @@ const fillFormData = () => {
       || parseToDate(props.initialData.create_time)
       || parseToDate(props.initialData.occurrenceTime)
       || new Date()
+    
+    formData.value.closeTime = parseToDate(props.initialData.close_time || props.initialData.closeTime) || null
     
     formData.value.responsiblePerson = props.initialData.responsiblePerson || ''
     formData.value.responsibleDepartment = props.initialData.responsibleDepartment || ''
@@ -386,6 +407,7 @@ const handleSubmit = async () => {
       title: formData.value.title,
       description: formData.value.description,
       create_time: formatTimestamp(formData.value.createTime),
+      close_time: formData.value.closeTime ? formatTimestamp(formData.value.closeTime) : null,
       severity: numberToSeverity(Number(formData.value.severity)) || '',
       actor: formData.value.actor || '',
       resource_list: [{
@@ -489,73 +511,6 @@ onUnmounted(() => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(59, 130, 246, 0.5);
-}
-
-/* 自定义日期选择器输入框样式 - 深色模式 */
-:deep(.datepicker-input-dark) {
-  width: 100%;
-  background-color: #1e293b;
-  color: white;
-  border: 1px solid #324867;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-:deep(.datepicker-input-dark:hover) {
-  border-color: #3c4a60;
-}
-
-:deep(.datepicker-input-dark:focus) {
-  border-color: #2b7cee;
-  box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
-  outline: none;
-}
-
-/* 自定义日期选择器输入框样式 - 浅色模式 */
-:deep(.datepicker-input-light) {
-  width: 100%;
-  background-color: #f3f4f6;
-  color: #111827;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-:deep(.datepicker-input-light:hover) {
-  border-color: #9ca3af;
-}
-
-:deep(.datepicker-input-light:focus) {
-  border-color: #2b7cee;
-  box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
-  outline: none;
-}
-
-/* 日期选择器弹窗深色主题样式 */
-:deep(.dp__theme_dark) {
-  --dp-background-color: #1e293b;
-  --dp-text-color: #ffffff;
-  --dp-hover-color: #2a3546;
-  --dp-hover-text-color: #ffffff;
-  --dp-hover-icon-color: #ffffff;
-  --dp-primary-color: #2b7cee;
-  --dp-primary-text-color: #ffffff;
-  --dp-secondary-color: #324867;
-  --dp-border-color: #324867;
-  --dp-menu-border-color: #324867;
-  --dp-border-color-hover: #3c4a60;
-  --dp-disabled-color: #1a1f2e;
-  --dp-scroll-bar-background: #2a3546;
-  --dp-scroll-bar-color: #3c4a60;
-  --dp-success-color: #10b981;
-  --dp-success-color-disabled: #065f46;
-  --dp-icon-color: #9ca3af;
-  --dp-danger-color: #ef4444;
-  --dp-highlight-color: rgba(43, 124, 238, 0.1);
 }
 
 /* 美化 select 下拉框 */

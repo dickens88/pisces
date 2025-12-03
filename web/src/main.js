@@ -7,6 +7,7 @@ import { useAuthStore } from './stores/auth'
 import { getAppConfig } from '@config'
 import { handleTianyanLoginRedirect } from './utils/auth'
 import './style.css'
+import './styles/datepicker.css'
 
 const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 

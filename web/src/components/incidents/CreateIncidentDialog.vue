@@ -523,29 +523,6 @@ onUnmounted(() => {
   outline: none;
 }
 
-/* 日期选择器弹窗深色主题样式 */
-:deep(.dp__theme_dark) {
-  --dp-background-color: #1e293b;
-  --dp-text-color: #ffffff;
-  --dp-hover-color: #2a3546;
-  --dp-hover-text-color: #ffffff;
-  --dp-hover-icon-color: #ffffff;
-  --dp-primary-color: #2b7cee;
-  --dp-primary-text-color: #ffffff;
-  --dp-secondary-color: #324867;
-  --dp-border-color: #324867;
-  --dp-menu-border-color: #324867;
-  --dp-border-color-hover: #3c4a60;
-  --dp-disabled-color: #1a1f2e;
-  --dp-scroll-bar-background: #2a3546;
-  --dp-scroll-bar-color: #3c4a60;
-  --dp-success-color: #10b981;
-  --dp-success-color-disabled: #065f46;
-  --dp-icon-color: #9ca3af;
-  --dp-danger-color: #ef4444;
-  --dp-highlight-color: rgba(43, 124, 238, 0.1);
-}
-
 /* 美化 select 下拉框 */
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");

@@ -30,7 +30,7 @@ export const getVulnerabilityDepartmentDistribution = (startDate, endDate) => {
 
 // Get vulnerability detail
 export const getVulnerabilityDetail = (id) => {
-  return service.get(`/vulnerabilities/${id}`)
+  return service.get(`/vulnerabilities/${id}?workspace=asm`)
 }
 
 // Batch operate vulnerabilities

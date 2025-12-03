@@ -8,6 +8,7 @@ from controllers.comment_service import CommentService
 from controllers.incident_service import IncidentService
 from utils.auth_util import auth_required
 from utils.logger_init import logger
+from utils.common_utils import get_workspace_id
 
 
 class IncidentView(Resource):
@@ -22,6 +23,7 @@ class IncidentView(Resource):
         conditions = data.get('conditions', [])
         action = data.get('action')
         search_vulscan = data.get('search_vulscan', False)
+        workspace_id = get_workspace_id("asm" if search_vulscan else None)
 
         try:
             if action == "list":
@@ -34,7 +36,8 @@ class IncidentView(Resource):
                     offset=offset,
                     search_vulscan=search_vulscan,
                     start_time=start_time,
-                    end_time=end_time
+                    end_time=end_time,
+                    workspace_id=workspace_id
                 )
                 return {"data": data, "total": total}, 200
             elif action == "create":
@@ -56,7 +59,7 @@ class IncidentView(Resource):
                 # add a label for incident
                 data["actor"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
-                result = IncidentService.create_incident(data)
+                result = IncidentService.create_incident(data, workspace_id=workspace_id)
                 logger.info(f"[Incident] Created new Incident successfully.[{username}]")
                 return {"data": data, "total": result}, 201
             elif action == "convert":
@@ -68,17 +71,18 @@ class IncidentView(Resource):
                 # 1. create an incident
                 data["actor"] = username
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
-                incident = IncidentService.create_incident(data)
+                incident = IncidentService.create_incident(data, workspace_id=workspace_id)
                 incident_id = incident["data"]["data_object"]["id"]
 
                 # 2. create relation between alerts and incident
-                IncidentService.associate_alerts_to_incident(incident_id, ids)
+                IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
 
                 # 3. close alerts with comment
                 result = AlertService.batch_close_alert(alert_ids=ids,
                                                         close_reason="Resolved",
                                                         comment="Associate alerts to incident: " + incident_id,
-                                                        owner=username)
+                                                        owner=username,
+                                                        workspace_id=workspace_id)
                 logger.info(f"[Incident] Converted Alerts to Incident: {incident_id} successfully.[{username}]")
                 return {"data": data, "total": result}, 201
         except Exception as ex:
@@ -89,10 +93,11 @@ class IncidentView(Resource):
     def put(self, username=None, incident_id=None):
         data = json.loads(request.data)
         search_vulscan = data.get('search_vulscan', False)
+        workspace_id = get_workspace_id("asm" if search_vulscan else None)
 
         try:
             data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
-            result = IncidentService.update_incident(data, incident_id)
+            result = IncidentService.update_incident(data, incident_id, workspace_id=workspace_id)
             logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
             return {"data": data, "total": result}, 201
         except Exception as ex:
@@ -102,7 +107,8 @@ class IncidentView(Resource):
     @auth_required
     def get(self, username=None, incident_id=None):
         try:
-            data = IncidentService.retrieve_incident_by_id(incident_id)
+            workspace_id = get_workspace_id(request.args.get('workspace'))
+            data = IncidentService.retrieve_incident_by_id(incident_id, workspace_id=workspace_id)
             return {"data": data}, 200
         except Exception as ex:
             logger.exception(ex)
@@ -111,9 +117,10 @@ class IncidentView(Resource):
     @auth_required
     def delete(self, username=None):
         data = json.loads(request.data)
+        workspace_id = get_workspace_id(data.get('workspace'))
         try:
             ids = data["batch_ids"]
-            result = IncidentService.delete_incidents(ids)
+            result = IncidentService.delete_incidents(ids, workspace_id=workspace_id)
             logger.warn(f"[Incident] Delete Incidents successfully. ids: {ids}. [{username}]")
             return {"data": result}, 200
         except Exception as ex:
@@ -129,16 +136,18 @@ class IncidentRelations(Resource):
         try:
             data = json.loads(request.data)
             ids = data.get('ids')
+            workspace_id = get_workspace_id(data.get('workspace'))
 
             if ids:
                 # create relation between alerts and incident
-                IncidentService.associate_alerts_to_incident(incident_id, ids)
+                IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
 
                 # close alerts with comment
                 result = AlertService.batch_close_alert(alert_ids=ids,
                                                         close_reason="Resolved",
                                                         comment="Associate alerts to incident: " + incident_id,
-                                                        owner=username)
+                                                        owner=username,
+                                                        workspace_id=workspace_id)
 
                 logger.warn(f"[Incident] Associated Alerts successfully. ids: {ids} -> {incident_id}. [{username}]")
                 return {"data": result}, 200
@@ -151,10 +160,11 @@ class IncidentRelations(Resource):
         try:
             data = json.loads(request.data)
             ids = data.get('ids')
+            workspace_id = get_workspace_id(data.get('workspace'))
 
             if ids:
                 # create relation between alerts and incident
-                IncidentService.disassociate_alerts_from_incident(incident_id, ids)
+                IncidentService.disassociate_alerts_from_incident(incident_id, ids, workspace_id=workspace_id)
 
                 # leave a comment
                 result = CommentService.create_comment(event_id=ids,

@@ -42,7 +42,7 @@
         <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
           {{ incident?.name }}
         </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-base font-normal leading-normal">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm font-normal leading-normal">
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.actor') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
@@ -51,6 +51,11 @@
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.createTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
+          </div>
+          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="flex items-center gap-1.5">
+            <span>{{ $t('incidents.detail.closeTime') }}:</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.closeTime || incident?.close_time) }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
@@ -2942,6 +2947,7 @@ const openEditDialog = () => {
     category: incident.value.category || 'platform',
     status: incident.value.status || 'Open',
     createTime,
+    close_time: incident.value.closeTime || incident.value.close_time || null,
     responsiblePerson: incident.value.responsiblePerson || '',
     responsibleDepartment: incident.value.responsibleDept || '',
     actor: incident.value.actor || '',

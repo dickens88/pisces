@@ -187,6 +187,10 @@ const props = defineProps({
   visible: {
     type: Boolean,
     default: false
+  },
+  workspace: {
+    type: String,
+    default: null
   }
 })
 
@@ -250,7 +254,7 @@ const handleSubmit = async () => {
 
   try {
     isSubmitting.value = true
-    await createAlert({
+    const alertData = {
       title: formData.value.title,
       description: formData.value.description,
       timestamp: formData.value.timestamp,
@@ -259,7 +263,13 @@ const handleSubmit = async () => {
       status: formData.value.status,
       ruleName: formData.value.ruleName,
       creator: authStore.user?.username || authStore.user?.name || formData.value.owner || 'System'
-    })
+    }
+    
+    if (props.workspace) {
+      alertData.workspace = props.workspace
+    }
+    
+    await createAlert(alertData)
     
     // 显示成功提示
     toast.success(t('alerts.create.success') || '告警创建成功', 'SUCCESS')
@@ -340,73 +350,6 @@ onUnmounted(() => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(59, 130, 246, 0.5);
-}
-
-/* 自定义日期选择器输入框样式 - 深色模式 */
-:deep(.datepicker-input-dark) {
-  width: 100%;
-  background-color: #1e293b;
-  color: white;
-  border: 1px solid #324867;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-:deep(.datepicker-input-dark:hover) {
-  border-color: #3c4a60;
-}
-
-:deep(.datepicker-input-dark:focus) {
-  border-color: #2b7cee;
-  box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
-  outline: none;
-}
-
-/* 自定义日期选择器输入框样式 - 浅色模式 */
-:deep(.datepicker-input-light) {
-  width: 100%;
-  background-color: #f3f4f6;
-  color: #111827;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-}
-
-:deep(.datepicker-input-light:hover) {
-  border-color: #9ca3af;
-}
-
-:deep(.datepicker-input-light:focus) {
-  border-color: #2b7cee;
-  box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
-  outline: none;
-}
-
-/* 日期选择器弹窗深色主题样式 */
-:deep(.dp__theme_dark) {
-  --dp-background-color: #1e293b;
-  --dp-text-color: #ffffff;
-  --dp-hover-color: #2a3546;
-  --dp-hover-text-color: #ffffff;
-  --dp-hover-icon-color: #ffffff;
-  --dp-primary-color: #2b7cee;
-  --dp-primary-text-color: #ffffff;
-  --dp-secondary-color: #324867;
-  --dp-border-color: #324867;
-  --dp-menu-border-color: #324867;
-  --dp-border-color-hover: #3c4a60;
-  --dp-disabled-color: #1a1f2e;
-  --dp-scroll-bar-background: #2a3546;
-  --dp-scroll-bar-color: #3c4a60;
-  --dp-success-color: #10b981;
-  --dp-success-color-disabled: #065f46;
-  --dp-icon-color: #9ca3af;
-  --dp-danger-color: #ef4444;
-  --dp-highlight-color: rgba(43, 124, 238, 0.1);
 }
 
 :root select option {

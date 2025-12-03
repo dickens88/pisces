@@ -51,13 +51,18 @@ export const regenerateIncidentGraph = (incidentId) => {
 /**
  * @brief 批量删除事件
  * @param {Array<string>} incidentIds - 事件ID数组
+ * @param {string} workspace - 工作空间（可选）
  * @returns {Promise} 返回删除结果
  */
-export const deleteIncidents = (incidentIds) => {
+export const deleteIncidents = (incidentIds, workspace = null) => {
+  const data = {
+    batch_ids: incidentIds
+  }
+  if (workspace) {
+    data.workspace = workspace
+  }
   return service.delete('/incidents', {
-    data: {
-      batch_ids: incidentIds
-    }
+    data
   })
 }
 

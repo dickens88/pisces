@@ -177,6 +177,7 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { updateAlert } from '@/api/alerts'
+import { updateASMItem } from '@/api/asm'
 import { useToast } from '@/composables/useToast'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import { useAppStore } from '@/stores/app'
@@ -195,6 +196,10 @@ const props = defineProps({
   },
   initialData: {
     type: Object,
+    default: null
+  },
+  workspace: {
+    type: String,
     default: null
   }
 })
@@ -311,7 +316,11 @@ const handleSubmit = async () => {
       description: formData.value.description
     }
 
-    await updateAlert(props.alertId, alertData)
+    if (props.workspace === 'asm') {
+      await updateASMItem(props.alertId, alertData)
+    } else {
+      await updateAlert(props.alertId, alertData)
+    }
     
     // 显示成功提示
     toast.success(t('alerts.edit.success') || '告警更新成功', 'SUCCESS')
@@ -424,29 +433,6 @@ onUnmounted(() => {
   border-color: #2b7cee;
   box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
   outline: none;
-}
-
-/* 日期选择器弹窗深色主题样式 */
-:deep(.dp__theme_dark) {
-  --dp-background-color: #1e293b;
-  --dp-text-color: #ffffff;
-  --dp-hover-color: #2a3546;
-  --dp-hover-text-color: #ffffff;
-  --dp-hover-icon-color: #ffffff;
-  --dp-primary-color: #2b7cee;
-  --dp-primary-text-color: #ffffff;
-  --dp-secondary-color: #324867;
-  --dp-border-color: #324867;
-  --dp-menu-border-color: #324867;
-  --dp-border-color-hover: #3c4a60;
-  --dp-disabled-color: #1a1f2e;
-  --dp-scroll-bar-background: #2a3546;
-  --dp-scroll-bar-color: #3c4a60;
-  --dp-success-color: #10b981;
-  --dp-success-color-disabled: #065f46;
-  --dp-icon-color: #9ca3af;
-  --dp-danger-color: #ef4444;
-  --dp-highlight-color: rgba(43, 124, 238, 0.1);
 }
 
 /* 美化 select 下拉框 */

@@ -129,7 +129,7 @@ const formatTimestamp = (timestamp) => {
 }
 
 /**
- * @brief 获取告警列表
+ * @brief 获取攻击面管理列表
  * @param {Object} params - 查询参数
  * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
  * @param {string} params.status - 状态过滤
@@ -140,13 +140,12 @@ const formatTimestamp = (timestamp) => {
  * @param {string} params.endTime - 结束时间（ISO字符串）
  * @returns {Promise} 返回告警列表数据
  */
-export const getAlerts = async (params = {}) => {
+export const getASMItems = async (params = {}) => {
   // Build API request parameters
   const page = params.page || 1
   const pageSize = params.pageSize || 10
   const limit = pageSize
   const offset = (page - 1) * pageSize
-  const risk_mode = params.risk_mode || 'allAlerts'
   
   // Build query conditions
   const conditions = buildConditions(params.searchKeywords, params.status, params.owner)
@@ -157,7 +156,7 @@ export const getAlerts = async (params = {}) => {
     limit,
     offset,
     conditions,
-    risk_mode
+    workspace: 'asm'
   }
 
   const start_time = formatDateTimeWithOffset(params.startTime)
@@ -180,129 +179,26 @@ export const getAlerts = async (params = {}) => {
     
     return transformedData
   } catch (error) {
-    console.error('Failed to fetch alerts:', error)
+    console.error('Failed to fetch ASM items:', error)
     throw error
   }
 }
 
 /**
- * @brief 获取告警详情
+ * @brief 获取攻击面管理详情
  * @param {string|number} id - 告警ID
  * @returns {Promise} 返回告警详情数据
  */
-export const getAlertDetail = (id) => {
-  return service.get(`/alerts/${id}`)
-}
-
-/**
- * @brief 获取自动化关闭率统计
- * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
- * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
- * @returns {Promise} 返回自动化关闭率统计数据
- */
-export const getAlertStatistics = (startDate, endDate) => {
-  const params = {
-    chart: 'automation-closure-rate'
-  }
-  setDateParam(params, 'start_date', startDate)
-  setDateParam(params, 'end_date', endDate)
-  return service.get('/stats/alerts', { params })
-}
-
-const setDateParam = (params, key, value) => {
-  const formatted = formatDateTimeWithOffset(value)
-  if (formatted) {
-    params[key] = formatted
-  }
-}
-
-/**
- * @brief 获取按数据源产品名称统计的告警数量
- * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
- * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象，可选）
- * @param {string} status - 状态过滤（可选）
- * @returns {Promise} 告警数量映射
- */
-export const getAlertCountsBySource = (startDate, endDate = null, status = null) => {
-  const params = {}
-  setDateParam(params, 'start_date', startDate)
-  setDateParam(params, 'end_date', endDate)
-  if (status && status !== 'all') {
-    params.status = status
-  }
-  return service.get('/stats/alerts?chart=data-source-count', { params })
-}
-
-/**
- * @brief 获取告警趋势数据（按日期分组统计）
- * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
- * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
- * @returns {Promise} 告警趋势数据数组，格式为 [{date: string, count: number}, ...]
- */
-export const getAlertTrend = (startDate, endDate) => {
-  const params = {
-    chart: 'alert-trend'
-  }
-  setDateParam(params, 'start_date', startDate)
-  setDateParam(params, 'end_date', endDate)
-  return service.get('/stats/alerts', { params })
-}
-
-/**
- * @brief 获取按状态和风险等级分组的告警数量（用于横向柱状图）
- * 返回格式示例：
- * {
- *   Open:   { Fatal: 10, High: 20, Medium: 5, Low: 1, Tips: 0 },
- *   Block:  { Fatal: 2,  High: 3,  Medium: 1, Low: 0, Tips: 0 },
- *   Closed: { Fatal: 5,  High: 8,  Medium: 12, Low: 4, Tips: 1 }
- * }
- *
- * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
- * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
- * @param {string} status - 状态过滤（可选）
- * @returns {Promise} 告警状态与风险等级分布数据
- */
-export const getAlertStatusBySeverity = (startDate, endDate, status = null) => {
-  const params = {
-    chart: 'alert-status-by-severity'
-  }
-  setDateParam(params, 'start_date', startDate)
-  setDateParam(params, 'end_date', endDate)
-  if (status && status !== 'all') {
-    params.status = status
-  }
-  return service.get('/stats/alerts', { params })
-}
-
-/**
- * @brief 获取按模型统计的AI准确率
- * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
- * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
- * @param {number} limit - 返回的模型数量上限（默认10）
- * @returns {Promise} AI准确率数据数组
- */
-export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
-  if (!startDate || !endDate) {
-    throw new Error('startDate and endDate are required for AI accuracy statistics')
-  }
-
-  const params = {
-    chart: 'ai-model-accuracy',
-    limit
-  }
-
-  setDateParam(params, 'start_date', startDate)
-  setDateParam(params, 'end_date', endDate)
-
-  if (!params.start_date || !params.end_date) {
-    throw new Error('Invalid startDate or endDate format')
-  }
-
-  return service.get('/stats/alerts', { params })
+export const getASMDetail = (id) => {
+  return service.get(`/alerts/${id}`, {
+    params: {
+      workspace: 'asm'
+    }
+  })
 }
 
 // 关闭单个告警
-export const closeAlert = (alertId, params) => {
+export const closeASMItem = (alertId, params) => {
   // 将 category 映射到 close_reason
   const closeReason = CLOSE_REASON_CATEGORY_MAP[params.category] || params.category || 'Other'
   
@@ -310,14 +206,10 @@ export const closeAlert = (alertId, params) => {
     action: 'close',
     data: {
       close_reason: closeReason,
-      close_comment: params.notes || ''
+      close_comment: params.notes || '',
+      workspace: 'asm'
     }
   })
-}
-
-// 批量关闭告警
-export const batchCloseAlerts = (params) => {
-  return service.post('/alerts/batch-close', params)
 }
 
 /**
@@ -327,7 +219,7 @@ export const batchCloseAlerts = (params) => {
  * @param {string} closeComment - 关闭备注
  * @returns {Promise} 返回批量关闭结果
  */
-export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
+export const batchCloseASMItems = (alertIds, closeReason, closeComment) => {
   // 将 category 映射到 close_reason
   const mappedCloseReason = CLOSE_REASON_CATEGORY_MAP[closeReason] || closeReason || 'Other'
   
@@ -336,7 +228,8 @@ export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
     data_object: {
       handle_status: 'Closed',
       close_reason: mappedCloseReason,
-      close_comment: closeComment || ''
+      close_comment: closeComment || '',
+      workspace: 'asm'
     }
   }
   
@@ -344,63 +237,14 @@ export const batchCloseAlertsByPut = (alertIds, closeReason, closeComment) => {
 }
 
 // 开启告警
-export const openAlert = (alertId) => {
+export const openASMItem = (alertId) => {
   return service.put(`/alerts/${alertId}`, {
     action: 'update',
     data: {
-      handle_status: 'Open'
+      handle_status: 'Open',
+      workspace: 'asm'
     }
   })
-}
-
-// 关联告警到事件
-export const associateAlertsToIncident = (params) => {
-  return service.post('/alerts/associate', params)
-}
-
-/**
- * @brief 获取告警的关联告警列表
- * @param {number|string} alertId - 告警ID
- * @returns {Promise} 返回关联告警数据
- */
-export const getAssociatedAlerts = (alertId) => {
-  return service.get(`/alerts/${alertId}/associated`)
-}
-
-/**
- * @brief 创建告警
- * @param {Object} data - 告警数据
- * @param {string} data.title - 告警标题
- * @param {string} data.riskLevel - 风险等级 (fatal/high/medium/low/tips)
- * @param {string} data.status - 状态 (open/block/closed)
- * @param {string} data.owner - 责任人
- * @param {string} data.description - 描述
- * @param {string} data.ruleName - 规则名称（可选）
- * @param {string|Date} data.timestamp - 时间戳（可选，默认当前时间）
- * @param {string} data.creator - 创建者（可选）
- * @returns {Promise} 返回创建的告警数据
- */
-export const createAlert = (data) => {
-  // 构建请求体，符合后端期望的格式
-  const requestBody = {
-    action: 'create',
-    data: {
-      title: data.title,
-      create_time: formatTimestamp(data.timestamp),
-      severity: CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium',
-      handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
-      owner: data.owner,
-      creator: data.creator || data.owner || 'System',
-      rule_name: data.ruleName || '',
-      description: data.description
-    }
-  }
-  
-  if (data.workspace) {
-    requestBody.workspace = data.workspace
-  }
-  
-  return service.post('/alerts', requestBody)
 }
 
 /**
@@ -416,10 +260,11 @@ export const createAlert = (data) => {
  * @param {string|Date} data.createTime - 创建时间（可选）
  * @returns {Promise} 返回更新的告警数据
  */
-export const updateAlert = (alertId, data) => {
+export const updateASMItem = (alertId, data) => {
   // 构建请求体，符合后端期望的格式，与创建告警类似但 action 为 'update'
   const requestBody = {
     action: 'update',
+    workspace: 'asm',
     data: {
       title: data.title,
       create_time: formatTimestamp(data.createTime || data.timestamp),
@@ -427,7 +272,7 @@ export const updateAlert = (alertId, data) => {
       handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
       owner: data.owner,
       rule_name: data.ruleName || '',
-      description: data.description
+      description: data.description      
     }
   }
   
@@ -439,10 +284,11 @@ export const updateAlert = (alertId, data) => {
  * @param {Array<string>} alertIds - 告警ID数组
  * @returns {Promise} 返回删除结果
  */
-export const deleteAlerts = (alertIds) => {
+export const deleteASMItems = (alertIds) => {
   return service.delete('/alerts', {
     data: {
-      batch_ids: alertIds
+      batch_ids: alertIds,
+      workspace: 'asm'
     }
   })
 }

@@ -19,15 +19,20 @@
         <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
           {{ vulnerability?.title || vulnerability?.name || 'CVE-' + route.params.id }}
         </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-base font-normal leading-normal">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm font-normal leading-normal">
           <div class="flex items-center gap-1.5">
-            <span>{{ $t('vulnerabilities.detail.actor') || 'Actor' }}:</span>
+            <span>{{ $t('vulnerabilities.detail.actor') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ vulnerability?.actor || '-' }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('vulnerabilities.detail.createTime') || 'Create Time' }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.createTime || vulnerability?.create_time) }}</span>
+          </div>
+          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="flex items-center gap-1.5">
+            <span>{{ $t('vulnerabilities.detail.closeTime') }}:</span>
+            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.closeTime || vulnerability?.close_time) }}</span>
           </div>
           <div class="h-4 w-px bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
@@ -167,6 +172,85 @@
             </p>
           </div>
         </div>
+
+        <!-- 关联告警 -->
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl">
+          <div class="p-6 border-b border-gray-200 dark:border-[#324867] flex items-center justify-between">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
+              {{ $t('incidents.detail.overview.associatedAlerts') || 'Associated Alerts' }}
+            </h3>
+            <button
+              :disabled="selectedAlerts.length === 0"
+              @click="openDisassociateDialog"
+              class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-200 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-bold px-4 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-[#324867] transition-colors"
+            >
+              <span class="material-symbols-outlined text-base">link_off</span>
+              <span>{{ $t('incidents.detail.disassociate') || 'Disassociate' }}</span>
+            </button>
+          </div>
+          <DataTable
+            ref="associatedAlertsTableRef"
+            :columns="associatedAlertsColumns"
+            :items="formattedAssociatedAlerts"
+            :selectable="true"
+            :resizable="true"
+            storage-key="vulnerability-associated-alerts-table-columns"
+            :default-widths="associatedAlertsDefaultWidths"
+            :pagination="false"
+            @select="handleSelectAlerts"
+            @select-all="handleSelectAlerts"
+          >
+            <template #cell-createTime="{ value }">
+              {{ formatDateTime(value) }}
+            </template>
+            <template #cell-alertTitle="{ item }">
+              <div class="flex items-center gap-2">
+                <button
+                  @click.stop="openAlertDetailInNewWindow(item.id)"
+                  class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
+                  :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+                >
+                  <span class="material-symbols-outlined text-base">open_in_new</span>
+                </button>
+                <a
+                  @click="openAlertDetail(item.id)"
+                  class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium"
+                  :title="item.title"
+                >
+                  {{ item.title }}
+                </a>
+              </div>
+            </template>
+            <template #cell-riskLevel="{ item }">
+              <span
+                :class="[
+                  'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
+                  getRiskLevelClass(item.riskLevel)
+                ]"
+                :title="$t(`common.severity.${item.riskLevel}`)"
+              >
+                {{ $t(`common.severity.${item.riskLevel}`) }}
+              </span>
+            </template>
+            <template #cell-status="{ item }">
+              <span
+                :class="[
+                  'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
+                  getStatusClass(item.status)
+                ]"
+                :title="$t(`alerts.list.${item.status}`)"
+              >
+                <span :class="['size-1.5 rounded-full', getStatusDotClass(item.status)]"></span>
+                {{ $t(`alerts.list.${item.status}`) }}
+              </span>
+            </template>
+            <template #cell-owner="{ value }">
+              <div class="flex justify-center w-full">
+                <UserAvatar :name="value" />
+              </div>
+            </template>
+          </DataTable>
+        </div>
       </div>
 
       <!-- Comments 标签页 -->
@@ -201,6 +285,59 @@
       @updated="handleVulnerabilityUpdated"
     />
 
+    <!-- 告警详情抽屉 -->
+    <AlertDetail
+      v-if="selectedAlertId"
+      :alert-id="selectedAlertId"
+      @close="closeAlertDetail"
+    />
+
+    <!-- 解关联确认对话框 -->
+    <div
+      v-if="showDisassociateDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeDisassociateDialog"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ $t('incidents.detail.disassociateDialog.title') || 'Disassociate Alerts' }}
+          </h2>
+          <button
+            @click="closeDisassociateDialog"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-6 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ $t('incidents.detail.disassociateDialog.confirmMessage', { count: selectedAlerts.length }) || `确认要解关联 ${selectedAlerts.length} 个告警吗？` }}
+          </p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeDisassociateDialog"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="handleDisassociate"
+            :disabled="isDisassociating"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isDisassociating" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('incidents.detail.disassociate') || 'Disassociate' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -222,9 +359,13 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getVulnerabilityDetail } from '@/api/vulnerabilities'
 import { postComment } from '@/api/comments'
+import { disassociateAlertsFromIncident } from '@/api/incidents'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import EditVulnerabilityDialog from '@/components/vulnerabilities/EditVulnerabilityDialog.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
+import AlertDetail from '@/components/alerts/AlertDetail.vue'
+import DataTable from '@/components/common/DataTable.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { severityToNumber } from '@/utils/severity'
@@ -244,6 +385,11 @@ const closeDialogRef = ref(null)
 const showEditDialog = ref(false)
 const editVulnerabilityInitialData = ref(null)
 const showShareSuccess = ref(false)
+const selectedAlerts = ref([])
+const associatedAlertsTableRef = ref(null)
+const showDisassociateDialog = ref(false)
+const isDisassociating = ref(false)
+const selectedAlertId = ref(null)
 
 const tabs = [
   { key: 'overview', label: 'vulnerabilities.detail.tabs.overview' },
@@ -266,8 +412,10 @@ const loadVulnerabilityDetail = async ({ silent = false } = {}) => {
       name: data.title,
       createTime: data.create_time,
       updateTime: data.update_time,
+      closeTime: data.close_time,
       create_time: data.create_time,
       update_time: data.update_time,
+      close_time: data.close_time,
       arrive_time: data.arrive_time,
       handle_status: data.handle_status,
       status: data.handle_status,
@@ -278,12 +426,16 @@ const loadVulnerabilityDetail = async ({ silent = false } = {}) => {
       responsiblePerson: data.owner,
       responsibleDept: data.responsible_dept || '',
       responsible_dept: data.responsible_dept,
+      cloudService: data.cloud_service,
+      cloud_service: data.cloud_service,
       rootCause: data.root_cause,
       root_cause: data.root_cause,
       description: data.description || data.title,
       aiAnalysis: data.ai_analysis || data.aiAnalysis,
       // 格式化评论数据
-      comments: formatComments(data.comments || [])
+      comments: formatComments(data.comments || []),
+      // 关联告警（如果有）
+      associatedAlerts: data.associated_alerts || data.associatedAlerts || []
     }
   } catch (error) {
     console.error('Failed to load vulnerability detail:', error)
@@ -467,11 +619,12 @@ const handleCloseVulnerability = async (data) => {
     const body = {
       handle_status: 'Closed',
       close_reason: data.close_reason,
-      close_comment: data.close_comment
+      close_comment: data.close_comment,
+      search_vulscan: true
     }
 
     const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
-    const url = apiBaseURL ? `${apiBaseURL}/vulnerabilities/${route.params.id}` : `/api/vulnerabilities/${route.params.id}`
+    const url = apiBaseURL ? `${apiBaseURL}/vulnerabilities/${route.params.id}?workspace=asm` : `/api/vulnerabilities/${route.params.id}?workspace=asm`
     
     const headers = {
       'Content-Type': 'application/json'
@@ -509,8 +662,11 @@ const openEditDialog = () => {
     title: vulnerability.value.title || vulnerability.value.name || '',
     status: vulnerability.value.status || vulnerability.value.handle_status || 'Open',
     severity: vulnerability.value.severity || 'low',
+    create_time: vulnerability.value.createTime || vulnerability.value.create_time || null,
+    close_time: vulnerability.value.closeTime || vulnerability.value.close_time || null,
     owner: vulnerability.value.owner || '',
     responsibleDepartment: vulnerability.value.responsibleDept || vulnerability.value.responsible_dept || '',
+    cloud_service: vulnerability.value.cloudService || vulnerability.value.cloud_service || null,
     actor: vulnerability.value.actor || '',
     description: vulnerability.value.description || ''
   }
@@ -528,6 +684,133 @@ const closeEditDialog = () => {
 const handleVulnerabilityUpdated = async () => {
   closeEditDialog()
   await loadVulnerabilityDetail()
+}
+
+// Associated Alerts 相关函数
+const associatedAlertsColumns = computed(() => [
+  { key: 'createTime', label: t('alerts.list.createTime') },
+  { key: 'alertTitle', label: t('alerts.list.alertTitle') },
+  { key: 'riskLevel', label: t('alerts.list.riskLevel') },
+  { key: 'status', label: t('alerts.list.status') },
+  { key: 'owner', label: t('alerts.list.owner') }
+])
+
+const associatedAlertsDefaultWidths = {
+  createTime: 180,
+  alertTitle: 400,
+  riskLevel: 120,
+  status: 120,
+  owner: 50
+}
+
+const formattedAssociatedAlerts = computed(() => {
+  if (!vulnerability.value?.associatedAlerts) {
+    return []
+  }
+  return vulnerability.value.associatedAlerts.map(alert => {
+    // 转换 severity 为 riskLevel (需要转换为小写)
+    const severityMap = {
+      'Critical': 'fatal',
+      'High': 'high',
+      'Medium': 'medium',
+      'Low': 'low',
+      'Tips': 'tips'
+    }
+    const riskLevel = alert.severity 
+      ? (severityMap[alert.severity] || alert.severity.toLowerCase())
+      : 'low'
+    
+    // 转换 handle_status 为 status (需要转换为小写)
+    const statusMap = {
+      'Open': 'open',
+      'Block': 'block',
+      'Closed': 'closed'
+    }
+    const status = alert.handle_status
+      ? (statusMap[alert.handle_status] || alert.handle_status.toLowerCase())
+      : 'open'
+    
+    return {
+      id: alert.id,
+      createTime: alert.create_time || alert.createTime || '-',
+      title: alert.title || '-',
+      riskLevel: riskLevel,
+      status: status,
+      owner: alert.owner || '-'
+    }
+  })
+})
+
+const getRiskLevelClass = (level) => {
+  const classes = {
+    fatal: 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-200',
+    high: 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300',
+    medium: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-300',
+    low: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300',
+    tips: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+  }
+  return classes[level] || classes.low
+}
+
+const handleSelectAlerts = (items) => {
+  selectedAlerts.value = items.map(alert => alert.id)
+}
+
+const openDisassociateDialog = () => {
+  showDisassociateDialog.value = true
+}
+
+const closeDisassociateDialog = () => {
+  showDisassociateDialog.value = false
+}
+
+const handleDisassociate = async () => {
+  if (selectedAlerts.value.length === 0 || isDisassociating.value) {
+    return
+  }
+
+  try {
+    isDisassociating.value = true
+    
+    // 调用解关联接口（使用事件解关联接口，因为漏洞和事件使用相同的关联机制）
+    await disassociateAlertsFromIncident(route.params.id, selectedAlerts.value)
+    
+    toast.success(
+      t('incidents.detail.disassociateSuccess', { count: selectedAlerts.value.length }) || 
+      `成功解关联 ${selectedAlerts.value.length} 个告警`,
+      'SUCCESS'
+    )
+    
+    closeDisassociateDialog()
+    selectedAlerts.value = []
+    associatedAlertsTableRef.value?.clearSelection()
+    await loadVulnerabilityDetail()
+  } catch (error) {
+    console.error('Failed to disassociate alerts:', error)
+    const errorMessage = error?.response?.data?.message || 
+                        error?.response?.data?.error_message || 
+                        error?.message || 
+                        t('incidents.detail.disassociateError') || '解关联失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isDisassociating.value = false
+  }
+}
+
+const openAlertDetail = (alertId) => {
+  selectedAlertId.value = alertId
+}
+
+const openAlertDetailInNewWindow = (alertId) => {
+  // 在新窗口打开告警详情
+  const route = router.resolve({ path: `/alerts/${alertId}` })
+  // 构建完整的 URL
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
+}
+
+const closeAlertDetail = () => {
+  selectedAlertId.value = null
 }
 
 onMounted(() => {

@@ -223,4 +223,8 @@ def Singleton(cls):
     return _singleton
 
 
-# logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)
+def get_workspace_id(workspace):
+    from utils.app_config import config
+    if workspace == 'asm':
+        return config.get('application.secmaster.asm_workspace_id')
+    return workspace if workspace else None

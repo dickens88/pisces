@@ -4,18 +4,12 @@ from flask_restful import Resource
 from controllers.alert_service import AlertService
 from utils.auth_util import auth_required
 from utils.logger_init import logger
-from utils.app_config import config
+from utils.common_utils import get_workspace_id
 
 import json
 
 
 class AlertView(Resource):
-
-    @staticmethod
-    def _get_workspace_id(workspace):
-        if workspace == 'asm':
-            return config.get('application.secmaster.asm_workspace_id')
-        return workspace if workspace else None
 
     @auth_required
     def post(self, username=None, alert_id=None):
@@ -27,7 +21,7 @@ class AlertView(Resource):
         conditions = data.get('conditions', [])
         action = data.get('action')
         risk_mode = data.get('risk_mode')
-        workspace_id = self._get_workspace_id(data.get('workspace'))
+        workspace_id = get_workspace_id(data.get('workspace'))
 
         try:
             if action == 'list':
@@ -58,7 +52,7 @@ class AlertView(Resource):
     @auth_required
     def get(self, username=None, alert_id=None):
         try:
-            workspace_id = self._get_workspace_id(request.args.get('workspace'))
+            workspace_id = get_workspace_id(request.args.get('workspace'))
             data = AlertService.retrieve_alert_and_comments(alert_id, workspace_id=workspace_id)
             return {"data": data}, 200
         except Exception as ex:
@@ -69,7 +63,7 @@ class AlertView(Resource):
     def put(self, username=None, alert_id=None):
         data = json.loads(request.data)
         action = data.get("action")
-        workspace_id = self._get_workspace_id(data.get("workspace"))
+        workspace_id = get_workspace_id(data.get("workspace"))
 
         try:
             if not alert_id and "batch_ids" in data:
@@ -111,7 +105,7 @@ class AlertView(Resource):
     @auth_required
     def delete(self, username=None):
         data = json.loads(request.data)
-        workspace_id = self._get_workspace_id(data.get("workspace"))
+        workspace_id = get_workspace_id(data.get("workspace"))
 
         try:
             ids = data["batch_ids"]
