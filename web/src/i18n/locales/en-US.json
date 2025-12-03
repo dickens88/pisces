@@ -62,6 +62,7 @@
     "github": "Report an Issue",
     "running": "Running",
     "finished": "Finished",
+    "operationSuccess": "Operation Successful",
     "userMenu": {
       "preferences": "Preferences",
       "theme": "Theme",

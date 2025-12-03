@@ -187,19 +187,15 @@ class Alert(Base):
         # Only calculate TTA if close_time is not empty and not the default placeholder '-'
         if close_time and create_time:
             try:
-                # Remove Z and everything after it (timezone info), since both timestamps use the same timezone
-                close_time_clean = close_time.split('Z')[0]
-                create_time_clean = create_time.split('Z')[0]
-                # Parse timestamps
-                close_dt = datetime.fromisoformat(close_time_clean)
-                create_dt = datetime.fromisoformat(create_time_clean)
+                close_dt = datetime.fromisoformat(close_time.split('+')[0].split('Z')[0])
+                create_dt = datetime.fromisoformat(create_time.split('+')[0].split('Z')[0])
                 # Calculate difference in seconds
                 tta = int((close_dt - create_dt).total_seconds())
                 if tta < 0:
                     logger.warning(f"TTA calculation resulted in negative value for alert {payload.get('id')}, setting to 0")
                     tta = 0
-            except (ValueError, AttributeError) as e:
-                logger.warning(f"Failed to calculate TTA for alert {payload.get('id')}: {e}")
+            except Exception as e:
+                logger.warning(f"Failed to calculate TTA for alert {payload.get('id')}: {e}. close_time: {close_time}, create_time: {create_time}")
                 tta = 0
 
         return Alert(

@@ -62,6 +62,7 @@
     "github": "提个问题单",
     "running": "运行中",
     "finished": "已完成",
+    "operationSuccess": "操作成功",
     "userMenu": {
       "preferences": "偏好设置",
       "theme": "主题",
