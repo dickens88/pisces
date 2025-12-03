@@ -155,7 +155,6 @@
     <div class="border-t border-gray-200 dark:border-slate-700 pt-3 mt-3 security-agent-input">
       <CommentInput
         v-model="message"
-        :placeholder="$t('alerts.detail.aiAgentPlaceholder') || '输入消息...'"
         :disabled="disabled"
         :loading="loading"
         :enable-file-upload="false"

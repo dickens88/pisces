@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP, Boolean
 from sqlalchemy.sql import func
 
@@ -37,6 +38,8 @@ class Alert(Base):
 
     is_ai_decision_correct = Column(Boolean(), default = None)
 
+    tta = Column(Integer(), default=0)
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -52,7 +55,8 @@ class Alert(Base):
             "close_reason": self.close_reason,
             "close_comment": self.close_comment,
             "is_auto_closed": self.is_auto_closed,
-            "data_source_product_name": self.data_source_product_name
+            "data_source_product_name": self.data_source_product_name,
+            "tta": self.tta
         }
 
     @classmethod
@@ -83,6 +87,7 @@ class Alert(Base):
                 alert.data_source_product_name = new_alert_entity.data_source_product_name
                 alert.model_name = new_alert_entity.model_name
                 alert.is_ai_decision_correct = new_alert_entity.is_ai_decision_correct
+                alert.tta = new_alert_entity.tta
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -175,10 +180,31 @@ class Alert(Base):
         elif "data_source_product_name" in payload:
             data_source_product_name = payload.get("data_source_product_name")
 
+        # Calculate TTA (Time To Acknowledge): close_time - create_time
+        tta = 0
+        close_time = payload.get("close_time")
+        create_time = payload.get("create_time")
+        # Only calculate TTA if close_time is not empty and not the default placeholder '-'
+        if close_time and create_time:
+            try:
+                # Remove Z and everything after it (timezone info), since both timestamps use the same timezone
+                close_time_clean = close_time.split('Z')[0]
+                create_time_clean = create_time.split('Z')[0]
+                # Parse timestamps
+                close_dt = datetime.fromisoformat(close_time_clean)
+                create_dt = datetime.fromisoformat(create_time_clean)
+                # Calculate difference in seconds
+                tta = int((close_dt - create_dt).total_seconds())
+                if tta < 0:
+                    logger.warning(f"TTA calculation resulted in negative value for alert {payload.get('id')}, setting to 0")
+                    tta = 0
+            except (ValueError, AttributeError) as e:
+                logger.warning(f"Failed to calculate TTA for alert {payload.get('id')}: {e}")
+                tta = 0
+
         return Alert(
             alert_id=payload.get("id"),
             create_time=payload.get("create_time"),
-            # last_update_time is automatically set by database
             close_time=payload.get("close_time"),
             title=payload.get("title"),
             description=description,
@@ -192,4 +218,5 @@ class Alert(Base):
             data_source_product_name=data_source_product_name,
             model_name=model_name,
             is_ai_decision_correct = is_ai_decision_correct,
+            tta=tta,
         )

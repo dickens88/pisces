@@ -135,6 +135,11 @@ class AlertCountBySourceView(Resource):
                 limit = request.args.get("limit", default=10, type=int)
                 data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10)
                 return {"data": data}, 200
+            elif chart_name_normalized == "alert-status-by-severity":
+                end_date = parse_datetime_with_timezone(end_date_str)
+                status = request.args.get("status")  # Get status filter parameter
+                data = StatisticsService.get_alert_status_by_severity(start_date, end_date, status=status)
+                return {"data": data}, 200
             else:
                 raise Exception("chart_name is invalid")
         except Exception as ex:

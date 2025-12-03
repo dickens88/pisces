@@ -41,11 +41,9 @@
                 <div class="relative">
                   <button
                     @click.stop="showMoreActionsMenu = !showMoreActionsMenu"
-                    class="more-actions-button bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                    class="more-actions-button bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white p-2 rounded-md transition-colors flex items-center justify-center"
                   >
                     <span class="material-symbols-outlined text-base">more_vert</span>
-                    {{ $t('alerts.detail.moreActions') }}
-                    <span class="material-symbols-outlined text-base">arrow_drop_down</span>
                   </button>
                   <!-- Dropdown menu -->
                   <div
@@ -797,7 +795,7 @@ const conversationId = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
-  category: '',
+  category: 'falsePositive',
   notes: ''
 })
 const { isDarkMode } = useDarkModeObserver()
@@ -1214,7 +1212,7 @@ const openBatchCloseDialog = () => {
 const closeBatchCloseDialog = () => {
   showBatchCloseDialog.value = false
   closeConclusion.value = {
-    category: '',
+    category: 'falsePositive',
     notes: ''
   }
   hideRecentCloseCommentsDropdown()
@@ -1280,7 +1278,17 @@ const openCreateIncidentDialog = () => {
   }
   
   const createTime = getAlertCreateTime()
-  const alertDescription = alert.value.aiAnalysis?.description || alert.value.description || ''
+  
+  let alertDescription = ''
+  if (alert.value.description) {
+    if (typeof alert.value.description === 'string') {
+      alertDescription = alert.value.description
+    } else if (typeof alert.value.description === 'object' && alert.value.description !== null) {
+      alertDescription = JSON.stringify(alert.value.description, null, 2)
+    } else {
+      alertDescription = String(alert.value.description)
+    }
+  }
   
   createIncidentInitialData.value = {
     title: alert.value.title || '',

@@ -3,12 +3,10 @@
     <div
       v-if="visible"
       class="fixed inset-0 z-50 flex items-center justify-end"
-      @click.self="handleClose"
     >
       <!-- 遮罩层 -->
       <div 
         class="fixed inset-0 bg-black/50"
-        @click="handleClose"
       ></div>
       
       <!-- 创建事件面板 - 有滑入动画 -->
@@ -399,20 +397,20 @@ const handleSubmit = async () => {
       try {
         await associateAlertsToIncident(incidentId, props.alertIds)
         toast.success(
-          t('incidents.create.success') || '事件创建成功，已关联告警', 
+          t('incidents.create.successWithAlerts'), 
           'SUCCESS'
         )
       } catch (associateError) {
         console.error('Failed to associate alerts to incident:', associateError)
         // 即使关联失败，也显示创建成功（因为事件已经创建）
-        toast.success(t('incidents.create.success') || '事件创建成功', 'SUCCESS')
+        toast.success(t('incidents.create.success'), 'SUCCESS')
         // 可选：显示关联失败的警告
-        const associateErrorMessage = associateError?.response?.data?.message || associateError?.message || '关联告警失败'
-        toast.warn(associateErrorMessage, '警告')
+        const associateErrorMessage = associateError?.response?.data?.message || associateError?.message || t('alerts.list.associateError')
+        toast.warn(associateErrorMessage, t('common.warning'))
       }
     } else {
       // 显示成功提示
-      toast.success(t('incidents.create.success') || '事件创建成功', 'SUCCESS')
+      toast.success(t('incidents.create.success'), 'SUCCESS')
     }
     
     // 触发创建成功事件
@@ -421,7 +419,7 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('Failed to create incident:', error)
     // 显示错误提示
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.create.error') || '事件创建失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.create.error')
     toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmitting.value = false

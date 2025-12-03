@@ -249,6 +249,32 @@ export const getAlertTrend = (startDate, endDate) => {
 }
 
 /**
+ * @brief 获取按状态和风险等级分组的告警数量（用于横向柱状图）
+ * 返回格式示例：
+ * {
+ *   Open:   { Fatal: 10, High: 20, Medium: 5, Low: 1, Tips: 0 },
+ *   Block:  { Fatal: 2,  High: 3,  Medium: 1, Low: 0, Tips: 0 },
+ *   Closed: { Fatal: 5,  High: 8,  Medium: 12, Low: 4, Tips: 1 }
+ * }
+ *
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @param {string} status - 状态过滤（可选）
+ * @returns {Promise} 告警状态与风险等级分布数据
+ */
+export const getAlertStatusBySeverity = (startDate, endDate, status = null) => {
+  const params = {
+    chart: 'alert-status-by-severity'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  if (status && status !== 'all') {
+    params.status = status
+  }
+  return service.get('/stats/alerts', { params })
+}
+
+/**
  * @brief 获取按模型统计的AI准确率
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）

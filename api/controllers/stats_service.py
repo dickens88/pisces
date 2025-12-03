@@ -8,26 +8,139 @@ from utils.common_utils import format_utc_datetime_to_db_string
 
 
 class StatisticsService:
+    @staticmethod
+    def _normalize_datetime_to_utc(dt):
+        """
+        Normalize datetime to UTC naive datetime.
+        Handles any timezone-aware or naive datetime and converts to UTC naive.
+        
+        Args:
+            dt: datetime object (may be timezone-aware or naive)
+            
+        Returns:
+            UTC naive datetime object
+        """
+        if dt is None:
+            return None
+        
+        # If timezone-aware, convert to UTC then remove timezone info
+        if dt.tzinfo is not None:
+            return dt.astimezone(timezone.utc).replace(tzinfo=None)
+        
+        # If naive, assume it's already UTC
+        return dt
+    
+    @staticmethod
+    def _prepare_datetime_for_query(dt):
+        """
+        Prepare datetime for database query.
+        Converts any timezone to UTC and formats as database string.
+        
+        Args:
+            dt: datetime object (may be timezone-aware or naive)
+            
+        Returns:
+            Tuple of (utc_naive_datetime, db_string_format)
+            Both can be None if input is None
+        """
+        if dt is None:
+            return None, None
+        
+        # Normalize to UTC naive datetime
+        utc_naive = StatisticsService._normalize_datetime_to_utc(dt)
+        
+        # Format for database query (ensures UTC timezone in string format)
+        db_string = format_utc_datetime_to_db_string(utc_naive.replace(tzinfo=timezone.utc))
+        
+        return utc_naive, db_string
     @classmethod
     def get_alert_count_by_product_name(cls, start_date, end_date=None, status=None):
-        """Get alert count grouped by product name between start_date and end_date, optionally filtered by status."""
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        """Get alert count grouped by product name and is_auto_closed."""
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         with Session() as session:
-            # Use string comparison since database stores time as string
+            closure_type_expr = case(
+                (Alert.is_auto_closed == 'Manual', 'Manual'),
+                (Alert.is_auto_closed == 'AutoClosed', 'AutoClosed'),
+                else_='None'
+            )
+            
             query = (
-                session.query(Alert.data_source_product_name, func.count(Alert.id))
+                session.query(
+                    Alert.data_source_product_name,
+                    closure_type_expr.label('closure_type'),
+                    func.count(Alert.id).label('count')
+                )
                 .filter(Alert.create_time >= start_date_str)
             )
             
-            # Add end_date filter if provided
             if end_date_str:
                 query = query.filter(Alert.create_time <= end_date_str)
             
+            if status and status != 'all':
+                status_map = {'open': 'Open', 'block': 'Block', 'closed': 'Closed'}
+                query = query.filter(Alert.handle_status == status_map.get(status.lower(), status.capitalize()))
+            
+            results = query.group_by(Alert.data_source_product_name, closure_type_expr).all()
+
+        result = {}
+        for row in results:
+            product_name = row.data_source_product_name or 'Unknown'
+            closure_type = row.closure_type or 'None'
+            count = int(row.count or 0)
+            
+            if product_name not in result:
+                result[product_name] = {'Manual': 0, 'AutoClosed': 0, 'None': 0}
+            
+            result[product_name][closure_type] += count
+        
+        return result
+
+    @classmethod
+    def get_alert_status_by_severity(cls, start_date, end_date, status=None):
+        """
+        Get alert count grouped by handle_status and severity between start_date and end_date.
+        Returns a nested dict:
+        {
+            "Open": {"Fatal": 1, "High": 2, "Medium": 3, "Low": 0, "Tips": 0},
+            "Block": {...},
+            "Closed": {...}
+        }
+        
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            status: Optional status filter ('open', 'block', 'closed', or None for all)
+        """
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+
+        # Define standard status and severity buckets to ensure stable keys
+        status_buckets = ["Open", "Closed", "Block"]
+        severity_buckets = ["Fatal", "High", "Medium", "Low", "Tips"]
+
+        # Initialize result structure with zeros
+        result = {
+            status: {severity: 0 for severity in severity_buckets}
+            for status in status_buckets
+        }
+
+        with Session() as session:
+            query = (
+                session.query(
+                    Alert.handle_status.label("status"),
+                    Alert.severity.label("severity"),
+                    func.count(Alert.id).label("count"),
+                )
+                .filter(
+                    Alert.create_time >= start_date_str,
+                    Alert.create_time <= end_date_str,
+                )
+            )
+            
             # Add status filter if provided
-            # Convert frontend status (lowercase) to database format (capitalized)
             if status and status != 'all':
                 # Map frontend status values to database enum values
                 status_map = {
@@ -38,9 +151,26 @@ class StatisticsService:
                 db_status = status_map.get(status.lower(), status.capitalize())
                 query = query.filter(Alert.handle_status == db_status)
             
-            results = query.group_by(Alert.data_source_product_name).all()
+            query = query.group_by(Alert.handle_status, Alert.severity)
 
-        return dict(results)
+            rows = query.all()
+
+        for row in rows:
+            status = row.status or ""
+            severity = row.severity or ""
+
+            # Normalize to known buckets, fall back to raw values if unknown
+            norm_status = status if status in status_buckets else status
+            norm_severity = severity if severity in severity_buckets else severity
+
+            if norm_status not in result:
+                result[norm_status] = {}
+            if norm_severity not in result[norm_status]:
+                result[norm_status][norm_severity] = 0
+
+            result[norm_status][norm_severity] += int(row.count or 0)
+
+        return result
 
     @classmethod
     def get_alert_trend(cls, start_date, end_date):
@@ -49,19 +179,13 @@ class StatisticsService:
         If time range <= 24 hours, group by hour; otherwise group by day.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         # Calculate time difference in hours
-        if start_date.tzinfo:
-            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            start_dt = start_date
-        if end_date.tzinfo:
-            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            end_dt = end_date
+        if start_dt is None or end_dt is None:
+            return []
         
         time_diff = (end_dt - start_dt).total_seconds() / 3600
         
@@ -159,19 +283,12 @@ class StatisticsService:
         Get incident count grouped by date (day) between start_date and end_date.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
         
-        # Get naive datetime for date calculations
-        if start_date.tzinfo:
-            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            start_dt = start_date
-        if end_date.tzinfo:
-            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            end_dt = end_date
+        if start_dt is None or end_dt is None:
+            return []
         
         with Session() as session:
             # Group by day: extract date from string format
@@ -218,19 +335,12 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a list of dictionaries with 'date' and 'count' keys.
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
         
-        # Get naive datetime for date calculations
-        if start_date.tzinfo:
-            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            start_dt = start_date
-        if end_date.tzinfo:
-            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            end_dt = end_date
+        if start_dt is None or end_dt is None:
+            return []
         
         with Session() as session:
             # Group by day: extract date from string format
@@ -278,19 +388,12 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a list of dictionaries with 'date', 'severity', and 'count' keys.
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
         
-        # Get naive datetime for date calculations
-        if start_date.tzinfo:
-            start_dt = start_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            start_dt = start_date
-        if end_date.tzinfo:
-            end_dt = end_date.astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            end_dt = end_date
+        if start_dt is None or end_dt is None:
+            return []
         
         with Session() as session:
             # Group by day and severity: extract date from string format, severity
@@ -378,9 +481,9 @@ class StatisticsService:
         Vulnerabilities are incidents where labels field contains 'vulscan'.
         Returns a dictionary with department names as keys and counts as values.
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         with Session() as session:
             # Group by responsible_dept
@@ -419,9 +522,9 @@ class StatisticsService:
         if not start_date or not end_date:
             raise ValueError("start_date and end_date are required")
 
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
 
         with Session() as session:
             query = (
@@ -477,9 +580,9 @@ class StatisticsService:
                 - auto_closed: number of auto-closed alerts (is_auto_closed='AutoClosed')
                 - automation_rate: automation closure rate percentage (auto_closed / total_closed * 100)
         """
-        # Convert UTC datetime to database string format for comparison
-        start_date_str = format_utc_datetime_to_db_string(start_date) if start_date else None
-        end_date_str = format_utc_datetime_to_db_string(end_date) if end_date else None
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         with Session() as session:
             # Count total closed alerts within date range

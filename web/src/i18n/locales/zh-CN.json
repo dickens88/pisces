@@ -15,7 +15,9 @@
     "close": "关闭",
     "loading": "加载中...",
     "noComments": "暂无评论",
+    "addComment": "请输入文本，可以按crtl+v粘贴图片...",
     "noData": "暂无数据",
+    "warning": "警告",
     "login": {
       "title": "登录",
       "subtitle": "安全管理系统",
@@ -90,6 +92,8 @@
       "alertTypeStats": "告警类型统计",
       "manual": "手动处理",
       "auto": "自动处理",
+      "autoClosed": "自动关闭",
+      "none": "打开",
       "aiAccuracy": "AI研判正确率",
       "noData": "暂无数据"
     },
@@ -121,6 +125,7 @@
       "alertTitle": "告警标题",
       "riskLevel": "风险等级",
       "status": "状态",
+      "responseTime": "TTA",
       "owner": "责任人",
       "actor": "调查员",
       "searchPlaceholder": "输入关键字后按回车搜索标题...",
@@ -162,6 +167,7 @@
         "alertTypeStats": "告警类型统计",
         "alertTrend": "告警数量趋势",
         "automationClosureRate": "自动化关单率",
+        "alertStatusBySeverity": "告警状态与风险等级分布",
         "past7Days": "过去7天",
         "autoClosed": "自动关闭",
         "totalAlerts": "总关闭数"
@@ -211,7 +217,6 @@
       "editAlert": "编辑告警",
       "convertToIncident": "转事件",
       "convertToVulnerability": "转漏洞",
-      "moreActions": "更多",
       "share": "分享",
       "shareSuccess": "已复制到剪切板",
       "aiAnalysis": "AI-Powered Analysis",
@@ -229,7 +234,7 @@
       "unassigned": "未分配",
       "actor": "调查员",
       "created": "创建时间",
-      "responseTime": "调查时长",
+      "responseTime": "分析时长",
       "addComment": "添加评论...",
       "comments": {
         "title": "评论",
@@ -353,7 +358,10 @@
       "selectSeverity": "请选择严重程度",
       "currentStatus": "当前状态",
       "description": "事件描述",
-      "descriptionPlaceholder": "请输入事件描述"
+      "descriptionPlaceholder": "请输入事件描述",
+      "success": "事件创建成功",
+      "successWithAlerts": "事件创建成功，已关联告警",
+      "error": "事件创建失败，请稍后重试"
     },
     "detail": {
       "title": "事件详情",
@@ -487,6 +495,7 @@
       "disassociate": "解关联",
       "disassociateSuccess": "成功解关联 {count} 条告警",
       "disassociateError": "解关联告警失败，请稍后重试",
+      "associateError": "关联告警失败，请稍后重试",
       "disassociateDialog": {
         "title": "解关联告警",
         "confirmMessage": "请确认是否解关联 {count} 条告警？"

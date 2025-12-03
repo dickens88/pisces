@@ -330,7 +330,16 @@ const fillFormData = () => {
       ? rawSeverity
       : severityToNumber(rawSeverity)
     formData.value.severity = severityNumber ? String(severityNumber) : ''
-    formData.value.description = props.initialData.description || ''
+    // 处理 description 字段：如果是对象，转换为 JSON 字符串；如果是字符串，直接使用
+    if (props.initialData.description) {
+      if (typeof props.initialData.description === 'object' && props.initialData.description !== null) {
+        formData.value.description = JSON.stringify(props.initialData.description, null, 2)
+      } else {
+        formData.value.description = String(props.initialData.description)
+      }
+    } else {
+      formData.value.description = ''
+    }
   } else {
     console.warn('No initial data provided to EditIncidentDialog')
   }

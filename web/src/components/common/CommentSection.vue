@@ -102,7 +102,6 @@
     <div class="border-t border-gray-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/80 rounded-b-lg p-4 shrink-0">
       <CommentInput
         v-model="newCommentText"
-        :placeholder="$t('common.addComment') || 'Add a comment...'"
         :disabled="disabled"
         :loading="loading"
         @submit="handleSubmit"
