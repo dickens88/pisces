@@ -28,45 +28,6 @@
           @change="handleTimeRangeChange"
           @custom-range-change="handleCustomRangeChange"
         />
-        <!-- More actions button -->
-        <div class="relative">
-          <button
-            @click="showMoreMenu = !showMoreMenu"
-            class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
-            :title="$t('common.more')"
-          >
-            <span class="material-symbols-outlined text-base">more_vert</span>
-          </button>
-          <!-- Dropdown menu -->
-          <div
-            v-if="showMoreMenu"
-            class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
-          >
-            <button
-              @click="handleCreateIncident"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
-            >
-              <span class="material-symbols-outlined text-base">add</span>
-              <span>{{ $t('incidents.list.createIncident') }}</span>
-            </button>
-            <button
-              @click="handleCloseSelectedIncident"
-              :disabled="!canCloseSelectedIncident"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
-            >
-              <span class="material-symbols-outlined text-base">archive</span>
-              <span>{{ $t('incidents.detail.closeIncident') }}</span>
-            </button>
-            <button
-              @click="openBatchDeleteDialog"
-              :disabled="selectedIncidents.length === 0"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
-            >
-              <span class="material-symbols-outlined text-base">delete</span>
-              <span>{{ $t('incidents.list.batchDelete') }}</span>
-            </button>
-          </div>
-        </div>
       </div>
     </header>
 
@@ -143,6 +104,45 @@
             <span class="material-symbols-outlined text-base">ios_share</span>
             <span>{{ $t('incidents.list.export') }}</span>
           </button>
+          <!-- More actions button -->
+          <div class="relative">
+            <button
+              @click="showMoreMenu = !showMoreMenu"
+              class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
+              :title="$t('common.more')"
+            >
+              <span class="material-symbols-outlined text-base">more_vert</span>
+            </button>
+            <!-- Dropdown menu -->
+            <div
+              v-if="showMoreMenu"
+              class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+            >
+              <button
+                @click="handleCreateIncident"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>{{ $t('incidents.list.createIncident') }}</span>
+              </button>
+              <button
+                @click="handleCloseSelectedIncident"
+                :disabled="!canCloseSelectedIncident"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">archive</span>
+                <span>{{ $t('incidents.detail.closeIncident') }}</span>
+              </button>
+              <button
+                @click="openBatchDeleteDialog"
+                :disabled="selectedIncidents.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">delete</span>
+                <span>{{ $t('incidents.list.batchDelete') }}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <DataTable
