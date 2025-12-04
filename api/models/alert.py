@@ -165,7 +165,7 @@ class Alert(Base):
             close_reason = None
 
         description = payload.get("description")
-        model_name = description.get("model_name")
+        model_name = description.get("model_name") if description else "UNKNOWN"
         logger.debug("The value of model_name is: %s", model_name)
         is_ai_decision_correct = None
         if handle_status == "Closed":
