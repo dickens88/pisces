@@ -55,7 +55,9 @@ class IncidentService:
         total = data['total']
         for item in data['data']:
             if search_vulscan:
-                if cls.VULSCAN_LABEL not in item['data_object'].get('labels', '-'):
+                if config.get('application.secmaster.asm_workspace_id'):
+                    pass # no need to distinct incident or vulner if it has asm workspace
+                elif cls.VULSCAN_LABEL not in item['data_object'].get('labels', '-'):
                     continue
             else:
                 if cls.VULSCAN_LABEL in item['data_object'].get('labels', '-'):
