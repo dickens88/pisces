@@ -32,7 +32,10 @@
     </header>
 
     <!-- Statistics charts -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+    <section
+      v-if="showCharts"
+      class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6"
+    >
       <!-- Vulnerability trend statistics -->
       <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
         <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
@@ -191,6 +194,25 @@
               v-if="showMoreMenu"
               class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
             >
+              <button
+                @click="handleToggleWordWrap"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ isWordWrap ? 'wrap_text' : 'text_fields' }}
+                </span>
+                <span>{{ isWordWrap ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
+              </button>
+              <button
+                @click="handleToggleChartsVisibility"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ showCharts ? 'monitoring' : 'visibility_off' }}
+                </span>
+                <span>{{ showCharts ? $t('alerts.list.hideCharts') : $t('alerts.list.showCharts') }}</span>
+              </button>
+              <div class="mx-3 my-1 h-px bg-gray-200 dark:bg-[#3b4c65]"></div>
               <button
                 @click="handleCreateVulnerability"
                 class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
@@ -432,6 +454,21 @@ const showCloseVulnerabilityDialog = ref(false)
 const closeVulnerabilityDialogRef = ref(null)
 const isClosingVulnerability = ref(false)
 const authStore = useAuthStore()
+
+// Charts visibility state
+const chartsVisibilityStorageKey = 'vulnerabilities-showCharts-visible'
+const getStoredChartsVisibility = () => {
+  try {
+    const stored = localStorage.getItem(chartsVisibilityStorageKey)
+    if (stored === 'true' || stored === 'false') {
+      return stored === 'true'
+    }
+  } catch (error) {
+    console.warn('Failed to read charts visibility preference:', error)
+  }
+  return true
+}
+const showCharts = ref(getStoredChartsVisibility())
 
 // 从 localStorage 读取保存的搜索关键词
 const getStoredSearchKeywords = () => {
@@ -1016,11 +1053,14 @@ const loadDepartmentData = async () => {
  * @brief 刷新漏洞列表
  */
 const handleRefresh = async () => {
-  await Promise.all([
-    loadVulnerabilities(),
-    loadVulnerabilityTrendBySeverity(),
-    loadDepartmentData()
-  ])
+  const tasks = [loadVulnerabilities()]
+  if (showCharts.value) {
+    tasks.push(
+      loadVulnerabilityTrendBySeverity(),
+      loadDepartmentData()
+    )
+  }
+  await Promise.all(tasks)
 }
 
 // 保存搜索关键词到 localStorage
@@ -1077,6 +1117,44 @@ const handleSelect = (items) => {
 
 const handleSelectAll = (items) => {
   selectedVulnerabilities.value = items.map(vulnerability => vulnerability.id)
+}
+
+const isWordWrap = computed(() => {
+  return dataTableRef.value?.wordWrap?.value ?? true
+})
+
+const handleToggleWordWrap = () => {
+  if (dataTableRef.value) {
+    dataTableRef.value.toggleWordWrap()
+    showMoreMenu.value = false
+  }
+}
+
+const persistChartsVisibilityPreference = (value) => {
+  try {
+    localStorage.setItem(chartsVisibilityStorageKey, value ? 'true' : 'false')
+  } catch (error) {
+    console.warn('Failed to save charts visibility preference:', error)
+  }
+}
+
+const handleToggleChartsVisibility = async () => {
+  const next = !showCharts.value
+  showCharts.value = next
+  persistChartsVisibilityPreference(next)
+  showMoreMenu.value = false
+
+  if (next) {
+    ensureVulnerabilityTrendChart()
+    ensureDepartmentChart()
+    await Promise.all([
+      loadVulnerabilityTrendBySeverity(),
+      loadDepartmentData()
+    ])
+  } else {
+    disposeVulnerabilityTrendChart()
+    disposeDepartmentChart()
+  }
 }
 
 const handlePageSizeChange = (newPageSize) => {
@@ -1146,26 +1224,41 @@ const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
-    loadVulnerabilities()
-    loadVulnerabilityTrendBySeverity()
-    loadDepartmentData()
+    const tasks = [loadVulnerabilities()]
+    if (showCharts.value) {
+      tasks.push(
+        loadVulnerabilityTrendBySeverity(),
+        loadDepartmentData()
+      )
+    }
+    Promise.all(tasks)
   }
 }
 
 const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
-    loadVulnerabilities()
-    loadVulnerabilityTrendBySeverity()
-    loadDepartmentData()
+    const tasks = [loadVulnerabilities()]
+    if (showCharts.value) {
+      tasks.push(
+        loadVulnerabilityTrendBySeverity(),
+        loadDepartmentData()
+      )
+    }
+    Promise.all(tasks)
   }
 }
 
 const handleVulnerabilityCreated = () => {
   // 刷新漏洞列表
-  loadVulnerabilities()
-  loadVulnerabilityTrendBySeverity()
-  loadDepartmentData()
+  const tasks = [loadVulnerabilities()]
+  if (showCharts.value) {
+    tasks.push(
+      loadVulnerabilityTrendBySeverity(),
+      loadDepartmentData()
+    )
+  }
+  Promise.all(tasks)
 }
 
 // Delete confirmation validation
@@ -1219,9 +1312,14 @@ const handleBatchDelete = async () => {
     }
     
     // Reload vulnerability list
-    loadVulnerabilities()
-    loadVulnerabilityTrendBySeverity()
-    loadDepartmentData()
+    const tasks = [loadVulnerabilities()]
+    if (showCharts.value) {
+      tasks.push(
+        loadVulnerabilityTrendBySeverity(),
+        loadDepartmentData()
+      )
+    }
+    Promise.all(tasks)
   } catch (error) {
     console.error('Failed to delete vulnerabilities:', error)
     // 显示错误提示
@@ -1297,8 +1395,12 @@ const handleCloseVulnerability = async (data) => {
     }
     
     await loadVulnerabilities()
-    loadVulnerabilityTrendBySeverity()
-    loadDepartmentData()
+    if (showCharts.value) {
+      await Promise.all([
+        loadVulnerabilityTrendBySeverity(),
+        loadDepartmentData()
+      ])
+    }
   } catch (error) {
     console.error('Failed to close vulnerability:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('vulnerabilities.detail.closeError') || '漏洞关闭失败，请稍后重试'
@@ -1324,10 +1426,12 @@ watch([currentPage, pageSize], () => {
 
 onMounted(() => {
   loadVulnerabilities()
-  loadVulnerabilityTrendBySeverity()
-  loadDepartmentData()
-  ensureVulnerabilityTrendChart()
-  ensureDepartmentChart()
+  if (showCharts.value) {
+    loadVulnerabilityTrendBySeverity()
+    loadDepartmentData()
+    ensureVulnerabilityTrendChart()
+    ensureDepartmentChart()
+  }
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
 })

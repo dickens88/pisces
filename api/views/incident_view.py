@@ -75,7 +75,10 @@ class IncidentView(Resource):
                 incident_id = incident["data"]["data_object"]["id"]
 
                 # 2. create relation between alerts and incident
-                IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
+                try:
+                    IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
+                except Exception as e:
+                    logger.warning(f"[Incident] Fail to associate alerts: {ids} to incident:{incident_id}. error: {e}")
 
                 # 3. close alerts with comment
                 result = AlertService.batch_close_alert(alert_ids=ids,
