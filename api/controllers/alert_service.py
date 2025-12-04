@@ -125,7 +125,7 @@ class AlertService:
         alert = cls.retrieve_alert_by_id(alert_id, workspace_id=workspace_id)
 
         # retrieve comments by current alert ID
-        comment = CommentService.retrieve_comments(alert_id)
+        comment = CommentService.retrieve_comments(alert_id, workspace_id)
 
         # extract key data objects from comment
         alert.update(cls._extract_info_from_comment(comment))
@@ -199,24 +199,6 @@ class AlertService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         payload = {"data_object": update_info}
-        body = json.dumps(payload)
-
-        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
-        if resp.status_code > 300:
-            raise Exception(resp.text)
-
-        return json.loads(resp.text)
-
-    @classmethod
-    def convert_alert_to_incident(cls, alert_ids, workspace_id=None):
-        """Convert alerts to incidents."""
-        ws_id = workspace_id or cls.workspace_id
-        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/batch-order"
-        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
-
-        payload = {
-            "ids": []
-        }
         body = json.dumps(payload)
 
         resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)

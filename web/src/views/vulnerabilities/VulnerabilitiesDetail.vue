@@ -13,6 +13,29 @@
         <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
       </div>
     </div>
+    <!-- 面包屑导航 -->
+    <nav class="mb-5">
+      <ol class="flex items-center gap-2.5 text-sm">
+        <li>
+          <router-link
+            to="/vulnerabilities"
+            class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 font-medium"
+          >
+            <span class="material-symbols-outlined text-base">folder</span>
+            <span>{{ $t('vulnerabilities.title') || '漏洞管理' }}</span>
+          </router-link>
+        </li>
+        <li class="flex items-center text-gray-300 dark:text-gray-600">
+          <span class="material-symbols-outlined text-lg">chevron_right</span>
+        </li>
+        <li class="flex items-center gap-2">
+          <span class="text-gray-400 dark:text-gray-500 font-medium">ID:</span>
+          <span class="text-gray-900 dark:text-white font-semibold font-mono text-sm bg-gray-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-md border border-gray-200 dark:border-slate-600">
+            {{ route.params.id || '--' }}
+          </span>
+        </li>
+      </ol>
+    </nav>
     <!-- 页面标题和操作 -->
     <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
       <div class="flex flex-col gap-2">
@@ -80,7 +103,7 @@
     </header>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
         <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
           {{ $t('vulnerabilities.detail.statusLabel') || 'Status' }}
@@ -124,6 +147,14 @@
         </p>
         <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
           {{ vulnerability?.responsibleDept || vulnerability?.responsible_dept || '-' }}
+        </p>
+      </div>
+      <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
+        <p class="text-gray-600 dark:text-slate-300 text-sm font-medium leading-normal">
+          {{ $t('vulnerabilities.edit.cloudService') || 'Cloud Service' }}
+        </p>
+        <p class="text-gray-900 dark:text-white text-xl font-bold leading-tight">
+          {{ vulnerability?.cloudService || vulnerability?.cloud_service || '-' }}
         </p>
       </div>
       <div class="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-4 bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700">
@@ -495,7 +526,7 @@ const handlePostComment = async ({ comment, files }) => {
       return
     }
     
-    await postComment(vulnerability.value.id, commentText, files || [])
+    await postComment(vulnerability.value.id, commentText, files || [], 'asm')
     
     await loadVulnerabilityDetail()
     
@@ -524,6 +555,16 @@ const getStatusDotClass = (status) => {
     open: 'bg-amber-400',
     block: 'bg-yellow-400',
     closed: 'bg-gray-400'
+  }
+  return classes[statusLower] || classes.open
+}
+
+const getStatusClass = (status) => {
+  const statusLower = (status || '').toLowerCase()
+  const classes = {
+    open: 'bg-primary/20 text-primary',
+    block: 'bg-yellow-500/20 text-yellow-400',
+    closed: 'bg-gray-500/20 text-gray-400'
   }
   return classes[statusLower] || classes.open
 }

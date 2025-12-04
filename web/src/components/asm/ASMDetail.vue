@@ -1159,8 +1159,9 @@ const closeCreateVulnerabilityDialog = () => {
   createVulnerabilityInitialData.value = null
 }
 
-const handleVulnerabilityCreated = () => {
+const handleVulnerabilityCreated = async () => {
   closeCreateVulnerabilityDialog()
+  await loadAlertDetail()
   emit('created')
 }
 
@@ -1258,7 +1259,7 @@ const handleAddComment = async ({ comment, files }) => {
   isSubmittingComment.value = true
   
   try {
-    await postComment(currentAlertId.value, commentText, files || [])
+    await postComment(currentAlertId.value, commentText, files || [], 'asm')
     newComment.value = ''
     await loadAlertDetail(false)
     toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')

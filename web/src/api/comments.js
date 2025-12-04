@@ -5,31 +5,28 @@ import service from './axios.js'
  * @param {string|number} eventId - 事件ID或告警ID
  * @param {string} comment - 评论内容
  * @param {File[]} files - 可选的文件列表
+ * @param {string} workspace - 工作空间（可选，如 'asm'）
  * @returns {Promise} 返回提交结果
  */
-export const postComment = (eventId, comment, files = []) => {
-  // 如果有文件，使用 FormData 上传
+export const postComment = (eventId, comment, files = [], workspace = null) => {
+  const url = workspace ? `/comments?workspace=${encodeURIComponent(workspace)}` : '/comments'
+  
   if (files && files.length > 0) {
     const formData = new FormData()
     formData.append('event_id', eventId)
     formData.append('comment', comment || '')
+    if (workspace) formData.append('workspace', workspace)
+    formData.append('file', files[0])
     
-    // 如果有多个文件，只上传第一个（根据需求可以修改为支持多文件）
-    if (files.length > 0) {
-      formData.append('file', files[0])
-    }
-    
-    return service.post('/comments', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  } else {
-    // 没有文件，使用 JSON 格式
-    return service.post('/comments', {
-      event_id: eventId,
-      comment: comment
+    return service.post(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
   }
+  
+  return service.post(url, {
+    event_id: eventId,
+    comment: comment,
+    ...(workspace && { workspace })
+  })
 }
 

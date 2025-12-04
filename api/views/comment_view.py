@@ -11,6 +11,7 @@ from controllers.comment_service import CommentService
 from models.comment import Comment
 from utils.auth_util import auth_required
 from utils.logger_init import logger
+from utils.common_utils import get_workspace_id
 
 # 文件大小限制：500KB
 MAX_FILE_SIZE = 500 * 1024
@@ -124,18 +125,20 @@ class CommentView(Resource):
     @auth_required
     def post(self, username=None, event_id=None):
         try:
-            # Parse request data
             if 'file' in request.files:
                 # Multipart form data (with file)
                 event_id = request.form.get('event_id')
                 comment = request.form.get('comment', '')
+                workspace = request.form.get('workspace')
                 file = request.files['file']
             else:
                 # JSON data (text only)
                 data = json.loads(request.data)
                 event_id = data['event_id']
                 comment = data['comment']
+                workspace = data.get('workspace')
                 file = None
+            workspace_id = get_workspace_id(workspace)
             
             if not event_id:
                 return {"error_message": "event_id is required"}, 400
@@ -153,7 +156,7 @@ class CommentView(Resource):
                 file_name = sanitized_filename
             
             # Step 1: Create comment via external API
-            result = CommentService.create_comment(event_id=event_id, comment=comment, owner=username)
+            result = CommentService.create_comment(event_id=event_id, comment=comment, owner=username, workspace_id=workspace_id)
             
             # Step 2: Extract comment_id from response
             comment_id = self._extract_comment_id(result)
@@ -184,8 +187,10 @@ class CommentView(Resource):
     def get(self, username=None, event_id=None, comment_id=None):
         try:
             if event_id:
+                workspace_id = get_workspace_id(request.args.get('workspace'))
+                
                 # 获取事件的所有评论
-                data = CommentService.retrieve_comments(event_id=event_id)
+                data = CommentService.retrieve_comments(event_id=event_id, workspace_id=workspace_id)
                 return {"data": data}, 200
             else:
                 return {"error_message": "event_id is required"}, 400

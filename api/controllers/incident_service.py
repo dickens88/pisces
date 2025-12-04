@@ -133,6 +133,7 @@ class IncidentService:
             row['responsible_person'] = extra_info.get('responsible_person')
             row['responsible_dept'] = extra_info.get('responsible_dept')
             row['root_cause'] = extra_info.get('root_cause')
+            row['cloud_service'] = extra_info.get('cloud_service')
             row['category'] = extra_info.get('category')
 
         row["actor"] = row["actor"] if row.get("actor") else row["creator"]

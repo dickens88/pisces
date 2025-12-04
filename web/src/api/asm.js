@@ -204,10 +204,10 @@ export const closeASMItem = (alertId, params) => {
   
   return service.put(`/alerts/${alertId}`, {
     action: 'close',
+    workspace: 'asm',
     data: {
       close_reason: closeReason,
-      close_comment: params.notes || '',
-      workspace: 'asm'
+      close_comment: params.notes || ''
     }
   })
 }
@@ -225,11 +225,11 @@ export const batchCloseASMItems = (alertIds, closeReason, closeComment) => {
   
   const payload = {
     batch_ids: alertIds,
+    workspace: 'asm',
     data_object: {
       handle_status: 'Closed',
       close_reason: mappedCloseReason,
       close_comment: closeComment || '',
-      workspace: 'asm'
     }
   }
   
@@ -240,9 +240,9 @@ export const batchCloseASMItems = (alertIds, closeReason, closeComment) => {
 export const openASMItem = (alertId) => {
   return service.put(`/alerts/${alertId}`, {
     action: 'update',
+    workspace: 'asm',
     data: {
-      handle_status: 'Open',
-      workspace: 'asm'
+      handle_status: 'Open'
     }
   })
 }
@@ -286,9 +286,9 @@ export const updateASMItem = (alertId, data) => {
  */
 export const deleteASMItems = (alertIds) => {
   return service.delete('/alerts', {
+    workspace: 'asm',
     data: {
       batch_ids: alertIds,
-      workspace: 'asm'
     }
   })
 }
