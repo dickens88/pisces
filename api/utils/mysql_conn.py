@@ -12,9 +12,11 @@ engine = create_engine('mysql+pymysql://{0}:{1}@{2}:{3}/{4}?charset=utf8'
                                conf.get('application.mysql.db_host'),
                                conf.get('application.mysql.db_port'),
                                conf.get('application.mysql.db_name')),
-                       pool_size=100,
-                       pool_recycle=90,
-                       max_overflow=20)
+                       pool_size=50,
+                       pool_recycle=300,
+                       max_overflow=20,
+                       pool_pre_ping=True,
+                       pool_timeout=30)
 
 Session = sessionmaker(bind=engine)
 Base = declarative_base()
