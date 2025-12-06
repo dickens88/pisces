@@ -1097,6 +1097,11 @@ const loadAlertDetail = async (showLoading = true) => {
     loadAssociatedAlerts()
     loadToolkits()
     loadToolkitRecords()
+    
+    // 如果当前在 securityAgent tab，且消息为空，添加欢迎消息
+    if (rightSidebarTab.value === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
+      appendWelcomeMessageWithTyping()
+    }
   } catch (error) {
     console.error('Failed to load alert detail:', error)
     emit('close')
@@ -1749,6 +1754,43 @@ const appendToSecurityAgentMessage = (messageId, chunk) => {
   })
 }
 
+// 添加欢迎消息并带有打字机动画效果
+const appendWelcomeMessageWithTyping = () => {
+  const messageId = appendSecurityAgentMessage({
+    author: getSecurityAgentAssistantLabel(),
+    content: '',
+    role: 'assistant',
+    isLocal: true
+  })
+  
+  if (!messageId) return
+  
+  const text = t('alerts.detail.securityAgentWelcomeMessage') || 'Hello! I can help you analyze this alert.'
+  
+  // 根据字符类型获取延迟时间
+  const getDelay = (char) => {
+    if (/[。！？]/.test(char)) return 150
+    if (/[，、；：]/.test(char)) return 80
+    if (/[\u4e00-\u9fa5]/.test(char)) return 50
+    if (char === ' ') return 20
+    if (/[a-zA-Z0-9]/.test(char)) return 25
+    return 30
+  }
+  
+  // 延迟后开始打字机效果
+  setTimeout(() => {
+    let index = 0
+    const typeNext = () => {
+      if (index < text.length) {
+        appendToSecurityAgentMessage(messageId, text[index])
+        setTimeout(typeNext, getDelay(text[index]))
+        index++
+      }
+    }
+    typeNext()
+  }, 500)
+}
+
 const handleRightSidebarAiSend = async (data) => {
   if (!alert.value?.id) {
     const missingAlertMsg = t('alerts.detail.securityAgentSendError') || 'Unable to send message: missing alert context'
@@ -2088,6 +2130,13 @@ watch(currentAlertId, async (newId, oldId) => {
 watch(activeTab, (newTab) => {
   if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value) {
     loadAssociatedAlerts()
+  }
+})
+
+// 监听 securityAgent tab 切换，如果消息为空则添加欢迎消息
+watch(rightSidebarTab, (newTab) => {
+  if (newTab === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
+    appendWelcomeMessageWithTyping()
   }
 })
 
