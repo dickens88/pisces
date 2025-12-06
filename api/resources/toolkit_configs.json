@@ -1,0 +1,161 @@
+{
+  "tools": [
+    {
+      "app_id": "123123",
+      "app_type": "workflow",
+      "title": "Port Scan",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/port-scan",
+        "timeout": 30,
+        "auth": {
+          "type": "api_key",
+          "key_name": "X-API-Key",
+          "key_value": "your-api-key-here"
+        },
+        "headers": {
+          "User-Agent": "Pisces-Toolkit/1.0"
+        },
+        "request_body": {
+          "field_mapping": {
+            "target": {
+              "source": "message",
+              "transform": "to_string"
+            },
+            "scan_type": "full",
+            "timeout": 60
+          }
+        },
+        "response": {
+          "expected_status": [200, 201],
+          "result_path": "data.result",
+          "error_path": "error",
+          "error_message_template": "API调用失败: {error}"
+        }
+      }
+    },
+    {
+      "app_id": "example_bearer_token",
+      "app_type": "workflow",
+      "title": "Example Bearer Token API",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/action",
+        "timeout": 30,
+        "auth": {
+          "type": "bearer_token",
+          "token": "your-bearer-token-here"
+        },
+        "request_body": {
+          "field_mapping": {
+            "command": "message",
+            "options": {
+              "source": "message",
+              "transform": "to_list"
+            }
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data"
+        }
+      }
+    },
+    {
+      "app_id": "example_basic_auth",
+      "app_type": "workflow",
+      "title": "Example Basic Auth API",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/action",
+        "timeout": 30,
+        "auth": {
+          "type": "basic_auth",
+          "username": "your-username",
+          "password": "your-password"
+        },
+        "request_body": {
+          "field_mapping": {
+            "command": "message",
+            "alert_id": "alert_id",
+            "alert_title": "alert_title"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data"
+        }
+      }
+    },
+    {
+      "app_id": "example_custom_auth",
+      "app_type": "workflow",
+      "title": "Example Custom Auth API",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/custom",
+        "timeout": 30,
+        "auth": {
+          "type": "custom",
+          "headers": {
+            "X-Custom-Auth": "custom-token-value"
+          }
+        },
+        "request_body": {
+          "field_mapping": {
+            "action": "message",
+            "alert_id": "alert_id"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "result"
+        }
+      }
+    },
+    {
+      "app_id": "serper_search",
+      "app_type": "workflow",
+      "title": "Serper Google Search",
+      "api": {
+        "method": "POST",
+        "base_url": "https://google.serper.dev",
+        "endpoint": "/search",
+        "timeout": 30,
+        "auth": {
+          "type": "api_key",
+          "key_name": "X-API-KEY",
+          "key_value": "0976f0e8cc50d19500253ca994530e85716ec68f"
+        },
+        "request_body": {
+          "field_mapping": {
+            "q": "message",
+            "gl": {
+              "source": "country",
+              "default": "us"
+            },
+            "hl": {
+              "source": "language",
+              "default": "en"
+            },
+            "num": {
+              "source": "num_results",
+              "default": 10,
+              "transform": "to_int"
+            }
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "organic",
+          "error_path": "error"
+        }
+      }
+    }
+  ]
+}
+

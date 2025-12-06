@@ -388,15 +388,42 @@
           </div>
         </template>
         <template #cell-riskLevel="{ item }">
-          <span
-            :class="[
-              'text-xs font-medium me-2 px-2.5 py-0.5 rounded-full inline-block',
-              getRiskLevelClass(item.riskLevel)
-            ]"
-            :title="$t(`common.severity.${item.riskLevel}`)"
-          >
-            {{ $t(`common.severity.${item.riskLevel}`) }}
-          </span>
+          <div class="flex items-center gap-2">
+            <span
+              :class="[
+                'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[70px]',
+                getRiskLevelClass(item.riskLevel)
+              ]"
+              :title="$t(`common.severity.${item.riskLevel}`)"
+            >
+              {{ $t(`common.severity.${item.riskLevel}`) }}
+            </span>
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
+            <span
+              v-if="item.verification_state === 'True_Positive'"
+              class="material-symbols-outlined text-red-500 flex-shrink-0"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
+            >
+              Input_circle
+            </span>
+            <span
+              v-else-if="item.verification_state === 'False_Positive'"
+              class="material-symbols-outlined text-green-500 flex-shrink-0"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
+            >
+              output_circle
+            </span>
+            <span
+              v-else
+              class="material-symbols-outlined text-gray-400 flex-shrink-0"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
+            >
+              Unknown_5
+            </span>
+          </div>
         </template>
         <template #cell-status="{ item }">
           <span
@@ -410,35 +437,7 @@
             {{ $t(`alerts.list.${item.status}`) }}
           </span>
         </template>
-        <template #cell-aiJudge="{ item }">
-          <div class="flex justify-center items-center w-full">
-            <span
-              v-if="item.verification_state === 'True_Positive'"
-              class="material-symbols-outlined text-red-500"
-              style="font-size: 20px;"
-              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
-            >
-              Input_circle
-            </span>
-            <span
-              v-else-if="item.verification_state === 'False_Positive'"
-              class="material-symbols-outlined text-green-500"
-              style="font-size: 20px;"
-              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
-            >
-              output_circle
-            </span>
-            <span
-              v-else
-              class="material-symbols-outlined text-gray-400"
-              style="font-size: 20px;"
-              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
-            >
-              Unknown_5
-            </span>
-          </div>
-        </template>
-                <template #cell-owner="{ value }">
+        <template #cell-owner="{ value }">
           <div class="flex justify-center w-full">
             <UserAvatar :name="value" />
           </div>
@@ -674,7 +673,6 @@ const columns = computed(() => [
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'status', label: t('alerts.list.status') },
-  { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'responseTime', label: t('alerts.list.responseTime') },
   { key: 'owner', label: t('alerts.list.owner') }
 ])
@@ -684,7 +682,6 @@ const defaultWidths = {
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
-  aiJudge: 80,
   responseTime: 120,
   owner: 50
 }

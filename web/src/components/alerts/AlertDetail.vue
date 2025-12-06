@@ -152,10 +152,11 @@
                       </svg>
                       {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
                     </span>
+                    <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                     <!-- AI研判结果图标 -->
                     <span
                       v-if="alert.verification_state === 'True_Positive'"
-                      class="material-symbols-outlined text-red-500"
+                      class="material-symbols-outlined text-red-500 flex-shrink-0"
                       style="font-size: 20px;"
                       :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
                     >
@@ -163,7 +164,7 @@
                     </span>
                     <span
                       v-else-if="alert.verification_state === 'False_Positive'"
-                      class="material-symbols-outlined text-green-500"
+                      class="material-symbols-outlined text-green-500 flex-shrink-0"
                       style="font-size: 20px;"
                       :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
                     >
@@ -171,7 +172,7 @@
                     </span>
                     <span
                       v-else-if="alert.verification_state === 'Unknown' || !alert.verification_state"
-                      class="material-symbols-outlined text-gray-400"
+                      class="material-symbols-outlined text-gray-400 flex-shrink-0"
                       style="font-size: 20px;"
                       :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
                     >
@@ -474,13 +475,14 @@
                             <div v-for="param in tool.params" :key="param.name">
                               <label class="block text-xs font-medium text-gray-600 dark:text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
                                 {{ param.label }}
+                                <span v-if="param.required !== false" class="text-red-500 ml-1">*</span>
                               </label>
                               <input 
                                 class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
                                 :id="`toolkit-${tool.app_id}-${param.name}`"
-                                :placeholder="`e.g., ${param.label}`"
+                                :placeholder="param.default_value !== undefined && param.default_value !== null ? `默认: ${param.default_value}` : `e.g., ${param.label}`"
                                 type="text" 
-                                :value="toolkitParams[tool.app_id]?.[param.name] || ''"
+                                :value="toolkitParams[tool.app_id]?.[param.name] ?? (param.default_value !== undefined && param.default_value !== null ? param.default_value : '')"
                                 @input="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
                               />
                             </div>
@@ -1170,8 +1172,14 @@ const handleExecuteToolkit = async (tool) => {
   }
 
   const params = toolkitParams.value[tool.app_id] || {}
-  const requiredParams = tool.params || []
-  const missingParams = requiredParams.filter(p => !params[p.name] || params[p.name].trim() === '')
+  const allParams = tool.params || []
+  // 只验证 required 为 true 的参数，如果 required 字段不存在，默认为必填（向后兼容）
+  const requiredParams = allParams.filter(p => p.required !== false)
+  const missingParams = requiredParams.filter(p => {
+    const value = params[p.name]
+    // 如果参数值为空字符串、null 或 undefined，则认为缺失
+    return !value || (typeof value === 'string' && value.trim() === '')
+  })
   
   if (missingParams.length > 0) {
     toast.error(t('alerts.detail.toolkitParamsRequired') || `请填写参数: ${missingParams.map(p => p.label).join(', ')}`)
