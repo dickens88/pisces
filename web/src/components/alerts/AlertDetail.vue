@@ -7,7 +7,7 @@
     >
       <!-- Overlay - displayed directly, no animation -->
       <div 
-        class="fixed inset-0 bg-black/90"
+        class="fixed inset-0 bg-black/75"
         @click="handleClose"
       ></div>
       
@@ -152,6 +152,31 @@
                       </svg>
                       {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
                     </span>
+                    <!-- AI研判结果图标 -->
+                    <span
+                      v-if="alert.verification_state === 'True_Positive'"
+                      class="material-symbols-outlined text-red-500"
+                      style="font-size: 20px;"
+                      :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
+                    >
+                      Input_circle
+                    </span>
+                    <span
+                      v-else-if="alert.verification_state === 'False_Positive'"
+                      class="material-symbols-outlined text-green-500"
+                      style="font-size: 20px;"
+                      :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
+                    >
+                      output_circle
+                    </span>
+                    <span
+                      v-else-if="alert.verification_state === 'Unknown' || !alert.verification_state"
+                      class="material-symbols-outlined text-gray-400"
+                      style="font-size: 20px;"
+                      :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
+                    >
+                      Unknown_5
+                    </span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
@@ -231,22 +256,36 @@
                       >
                         <p class="text-gray-600 dark:text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
                         <div class="flex-1 min-w-0 flex items-center gap-1.5">
-                          <p class="font-medium text-gray-900 dark:text-[#E3E3E3] break-all">
-                            <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
-                            <span v-else>{{ value }}</span>
-                          </p>
-                          <button
-                            v-if="isFieldMatchedWithEntity(key, value)"
-                            @click="handleSendFieldToSecurityAgent(key, value)"
-                            class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
-                            :title="$t('alerts.detail.aiAssistant')"
-                          >
-                            <img 
-                              src="/ai-chat.png" 
-                              :alt="$t('alerts.detail.aiAssistant')" 
-                              class="w-4 h-4"
-                            />
-                          </button>
+                          <!-- 如果是log_analysis且是http(s)链接，渲染成按钮 -->
+                          <template v-if="key === 'log_analysis' && isHttpLink(value)">
+                            <button
+                              @click="openLinkInNewWindow(value)"
+                              class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded-md transition-colors"
+                              :title="value"
+                            >
+                              <span class="material-symbols-outlined text-base">open_in_new</span>
+                              {{ $t('alerts.detail.openLogAnalysis')}}
+                            </button>
+                          </template>
+                          <!-- 其他情况正常显示 -->
+                          <template v-else>
+                            <p class="font-medium text-gray-900 dark:text-[#E3E3E3] break-all">
+                              <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
+                              <span v-else>{{ value }}</span>
+                            </p>
+                            <button
+                              v-if="isFieldMatchedWithEntity(key, value)"
+                              @click="handleSendFieldToSecurityAgent(key, value)"
+                              class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
+                              :title="$t('alerts.detail.aiAssistant')"
+                            >
+                              <img 
+                                src="/ai-chat.png" 
+                                :alt="$t('alerts.detail.aiAssistant')" 
+                                class="w-4 h-4"
+                              />
+                            </button>
+                          </template>
                         </div>
                       </div>
                     </template>
@@ -1020,6 +1059,7 @@ const transformAlertDetailData = (apiData) => {
     close_comment: apiData.close_comment,
     responseTime: normalizedTtr,
     ttd: apiData.ttd,
+    verification_state: apiData.verification_state,
     description: description,
     extend_properties: extendProperties,
     ruleName: ruleName,
@@ -1918,6 +1958,31 @@ const handleSendEntityToSecurityAgent = (entity) => {
       securityAgentChatRef.value.setMessage(message)
     }
   }, 100)
+}
+
+// 检查字符串是否是http(s)链接
+const isHttpLink = (value) => {
+  if (!value) {
+    return false
+  }
+  // 将值转换为字符串进行检查
+  const valueStr = String(value).trim()
+  if (!valueStr) {
+    return false
+  }
+  // 检查是否是http或https链接
+  return /^https?:\/\/.+/.test(valueStr)
+}
+
+// 在新窗口打开链接
+const openLinkInNewWindow = (url) => {
+  if (!url || typeof url !== 'string') {
+    return
+  }
+  const trimmed = url.trim()
+  if (isHttpLink(trimmed)) {
+    window.open(trimmed, '_blank', 'noopener,noreferrer')
+  }
 }
 
 const getRiskLevelClass = (level) => {

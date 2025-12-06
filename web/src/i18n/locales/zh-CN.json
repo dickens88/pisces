@@ -126,6 +126,13 @@
       "alertTitle": "告警标题",
       "riskLevel": "风险等级",
       "status": "状态",
+      "aiJudge": "AI研判",
+      "allAiJudge": "AI研判",
+      "aiJudgeResult": {
+        "truePositive": "可疑",
+        "falsePositive": "误报",
+        "unknown": "未知"
+      },
       "responseTime": "TTA",
       "owner": "责任人",
       "actor": "调查员",
@@ -276,7 +283,8 @@
       "result": "结果",
       "error": "错误",
       "system": "系统",
-      "noToolkitsAvailable": "暂无可用工具"
+      "noToolkitsAvailable": "暂无可用工具",
+      "openLogAnalysis": "在Kibana检索"
     }
   },
   "incidents": {

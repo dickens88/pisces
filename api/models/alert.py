@@ -40,6 +40,8 @@ class Alert(Base):
 
     tta = Column(Integer(), default=0)
 
+    verification_state = Column(String(50))
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -56,7 +58,8 @@ class Alert(Base):
             "close_comment": self.close_comment,
             "is_auto_closed": self.is_auto_closed,
             "data_source_product_name": self.data_source_product_name,
-            "tta": self.tta
+            "tta": self.tta,
+            "verification_state": self.verification_state
         }
 
     @classmethod
@@ -88,6 +91,7 @@ class Alert(Base):
                 alert.model_name = new_alert_entity.model_name
                 alert.is_ai_decision_correct = new_alert_entity.is_ai_decision_correct
                 alert.tta = new_alert_entity.tta
+                alert.verification_state = new_alert_entity.verification_state
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -215,4 +219,5 @@ class Alert(Base):
             model_name=model_name,
             is_ai_decision_correct = is_ai_decision_correct,
             tta=tta,
+            verification_state=payload.get("verification_state"),
         )

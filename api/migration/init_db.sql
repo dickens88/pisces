@@ -20,6 +20,7 @@ CREATE TABLE `t_alerts` (
   `is_auto_closed` varchar(50) DEFAULT NULL,
   `is_ai_decision_correct` int DEFAULT NULL,
   `tta` int DEFAULT 0 COMMENT 'Time To Acknowledge (seconds)',
+  `verification_state` varchar(50) DEFAULT NULL COMMENT 'AI研判结果：True_Positive(可疑), False_Positive(误报), Unknown(未知)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `alert_id_UNIQUE` (`alert_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2002 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='告警表';

@@ -306,6 +306,7 @@ class IncidentService:
             "creator": db_alert.get('creator'),
             "ttr": '-',  # Not stored in database
             "data_source_product_name": db_alert.get('data_source_product_name'),
+            "verification_state": db_alert.get('verification_state'),
             "description": description
         }
 

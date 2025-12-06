@@ -69,6 +69,7 @@ class AlertService:
                 "creator": item['data_object']['creator'],
                 "ttr": item['data_object'].get('ttr'),
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
+                "verification_state": item['data_object'].get('verification_state'),
             }
             row["actor"] = row["actor"] if row["actor"] else row["owner"]
             result.append(row)
@@ -107,6 +108,7 @@ class AlertService:
             "creator": item['data_object']['creator'],
             "ttr": item['data_object'].get('ttr'),
             "data_source_product_name": item['data_object']['data_source']['product_name'],
+            "verification_state": item['data_object'].get('verification_state'),
         }
         alert_content["actor"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
         try:

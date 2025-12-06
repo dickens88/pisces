@@ -126,6 +126,13 @@
       "alertTitle": "Alert Title",
       "riskLevel": "Risk Level",
       "status": "Status",
+      "aiJudge": "AI Judge",
+      "allAiJudge": "AI Judge",
+      "aiJudgeResult": {
+        "truePositive": "Suspicious",
+        "falsePositive": "False Positive",
+        "unknown": "Unknown"
+      },
       "responseTime": "TTA",
       "owner": "Owner",
       "actor": "Actor",
@@ -278,7 +285,8 @@
       "result": "Result",
       "error": "Error",
       "system": "System",
-      "noToolkitsAvailable": "No toolkits available"
+      "noToolkitsAvailable": "No toolkits available",
+      "openLogAnalysis": "Search in Kibana"
     }
   },
   "incidents": {

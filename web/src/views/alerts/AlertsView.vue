@@ -217,16 +217,31 @@
             />
           </div>
         </div>
-        <div class="relative">
+        <div class="relative min-w-[140px] max-w-[12rem]">
           <select
             v-model="statusFilter"
             @change="handleFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm min-w-[120px]"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
           >
             <option value="all">{{ $t('alerts.list.allStatus') }}</option>
             <option value="open">{{ $t('alerts.list.open') }}</option>
             <option value="block">{{ $t('alerts.list.block') }}</option>
             <option value="closed">{{ $t('alerts.list.closed') }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+          </div>
+        </div>
+        <div class="relative min-w-[140px] max-w-[12rem]">
+          <select
+            v-model="aiJudgeFilter"
+            @change="handleAiJudgeFilter"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+          >
+            <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
+            <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
+            <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
+            <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
           </select>
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
             <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
@@ -394,6 +409,34 @@
             <span :class="['size-1.5 rounded-full', getStatusDotClass(item.status)]"></span>
             {{ $t(`alerts.list.${item.status}`) }}
           </span>
+        </template>
+        <template #cell-aiJudge="{ item }">
+          <div class="flex justify-center items-center w-full">
+            <span
+              v-if="item.verification_state === 'True_Positive'"
+              class="material-symbols-outlined text-red-500"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
+            >
+              Input_circle
+            </span>
+            <span
+              v-else-if="item.verification_state === 'False_Positive'"
+              class="material-symbols-outlined text-green-500"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
+            >
+              output_circle
+            </span>
+            <span
+              v-else
+              class="material-symbols-outlined text-gray-400"
+              style="font-size: 20px;"
+              :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
+            >
+              Unknown_5
+            </span>
+          </div>
         </template>
                 <template #cell-owner="{ value }">
           <div class="flex justify-center w-full">
@@ -631,6 +674,7 @@ const columns = computed(() => [
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'status', label: t('alerts.list.status') },
+  { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'responseTime', label: t('alerts.list.responseTime') },
   { key: 'owner', label: t('alerts.list.owner') }
 ])
@@ -640,6 +684,7 @@ const defaultWidths = {
   alertTitle: 400,
   riskLevel: 120,
   status: 120,
+  aiJudge: 80,
   responseTime: 120,
   owner: 50
 }
@@ -706,6 +751,15 @@ const getStoredStatusFilter = () => {
   return 'all'
 }
 const statusFilter = ref(getStoredStatusFilter())
+
+const getStoredAiJudgeFilter = () => {
+  const stored = localStorage.getItem('alerts-ai-judge-filter')
+    if (stored && ['all', 'True_Positive', 'False_Positive', 'Unknown'].includes(stored)) {
+      return stored
+    }
+  return 'all'
+}
+const aiJudgeFilter = ref(getStoredAiJudgeFilter())
 
 const getStoredAlertFilterMode = () => {
   try {
@@ -1317,6 +1371,10 @@ const loadAlerts = async () => {
       params.owner = ownerSearch.value.trim()
     }
     
+    if (aiJudgeFilter.value && aiJudgeFilter.value !== 'all') {
+      params.verificationState = aiJudgeFilter.value
+    }
+    
     const range = computeSelectedRange()
     if (range) {
       params.startTime = range.start
@@ -1340,6 +1398,7 @@ const loadAlerts = async () => {
         responseTime: normalizedTtr
       }
     })
+    
     total.value = response.total
     
   } catch (error) {
@@ -1466,6 +1525,15 @@ const handleFilter = () => {
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
   loadAlertStatusBySeverity()
+}
+
+const handleAiJudgeFilter = () => {
+  try {
+    localStorage.setItem('alerts-ai-judge-filter', aiJudgeFilter.value)
+  } catch (error) {
+    console.warn('Failed to save AI judge filter to localStorage:', error)
+  }
+  reloadAlertsFromFirstPage()
 }
 
 watch(alertFilterMode, (newMode) => {
