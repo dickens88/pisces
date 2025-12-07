@@ -151,7 +151,7 @@
         },
         "response": {
           "expected_status": [200],
-          "result_path": "organic",
+          "result_path": "organic.0.snippet",
           "error_path": "error"
         }
       }

@@ -518,15 +518,8 @@
                               </span>
                               <div>
                                 <p class="font-medium text-gray-900 dark:text-white text-sm">{{ record.title }}</p>
-                                <p :class="[
-                                  'text-xs',
-                                  record.status === 'completed' && 'text-green-600 dark:text-green-300/80',
-                                  record.status === 'running' && 'text-yellow-600 dark:text-yellow-300/80',
-                                  record.status === 'failed' && 'text-red-600 dark:text-red-300/80'
-                                ]">
-                                  {{ record.status === 'completed' ? $t('alerts.detail.toolkitStatusSuccess') : 
-                                     record.status === 'running' ? $t('alerts.detail.toolkitStatusInProgress') : 
-                                     $t('alerts.detail.toolkitStatusFailed') }}
+                                <p class="text-xs text-gray-600 dark:text-text-light">
+                                  {{ formatDateTime(record.create_time) }}
                                 </p>
                               </div>
                             </div>
@@ -1223,12 +1216,23 @@ const formatToolkitResult = (result) => {
   if (typeof result === 'string') {
     try {
       if (result.startsWith('{')) {
-        return JSON.stringify(JSON.parse(result), null, 2)
+        const parsed = JSON.parse(result)
+        // Extract only the 'data' field if it exists
+        if (parsed && typeof parsed === 'object' && 'data' in parsed) {
+          const data = parsed.data
+          return typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data)
+        }
+        return JSON.stringify(parsed, null, 2)
       }
       return result
     } catch {
       return result
     }
+  }
+  // If result is already an object, extract data field
+  if (result && typeof result === 'object' && 'data' in result) {
+    const data = result.data
+    return typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data)
   }
   return String(result)
 }
