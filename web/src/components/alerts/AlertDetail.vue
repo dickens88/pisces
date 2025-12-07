@@ -1214,29 +1214,61 @@ const updateToolkitParam = (appId, paramName, value) => {
   toolkitParams.value[appId][paramName] = value
 }
 
+const formatObjectAsKeyValue = (obj, indent = 0) => {
+  if (obj === null || obj === undefined) return String(obj)
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]'
+    return obj.map((item, index) => {
+      const prefix = '  '.repeat(indent)
+      if (typeof item === 'object' && item !== null) {
+        return `${prefix}${index}:\n${formatObjectAsKeyValue(item, indent + 1)}`
+      }
+      return `${prefix}${index}: ${String(item).replace(/\\n/g, '\n')}`
+    }).join('\n')
+  }
+  
+  if (typeof obj === 'object') {
+    const entries = Object.entries(obj)
+    if (entries.length === 0) return '{}'
+    return entries.map(([key, value]) => {
+      const prefix = '  '.repeat(indent)
+      if (typeof value === 'object' && value !== null) {
+        return `${prefix}${key}:\n${formatObjectAsKeyValue(value, indent + 1)}`
+      }
+      return `${prefix}${key}: ${String(value).replace(/\\n/g, '\n')}`
+    }).join('\n')
+  }
+  
+  return String(obj).replace(/\\n/g, '\n')
+}
+
 const formatToolkitResult = (result) => {
   if (typeof result === 'string') {
     try {
-      if (result.startsWith('{')) {
+      const trimmed = result.trim()
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
         const parsed = JSON.parse(result)
-        // Extract only the 'data' field if it exists
-        if (parsed && typeof parsed === 'object' && 'data' in parsed) {
-          const data = parsed.data
-          return typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data)
+        if (parsed && typeof parsed === 'object') {
+          const dataToFormat = parsed.data ?? parsed
+          return typeof dataToFormat === 'object' 
+            ? formatObjectAsKeyValue(dataToFormat)
+            : String(dataToFormat).replace(/\\n/g, '\n')
         }
-        return JSON.stringify(parsed, null, 2)
       }
-      return result
     } catch {
-      return result
     }
+    return result.replace(/\\n/g, '\n')
   }
-  // If result is already an object, extract data field
-  if (result && typeof result === 'object' && 'data' in result) {
-    const data = result.data
-    return typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data)
+  
+  if (result && typeof result === 'object') {
+    const data = result.data ?? result
+    return typeof data === 'object' 
+      ? formatObjectAsKeyValue(data)
+      : String(data).replace(/\\n/g, '\n')
   }
-  return String(result)
+  
+  return String(result).replace(/\\n/g, '\n')
 }
 
 const handleClose = async () => {

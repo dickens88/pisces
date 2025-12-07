@@ -8,7 +8,7 @@ const config = getAppConfig(import.meta.env, import.meta.env.PROD)
 // Create axios instance
 const service = axios.create({
   baseURL: config.apiBaseURL,
-  timeout: 30000,
+  timeout: 300000,
   headers: {
     'Content-Type': 'application/json'
   }
