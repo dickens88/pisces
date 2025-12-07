@@ -299,11 +299,11 @@ class AlertService:
             if not value:
                 continue
 
-            if "ip" in key_lower and not "num" in key_lower:
+            if "ip" in key_lower and not "num" in key_lower and len(value) > 6:
                 entities.append({"type": "ip", "name": str(value), "from": key_lower})
             elif "host" in key_lower:
                 entities.append({"type": "host", "name": str(value), "from": key_lower})
-            elif "domain" in key_lower:
+            elif "domain" in key_lower and len(value) > 2:
                 entities.append({"type": "domain", "name": str(value), "from": key_lower})
 
         return entities

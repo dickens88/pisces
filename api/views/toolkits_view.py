@@ -40,7 +40,7 @@ def _extract_params_from_field_mapping(field_mapping):
     return params
 
 
-def _build_tool_from_config(toolkit_config):
+def _build_tool_from_config(toolkit_config, username=None):
     """Build tool object from toolkit_config"""
     tool = {
         "app_id": toolkit_config.get("app_id"),
@@ -50,6 +50,14 @@ def _build_tool_from_config(toolkit_config):
     
     field_mapping = toolkit_config.get("api", {}).get("request_body", {}).get("field_mapping", {})
     tool["params"] = _extract_params_from_field_mapping(field_mapping)
+    
+    # Auto-set default value for username parameter from current user
+    if username:
+        for param in tool["params"]:
+            if param.get("name") == "username":
+                param["default_value"] = username
+                param["required"] = False
+                break
     
     return tool
 
@@ -64,7 +72,7 @@ class ToolkitsView(Resource):
             
             tools = []
             for toolkit_config in all_configs.get("tools", []):
-                tool = _build_tool_from_config(toolkit_config)
+                tool = _build_tool_from_config(toolkit_config, username)
                 tools.append(tool)
             
             return {"tools": tools}, 200
