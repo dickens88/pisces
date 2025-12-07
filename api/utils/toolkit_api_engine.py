@@ -91,7 +91,15 @@ class ToolkitAPIEngine:
         body = {}
         for target_field, mapping_config in field_mapping.items():
             if isinstance(mapping_config, str):
-                body[target_field] = params.get(mapping_config)
+                # If string exists in params, use it as param name; otherwise use as fixed value
+                if mapping_config in params:
+                    value = params.get(mapping_config)
+                else:
+                    value = mapping_config
+                if "." in target_field:
+                    self._set_nested_field(body, target_field, value)
+                else:
+                    body[target_field] = value
             elif isinstance(mapping_config, dict):
                 source_field = mapping_config.get("source", mapping_config.get("from"))
                 default_value = mapping_config.get("default")
@@ -107,7 +115,10 @@ class ToolkitAPIEngine:
                 else:
                     body[target_field] = value
             else:
-                body[target_field] = mapping_config
+                if "." in target_field:
+                    self._set_nested_field(body, target_field, mapping_config)
+                else:
+                    body[target_field] = mapping_config
         
         return body
     

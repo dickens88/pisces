@@ -1084,12 +1084,14 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const response = await getAlertDetail(currentAlertId.value)
+    const [response] = await Promise.all([
+      getAlertDetail(currentAlertId.value),
+      loadToolkits(),
+      loadToolkitRecords()
+    ])
     alert.value = transformAlertDetailData(response.data)
     securityAgentMessages.value = []
     loadAssociatedAlerts()
-    loadToolkits()
-    loadToolkitRecords()
     
     // 如果当前在 securityAgent tab，且消息为空，添加欢迎消息
     if (rightSidebarTab.value === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
