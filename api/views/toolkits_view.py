@@ -9,37 +9,49 @@ from utils.logger_init import logger
 from utils.toolkit_api_engine import call_toolkit_api, load_toolkit_config
 
 
-def _get_param_mapping_info(field_mapping, param_name):
-    """从 field_mapping 中查找参数映射信息，返回 (source_field, default_value)"""
-    for mapping_config in field_mapping.values():
-        if isinstance(mapping_config, str):
-            if mapping_config == param_name:
-                return param_name, None
-        elif isinstance(mapping_config, dict):
-            source = mapping_config.get("source") or mapping_config.get("from")
-            if source == param_name:
-                return param_name, mapping_config.get("default")
-    return None, None
-
-
-def _enrich_tool_params(tool, toolkit_config):
-    """为工具参数添加 required 和 default_value 字段"""
-    field_mapping = toolkit_config.get("api", {}).get("request_body", {}).get("field_mapping", {})
+def _extract_params_from_field_mapping(field_mapping):
+    """Extract params from field_mapping configuration"""
+    params = []
+    seen_params = set()
     
-    for param in tool.get("params", []):
-        param_name = param.get("name")
-        if not param_name:
-            param["required"] = True
-            continue
+    for target_field, mapping_config in field_mapping.items():
+        param_name = None
+        default_value = None
+        required = True
         
-        source_field, default_value = _get_param_mapping_info(field_mapping, param_name)
+        if isinstance(mapping_config, str):
+            param_name = mapping_config
+        elif isinstance(mapping_config, dict):
+            param_name = mapping_config.get("source") or mapping_config.get("from")
+            default_value = mapping_config.get("default")
+            required = default_value is None
         
-        if source_field:
-            param["required"] = default_value is None
+        if param_name and param_name not in seen_params:
+            seen_params.add(param_name)
+            param = {
+                "name": param_name,
+                "label": param_name.replace("_", " ").title()
+            }
             if default_value is not None:
                 param["default_value"] = default_value
-        else:
-            param["required"] = True
+            param["required"] = required
+            params.append(param)
+    
+    return params
+
+
+def _build_tool_from_config(toolkit_config):
+    """Build tool object from toolkit_config"""
+    tool = {
+        "app_id": toolkit_config.get("app_id"),
+        "app_type": toolkit_config.get("app_type"),
+        "title": toolkit_config.get("title")
+    }
+    
+    field_mapping = toolkit_config.get("api", {}).get("request_body", {}).get("field_mapping", {})
+    tool["params"] = _extract_params_from_field_mapping(field_mapping)
+    
+    return tool
 
 
 class ToolkitsView(Resource):
@@ -47,22 +59,15 @@ class ToolkitsView(Resource):
     @auth_required
     def get(self, username=None):
         try:
-            with open("resources/response_toolkits.json", "r", encoding="utf-8") as f:
-                toolkits_data = json.loads(f.read())
+            with open("resources/toolkit_configs.json", "r", encoding="utf-8") as f:
+                all_configs = json.load(f)
             
-            for tool in toolkits_data.get("tools", []):
-                app_id = tool.get("app_id")
-                if not app_id:
-                    continue
-                
-                toolkit_config = load_toolkit_config(app_id)
-                if toolkit_config:
-                    _enrich_tool_params(tool, toolkit_config)
-                else:
-                    for param in tool.get("params", []):
-                        param.setdefault("required", True)
+            tools = []
+            for toolkit_config in all_configs.get("tools", []):
+                tool = _build_tool_from_config(toolkit_config)
+                tools.append(tool)
             
-            return toolkits_data, 200
+            return {"tools": tools}, 200
         except Exception as e:
             logger.exception(e)
             return {"message": str(e)}, 500
