@@ -1,6 +1,57 @@
 {
   "tools": [
     {
+      "app_id": "echo_screenshot",
+      "title": "网页拍照识别",
+      "api": {
+        "method": "POST",
+        "base_url": "https://sectools.cloudbu.huawei.com:9443",
+        "endpoint": "/v1/workflows/run",
+        "timeout": 30,
+        "auth": {
+          "type": "bearer_token",
+          "token": "app-xSgDv5cA67o63ZoKcvI0czcW"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.url": "url",
+            "user": "username"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data.outputs",
+          "error_path": "data.error"
+        }
+      }
+    },
+    {
+      "app_id": "echo_nmap",
+      "title": "IP端口指纹识别",
+      "api": {
+        "method": "POST",
+        "base_url": "https://sectools.cloudbu.huawei.com:9443",
+        "endpoint": "/v1/workflows/run",
+        "timeout": 30,
+        "auth": {
+          "type": "bearer_token",
+          "token": "app-RJs2ZMuwX5rAzXx5NHHYeOi2"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.url": "ip",
+            "inputs.port": "port",
+            "user": "username"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data.outputs",
+          "error_path": "data.error"
+        }
+      }
+    },
+    {
       "app_id": "serper_search",
       "app_type": "workflow",
       "title": "Serper Google Search",
