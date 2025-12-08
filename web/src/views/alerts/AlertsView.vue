@@ -439,7 +439,7 @@
         </template>
         <template #cell-actor="{ value, item }">
           <div class="flex justify-center w-full">
-            <UserAvatar :name="value || item?.owner" />
+            <UserAvatar :name="value" />
           </div>
         </template>
       </DataTable>
