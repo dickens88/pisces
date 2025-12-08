@@ -167,21 +167,24 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-3 p-4 border-b border-[#324867]">
-        <div class="relative w-[20%] min-w-[200px] max-w-sm">
-          <div class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+        <div class="relative w-[30%] min-w-[300px] max-w-lg">
+          <div 
+            class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
+            @click="showFieldMenu = !currentField.value"
+          >
             <div class="pointer-events-none flex items-center shrink-0 pt-[2px]">
               <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
             </div>
             <div class="flex flex-1 flex-wrap items-center gap-2 max-h-32 overflow-y-auto pr-1">
               <!-- Search keyword tags -->
               <div
-                v-for="(keyword, index) in searchKeywords"
+                v-for="(keywordObj, index) in searchKeywords"
                 :key="index"
                 class="flex items-center gap-1 px-2 py-1 bg-primary/20 text-primary rounded text-sm max-w-full min-w-0"
               >
-                <span class="min-w-0 break-all">{{ keyword }}</span>
+                <span class="min-w-0 break-all">{{ getFieldLabel(keywordObj.field) }}: {{ keywordObj.value }}</span>
                 <button
-                  @click="removeKeyword(index)"
+                  @click.stop="removeKeyword(index)"
                   class="flex items-center justify-center hover:text-primary/70 transition-colors ml-0.5"
                   type="button"
                   :aria-label="$t('common.delete')"
@@ -191,45 +194,33 @@
               </div>
               <!-- Input field -->
               <input
-                v-model="currentSearchInput"
+                v-model="displaySearchInput"
                 @keydown.enter.prevent="addKeyword"
                 @keydown.backspace="handleKeywordDeleteKey"
-                @input="handleSearchInput"
+                @focus="showFieldMenu = !currentField.value"
+                @blur="handleSearchBlur"
                 class="flex-1 min-w-[120px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-                :placeholder="searchKeywords.length === 0 ? $t('alerts.list.searchPlaceholder') : ''"
+                :placeholder="getSearchPlaceholder()"
                 type="text"
+                ref="searchInputRef"
               />
             </div>
           </div>
-        </div>
-        <div class="relative min-w-[140px] max-w-[12rem]">
-          <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-              <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person</span>
-            </div>
-            <input
-              v-model="ownerSearch"
-              @keydown.enter.prevent="handleOwnerSearch"
-              @input="handleOwnerSearchInput"
-              class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-              :placeholder="$t('alerts.list.ownerSearchPlaceholder')"
-              type="text"
-            />
-          </div>
-        </div>
-        <div class="relative min-w-[140px] max-w-[12rem]">
-          <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
-              <div class="pointer-events-none flex items-center shrink-0">
-              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person_search</span>
-            </div>
-            <input
-              v-model="actorSearch"
-              @keydown.enter.prevent="handleActorSearch"
-              @input="handleActorSearchInput"
-              class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-              :placeholder="$t('alerts.list.actorSearchPlaceholder')"
-              type="text"
-            />
+          <!-- Field selection menu -->
+          <div
+            v-if="showFieldMenu && !currentField"
+            class="absolute left-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+            @mousedown.prevent
+          >
+            <button
+              v-for="field in searchFields"
+              :key="field.value"
+              @click="selectField(field.value)"
+              class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+            >
+              <span class="material-symbols-outlined text-base">{{ field.icon }}</span>
+              <span>{{ field.label }}</span>
+            </button>
           </div>
         </div>
         <div class="relative min-w-[140px] max-w-[12rem]">
@@ -722,8 +713,15 @@ const getStoredSearchKeywords = () => {
     const stored = localStorage.getItem('alerts-searchKeywords')
     if (stored) {
       const parsed = JSON.parse(stored)
-      if (Array.isArray(parsed) && parsed.every(k => typeof k === 'string')) {
-        return parsed
+      // Support both old format (string array) and new format (object array)
+      if (Array.isArray(parsed)) {
+        if (parsed.length > 0 && typeof parsed[0] === 'string') {
+          // Old format: convert to new format
+          return parsed.map(k => ({ field: 'title', value: k }))
+        } else if (parsed.every(k => k && typeof k === 'object' && k.field && k.value)) {
+          // New format
+          return parsed
+        }
       }
     }
   } catch (error) {
@@ -734,8 +732,55 @@ const getStoredSearchKeywords = () => {
 
 const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
-const ownerSearch = ref('')
-const actorSearch = ref('')
+const currentField = ref('')
+const showFieldMenu = ref(false)
+const searchInputRef = ref(null)
+
+const searchFields = computed(() => [
+  { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
+  { value: 'creator', label: t('alerts.list.owner'), icon: 'person' },
+  { value: 'actor', label: t('alerts.list.actor'), icon: 'person_search' }
+])
+
+const getFieldLabel = (field) => {
+  const fieldObj = searchFields.value.find(f => f.value === field)
+  return fieldObj ? fieldObj.label : field
+}
+
+// Computed property to display field prefix in input
+const displaySearchInput = computed({
+  get() {
+    if (currentField.value) {
+      const fieldObj = searchFields.value.find(f => f.value === currentField.value)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${currentField.value}: `
+      return prefix + currentSearchInput.value
+    }
+    return currentSearchInput.value
+  },
+  set(value) {
+    if (currentField.value) {
+      const fieldObj = searchFields.value.find(f => f.value === currentField.value)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${currentField.value}: `
+      if (value.startsWith(prefix)) {
+        currentSearchInput.value = value.slice(prefix.length)
+      } else {
+        // If user deleted the prefix, clear the field
+        currentField.value = ''
+        currentSearchInput.value = value
+      }
+    } else {
+      currentSearchInput.value = value
+    }
+  }
+})
+
+const getSearchPlaceholder = () => {
+  // Only show placeholder when no field is selected
+  if (!currentField.value) {
+    return searchKeywords.value.length === 0 ? (t('alerts.list.searchPlaceholder') || '点击选择搜索字段...') : ''
+  }
+  return ''
+}
 
 const getStoredStatusFilter = () => {
   try {
@@ -1356,14 +1401,6 @@ const loadAlerts = async () => {
       risk_mode: alertFilterMode.value
     }
     
-    if (ownerSearch.value && ownerSearch.value.trim()) {
-      params.owner = ownerSearch.value.trim()
-    }
-    
-    if (actorSearch.value && actorSearch.value.trim()) {
-      params.actor = actorSearch.value.trim()
-    }
-    
     const range = computeSelectedRange()
     if (range) {
       params.startTime = range.start
@@ -1480,11 +1517,22 @@ const saveSearchKeywords = () => {
 
 const addKeyword = () => {
   const keyword = currentSearchInput.value.trim()
-  if (keyword && !searchKeywords.value.includes(keyword)) {
-    searchKeywords.value.push(keyword)
-    currentSearchInput.value = ''
-    saveSearchKeywords()
-    reloadAlertsFromFirstPage()
+  if (keyword) {
+    // If no field selected, default to 'title'
+    const field = currentField.value || 'title'
+    
+    // Check if this exact field:value combination already exists
+    const exists = searchKeywords.value.some(
+      k => k.field === field && k.value === keyword
+    )
+    
+    if (!exists) {
+      searchKeywords.value.push({ field, value: keyword })
+      currentSearchInput.value = ''
+      currentField.value = ''
+      saveSearchKeywords()
+      reloadAlertsFromFirstPage()
+    }
   }
 }
 
@@ -1495,30 +1543,51 @@ const removeKeyword = (index) => {
 }
 
 const handleKeywordDeleteKey = (event) => {
-  if (event.key === 'Backspace' && !currentSearchInput.value && searchKeywords.value.length > 0) {
-    event.preventDefault()
-    removeKeyword(searchKeywords.value.length - 1)
+  if (event.key === 'Backspace') {
+    if (!currentSearchInput.value && searchKeywords.value.length > 0) {
+      event.preventDefault()
+      removeKeyword(searchKeywords.value.length - 1)
+    } else if (!currentSearchInput.value && currentField.value) {
+      event.preventDefault()
+      currentField.value = ''
+    } else if (currentField.value && currentSearchInput.value) {
+      const fieldObj = searchFields.value.find(f => f.value === currentField.value)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${currentField.value}: `
+      const cursorPos = event.target.selectionStart || 0
+      if (cursorPos <= prefix.length) {
+        event.preventDefault()
+        currentField.value = ''
+        currentSearchInput.value = ''
+      }
+    }
   }
 }
 
-const handleOwnerSearch = () => {
-  reloadAlertsFromFirstPage()
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    if (!currentField.value && !currentSearchInput.value) {
+      showFieldMenu.value = false
+    }
+  }, 200)
 }
 
-const handleOwnerSearchInput = () => {
-  if (!ownerSearch.value.trim()) {
-    reloadAlertsFromFirstPage()
-  }
-}
-
-const handleActorSearch = () => {
-  reloadAlertsFromFirstPage()
-}
-
-const handleActorSearchInput = () => {
-  if (!actorSearch.value.trim()) {
-    reloadAlertsFromFirstPage()
-  }
+const selectField = (field) => {
+  currentField.value = field
+  currentSearchInput.value = ''
+  showFieldMenu.value = false
+  // Focus the input after selecting field
+  nextTick(() => {
+    if (searchInputRef.value) {
+      searchInputRef.value.focus()
+      // Set cursor position after the prefix
+      const fieldObj = searchFields.value.find(f => f.value === field)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${field}: `
+      const input = searchInputRef.value
+      if (input.setSelectionRange) {
+        input.setSelectionRange(prefix.length, prefix.length)
+      }
+    }
+  })
 }
 
 const handleFilter = () => {

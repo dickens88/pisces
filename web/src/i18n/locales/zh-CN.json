@@ -136,7 +136,7 @@
       "responseTime": "TTA",
       "owner": "责任人",
       "actor": "调查员",
-      "searchPlaceholder": "输入关键字后按回车搜索标题...",
+      "searchPlaceholder": "点击选择搜索字段，然后输入关键字...",
       "ownerSearchPlaceholder": "搜索责任人...",
       "actorSearchPlaceholder": "搜索调查员...",
       "riskFilter": "风险过滤",

@@ -78,13 +78,12 @@ const transformAlertData = (apiAlert) => {
 
 /**
  * @brief 构建查询条件
- * @param {Array<string>|string} searchKeywords - 搜索关键字
+ * @param {Array<string>|Array<Object>|string} searchKeywords - 搜索关键字（支持字符串数组或对象数组，对象格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
  * @param {string} status - 状态过滤
- * @param {string} owner - 责任人搜索关键字
  * @param {string} verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
  * @returns {Array} 条件数组，格式为 [{field_name: value}, ...]
  */
-const buildConditions = (searchKeywords, status, owner, actor, verificationState) => {
+const buildConditions = (searchKeywords, status, verificationState) => {
   const conditions = []
   
   // Add status condition
@@ -94,7 +93,8 @@ const buildConditions = (searchKeywords, status, owner, actor, verificationState
     })
   }
   
-  // Add search keyword conditions (search title)
+  // Add search keyword conditions
+  // Support both old format (string array) and new format (object array with field and value)
   // Note: According to API implementation, multiple keywords will use AND logic
   if (searchKeywords) {
     const keywords = Array.isArray(searchKeywords) 
@@ -102,25 +102,27 @@ const buildConditions = (searchKeywords, status, owner, actor, verificationState
       : searchKeywords.split(',').map(k => k.trim()).filter(k => k)
     
     if (keywords.length > 0) {
-      // If multiple keywords, each keyword is a condition (backend will use AND logic)
-      keywords.forEach(keyword => {
-        conditions.push({
-          'title': keyword
+      // Check if it's new format (object array) or old format (string array)
+      const isNewFormat = keywords.length > 0 && typeof keywords[0] === 'object' && keywords[0].field && keywords[0].value
+      
+      if (isNewFormat) {
+        // New format: [{field: 'title', value: 'keyword'}, ...]
+        keywords.forEach(keywordObj => {
+          if (keywordObj.field && keywordObj.value) {
+            conditions.push({
+              [keywordObj.field]: keywordObj.value
+            })
+          }
         })
-      })
+      } else {
+        // Old format: ['keyword1', 'keyword2', ...] - default to title search
+        keywords.forEach(keyword => {
+          conditions.push({
+            'title': keyword
+          })
+        })
+      }
     }
-  }
-  
-  if (owner && owner.trim()) {
-    conditions.push({
-      'creator': owner.trim()
-    })
-  }
-
-  if (actor && actor.trim()) {
-    conditions.push({
-      'actor': actor.trim()
-    })
   }
   
   if (verificationState && verificationState !== 'all') {
@@ -144,10 +146,8 @@ const formatTimestamp = (timestamp) => {
 /**
  * @brief 获取告警列表
  * @param {Object} params - 查询参数
- * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
+ * @param {Array<string>|Array<Object>|string} params.searchKeywords - 搜索关键字（支持字符串数组或对象数组，对象格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
  * @param {string} params.status - 状态过滤
- * @param {string} params.owner - 责任人搜索关键字
- * @param {string} params.actor - 调查员搜索关键字
  * @param {string} params.verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
@@ -164,7 +164,7 @@ export const getAlerts = async (params = {}) => {
   const risk_mode = params.risk_mode || 'allAlerts'
   
   // Build query conditions
-  const conditions = buildConditions(params.searchKeywords, params.status, params.owner, params.actor, params.verificationState)
+  const conditions = buildConditions(params.searchKeywords, params.status, params.verificationState)
   
   // Build request body
   const requestBody = {
