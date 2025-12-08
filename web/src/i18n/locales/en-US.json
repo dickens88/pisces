@@ -288,7 +288,11 @@
       "error": "Error",
       "system": "System",
       "noToolkitsAvailable": "No toolkits available",
-      "openLogAnalysis": "Search in Kibana"
+      "openLogAnalysis": "Search in Kibana",
+      "actorLocked": "Assign to Me",
+      "actorUnlocked": "Assign to Me",
+      "actorUpdateSuccess": "Operation successful",
+      "actorUpdateError": "Operation failed, please try again later"
     }
   },
   "incidents": {

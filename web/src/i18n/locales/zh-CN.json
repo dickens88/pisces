@@ -286,7 +286,11 @@
       "error": "错误",
       "system": "系统",
       "noToolkitsAvailable": "暂无可用工具",
-      "openLogAnalysis": "在Kibana检索"
+      "openLogAnalysis": "在Kibana检索",
+      "actorLocked": "抢过来处理",
+      "actorUnlocked": "我来处理",
+      "actorUpdateSuccess": "操作成功",
+      "actorUpdateError": "操作失败，请稍后重试"
     }
   },
   "incidents": {

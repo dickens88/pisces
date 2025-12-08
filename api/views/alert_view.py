@@ -74,7 +74,7 @@ class AlertView(Resource):
                 result = AlertService.batch_close_alert(data["batch_ids"],
                                                         close_reason=close_reason,
                                                         comment=close_comment,
-                                                        owner=username,
+                                                        actor=username,
                                                         workspace_id=workspace_id)
                 logger.info(f"[Alert] Close Alerts: {data['batch_ids']} successfully.[{username}]")
                 return {"data": result}, 200
@@ -92,7 +92,7 @@ class AlertView(Resource):
                 result = AlertService.close_alert(alert_id=alert_id,
                                                   close_reason=close_reason,
                                                   comment=close_comment,
-                                                  owner=username,
+                                                  actor=username,
                                                   workspace_id=workspace_id)
                 logger.info(f"[Alert] Update Alert: {alert_id} successfully.[{username}]")
                 return {"data": result}, 200

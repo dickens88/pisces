@@ -137,7 +137,7 @@ class AlertService:
         return alert
 
     @classmethod
-    def close_alert(cls, alert_id, close_reason, comment, owner=None, workspace_id=None):
+    def close_alert(cls, alert_id, close_reason, comment, actor=None, workspace_id=None):
         """
         Close an alert with reason and comment.
         close_reason:
@@ -154,11 +154,11 @@ class AlertService:
             "data_object": {
                 "handle_status": "Closed",
                 "close_reason": close_reason,
-                "close_comment": f"【@{owner}】: {comment}"
+                "close_comment": f"【@{actor}】: {comment}"
             }
         }
-        if owner:
-            payload["data_object"]["actor"] = owner
+        if actor:
+            payload["data_object"]["actor"] = actor
         body = json.dumps(payload)
 
         resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
@@ -168,7 +168,7 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def batch_close_alert(cls, alert_ids, close_reason, comment, owner="-", workspace_id=None):
+    def batch_close_alert(cls, alert_ids, close_reason, comment, actor="-", workspace_id=None):
         """Close a batch of alerts with reason and comment."""
         ws_id = workspace_id or cls.workspace_id
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/batch-update"
@@ -179,11 +179,11 @@ class AlertService:
             "data_object": {
                 "handle_status": "Closed",
                 "close_reason": close_reason,
-                "close_comment": f"【@{owner}】: {comment}"
+                "close_comment": f"【@{actor}】: {comment}"
             }
         }
-        if owner:
-            payload["data_object"]["actor"] = owner
+        if actor:
+            payload["data_object"]["actor"] = actor
         body = json.dumps(payload)
 
         resp = request_with_auth("POST", url=base_url, headers=headers, data=body)

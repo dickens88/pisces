@@ -24,10 +24,22 @@
           <!-- Header -->
           <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span class="material-symbols-outlined text-base">security</span>
-                {{ $t('alerts.detail.title') }}
-              </h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base">security</span>
+                  {{ $t('alerts.detail.title') }}
+                </h2>
+                <button
+                  @click="handleToggleActor"
+                  :disabled="isUpdatingActor"
+                  class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  :title="isActorEmpty ? $t('alerts.detail.actorUnlocked') : $t('alerts.detail.actorLocked')"
+                >
+                  <span class="material-symbols-outlined text-base">
+                    {{ isActorEmpty ? 'lock_open' : 'lock' }}
+                  </span>
+                </button>
+              </div>
               <div class="flex items-center gap-2">
                 <button
                   @click="openBatchCloseDialog"
@@ -764,7 +776,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert } from '@/api/alerts'
+import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
+import { useAuthStore } from '@/stores/auth'
 import { postComment } from '@/api/comments'
 import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
@@ -798,26 +811,22 @@ const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const authStore = useAuthStore()
 
 const visible = ref(false)
 const alert = ref(null)
 const isLoading = ref(false)
 
-// 获取告警ID：优先使用props，如果没有则从路由参数获取
 const currentAlertId = computed(() => {
   return props.alertId || route.params.id
 })
 const activeTab = ref('overview')
 const newComment = ref('')
-// Comment input is now handled by CommentInput component
-// AI 对话相关
 const newAiMessage = ref('')
 const uploadedAiFiles = ref([])
 const aiFileInput = ref(null)
 const isAiDragging = ref(false)
-// 右侧侧边栏页签
 const rightSidebarTab = ref('response')
-// 右侧侧边栏AI问答相关（独立于主内容区域的AI问答）
 const rightSidebarAiMessage = ref('')
 const rightSidebarAiFiles = ref([])
 const rightSidebarAiFileInput = ref(null)
@@ -861,8 +870,8 @@ const isRefreshing = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
 const isSubmittingComment = ref(false)
+const isUpdatingActor = ref(false)
 
-// Toolkit related state
 const toolkits = ref([])
 const toolkitRecords = ref([])
 const loadingToolkits = ref(false)
@@ -1041,8 +1050,8 @@ const transformAlertDetailData = (apiData) => {
     handle_status: apiData.handle_status || 'Open',
     status: statusMap[apiData.handle_status] || apiData.handle_status?.toLowerCase() || 'open',
     owner: apiData.owner || '',
-    actor: apiData.actor || apiData.owner || '',
-    creator: apiData.creator || '',
+    actor: apiData.actor || apiData.is_auto_closed|| '-',
+    creator: apiData.creator || apiData.owner || '',
     createTime: apiData.create_time || apiData.createTime,
     updateTime: apiData.update_time || apiData.updateTime,
     closeTime: apiData.close_time || apiData.closeTime,
@@ -1093,7 +1102,6 @@ const loadAlertDetail = async (showLoading = true) => {
     securityAgentMessages.value = []
     loadAssociatedAlerts()
     
-    // 如果当前在 securityAgent tab，且消息为空，添加欢迎消息
     if (rightSidebarTab.value === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
       appendWelcomeMessageWithTyping()
     }
@@ -1173,11 +1181,9 @@ const handleExecuteToolkit = async (tool) => {
 
   const params = toolkitParams.value[tool.app_id] || {}
   const allParams = tool.params || []
-  // 只验证 required 为 true 的参数，如果 required 字段不存在，默认为必填（向后兼容）
   const requiredParams = allParams.filter(p => p.required !== false)
   const missingParams = requiredParams.filter(p => {
     const value = params[p.name]
-    // 如果参数值为空字符串、null 或 undefined，则认为缺失
     return !value || (typeof value === 'string' && value.trim() === '')
   })
   
@@ -1346,6 +1352,12 @@ const canCloseAlert = computed(() => {
 
 const canOpenAlert = computed(() => {
   return alert.value && alert.value.status === 'closed'
+})
+
+const isActorEmpty = computed(() => {
+  if (!alert.value) return true
+  const actor = alert.value.actor
+  return !actor || actor === '-' || actor.trim() === ''
 })
 
 const handleOpenAlert = async () => {
@@ -1687,14 +1699,12 @@ const appendSecurityAgentMessage = (message) => {
     create_time: message.create_time || new Date().toISOString(),
     role: message.role || 'assistant',
     isLocal: message.isLocal || false,
-    // 执行节点信息（由 streaming 事件 node_started / node_finished / agent_log 填充）
     nodes: Array.isArray(message.nodes) ? [...message.nodes] : []
   }
   securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
   return normalizedMessage.id
 }
 
-// 根据 node_started / node_finished 事件更新某条消息上的节点状态
 const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
   if (!messageId || !nodeTitle || !status) return
   securityAgentMessages.value = securityAgentMessages.value.map(message => {
@@ -1725,7 +1735,6 @@ const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
   })
 }
 
-// 在当前运行中的节点下追加工具调用记录（由 agent_log 事件驱动）
 const appendToolCallToCurrentNode = (messageId, toolName) => {
   if (!messageId || !toolName) return
   securityAgentMessages.value = securityAgentMessages.value.map(message => {
@@ -1733,7 +1742,6 @@ const appendToolCallToCurrentNode = (messageId, toolName) => {
 
     const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
     if (!nodes.length) {
-      // 如果还没有节点，创建一个通用的 Agent 节点以容纳工具调用
       nodes.push({
         title: 'Agent',
         status: 'running',
@@ -1741,7 +1749,6 @@ const appendToolCallToCurrentNode = (messageId, toolName) => {
       })
     }
 
-    // 尽量选择“当前运行中”的节点，否则选择最后一个节点
     let targetIndex = nodes.slice().reverse().findIndex(n => n.status === 'running')
     if (targetIndex !== -1) {
       targetIndex = nodes.length - 1 - targetIndex
@@ -1751,7 +1758,6 @@ const appendToolCallToCurrentNode = (messageId, toolName) => {
 
     const targetNode = { ...(nodes[targetIndex] || {}), tools: Array.isArray(nodes[targetIndex]?.tools) ? [...nodes[targetIndex].tools] : [] }
 
-    // 避免重复同名工具的连续插入（简单去重）
     const alreadyExists = targetNode.tools.some(t => t.name === toolName)
     if (!alreadyExists) {
       targetNode.tools.push({ name: toolName })
@@ -1792,7 +1798,6 @@ const appendToSecurityAgentMessage = (messageId, chunk) => {
   })
 }
 
-// 添加欢迎消息并带有打字机动画效果
 const appendWelcomeMessageWithTyping = () => {
   const messageId = appendSecurityAgentMessage({
     author: getSecurityAgentAssistantLabel(),
@@ -1805,7 +1810,6 @@ const appendWelcomeMessageWithTyping = () => {
   
   const text = t('alerts.detail.securityAgentWelcomeMessage') || 'Hello! I can help you analyze this alert.'
   
-  // 根据字符类型获取延迟时间
   const getDelay = (char) => {
     if (/[。！？]/.test(char)) return 150
     if (/[，、；：]/.test(char)) return 80
@@ -1815,7 +1819,6 @@ const appendWelcomeMessageWithTyping = () => {
     return 30
   }
   
-  // 延迟后开始打字机效果
   setTimeout(() => {
     let index = 0
     const typeNext = () => {
@@ -1882,12 +1885,10 @@ const handleRightSidebarAiSend = async (data) => {
         if (!event) return
         const eventType = event.event || event.type
         if (eventType === 'message' || eventType === 'message_end') {
-          // 追加消息内容，实现真正的前端流式渲染
           if (assistantMessageId && typeof event.answer === 'string') {
             appendToSecurityAgentMessage(assistantMessageId, event.answer)
           }
         } else if (eventType === 'node_started' || eventType === 'node_finished') {
-          // 处理节点执行状态，填充到当前 assistant 消息上
           const nodeData = event.data || {}
           const nodeTitle =
             nodeData.title ||
@@ -1899,11 +1900,9 @@ const handleRightSidebarAiSend = async (data) => {
             updateSecurityAgentMessageNodes(assistantMessageId, nodeTitle, status)
           }
         } else if (eventType === 'agent_log') {
-          // 处理智能体日志，用于展示工具调用
           const logData = event.data || {}
           const label = logData.label || ''
 
-          // 解析形如 "CALL <tool_name>" 的日志
           let toolName = ''
           const match = label.match(/CALL\s+([^\s]+)(?:\s+|$)/i)
           if (match && match[1]) {
@@ -2048,21 +2047,17 @@ const handleSendEntityToSecurityAgent = (entity) => {
   }, 100)
 }
 
-// 检查字符串是否是http(s)链接
 const isHttpLink = (value) => {
   if (!value) {
     return false
   }
-  // 将值转换为字符串进行检查
   const valueStr = String(value).trim()
   if (!valueStr) {
     return false
   }
-  // 检查是否是http或https链接
   return /^https?:\/\/.+/.test(valueStr)
 }
 
-// 在新窗口打开链接
 const openLinkInNewWindow = (url) => {
   if (!url || typeof url !== 'string') {
     return
@@ -2148,6 +2143,35 @@ const handleShare = async () => {
   }
 }
 
+const handleToggleActor = async () => {
+  if (!currentAlertId.value || isUpdatingActor.value) {
+    return
+  }
+
+  const currentUser = authStore.user?.username || authStore.user?.name || authStore.user?.cn
+  if (!currentUser) {
+    toast.error(t('alerts.detail.actorUpdateError') || '无法获取当前用户信息', 'ERROR')
+    return
+  }
+
+  isUpdatingActor.value = true
+
+  try {
+    await updateAlert(currentAlertId.value, {
+      actor: currentUser
+    })
+    
+    await loadAlertDetail(false)
+    toast.success(t('alerts.detail.actorUpdateSuccess') || '操作成功', 'SUCCESS')
+  } catch (error) {
+    console.error('Failed to update actor:', error)
+    const errorMessage = error?.response?.data?.error_message || error?.message || t('alerts.detail.actorUpdateError') || '操作失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isUpdatingActor.value = false
+  }
+}
+
 watch(currentAlertId, async (newId, oldId) => {
   if (!newId) {
     visible.value = false
@@ -2171,7 +2195,6 @@ watch(activeTab, (newTab) => {
   }
 })
 
-// 监听 securityAgent tab 切换，如果消息为空则添加欢迎消息
 watch(rightSidebarTab, (newTab) => {
   if (newTab === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
     appendWelcomeMessageWithTyping()

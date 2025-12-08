@@ -435,15 +435,32 @@ export const updateAlert = (alertId, data) => {
   // 构建请求体，符合后端期望的格式，与创建告警类似但 action 为 'update'
   const requestBody = {
     action: 'update',
-    data: {
-      title: data.title,
-      create_time: formatTimestamp(data.createTime || data.timestamp),
-      severity: CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium',
-      handle_status: CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open',
-      owner: data.owner,
-      rule_name: data.ruleName || '',
-      description: data.description
-    }
+    data: {}
+  }
+  
+  if (data.title !== undefined) {
+    requestBody.data.title = data.title
+  }
+  if (data.createTime !== undefined || data.timestamp !== undefined) {
+    requestBody.data.create_time = formatTimestamp(data.createTime || data.timestamp)
+  }
+  if (data.riskLevel !== undefined) {
+    requestBody.data.severity = CLIENT_SEVERITY_TO_API_MAP[data.riskLevel] || data.riskLevel || 'Medium'
+  }
+  if (data.status !== undefined) {
+    requestBody.data.handle_status = CLIENT_STATUS_TO_API_MAP[data.status] || data.status || 'Open'
+  }
+  if (data.owner !== undefined) {
+    requestBody.data.owner = data.owner
+  }
+  if (data.ruleName !== undefined) {
+    requestBody.data.rule_name = data.ruleName || ''
+  }
+  if (data.description !== undefined) {
+    requestBody.data.description = data.description
+  }
+  if (data.actor !== undefined) {
+    requestBody.data.actor = data.actor
   }
   
   return service.put(`/alerts/${alertId}`, requestBody)
