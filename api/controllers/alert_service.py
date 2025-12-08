@@ -71,7 +71,6 @@ class AlertService:
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
                 "verification_state": item['data_object'].get('verification_state'),
             }
-            row["actor"] = row["actor"] if row["actor"] else row["owner"]
             result.append(row)
 
         return result, total
@@ -110,7 +109,7 @@ class AlertService:
             "data_source_product_name": item['data_object']['data_source']['product_name'],
             "verification_state": item['data_object'].get('verification_state'),
         }
-        alert_content["actor"] = alert_content["actor"] if alert_content["actor"] else alert_content["owner"]
+
         try:
             alert_content["description"] = json.loads(item['data_object']['description'])
             # standard model_name field

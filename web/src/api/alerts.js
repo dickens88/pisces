@@ -84,7 +84,7 @@ const transformAlertData = (apiAlert) => {
  * @param {string} verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
  * @returns {Array} 条件数组，格式为 [{field_name: value}, ...]
  */
-const buildConditions = (searchKeywords, status, owner, verificationState) => {
+const buildConditions = (searchKeywords, status, owner, actor, verificationState) => {
   const conditions = []
   
   // Add status condition
@@ -116,6 +116,12 @@ const buildConditions = (searchKeywords, status, owner, verificationState) => {
       'creator': owner.trim()
     })
   }
+
+  if (actor && actor.trim()) {
+    conditions.push({
+      'actor': actor.trim()
+    })
+  }
   
   if (verificationState && verificationState !== 'all') {
     conditions.push({
@@ -141,6 +147,7 @@ const formatTimestamp = (timestamp) => {
  * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
  * @param {string} params.status - 状态过滤
  * @param {string} params.owner - 责任人搜索关键字
+ * @param {string} params.actor - 调查员搜索关键字
  * @param {string} params.verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
@@ -157,7 +164,7 @@ export const getAlerts = async (params = {}) => {
   const risk_mode = params.risk_mode || 'allAlerts'
   
   // Build query conditions
-  const conditions = buildConditions(params.searchKeywords, params.status, params.owner, params.verificationState)
+  const conditions = buildConditions(params.searchKeywords, params.status, params.owner, params.actor, params.verificationState)
   
   // Build request body
   const requestBody = {

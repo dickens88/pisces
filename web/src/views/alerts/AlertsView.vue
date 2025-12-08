@@ -218,6 +218,21 @@
           </div>
         </div>
         <div class="relative min-w-[140px] max-w-[12rem]">
+          <div class="flex items-center gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary">
+              <div class="pointer-events-none flex items-center shrink-0">
+              <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">person_search</span>
+            </div>
+            <input
+              v-model="actorSearch"
+              @keydown.enter.prevent="handleActorSearch"
+              @input="handleActorSearchInput"
+              class="flex-1 min-w-[80px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+              :placeholder="$t('alerts.list.actorSearchPlaceholder')"
+              type="text"
+            />
+          </div>
+        </div>
+        <div class="relative min-w-[140px] max-w-[12rem]">
           <select
             v-model="statusFilter"
             @change="handleFilter"
@@ -227,21 +242,6 @@
             <option value="open">{{ $t('alerts.list.open') }}</option>
             <option value="block">{{ $t('alerts.list.block') }}</option>
             <option value="closed">{{ $t('alerts.list.closed') }}</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-          </div>
-        </div>
-        <div class="relative min-w-[140px] max-w-[12rem]">
-          <select
-            v-model="aiJudgeFilter"
-            @change="handleAiJudgeFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
-          >
-            <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
-            <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
-            <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
-            <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
           </select>
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
             <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
@@ -437,9 +437,9 @@
             {{ $t(`alerts.list.${item.status}`) }}
           </span>
         </template>
-        <template #cell-owner="{ value }">
+        <template #cell-actor="{ value, item }">
           <div class="flex justify-center w-full">
-            <UserAvatar :name="value" />
+            <UserAvatar :name="value || item?.owner" />
           </div>
         </template>
       </DataTable>
@@ -674,7 +674,7 @@ const columns = computed(() => [
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'status', label: t('alerts.list.status') },
   { key: 'responseTime', label: t('alerts.list.responseTime') },
-  { key: 'owner', label: t('alerts.list.owner') }
+  { key: 'actor', label: t('alerts.list.actor') }
 ])
 
 const defaultWidths = {
@@ -683,7 +683,7 @@ const defaultWidths = {
   riskLevel: 120,
   status: 120,
   responseTime: 120,
-  owner: 50
+  actor: 50
 }
 
 const chartsVisibilityStorageKey = 'alerts-showCharts-visible'
@@ -735,6 +735,7 @@ const getStoredSearchKeywords = () => {
 const searchKeywords = ref(getStoredSearchKeywords())
 const currentSearchInput = ref('')
 const ownerSearch = ref('')
+const actorSearch = ref('')
 
 const getStoredStatusFilter = () => {
   try {
@@ -748,15 +749,6 @@ const getStoredStatusFilter = () => {
   return 'all'
 }
 const statusFilter = ref(getStoredStatusFilter())
-
-const getStoredAiJudgeFilter = () => {
-  const stored = localStorage.getItem('alerts-ai-judge-filter')
-    if (stored && ['all', 'True_Positive', 'False_Positive', 'Unknown'].includes(stored)) {
-      return stored
-    }
-  return 'all'
-}
-const aiJudgeFilter = ref(getStoredAiJudgeFilter())
 
 const getStoredAlertFilterMode = () => {
   try {
@@ -1368,8 +1360,8 @@ const loadAlerts = async () => {
       params.owner = ownerSearch.value.trim()
     }
     
-    if (aiJudgeFilter.value && aiJudgeFilter.value !== 'all') {
-      params.verificationState = aiJudgeFilter.value
+    if (actorSearch.value && actorSearch.value.trim()) {
+      params.actor = actorSearch.value.trim()
     }
     
     const range = computeSelectedRange()
@@ -1513,6 +1505,22 @@ const handleOwnerSearch = () => {
   reloadAlertsFromFirstPage()
 }
 
+const handleOwnerSearchInput = () => {
+  if (!ownerSearch.value.trim()) {
+    reloadAlertsFromFirstPage()
+  }
+}
+
+const handleActorSearch = () => {
+  reloadAlertsFromFirstPage()
+}
+
+const handleActorSearchInput = () => {
+  if (!actorSearch.value.trim()) {
+    reloadAlertsFromFirstPage()
+  }
+}
+
 const handleFilter = () => {
   try {
     localStorage.setItem('alerts-status-filter', statusFilter.value)
@@ -1522,15 +1530,6 @@ const handleFilter = () => {
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
   loadAlertStatusBySeverity()
-}
-
-const handleAiJudgeFilter = () => {
-  try {
-    localStorage.setItem('alerts-ai-judge-filter', aiJudgeFilter.value)
-  } catch (error) {
-    console.warn('Failed to save AI judge filter to localStorage:', error)
-  }
-  reloadAlertsFromFirstPage()
 }
 
 watch(alertFilterMode, (newMode) => {
