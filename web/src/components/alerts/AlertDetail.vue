@@ -1188,7 +1188,8 @@ const handleExecuteToolkit = async (tool) => {
   })
   
   if (missingParams.length > 0) {
-    toast.error(t('alerts.detail.toolkitParamsRequired') || `请填写参数: ${missingParams.map(p => p.label).join(', ')}`)
+    const paramNames = missingParams.map(p => p.label).join(', ')
+    toast.error(t('alerts.detail.toolkitParamsRequired', { params: paramNames }) || `请填写参数: ${paramNames}`)
     return
   }
 
@@ -1203,13 +1204,13 @@ const handleExecuteToolkit = async (tool) => {
     }
 
     await executeToolkit(currentAlertId.value, requestData)
-    toast.success(t('alerts.detail.toolkitExecuteSuccess') || '工具执行成功')
-    await loadToolkitRecords()
+    toast.success(t('alerts.detail.toolkitExecuteSuccess'))
   } catch (error) {
     console.error('Failed to execute toolkit:', error)
-    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError') || '工具执行失败')
+    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError'))
   } finally {
     executingToolkitId.value = null
+    await loadToolkitRecords()
   }
 }
 
