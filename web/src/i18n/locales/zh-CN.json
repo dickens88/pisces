@@ -63,6 +63,7 @@
     "running": "运行中",
     "finished": "已完成",
     "operationSuccess": "操作成功",
+    "operationError": "操作失败",
     "userMenu": {
       "preferences": "偏好设置",
       "theme": "主题",
@@ -145,6 +146,7 @@
       "block": "阻塞",
       "closed": "关闭",
       "batchClose": "批量关闭",
+      "batchCloseSuccess": "成功关闭 {count} 个告警",
       "batchCloseDialog": {
         "title": "批量关闭告警",
         "selectedCount": "已选中 {count} 条告警",
@@ -170,7 +172,10 @@
         "incidentId": "事件ID",
         "incidentTitle": "事件标题",
         "createTime": "创建时间",
-        "noIncidents": "暂无事件"
+        "noIncidents": "暂无事件",
+        "success": "关联事件成功",
+        "associateError": "关联事件失败，请稍后重试",
+        "loadError": "加载事件列表失败，请稍后重试"
       },
       "statistics": {
         "alertTypeStats": "告警类型统计",

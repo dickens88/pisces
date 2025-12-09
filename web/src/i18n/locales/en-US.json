@@ -63,6 +63,7 @@
     "running": "Running",
     "finished": "Finished",
     "operationSuccess": "Operation Successful",
+    "operationError": "Operation Failed",
     "userMenu": {
       "preferences": "Preferences",
       "theme": "Theme",
@@ -172,7 +173,10 @@
         "incidentId": "Incident ID",
         "incidentTitle": "Incident Title",
         "createTime": "Create Time",
-        "noIncidents": "No incidents available"
+        "noIncidents": "No incidents available",
+        "success": "Successfully associated incident",
+        "associateError": "Failed to associate incident, please try again later",
+        "loadError": "Failed to load incident list, please try again later"
       },
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",
