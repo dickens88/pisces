@@ -1530,6 +1530,7 @@ const addKeyword = () => {
       searchKeywords.value.push({ field, value: keyword })
       currentSearchInput.value = ''
       currentField.value = ''
+      showFieldMenu.value = false
       saveSearchKeywords()
       reloadAlertsFromFirstPage()
     }
