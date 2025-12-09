@@ -1,0 +1,122 @@
+{
+  "tools": [
+    {
+      "app_id": "echo_screenshot",
+      "title": "网页拍照识别",
+      "api": {
+        "method": "POST",
+        "base_url": "https://sectools.cloudbu.huawei.com:9443",
+        "endpoint": "/v1/workflows/run",
+        "timeout": 30,
+        "auth": {
+          "type": "bearer_token",
+          "token": "app-xSgDv5cA67o63ZoKcvI0czcW"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.url": "url",
+            "user": "username"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data.outputs",
+          "error_path": "data.error"
+        }
+      }
+    },
+    {
+      "app_id": "echo_nmap",
+      "title": "IP端口指纹识别",
+      "api": {
+        "method": "POST",
+        "base_url": "https://sectools.cloudbu.huawei.com:9443",
+        "endpoint": "/v1/workflows/run",
+        "timeout": 30,
+        "auth": {
+          "type": "bearer_token",
+          "token": "app-RJs2ZMuwX5rAzXx5NHHYeOi2"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.ip": "ip",
+            "inputs.port": "port",
+            "user": "username"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data.outputs",
+          "error_path": "data.error"
+        }
+      }
+    },
+    {
+      "app_id": "serper_search",
+      "app_type": "workflow",
+      "title": "Serper Google Search",
+      "api": {
+        "method": "POST",
+        "base_url": "https://google.serper.dev",
+        "endpoint": "/search",
+        "timeout": 30,
+        "auth": {
+          "type": "api_key",
+          "key_name": "X-API-KEY",
+          "key_value": "0976f0e8cc50d19500253ca994530e85716ec68f"
+        },
+        "request_body": {
+          "field_mapping": {
+            "q": "message",
+            "gl": {
+              "source": "country",
+              "default": "us"
+            },
+            "hl": {
+              "source": "language",
+              "default": "en"
+            },
+            "num": {
+              "source": "num_results",
+              "default": 10,
+              "transform": "to_int"
+            }
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "organic.0.snippet",
+          "error_path": "error"
+        }
+      }
+    },
+    {
+      "app_id": "example_nested_api",
+      "app_type": "workflow",
+      "title": "Example Nested API",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/action",
+        "timeout": 30,
+        "auth": {
+          "type": "api_key",
+          "key_name": "X-API-Key",
+          "key_value": "your-api-key-here"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.url": "url",
+            "response": "blocking",
+            "user": "123"
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data"
+        }
+      }
+    }
+  ]
+}
+

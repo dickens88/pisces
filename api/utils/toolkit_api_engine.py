@@ -12,11 +12,11 @@ class ToolkitAPIEngine:
         self.app_id = toolkit_config.get("app_id")
         self.app_type = toolkit_config.get("app_type")
         
-    def call_api(self, params: Dict[str, Any], alert_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def call_api(self, params: Dict[str, Any]) -> Dict[str, Any]:
         try:
             url = self._build_url()
             headers = self._build_headers()
-            body = self._build_request_body(params, alert_context)
+            body = self._build_request_body(params)
             response = self._send_request(url, headers, body)
             return self._parse_response(response)
         except Exception as e:
@@ -70,17 +70,12 @@ class ToolkitAPIEngine:
         
         return headers
     
-    def _build_request_body(self, params: Dict[str, Any], alert_context: Optional[Dict[str, Any]] = None) -> str:
+    def _build_request_body(self, params: Dict[str, Any]) -> str:
         api_config = self.config.get("api", {})
         body_config = api_config.get("request_body", {})
         field_mapping = body_config.get("field_mapping", {})
         
-        all_params = {}
-        if alert_context:
-            all_params.update(alert_context)
-        all_params.update(params)
-        
-        body = self._build_json_body(field_mapping, all_params)
+        body = self._build_json_body(field_mapping, params)
         return json.dumps(body, ensure_ascii=False)
     
     def _build_json_body(self, field_mapping: Dict[str, Any], params: Dict[str, Any]) -> Dict[str, Any]:
@@ -272,11 +267,10 @@ def load_toolkit_config(app_id: str, app_type: str = None) -> Optional[Dict[str,
         return None
 
 
-def call_toolkit_api(app_id: str, app_type: str, params: Dict[str, Any], 
-                    alert_context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def call_toolkit_api(app_id: str, app_type: str, params: Dict[str, Any]) -> Dict[str, Any]:
     toolkit_config = load_toolkit_config(app_id, app_type)
     if not toolkit_config:
         raise ValueError(f"Toolkit config not found for app_id={app_id}, app_type={app_type}")
     
     engine = ToolkitAPIEngine(toolkit_config)
-    return engine.call_api(params, alert_context)
+    return engine.call_api(params)
