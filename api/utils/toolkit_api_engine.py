@@ -4,7 +4,6 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 from utils.logger_init import logger
-from utils.common_utils import get_proxy
 
 
 class ToolkitAPIEngine:
@@ -162,7 +161,7 @@ class ToolkitAPIEngine:
             if username and password:
                 auth = HTTPBasicAuth(username, password)
         
-        proxies = get_proxy()
+        # proxies = get_proxy()
         
         if method == "POST":
             response = requests.post(
@@ -170,7 +169,7 @@ class ToolkitAPIEngine:
                 json=json.loads(body),
                 headers=headers, 
                 auth=auth,
-                proxies=proxies, 
+                # proxies=proxies,
                 verify=False, 
                 timeout=timeout
             )
