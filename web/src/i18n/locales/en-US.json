@@ -165,6 +165,7 @@
       },
       "batchConvert": "Convert to Incident",
       "associateIncident": "Associate Incident",
+      "associateVulnerability": "Associate Vulnerability",
       "openInNewWindow": "Open in New Window",
       "associateIncidentDialog": {
         "title": "Associate Incident",
@@ -177,6 +178,17 @@
         "success": "Successfully associated incident",
         "associateError": "Failed to associate incident, please try again later",
         "loadError": "Failed to load incident list, please try again later"
+      },
+      "associateVulnerabilityDialog": {
+        "title": "Associate Vulnerability",
+        "selectedCount": "Selected {count} alert(s)",
+        "confirmMessage": "Please confirm whether to associate the selected {count} alert(s) to a vulnerability?",
+        "vulnerabilityTitle": "Vulnerability Title",
+        "createTime": "Create Time",
+        "noVulnerabilities": "No vulnerabilities available",
+        "success": "Successfully associated vulnerability",
+        "associateError": "Failed to associate vulnerability, please try again later",
+        "loadError": "Failed to load vulnerability list, please try again later"
       },
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",

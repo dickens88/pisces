@@ -7,7 +7,7 @@
     <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-          {{ $t('alerts.list.associateIncidentDialog.title') }}
+          {{ dialogTitle }}
         </h2>
         <button
           @click="handleClose"
@@ -20,7 +20,7 @@
       <!-- 提示信息 -->
       <div class="mb-4 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md border border-gray-200 dark:border-[#324867]">
         <p class="text-sm text-gray-700 dark:text-gray-400">
-          {{ $t('alerts.list.associateIncidentDialog.confirmMessage', { count: alertIds.length }) }}
+          {{ confirmMessage }}
         </p>
       </div>
 
@@ -44,8 +44,8 @@
             <thead class="text-xs text-gray-600 dark:text-white uppercase bg-gray-100 dark:bg-[#111822] sticky top-0">
               <tr>
                 <th class="px-4 py-3" scope="col" style="width: 50px;"></th>
-                <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.incidentTitle') }}</th>
-                <th class="px-4 py-3" scope="col">{{ $t('alerts.list.associateIncidentDialog.createTime') }}</th>
+                <th class="px-4 py-3" scope="col">{{ titleColumnLabel }}</th>
+                <th class="px-4 py-3" scope="col">{{ createTimeLabel }}</th>
               </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@
               </tr>
               <tr v-if="!loadingIncidents && incidentsList.length === 0">
                 <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                  {{ $t('alerts.list.associateIncidentDialog.noIncidents') }}
+                  {{ emptyStateText }}
                 </td>
               </tr>
             </tbody>
@@ -168,6 +168,10 @@ const props = defineProps({
   alertIds: {
     type: Array,
     default: () => []
+  },
+  mode: {
+    type: String,
+    default: 'incident' // incident | vulnerability
   }
 })
 
@@ -184,6 +188,56 @@ const incidentsTotal = ref(0)
 const loadingIncidents = ref(false)
 const isAssociating = ref(false)
 const totalPages = computed(() => Math.ceil(incidentsTotal.value / pageSize.value))
+const isVulnerabilityMode = computed(() => props.mode === 'vulnerability')
+
+const dialogTitle = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.title') || '关联漏洞'
+    : t('alerts.list.associateIncidentDialog.title')
+)
+
+const confirmMessage = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.confirmMessage', { count: props.alertIds.length }) ||
+      `请确认是否关联选中的 ${props.alertIds.length} 条告警到漏洞？`
+    : t('alerts.list.associateIncidentDialog.confirmMessage', { count: props.alertIds.length })
+)
+
+const titleColumnLabel = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.vulnerabilityTitle') || '漏洞标题'
+    : t('alerts.list.associateIncidentDialog.incidentTitle')
+)
+
+const createTimeLabel = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.createTime') || t('incidents.list.createTime') || '发现时间'
+    : t('alerts.list.associateIncidentDialog.createTime')
+)
+
+const emptyStateText = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.noVulnerabilities') || '暂无漏洞'
+    : t('alerts.list.associateIncidentDialog.noIncidents')
+)
+
+const successMessage = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.success') || '关联漏洞成功'
+    : t('alerts.list.associateIncidentDialog.success') || '关联事件成功'
+)
+
+const associateErrorMessage = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.associateError') || '关联漏洞失败，请稍后重试'
+    : t('alerts.list.associateIncidentDialog.associateError') || '关联事件失败，请稍后重试'
+)
+
+const loadErrorMessage = computed(() =>
+  isVulnerabilityMode.value
+    ? t('alerts.list.associateVulnerabilityDialog.loadError') || '加载漏洞列表失败，请稍后重试'
+    : t('alerts.list.associateIncidentDialog.loadError') || '加载事件列表失败，请稍后重试'
+)
 
 // 计算要显示的页码数组
 const displayPages = computed(() => {
@@ -263,7 +317,10 @@ const loadIncidents = async () => {
       offset: (page.value - 1) * pageSize.value,
       start_time: formatDateTimeWithOffset(start),
       end_time: formatDateTimeWithOffset(end),
-      conditions: [] // No filters, show all incidents
+      conditions: [] // No filters, show all
+    }
+    if (isVulnerabilityMode.value) {
+      params.search_vulscan = true
     }
     
     const response = await getIncidents(params)
@@ -274,7 +331,7 @@ const loadIncidents = async () => {
     incidentsList.value = []
     incidentsTotal.value = 0
     // Show error toast
-    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.list.associateIncidentDialog.loadError') || '加载事件列表失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || loadErrorMessage.value
     toast.error(errorMessage, t('common.operationError') || '操作失败')
   } finally {
     loadingIncidents.value = false
@@ -314,17 +371,18 @@ const handleAssociate = async () => {
 
   try {
     isAssociating.value = true
-    await associateAlertsToIncident(selectedIncidentId.value, props.alertIds)
+    const workspace = isVulnerabilityMode.value ? 'asm' : null
+    await associateAlertsToIncident(selectedIncidentId.value, props.alertIds, workspace)
     
     // Show success message
-    toast.success(t('alerts.list.associateIncidentDialog.success') || '关联事件成功', t('common.operationSuccess') || '操作成功')
+    toast.success(successMessage.value, t('common.operationSuccess') || '操作成功')
     
     handleClose()
     emit('associated')
   } catch (error) {
     console.error('Failed to associate alerts to incident:', error)
     // Show error toast
-    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.list.associateIncidentDialog.associateError') || '关联事件失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || associateErrorMessage.value
     toast.error(errorMessage, t('common.operationError') || '操作失败')
   } finally {
     isAssociating.value = false

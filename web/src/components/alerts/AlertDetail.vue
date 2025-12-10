@@ -99,6 +99,13 @@
                       <span class="material-symbols-outlined text-base">bug_report</span>
                       {{ $t('alerts.detail.convertToVulnerability') }}
                     </button>
+                    <button
+                      @click="handleAssociateVulnerabilityFromMenu"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+                    >
+                      <span class="material-symbols-outlined text-base">link</span>
+                      {{ $t('alerts.list.associateVulnerability') }}
+                    </button>
                   </div>
                 </div>
                 <button
@@ -750,6 +757,15 @@
       @associated="handleAssociateIncidentSuccess"
     />
 
+    <!-- 关联漏洞对话框 -->
+    <AssociateIncidentDialog
+      :visible="showAssociateVulnerabilityDialog"
+      :alert-ids="[currentAlertId]"
+      mode="vulnerability"
+      @close="closeAssociateVulnerabilityDialog"
+      @associated="handleAssociateVulnerabilitySuccess"
+    />
+
     <!-- 创建漏洞对话框 -->
     <CreateVulnerabilityDialog
       :visible="showCreateVulnerabilityDialog"
@@ -861,6 +877,7 @@ const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
 const showEditAlertDialog = ref(false)
 const editAlertInitialData = ref(null)
+const showAssociateVulnerabilityDialog = ref(false)
 const showShareSuccess = ref(false)
 const associatedAlerts = ref([])
 const loadingAssociatedAlerts = ref(false)
@@ -1501,6 +1518,14 @@ const openAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = true
 }
 
+const openAssociateVulnerabilityDialog = () => {
+  if (!currentAlertId.value) {
+    console.warn('No alert ID available')
+    return
+  }
+  showAssociateVulnerabilityDialog.value = true
+}
+
 const handleOpenAlertFromMenu = () => {
   handleOpenAlert()
   showMoreActionsMenu.value = false
@@ -1521,6 +1546,11 @@ const handleAssociateIncidentFromMenu = () => {
   showMoreActionsMenu.value = false
 }
 
+const handleAssociateVulnerabilityFromMenu = () => {
+  openAssociateVulnerabilityDialog()
+  showMoreActionsMenu.value = false
+}
+
 const handleConvertToVulnerabilityFromMenu = () => {
   openCreateVulnerabilityDialog()
   showMoreActionsMenu.value = false
@@ -1528,6 +1558,10 @@ const handleConvertToVulnerabilityFromMenu = () => {
 
 const closeAssociateIncidentDialog = () => {
   showAssociateIncidentDialog.value = false
+}
+
+const closeAssociateVulnerabilityDialog = () => {
+  showAssociateVulnerabilityDialog.value = false
 }
 
 const handlePanelClick = (event) => {
@@ -1541,6 +1575,12 @@ const handlePanelClick = (event) => {
 
 const handleAssociateIncidentSuccess = async () => {
   closeAssociateIncidentDialog()
+  await loadAlertDetail()
+  emit('closed')
+}
+
+const handleAssociateVulnerabilitySuccess = async () => {
+  closeAssociateVulnerabilityDialog()
   await loadAlertDetail()
   emit('closed')
 }

@@ -28,11 +28,15 @@ export const getIncidentDetail = (id) => {
   return service.get(`/incidents/${id}`)
 }
 
-// Associate alerts to incident
-export const associateAlertsToIncident = (incidentId, alertIds) => {
-  return service.post(`/incidents/${incidentId}/relations`, {
+// Associate alerts to incident (optionally in a workspace, e.g., ASM vulnerabilities)
+export const associateAlertsToIncident = (incidentId, alertIds, workspace = null) => {
+  const data = {
     ids: alertIds
-  })
+  }
+  if (workspace) {
+    data.workspace = workspace
+  }
+  return service.post(`/incidents/${incidentId}/relations`, data)
 }
 
 // Disassociate alerts from incident

@@ -167,10 +167,10 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-3 p-4 border-b border-[#324867]">
-        <div class="relative w-[30%] min-w-[300px] max-w-lg">
+        <div class="relative w-[30%] min-w-[300px] max-w-lg" ref="searchContainerRef">
           <div 
             class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
-            @click="showFieldMenu = !currentField.value"
+            @click="handleSearchContainerClick"
           >
             <div class="pointer-events-none flex items-center shrink-0 pt-[2px]">
               <span class="material-symbols-outlined text-gray-500 dark:text-gray-400" style="font-size: 20px;">search</span>
@@ -323,6 +323,14 @@
                 <span>{{ $t('alerts.detail.convertToVulnerability') }}</span>
               </button>
               <button
+                @click="handleAssociateVulnerabilityFromMenu"
+                :disabled="selectedAlerts.length === 0"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
+              >
+                <span class="material-symbols-outlined text-base">link</span>
+                <span>{{ $t('alerts.list.associateVulnerability') }}</span>
+              </button>
+              <button
                 @click="openBatchDeleteDialog"
                 :disabled="selectedAlerts.length === 0"
                 class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867] disabled:hover:bg-transparent"
@@ -467,6 +475,15 @@
       :alert-ids="selectedAlerts"
       @close="closeAssociateIncidentDialog"
       @associated="handleAssociateIncidentSuccess"
+    />
+
+    <!-- Associate vulnerability dialog -->
+    <AssociateIncidentDialog
+      :visible="showAssociateVulnerabilityDialog"
+      :alert-ids="selectedAlerts"
+      mode="vulnerability"
+      @close="closeAssociateVulnerabilityDialog"
+      @associated="handleAssociateVulnerabilitySuccess"
     />
 
     <!-- Create vulnerability dialog -->
@@ -735,6 +752,7 @@ const currentSearchInput = ref('')
 const currentField = ref('')
 const showFieldMenu = ref(false)
 const searchInputRef = ref(null)
+const searchContainerRef = ref(null)
 
 const searchFields = computed(() => [
   { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
@@ -873,6 +891,7 @@ const handleRecentCommentSelect = (comment) => {
   applyRecentCloseComment(comment)
 }
 const showAssociateIncidentDialog = ref(false)
+const showAssociateVulnerabilityDialog = ref(false)
 const showCreateIncidentDialog = ref(false)
 const createIncidentInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
@@ -1591,6 +1610,19 @@ const selectField = (field) => {
   })
 }
 
+const handleSearchContainerClick = () => {
+  if (currentField.value) {
+    nextTick(() => {
+      searchInputRef.value?.focus()
+    })
+    return
+  }
+  showFieldMenu.value = true
+  nextTick(() => {
+    searchInputRef.value?.focus()
+  })
+}
+
 const handleFilter = () => {
   try {
     localStorage.setItem('alerts-status-filter', statusFilter.value)
@@ -1742,6 +1774,11 @@ const handleAssociateIncidentFromMenu = () => {
   showMoreMenu.value = false
 }
 
+const handleAssociateVulnerabilityFromMenu = () => {
+  openAssociateVulnerabilityDialog()
+  showMoreMenu.value = false
+}
+
 const handleCreateIncidentFromMenu = () => {
   openCreateIncidentDialog()
   showMoreMenu.value = false
@@ -1807,6 +1844,11 @@ const handleClickOutside = (event) => {
   const button = event.target.closest('.more-menu-button')
   if (!dropdown && !button) {
     showMoreMenu.value = false
+  }
+
+  const searchContainerEl = searchContainerRef.value
+  if (showFieldMenu.value && searchContainerEl && !searchContainerEl.contains(event.target)) {
+    showFieldMenu.value = false
   }
 }
 
@@ -1886,6 +1928,27 @@ const closeAssociateIncidentDialog = () => {
 
 const handleAssociateIncidentSuccess = () => {
   closeAssociateIncidentDialog()
+  selectedAlerts.value = []
+  if (dataTableRef.value) {
+    dataTableRef.value.clearSelection()
+  }
+  loadAlerts()
+}
+
+const openAssociateVulnerabilityDialog = () => {
+  if (selectedAlerts.value.length === 0) {
+    console.warn('No alerts selected')
+    return
+  }
+  showAssociateVulnerabilityDialog.value = true
+}
+
+const closeAssociateVulnerabilityDialog = () => {
+  showAssociateVulnerabilityDialog.value = false
+}
+
+const handleAssociateVulnerabilitySuccess = () => {
+  closeAssociateVulnerabilityDialog()
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
