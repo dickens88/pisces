@@ -387,7 +387,7 @@
           </div>
         </template>
         <template #cell-riskLevel="{ item }">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <span
               :class="[
                 'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[70px]',
