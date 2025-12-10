@@ -13,6 +13,7 @@ CREATE TABLE `t_alerts` (
   `handle_status` varchar(10) NOT NULL COMMENT '处理状态',
   `owner` tinytext COMMENT '负责人',
   `creator` tinytext COMMENT '创建人',
+  `actor` tinytext COMMENT '调查员',
   `close_reason` varchar(20) DEFAULT NULL COMMENT '关闭原因',
   `close_comment` text COMMENT '关闭备注',
   `data_source_product_name` tinytext COMMENT '数据源产品名',

@@ -26,6 +26,7 @@ class Alert(Base):
 
     owner = Column(Text())
     creator = Column(Text())
+    actor = Column(Text())
 
     close_reason = Column(Enum('False detection', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
     close_comment = Column(Text())
@@ -54,6 +55,7 @@ class Alert(Base):
             "handle_status": self.handle_status,
             "owner": self.owner,
             "creator": self.creator,
+            "actor": self.actor,
             "close_reason": self.close_reason,
             "close_comment": self.close_comment,
             "is_auto_closed": self.is_auto_closed,
@@ -84,6 +86,7 @@ class Alert(Base):
                 alert.handle_status = new_alert_entity.handle_status
                 alert.owner = new_alert_entity.owner
                 alert.creator = new_alert_entity.creator
+                alert.actor = new_alert_entity.actor
                 alert.close_reason = new_alert_entity.close_reason
                 alert.close_comment = new_alert_entity.close_comment
                 alert.is_auto_closed = new_alert_entity.is_auto_closed
@@ -212,6 +215,7 @@ class Alert(Base):
             handle_status=handle_status,
             owner=payload.get("owner"),
             creator=payload.get("creator"),
+            actor=payload.get("actor"),
             close_reason=close_reason,
             close_comment=payload.get("close_comment"),
             is_auto_closed=payload.get("is_auto_closed"),
