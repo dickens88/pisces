@@ -214,7 +214,7 @@
           <select
             v-model="statusFilter"
             @change="handleFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
           >
             <option value="all">{{ $t('alerts.list.allStatus') }}</option>
             <option value="open">{{ $t('alerts.list.open') }}</option>
@@ -229,7 +229,7 @@
           <select
             v-model="severityFilter"
             @change="handleSeverityFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
           >
             <option value="all">{{ $t('common.severity.all') || $t('common.filter') }}</option>
             <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -398,7 +398,7 @@
             <select
               v-model="autoCloseFilter"
               @change="handleAutoCloseFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
             >
               <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
               <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
@@ -412,7 +412,7 @@
             <select
               v-model="aiJudgeFilter"
               @change="handleAiJudgeFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
             >
               <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
               <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
