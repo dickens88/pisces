@@ -77,54 +77,61 @@ const transformAlertData = (apiAlert) => {
 }
 
 /**
+ * 统一格式化搜索关键字
+ * 期望格式：[{ field: 'title'|'creator'|'actor', value: 'keyword' }]
+ */
+const normalizeSearchKeywords = (searchKeywords) => {
+  if (!searchKeywords) return []
+  if (!Array.isArray(searchKeywords)) return []
+  return searchKeywords
+    .filter(kw => kw && typeof kw === 'object' && kw.field && kw.value)
+    .map(kw => ({
+      field: kw.field,
+      value: typeof kw.value === 'string' ? kw.value.trim() : kw.value
+    }))
+    .filter(kw => kw.value !== '')
+}
+
+/**
  * @brief 构建查询条件
- * @param {Array<string>|Array<Object>|string} searchKeywords - 搜索关键字（支持字符串数组或对象数组，对象格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
+ * @param {Array<Object>} searchKeywords - 搜索关键字（统一使用对象数组：{field: 'title'|'creator'|'actor', value: 'keyword'}）
  * @param {string} status - 状态过滤
+ * @param {string} severity - 风险等级过滤
  * @param {string} verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
+ * @param {string} autoClose - 关闭方式过滤 (AutoClosed/Manual)
  * @returns {Array} 条件数组，格式为 [{field_name: value}, ...]
  */
-const buildConditions = (searchKeywords, status, verificationState) => {
+const buildConditions = (searchKeywords, status, severity, verificationState, autoClose) => {
   const conditions = []
   
-  // Add status condition
+  // 状态
   if (status && status !== 'all') {
     conditions.push({
       'handle_status': CLIENT_STATUS_TO_API_MAP[status] || status
     })
   }
   
-  // Add search keyword conditions
-  // Support both old format (string array) and new format (object array with field and value)
-  // Note: According to API implementation, multiple keywords will use AND logic
-  if (searchKeywords) {
-    const keywords = Array.isArray(searchKeywords) 
-      ? searchKeywords 
-      : searchKeywords.split(',').map(k => k.trim()).filter(k => k)
-    
-    if (keywords.length > 0) {
-      // Check if it's new format (object array) or old format (string array)
-      const isNewFormat = keywords.length > 0 && typeof keywords[0] === 'object' && keywords[0].field && keywords[0].value
-      
-      if (isNewFormat) {
-        // New format: [{field: 'title', value: 'keyword'}, ...]
-        keywords.forEach(keywordObj => {
-          if (keywordObj.field && keywordObj.value) {
-            conditions.push({
-              [keywordObj.field]: keywordObj.value
-            })
-          }
-        })
-      } else {
-        // Old format: ['keyword1', 'keyword2', ...] - default to title search
-        keywords.forEach(keyword => {
-          conditions.push({
-            'title': keyword
-          })
-        })
-      }
-    }
+  // 关键字（统一为对象数组）
+  normalizeSearchKeywords(searchKeywords).forEach(keywordObj => {
+    conditions.push({
+      [keywordObj.field]: keywordObj.value
+    })
+  })
+  
+  // 风险等级
+  if (severity && severity !== 'all') {
+    conditions.push({
+      'severity': CLIENT_SEVERITY_TO_API_MAP[severity] || severity
+    })
+  }
+
+  if (autoClose && autoClose !== 'all') {
+    conditions.push({
+      'is_auto_closed': autoClose
+    })
   }
   
+  // AI 研判
   if (verificationState && verificationState !== 'all') {
     conditions.push({
       'verification_state': verificationState
@@ -146,8 +153,10 @@ const formatTimestamp = (timestamp) => {
 /**
  * @brief 获取告警列表
  * @param {Object} params - 查询参数
- * @param {Array<string>|Array<Object>|string} params.searchKeywords - 搜索关键字（支持字符串数组或对象数组，对象格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
+ * @param {Array<Object>} params.searchKeywords - 搜索关键字（统一格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
  * @param {string} params.status - 状态过滤
+ * @param {string} params.severity - 风险等级过滤 (fatal/high/medium/low/tips)
+ * @param {string} params.autoClose - 关闭方式过滤 (AutoClosed/Manual)
  * @param {string} params.verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
@@ -164,7 +173,7 @@ export const getAlerts = async (params = {}) => {
   const risk_mode = params.risk_mode || 'allAlerts'
   
   // Build query conditions
-  const conditions = buildConditions(params.searchKeywords, params.status, params.verificationState)
+  const conditions = buildConditions(params.searchKeywords, params.status, params.severity, params.verificationState, params.autoClose)
   
   // Build request body
   const requestBody = {

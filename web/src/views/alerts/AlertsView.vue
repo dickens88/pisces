@@ -223,7 +223,7 @@
             </button>
           </div>
         </div>
-        <div class="relative min-w-[140px] max-w-[12rem]">
+        <div class="relative min-w-[100px] max-w-[8rem]">
           <select
             v-model="statusFilter"
             @change="handleFilter"
@@ -238,7 +238,38 @@
             <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
           </div>
         </div>
-        <div class="relative min-w-[140px] max-w-[12rem]">
+        <div class="relative min-w-[120px] max-w-[10rem]">
+          <select
+            v-model="severityFilter"
+            @change="handleSeverityFilter"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+          >
+            <option value="all">{{ $t('common.severity.all') || $t('common.filter') }}</option>
+            <option value="fatal">{{ $t('common.severity.fatal') }}</option>
+            <option value="high">{{ $t('common.severity.high') }}</option>
+            <option value="medium">{{ $t('common.severity.medium') }}</option>
+            <option value="low">{{ $t('common.severity.low') }}</option>
+            <option value="tips">{{ $t('common.severity.tips') }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+          </div>
+        </div>
+        <div class="relative min-w-[100px] max-w-[10rem]">
+          <select
+            v-model="autoCloseFilter"
+            @change="handleAutoCloseFilter"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+          >
+            <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
+            <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
+            <option value="Manual">{{ $t('alerts.list.autoClose.manual') }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+          </div>
+        </div>
+        <div class="relative min-w-[100px] max-w-[8rem]">
           <select
             v-model="aiJudgeFilter"
             @change="handleAiJudgeFilter"
@@ -255,12 +286,33 @@
         </div>
         <!-- Alert Filter Mode Switch -->
         <div class="flex-shrink-0">
-          <ThreeWaySwitch
-            v-model="alertFilterMode"
-            :options="alertFilterOptions"
-            i18n-prefix="alerts.list.filterMode"
-            :label="$t('alerts.list.riskFilter') || '风险过滤'"
-          />
+          <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
+              {{ $t('alerts.list.riskFilter')}}
+            </span>
+            <button
+              @click="toggleRiskFilter"
+              :class="[
+                'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
+                isRiskFilterActive
+                  ? 'text-white bg-red-600 hover:bg-red-700 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              ]"
+              :title="riskFilterText"
+            >
+              <span
+                class="material-symbols-outlined !text-lg"
+                :class="isRiskFilterActive ? '' : 'text-red-500'"
+              >
+                release_alert
+              </span>
+              <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
+                  {{ riskFilterText }}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
         <!-- Spacer to push right buttons to the right -->
         <div class="flex-1 min-w-0"></div>
@@ -672,7 +724,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
@@ -685,7 +737,6 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
-import ThreeWaySwitch from '@/components/common/ThreeWaySwitch.vue'
 import { formatDateTime, parseToDate, calculateTTR } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
@@ -833,6 +884,32 @@ const getStoredStatusFilter = () => {
 }
 const statusFilter = ref(getStoredStatusFilter())
 
+const getStoredSeverityFilter = () => {
+  try {
+    const stored = localStorage.getItem('alerts-severity-filter')
+    if (stored) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read severity filter from localStorage:', error)
+  }
+  return 'all'
+}
+const severityFilter = ref(getStoredSeverityFilter())
+
+const getStoredAutoCloseFilter = () => {
+  try {
+    const stored = localStorage.getItem('alerts-autoClose-filter')
+    if (stored) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read auto close filter from localStorage:', error)
+  }
+  return 'all'
+}
+const autoCloseFilter = ref(getStoredAutoCloseFilter())
+
 const getStoredAiJudgeFilter = () => {
   try {
     const stored = localStorage.getItem('alerts-aiJudge-filter')
@@ -849,8 +926,8 @@ const aiJudgeFilter = ref(getStoredAiJudgeFilter())
 const getStoredAlertFilterMode = () => {
   try {
     const stored = localStorage.getItem('alerts-filter-mode')
-    if (stored && ['allAlerts', 'normal', 'highRisk', 'unclosedHighRisk'].includes(stored)) {
-      return stored === 'normal' ? 'allAlerts' : stored
+    if (stored === 'unclosedHighRisk') {
+      return stored
     }
   } catch (error) {
     console.warn('Failed to read alert filter mode from localStorage:', error)
@@ -858,24 +935,18 @@ const getStoredAlertFilterMode = () => {
   return 'allAlerts'
 }
 const alertFilterMode = ref(getStoredAlertFilterMode())
-
-const alertFilterOptions = computed(() => [
-  {
-    value: 'allAlerts',
-    icon: 'list_alt_check',
-    i18nKey: 'allAlerts'
-  },
-  {
-    value: 'highRisk',
-    icon: 'data_alert',
-    i18nKey: 'highRisk'
-  },
-  {
-    value: 'unclosedHighRisk',
-    icon: 'release_alert',
-    i18nKey: 'unclosedHighRisk'
-  }
-])
+const previousStatusFilterBeforeRisk = ref(statusFilter.value)
+if (alertFilterMode.value === 'unclosedHighRisk') {
+  previousStatusFilterBeforeRisk.value = 'all'
+  statusFilter.value = 'open'
+  localStorage.setItem('alerts-status-filter', 'open')
+}
+const isRiskFilterActive = computed(() => alertFilterMode.value === 'unclosedHighRisk')
+const riskFilterText = computed(() =>
+  isRiskFilterActive.value
+    ? (t('common.clearFilter'))
+    : (t('alerts.list.filterMode.unclosedHighRisk') || t('alerts.list.riskFilter'))
+)
 
 const selectedAlerts = ref([])
 const currentPage = ref(1)
@@ -1448,6 +1519,8 @@ const loadAlerts = async () => {
     const params = {
       searchKeywords: searchKeywords.value,
       status: statusFilter.value,
+      severity: severityFilter.value,
+      autoClose: autoCloseFilter.value,
       verificationState: aiJudgeFilter.value,
       page: currentPage.value,
       pageSize: pageSize.value,
@@ -1658,14 +1731,23 @@ const handleSearchContainerClick = () => {
 }
 
 const handleFilter = () => {
-  try {
-    localStorage.setItem('alerts-status-filter', statusFilter.value)
-  } catch (error) {
-    console.warn('Failed to save status filter to localStorage:', error)
+  localStorage.setItem('alerts-status-filter', statusFilter.value)
+  if (!isRiskFilterActive.value) {
+    previousStatusFilterBeforeRisk.value = statusFilter.value
   }
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
   loadAlertStatusBySeverity()
+}
+
+const handleSeverityFilter = () => {
+  localStorage.setItem('alerts-severity-filter', severityFilter.value)
+  reloadAlertsFromFirstPage()
+}
+
+const handleAutoCloseFilter = () => {
+  localStorage.setItem('alerts-autoClose-filter', autoCloseFilter.value)
+  reloadAlertsFromFirstPage()
 }
 
 const handleAiJudgeFilter = () => {
@@ -1673,23 +1755,32 @@ const handleAiJudgeFilter = () => {
   reloadAlertsFromFirstPage()
 }
 
-watch(alertFilterMode, (newMode) => {
-  localStorage.setItem('alerts-filter-mode', newMode)
-  
-  if (newMode === 'highRisk') {
-    statusFilter.value = 'all'
-    localStorage.setItem('alerts-status-filter', 'all')
-    loadAlertTypeDistribution()
-    loadAlertStatusBySeverity()
-  } else if (newMode === 'unclosedHighRisk') {
+const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
+  localStorage.setItem('alerts-filter-mode', mode)
+
+  if (mode === 'unclosedHighRisk') {
+    previousStatusFilterBeforeRisk.value = statusFilter.value
     statusFilter.value = 'open'
     localStorage.setItem('alerts-status-filter', 'open')
-    loadAlertTypeDistribution()
-    loadAlertStatusBySeverity()
+  } else {
+    statusFilter.value = previousStatusFilterBeforeRisk.value || 'all'
+    localStorage.setItem('alerts-status-filter', statusFilter.value)
   }
-  
-  reloadAlertsFromFirstPage()
-})
+
+  if (!skipReload) {
+    await Promise.all([
+      reloadAlertsFromFirstPage(),
+      loadAlertTypeDistribution(),
+      loadAlertStatusBySeverity()
+    ])
+  }
+}
+
+const toggleRiskFilter = () => {
+  const nextMode = isRiskFilterActive.value ? 'allAlerts' : 'unclosedHighRisk'
+  alertFilterMode.value = nextMode
+  applyRiskFilterMode(nextMode)
+}
 
 const handlePageSizeChange = () => {
   pageSize.value = Number(pageSize.value)

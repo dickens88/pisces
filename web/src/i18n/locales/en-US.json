@@ -51,7 +51,9 @@
     "singleLine": "Single Line",
     "expand": "Expand",
     "collapse": "Collapse",
+    "clearFilter": "Clear Filter",
     "severity": {
+      "all": "All Severity",
       "fatal": "Fatal",
       "critical": "Critical",
       "high": "High",
@@ -151,7 +153,13 @@
       "searchPlaceholder": "Click to select search field, then enter keyword...",
       "ownerSearchPlaceholder": "Search Model owner...",
       "actorSearchPlaceholder": "Search actor...",
-      "riskFilter": "Risk Filter",
+      "riskFilter": "High Risk",
+      "autoClose": {
+        "all": "Closing Modes",
+        "autoClosed": "Auto Closed",
+        "manual": "Manual",
+        "none": "Not Closed Automatically"
+      },
       "allStatus": "All Status",
       "open": "Open",
       "block": "Block",

@@ -78,12 +78,6 @@ const routes = [
         component: () => import('@/views/vulnerabilities/VulnerabilitiesDetail.vue'),
         meta: { title: '漏洞详情', requiresAuth: true }
       },
-      {
-        path: 'ai-playground',
-        name: 'AiPlayground',
-        component: () => import('@/views/ai/AiPlaygroundView.vue'),
-        meta: { title: 'AI Playground', requiresAuth: true }
-      }
     ]
   }
 ]

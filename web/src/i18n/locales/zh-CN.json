@@ -51,7 +51,9 @@
     "singleLine": "单行显示",
     "expand": "展开",
     "collapse": "收起",
+    "clearFilter": "取消筛选",
     "severity": {
+      "all": "风险等级",
       "fatal": "致命",
       "critical": "严重",
       "high": "高",
@@ -151,7 +153,13 @@
       "searchPlaceholder": "点击选择搜索字段，然后输入关键字...",
       "ownerSearchPlaceholder": "搜索责任人...",
       "actorSearchPlaceholder": "搜索调查员...",
-      "riskFilter": "风险过滤",
+      "riskFilter": "高风险",
+      "autoClose": {
+        "all": "关闭方式",
+        "autoClosed": "自动关闭",
+        "manual": "人工关闭",
+        "none": "未自动关闭"
+      },
       "allStatus": "所有状态",
       "open": "打开",
       "block": "阻塞",
