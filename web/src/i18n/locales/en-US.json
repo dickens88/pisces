@@ -76,7 +76,18 @@
     "alerts": "Alert Management",
     "incidents": "Incident Management",
     "asm": "Attack Surface Management",
-    "vulnerabilities": "Vulnerability Management"
+    "vulnerabilities": "Vulnerability Management",
+    "aiPlayground": "AI Playground"
+  },
+  "aiPlayground": {
+    "title": "AI Playground",
+    "charts": {
+      "aiAccuracy": "AI Accuracy Rate",
+      "placeholder": "Reserved for future insight"
+    },
+    "list": {
+      "title": "Alert Listing"
+    }
   },
   "dashboard": {
     "title": "Dashboard",

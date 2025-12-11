@@ -73,7 +73,8 @@ const allMenuItems = [
   { path: '/alerts', icon: 'security', label: 'nav.alerts' },
   { path: '/incidents', icon: 'list_alt', label: 'nav.incidents' },
   { path: '/asm', icon: 'radar', label: 'nav.asm' },
-  { path: '/vulnerabilities', icon: 'bug_report', label: 'nav.vulnerabilities' }
+  { path: '/vulnerabilities', icon: 'bug_report', label: 'nav.vulnerabilities' },
+  { path: '/ai-playground', icon: 'auto_awesome', label: 'nav.aiPlayground' }
 ]
 
 const enabledRoutes = computed(() => {

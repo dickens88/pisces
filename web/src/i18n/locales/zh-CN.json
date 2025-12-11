@@ -76,7 +76,18 @@
     "alerts": "告警管理",
     "incidents": "事件管理",
     "asm": "攻击面管理",
-    "vulnerabilities": "漏洞管理"
+    "vulnerabilities": "漏洞管理",
+    "aiPlayground": "AI实验场"
+  },
+  "aiPlayground": {
+    "title": "AI实验场",
+    "charts": {
+      "aiAccuracy": "AI研判正确率",
+      "placeholder": "后续数据占位"
+    },
+    "list": {
+      "title": "告警列表"
+    }
   },
   "dashboard": {
     "title": "态势感知",

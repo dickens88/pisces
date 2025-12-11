@@ -238,6 +238,21 @@
             <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
           </div>
         </div>
+        <div class="relative min-w-[140px] max-w-[12rem]">
+          <select
+            v-model="aiJudgeFilter"
+            @change="handleAiJudgeFilter"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+          >
+            <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
+            <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
+            <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
+            <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
+          </select>
+          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+          </div>
+        </div>
         <!-- Alert Filter Mode Switch -->
         <div class="flex-shrink-0">
           <ThreeWaySwitch
@@ -390,14 +405,17 @@
           <div class="flex items-center gap-2 flex-wrap">
             <span
               :class="[
-                'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[70px]',
+                'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
                 getRiskLevelClass(item.riskLevel)
               ]"
               :title="$t(`common.severity.${item.riskLevel}`)"
             >
               {{ $t(`common.severity.${item.riskLevel}`) }}
             </span>
-            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
+          </div>
+        </template>
+        <template #cell-aiJudge="{ item }">
+          <div class="flex items-center gap-2 flex-wrap">
             <span
               v-if="item.verification_state === 'True_Positive'"
               class="material-symbols-outlined text-red-500 flex-shrink-0"
@@ -680,6 +698,7 @@ const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
+  { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'status', label: t('alerts.list.status') },
   { key: 'responseTime', label: t('alerts.list.responseTime') },
   { key: 'actor', label: t('alerts.list.actor') }
@@ -689,6 +708,7 @@ const defaultWidths = {
   createTime: 200,
   alertTitle: 400,
   riskLevel: 120,
+  aiJudge: 120,
   status: 120,
   responseTime: 120,
   actor: 50
@@ -812,6 +832,19 @@ const getStoredStatusFilter = () => {
   return 'all'
 }
 const statusFilter = ref(getStoredStatusFilter())
+
+const getStoredAiJudgeFilter = () => {
+  try {
+    const stored = localStorage.getItem('alerts-aiJudge-filter')
+    if (stored && ['all', 'True_Positive', 'False_Positive', 'Unknown'].includes(stored)) {
+      return stored
+    }
+  } catch (error) {
+    console.warn('Failed to read AI judge filter from localStorage:', error)
+  }
+  return 'all'
+}
+const aiJudgeFilter = ref(getStoredAiJudgeFilter())
 
 const getStoredAlertFilterMode = () => {
   try {
@@ -1415,6 +1448,7 @@ const loadAlerts = async () => {
     const params = {
       searchKeywords: searchKeywords.value,
       status: statusFilter.value,
+      verificationState: aiJudgeFilter.value,
       page: currentPage.value,
       pageSize: pageSize.value,
       risk_mode: alertFilterMode.value
@@ -1632,6 +1666,11 @@ const handleFilter = () => {
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
   loadAlertStatusBySeverity()
+}
+
+const handleAiJudgeFilter = () => {
+  localStorage.setItem('alerts-aiJudge-filter', aiJudgeFilter.value)
+  reloadAlertsFromFirstPage()
 }
 
 watch(alertFilterMode, (newMode) => {
