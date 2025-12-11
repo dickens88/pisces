@@ -78,7 +78,7 @@ const transformAlertData = (apiAlert) => {
 
 /**
  * 统一格式化搜索关键字
- * 期望格式：[{ field: 'title'|'creator'|'actor', value: 'keyword' }]
+ * 期望格式：[{ field: 'id'|'title'|'creator'|'actor'|'ipdrr_phase', value: 'keyword' }]
  */
 const normalizeSearchKeywords = (searchKeywords) => {
   if (!searchKeywords) return []
@@ -94,7 +94,7 @@ const normalizeSearchKeywords = (searchKeywords) => {
 
 /**
  * @brief 构建查询条件
- * @param {Array<Object>} searchKeywords - 搜索关键字（统一使用对象数组：{field: 'title'|'creator'|'actor', value: 'keyword'}）
+ * @param {Array<Object>} searchKeywords - 搜索关键字（统一使用对象数组：{field: 'id'|'title'|'creator'|'actor'|'ipdrr_phase', value: 'keyword'}）
  * @param {string} status - 状态过滤
  * @param {string} severity - 风险等级过滤
  * @param {string} verificationState - AI研判状态过滤 (True_Positive, False_Positive, Unknown)
@@ -153,7 +153,7 @@ const formatTimestamp = (timestamp) => {
 /**
  * @brief 获取告警列表
  * @param {Object} params - 查询参数
- * @param {Array<Object>} params.searchKeywords - 搜索关键字（统一格式：{field: 'title'|'creator'|'actor', value: 'keyword'}）
+ * @param {Array<Object>} params.searchKeywords - 搜索关键字（统一格式：{field: 'id'|'title'|'creator'|'actor'|'ipdrr_phase', value: 'keyword'}）
  * @param {string} params.status - 状态过滤
  * @param {string} params.severity - 风险等级过滤 (fatal/high/medium/low/tips)
  * @param {string} params.autoClose - 关闭方式过滤 (AutoClosed/Manual)

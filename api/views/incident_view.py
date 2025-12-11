@@ -85,6 +85,7 @@ class IncidentView(Resource):
                                                         close_reason="Resolved",
                                                         comment="Associate alerts to incident: " + incident_id,
                                                         actor=username,
+                                                        escalate=True,
                                                         workspace_id=workspace_id)
                 logger.info(f"[Incident] Converted Alerts to Incident: {incident_id} successfully.[{username}]")
                 return {"data": data, "total": result}, 201
@@ -150,6 +151,7 @@ class IncidentRelations(Resource):
                                                         close_reason="Resolved",
                                                         comment="Associate alerts to incident: " + incident_id,
                                                         actor=username,
+                                                        escalate=True,
                                                         workspace_id=workspace_id)
 
                 logger.warn(f"[Incident] Associated Alerts successfully. ids: {ids} -> {incident_id}. [{username}]")

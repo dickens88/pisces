@@ -6,6 +6,7 @@ from models.alert import Alert
 from utils.app_config import config
 from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
+from utils.mysql_conn import Session
 
 
 class AlertService:
@@ -70,10 +71,88 @@ class AlertService:
                 "ttr": item['data_object'].get('ttr'),
                 "data_source_product_name": item['data_object']['data_source']['product_name'],
                 "verification_state": item['data_object'].get('verification_state'),
+                "ipdrr_phase": item['data_object']['ipdrr_phase'],
             }
             result.append(row)
 
         return result, total
+
+    @classmethod
+    def list_local_alerts(cls, conditions: List, limit=50, offset=0, start_time=None, end_time=None):
+        """
+        List alerts from local DB (t_alerts) with simple field-based filtering.
+        Supported condition keys: title (contains), creator, actor, model_name/model,
+        handle_status, severity.
+        """
+        session = Session()
+        try:
+            query = session.query(Alert)
+
+            if start_time:
+                query = query.filter(Alert.create_time >= start_time)
+            if end_time:
+                query = query.filter(Alert.create_time <= end_time)
+
+            for cond in conditions or []:
+                if not isinstance(cond, dict):
+                    continue
+                for key, value in cond.items():
+                    if value is None:
+                        continue
+                    val_str = str(value)
+                    key_lower = key.lower()
+                    if key_lower == 'title':
+                        query = query.filter(Alert.title.ilike(f"%{val_str}%"))
+                    elif key_lower == 'creator':
+                        query = query.filter(Alert.creator.ilike(f"%{val_str}%"))
+                    elif key_lower == 'actor':
+                        query = query.filter(Alert.actor.ilike(f"%{val_str}%"))
+                    elif key_lower in ('model', 'model_name'):
+                        query = query.filter(Alert.model_name == val_str)
+                    elif key_lower in ('handle_status', 'status'):
+                        query = query.filter(Alert.handle_status == val_str)
+                    elif key_lower == 'severity':
+                        query = query.filter(Alert.severity == val_str)
+
+            total = query.count()
+            rows = (
+                query
+                .order_by(Alert.create_time.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
+
+            result = []
+            for item in rows:
+                risk_level = (item.severity or '').lower() if item.severity else 'medium'
+                status = (item.handle_status or '').lower() if item.handle_status else 'open'
+                result.append({
+                    "id": item.id,
+                    "alert_id": item.alert_id,
+                    "create_time": item.create_time,
+                    "close_time": item.close_time,
+                    "title": item.title,
+                    "severity": item.severity,
+                    "riskLevel": risk_level,
+                    "handle_status": item.handle_status,
+                    "status": status,
+                    "owner": item.owner,
+                    "creator": item.creator,
+                    "actor": item.actor,
+                    "close_reason": item.close_reason,
+                    "close_comment": item.close_comment,
+                    "is_auto_closed": item.is_auto_closed,
+                    "data_source_product_name": item.data_source_product_name,
+                    "model_name": item.model_name,
+                    "is_ai_decision_correct": item.is_ai_decision_correct,
+                    "tta": item.tta,
+                    "verification_state": item.verification_state,
+                })
+
+            return result, total
+        finally:
+            session.close()
 
     @classmethod
     def retrieve_alert_by_id(cls, alert_id, workspace_id=None):
@@ -108,6 +187,7 @@ class AlertService:
             "ttr": item['data_object'].get('ttr'),
             "data_source_product_name": item['data_object']['data_source']['product_name'],
             "verification_state": item['data_object'].get('verification_state'),
+            "ipdrr_phase": item['data_object']['ipdrr_phase'],
         }
 
         try:
@@ -168,7 +248,7 @@ class AlertService:
         return json.loads(resp.text)
 
     @classmethod
-    def batch_close_alert(cls, alert_ids, close_reason, comment, actor="-", workspace_id=None):
+    def batch_close_alert(cls, alert_ids, close_reason, comment, escalate=False, actor="-", workspace_id=None):
         """Close a batch of alerts with reason and comment."""
         ws_id = workspace_id or cls.workspace_id
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/batch-update"
@@ -184,6 +264,8 @@ class AlertService:
         }
         if actor:
             payload["data_object"]["actor"] = actor
+        if escalate:
+            payload["data_object"]["ipdrr_phase"] = "to_incident"
         body = json.dumps(payload)
 
         resp = request_with_auth("POST", url=base_url, headers=headers, data=body)
