@@ -526,7 +526,24 @@
                                 {{ param.label }}
                                 <span v-if="param.required !== false" class="text-red-500 ml-1">*</span>
                               </label>
+                              <!-- Enum parameter: use select dropdown -->
+                              <div v-if="param.enum && param.enum.length > 0" class="relative">
+                                <select
+                                  class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 pr-8 text-gray-900 dark:text-white focus:border-primary focus:ring-primary text-sm appearance-none cursor-pointer"
+                                  :id="`toolkit-${tool.app_id}-${param.name}`"
+                                  :value="toolkitParams[tool.app_id]?.[param.name] ?? (param.default_value !== undefined && param.default_value !== null ? param.default_value : '')"
+                                  @change="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
+                                >
+                                  <option v-if="param.default_value === undefined || param.default_value === null" value="" disabled>请选择</option>
+                                  <option v-for="enumValue in param.enum" :key="enumValue" :value="enumValue">
+                                    {{ enumValue }}
+                                  </option>
+                                </select>
+                                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 text-lg">expand_more</span>
+                              </div>
+                              <!-- Regular parameter: use input -->
                               <input 
+                                v-else
                                 class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
                                 :id="`toolkit-${tool.app_id}-${param.name}`"
                                 :placeholder="param.default_value !== undefined && param.default_value !== null ? `默认: ${param.default_value}` : `e.g., ${param.label}`"

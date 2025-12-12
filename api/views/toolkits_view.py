@@ -18,6 +18,8 @@ def _extract_params_from_field_mapping(field_mapping):
         param_name = None
         default_value = None
         required = True
+        enum_values = None
+        param_type = "text"  # default type
         
         if isinstance(mapping_config, str):
             param_name = mapping_config
@@ -25,16 +27,25 @@ def _extract_params_from_field_mapping(field_mapping):
             param_name = mapping_config.get("source") or mapping_config.get("from")
             default_value = mapping_config.get("default")
             required = default_value is None
+            # Support enum values configuration
+            enum_values = mapping_config.get("enum")
+            if enum_values:
+                if not isinstance(enum_values, list):
+                    raise ValueError(f"Parameter '{param_name}': enum must be a list, got {type(enum_values).__name__}")
+                param_type = "select"
         
         if param_name and param_name not in seen_params:
             seen_params.add(param_name)
             param = {
                 "name": param_name,
-                "label": param_name.replace("_", " ").title()
+                "label": param_name.replace("_", " ").title(),
+                "type": param_type
             }
             if default_value is not None:
                 param["default_value"] = default_value
             param["required"] = required
+            if enum_values:
+                param["enum"] = enum_values
             params.append(param)
     
     return params

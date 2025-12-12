@@ -116,6 +116,39 @@
           "result_path": "data"
         }
       }
+    },
+    {
+      "app_id": "example_enum_api",
+      "app_type": "workflow",
+      "title": "Example API with Enum Parameter",
+      "api": {
+        "method": "POST",
+        "base_url": "https://api.example.com",
+        "endpoint": "/v1/ip-filter",
+        "timeout": 30,
+        "auth": {
+          "type": "api_key",
+          "key_name": "X-API-Key",
+          "key_value": "your-api-key-here"
+        },
+        "request_body": {
+          "field_mapping": {
+            "inputs.ip": {
+              "source": "ip",
+              "required": true
+            },
+            "inputs.type": {
+              "source": "type",
+              "enum": ["black", "white"],
+              "default": "black"
+            }
+          }
+        },
+        "response": {
+          "expected_status": [200],
+          "result_path": "data"
+        }
+      }
     }
   ]
 }
