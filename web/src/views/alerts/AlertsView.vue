@@ -961,31 +961,9 @@ const getStoredSeverityFilter = () => {
 }
 const severityFilter = ref(getStoredSeverityFilter())
 
-const getStoredAutoCloseFilter = () => {
-  try {
-    const stored = localStorage.getItem('alerts-autoClose-filter')
-    if (stored) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read auto close filter from localStorage:', error)
-  }
-  return 'all'
-}
-const autoCloseFilter = ref(getStoredAutoCloseFilter())
+const autoCloseFilter = ref('all')
 
-const getStoredAiJudgeFilter = () => {
-  try {
-    const stored = localStorage.getItem('alerts-aiJudge-filter')
-    if (stored && ['all', 'True_Positive', 'False_Positive', 'Unknown'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read AI judge filter from localStorage:', error)
-  }
-  return 'all'
-}
-const aiJudgeFilter = ref(getStoredAiJudgeFilter())
+const aiJudgeFilter = ref('all')
 const phaseFilter = ref(false)
 
 const getStoredAlertFilterMode = () => {
@@ -1851,12 +1829,10 @@ const handleSeverityFilter = () => {
 }
 
 const handleAutoCloseFilter = () => {
-  localStorage.setItem('alerts-autoClose-filter', autoCloseFilter.value)
   reloadAlertsFromFirstPage()
 }
 
 const handleAiJudgeFilter = () => {
-  localStorage.setItem('alerts-aiJudge-filter', aiJudgeFilter.value)
   reloadAlertsFromFirstPage()
 }
 
