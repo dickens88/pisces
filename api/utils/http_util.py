@@ -137,5 +137,8 @@ def request_with_auth(method, url, headers, data=None):
     """
     url, headers = _wrap_http_auth_headers(method, url, headers, data)
 
-    return requests.request(method, url=url, data=data, headers=headers, proxies=get_proxy(), verify=False, timeout=20)
+    resp = requests.request(method, url=url, data=data, headers=headers, proxies=get_proxy(), verify=False, timeout=20)
+    if resp.status_code > 300:
+        raise Exception(resp.text)
+    return resp
 
