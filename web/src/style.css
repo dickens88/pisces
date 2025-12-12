@@ -56,3 +56,41 @@ body {
 .slide-leave-to {
   transform: translateX(100%);
 }
+
+/* 统一的 select 下拉框样式 - 移除双重圈效果和重复箭头 */
+select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Focus 状态 - 使用柔和的边框高亮，移除 ring 和 box-shadow 双重圈 */
+select:focus {
+  outline: none;
+  border-color: #2b7cee;
+  box-shadow: 0 0 0 2px rgba(43, 124, 238, 0.15);
+}
+
+/* Hover 状态 */
+select:hover:not(:focus) {
+  border-color: #9ca3af;
+}
+
+.dark select:hover:not(:focus) {
+  border-color: #3c4a60;
+}
+
+.dark select:focus {
+  border-color: #2b7cee;
+  box-shadow: 0 0 0 2px rgba(43, 124, 238, 0.2);
+}
+
+/* Option 样式 */
+select option {
+  background-color: #ffffff;
+  color: #111827;
+  padding: 0.5rem;
+}
+
+.dark select option {
+  background-color: #1e293b;
+  color: white;
+}

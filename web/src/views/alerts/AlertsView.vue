@@ -152,20 +152,7 @@
     </section>
 
     <!-- Alert list table -->
-    <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative">
-      <!-- Loading overlay -->
-      <div
-        v-if="loadingAlerts"
-        class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
-      >
-        <div class="flex flex-col items-center gap-4">
-          <div class="relative w-16 h-16">
-            <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
-            <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
-          </div>
-          <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
-        </div>
-      </div>
+    <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl">
       <div class="flex flex-wrap items-center gap-3 p-4 border-b border-[#324867]">
         <div class="relative w-[30%] min-w-[300px] max-w-lg" ref="searchContainerRef">
           <div 
@@ -227,7 +214,7 @@
           <select
             v-model="statusFilter"
             @change="handleFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
           >
             <option value="all">{{ $t('alerts.list.allStatus') }}</option>
             <option value="open">{{ $t('alerts.list.open') }}</option>
@@ -242,7 +229,7 @@
           <select
             v-model="severityFilter"
             @change="handleSeverityFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
           >
             <option value="all">{{ $t('common.severity.all') || $t('common.filter') }}</option>
             <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -250,35 +237,6 @@
             <option value="medium">{{ $t('common.severity.medium') }}</option>
             <option value="low">{{ $t('common.severity.low') }}</option>
             <option value="tips">{{ $t('common.severity.tips') }}</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-          </div>
-        </div>
-        <div class="relative min-w-[100px] max-w-[10rem]">
-          <select
-            v-model="autoCloseFilter"
-            @change="handleAutoCloseFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
-          >
-            <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
-            <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
-            <option value="Manual">{{ $t('alerts.list.autoClose.manual') }}</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-          </div>
-        </div>
-        <div class="relative min-w-[100px] max-w-[8rem]">
-          <select
-            v-model="aiJudgeFilter"
-            @change="handleAiJudgeFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
-          >
-            <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
-            <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
-            <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
-            <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
           </select>
           <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
             <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
@@ -301,10 +259,17 @@
               :title="riskFilterText"
             >
               <span
-                class="material-symbols-outlined !text-lg"
+                class="material-symbols-outlined"
                 :class="isRiskFilterActive ? '' : 'text-red-500'"
+                style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
               >
                 release_alert
+              </span>
+              <span
+                v-if="highRiskAlertCount !== null && highRiskAlertCount > 0"
+                class="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-600 text-white text-xs font-bold rounded-full"
+              >
+                {{ highRiskAlertCount > 99 ? '99+' : highRiskAlertCount }}
               </span>
               <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
                 <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
@@ -314,6 +279,19 @@
             </button>
           </div>
         </div>
+        <!-- Advanced Search Toggle Button -->
+        <button
+          @click="showAdvancedSearch = !showAdvancedSearch"
+          class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-medium px-4 hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
+        >
+          <span>{{ $t('alerts.list.advancedSearch') }}</span>
+          <span 
+            class="material-symbols-outlined text-base transition-transform duration-200"
+            :class="{ 'rotate-180': showAdvancedSearch }"
+          >
+            expand_more
+          </span>
+        </button>
         <!-- Spacer to push right buttons to the right -->
         <div class="flex-1 min-w-0"></div>
         <div class="flex items-center gap-3 flex-shrink-0">
@@ -410,23 +388,107 @@
         </div>
       </div>
 
-      <DataTable
-        ref="dataTableRef"
-        :columns="columns"
-        :items="alerts"
-        :selectable="true"
-        :resizable="true"
-        storage-key="alerts-table-columns"
-        :default-widths="defaultWidths"
-        :current-page="currentPage"
-        :page-size="pageSize"
-        :total="total"
-        @update:current-page="handlePageChange"
-        @update:page-size="pageSize = $event"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
-        @page-size-change="handlePageSizeChange"
+      <!-- Advanced Search Panel -->
+      <div
+        v-show="showAdvancedSearch"
+        class="border-b border-[#324867] bg-gray-50 dark:bg-[#0f1419] transition-all duration-300 overflow-hidden"
       >
+        <div class="flex flex-wrap items-center gap-3 p-4">
+          <div class="relative min-w-[100px] max-w-[10rem]">
+            <select
+              v-model="autoCloseFilter"
+              @change="handleAutoCloseFilter"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
+            >
+              <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
+              <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
+              <option value="Manual">{{ $t('alerts.list.autoClose.manual') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
+          <div class="relative min-w-[100px] max-w-[10rem]">
+            <select
+              v-model="aiJudgeFilter"
+              @change="handleAiJudgeFilter"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
+            >
+              <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
+              <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
+              <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
+              <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
+          <!-- Phase Filter Switch -->
+          <div class="flex-shrink-0">
+            <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
+                {{ $t('alerts.list.phase') }}
+              </span>
+              <button
+                @click="togglePhaseFilter"
+                :class="[
+                  'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
+                  phaseFilter
+                    ? 'text-white bg-yellow-500 hover:bg-yellow-600 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                ]"
+                :title="phaseFilter ? $t('alerts.list.phaseToIncident') : $t('alerts.list.phaseAll')"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  :class="phaseFilter ? '' : 'text-yellow-500'"
+                  style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                >
+                  warning
+                </span>
+                <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
+                    {{ phaseFilter ? $t('alerts.list.phaseToIncident') : $t('alerts.list.phaseAll') }}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table container with loading overlay -->
+      <div class="relative">
+        <!-- Loading overlay -->
+        <div
+          v-if="loadingAlerts"
+          class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-b-xl"
+        >
+          <div class="flex flex-col items-center gap-4">
+            <div class="relative w-16 h-16">
+              <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+              <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+          </div>
+        </div>
+        <DataTable
+          ref="dataTableRef"
+          :columns="columns"
+          :items="alerts"
+          :selectable="true"
+          :resizable="true"
+          storage-key="alerts-table-columns"
+          :default-widths="defaultWidths"
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :total="total"
+          @update:current-page="handlePageChange"
+          @update:page-size="pageSize = $event"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          @page-size-change="handlePageSizeChange"
+        >
         <template #cell-createTime="{ value, item }">
           {{ formatDateTime(value || item?.createTime || item?.create_time) }}
         </template>
@@ -471,7 +533,7 @@
             <span
               v-if="item.verification_state === 'True_Positive'"
               class="material-symbols-outlined text-red-500 flex-shrink-0"
-              style="font-size: 20px;"
+              style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
               :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
             >
               Input_circle
@@ -479,7 +541,7 @@
             <span
               v-else-if="item.verification_state === 'False_Positive'"
               class="material-symbols-outlined text-green-500 flex-shrink-0"
-              style="font-size: 20px;"
+              style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
               :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
             >
               output_circle
@@ -487,7 +549,7 @@
             <span
               v-else
               class="material-symbols-outlined text-gray-400 flex-shrink-0"
-              style="font-size: 20px;"
+              style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
               :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
             >
               Unknown_5
@@ -512,6 +574,7 @@
           </div>
         </template>
       </DataTable>
+      </div>
     </section>
 
     <!-- Alert detail drawer -->
@@ -519,7 +582,7 @@
       v-if="currentAlertId"
       :alert-id="currentAlertId"
       @close="closeAlertDetail"
-      @closed="handleAlertClosed"
+      @closed="refreshAlertsAndCount"
       @created="handleAlertConvertedToIncident"
     />
 
@@ -827,6 +890,7 @@ const searchContainerRef = ref(null)
 
 const searchFields = computed(() => [
   { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
+  { value: 'id', label: t('alerts.list.alertId'), icon: 'tag' },
   { value: 'creator', label: t('alerts.list.owner'), icon: 'person' },
   { value: 'actor', label: t('alerts.list.actor'), icon: 'person_search' }
 ])
@@ -922,6 +986,7 @@ const getStoredAiJudgeFilter = () => {
   return 'all'
 }
 const aiJudgeFilter = ref(getStoredAiJudgeFilter())
+const phaseFilter = ref(false)
 
 const getStoredAlertFilterMode = () => {
   try {
@@ -947,6 +1012,8 @@ const riskFilterText = computed(() =>
     ? (t('common.clearFilter'))
     : (t('alerts.list.filterMode.unclosedHighRisk') || t('alerts.list.riskFilter'))
 )
+
+const highRiskAlertCount = ref(null)
 
 const selectedAlerts = ref([])
 const currentPage = ref(1)
@@ -1005,6 +1072,7 @@ const createVulnerabilityInitialData = ref(null)
 const showBatchDeleteDialog = ref(false)
 const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
+const showAdvancedSearch = ref(false)
 
 const persistChartsVisibilityPreference = (value) => {
   try {
@@ -1516,8 +1584,16 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 const loadAlerts = async () => {
   loadingAlerts.value = true
   try {
+    // Build search keywords, filtering out any existing ipdrr_phase entries
+    const filteredKeywords = searchKeywords.value.filter(kw => kw.field !== 'ipdrr_phase')
+    
+    // Add phase filter to search keywords if enabled
+    if (phaseFilter.value) {
+      filteredKeywords.push({ field: 'ipdrr_phase', value: 'to_incident' })
+    }
+    
     const params = {
-      searchKeywords: searchKeywords.value,
+      searchKeywords: filteredKeywords,
       status: statusFilter.value,
       severity: severityFilter.value,
       autoClose: autoCloseFilter.value,
@@ -1572,9 +1648,38 @@ const reloadAlertsFromFirstPage = () => {
   return handlePageChange(1)
 }
 
+const loadHighRiskAlertCount = async () => {
+  try {
+    const params = {
+      searchKeywords: [],
+      status: 'open',
+      severity: 'all',
+      autoClose: 'all',
+      verificationState: 'all',
+      page: 1,
+      pageSize: 1,
+      risk_mode: 'unclosedHighRisk'
+    }
+    
+    const range = computeSelectedRange()
+    if (range) {
+      params.startTime = range.start
+      params.endTime = range.end
+    }
+    
+    const response = await getAlerts(params)
+    highRiskAlertCount.value = response.total || 0
+  } catch (error) {
+    console.error('Failed to load high risk alert count:', error)
+    highRiskAlertCount.value = null
+  }
+}
+
 const loadAllData = async (reloadFromFirstPage = false) => {
   const loadAlertsFn = reloadFromFirstPage ? reloadAlertsFromFirstPage : loadAlerts
   const tasks = [loadAlertsFn()]
+  
+  tasks.push(loadHighRiskAlertCount())
   
   if (showCharts.value) {
     tasks.push(
@@ -1592,7 +1697,7 @@ const handleRefresh = async () => {
   
   isRefreshing.value = true
   try {
-    await loadAllData()
+    await loadAllData(false, true)
   } catch (error) {
     console.error('Failed to refresh:', error)
   } finally {
@@ -1755,6 +1860,11 @@ const handleAiJudgeFilter = () => {
   reloadAlertsFromFirstPage()
 }
 
+const togglePhaseFilter = () => {
+  phaseFilter.value = !phaseFilter.value
+  reloadAlertsFromFirstPage()
+}
+
 const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
   localStorage.setItem('alerts-filter-mode', mode)
 
@@ -1847,8 +1957,10 @@ const closeAlertDetail = () => {
   router.push({ path: '/alerts', replace: true })
 }
 
-const handleAlertClosed = () => {
+// 刷新告警列表和高风险告警数量的通用函数
+const refreshAlertsAndCount = () => {
   loadAlerts()
+  loadHighRiskAlertCount()
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -2028,12 +2140,9 @@ const handleBatchClose = async () => {
     )
     
     closeBatchCloseDialog()
-    selectedAlerts.value = []
-    if (dataTableRef.value) {
-      dataTableRef.value.clearSelection()
-    }
     
-    loadAlerts()
+    // 统一使用刷新函数
+    refreshAlertsAndCount()
   } catch (error) {
     console.error('Failed to batch close alerts:', error)
     const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchCloseError') || '批量关闭告警失败，请稍后重试'
@@ -2163,7 +2272,7 @@ onMounted(async () => {
     ensureAlertTypeChart()
     ensureAlertStatusChart()
   }
-  await loadAllData()
+  await loadAllData(false)
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
 })

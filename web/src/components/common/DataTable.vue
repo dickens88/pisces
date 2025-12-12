@@ -115,7 +115,7 @@
             <select
               :value="pageSize"
               @change="handlePageSizeChange"
-              class="pl-3 pr-8 appearance-none block rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-8 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-inset focus:ring-primary"
+              class="pl-3 pr-8 appearance-none block rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-8 text-gray-900 dark:text-white text-sm"
             >
               <option v-for="size in pageSizeOptions" :key="size" :value="size">
                 {{ size }}

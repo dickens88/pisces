@@ -155,9 +155,39 @@
             
             <!-- Content -->
             <main v-if="!isLoading && alert" class="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar">
+              <!-- 面包屑导航 -->
+              <nav class="mb-5">
+                <ol class="flex items-center gap-2.5 text-sm">
+                  <li>
+                    <router-link
+                      to="/alerts"
+                      class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 font-medium"
+                    >
+                      <span class="material-symbols-outlined text-base">folder</span>
+                      <span>{{ $t('alerts.title') }}</span>
+                    </router-link>
+                  </li>
+                  <li class="flex items-center text-gray-300 dark:text-gray-600">
+                    <span class="material-symbols-outlined text-lg">chevron_right</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-gray-400 dark:text-gray-500 font-medium">ID:</span>
+                    <span class="text-gray-900 dark:text-white font-semibold font-mono text-sm bg-gray-100 dark:bg-slate-700/50 px-2.5 py-1 rounded-md border border-gray-200 dark:border-slate-600">
+                      {{ currentAlertId || '--' }}
+                    </span>
+                    <button
+                      @click="handleCopyId"
+                      class="inline-flex items-center justify-center p-0.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 rounded"
+                      :title="$t('alerts.detail.copyId')"
+                    >
+                      <span class="material-symbols-outlined text-sm">content_copy</span>
+                    </button>
+                  </li>
+                </ol>
+              </nav>
               <!-- Title and severity -->
               <div>
-                <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ alert.title }}</h1>
+                <h1 class="text-lg font-bold text-gray-900 dark:text-white">{{ alert.title }}</h1>
                 <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-light">
                   <div class="flex items-center gap-1.5">
                     <span
@@ -2182,6 +2212,11 @@ const handleShare = async () => {
     }
     document.body.removeChild(textArea)
   }
+}
+
+const handleCopyId = async () => {
+  if (!currentAlertId.value) return
+  await navigator.clipboard.writeText(String(currentAlertId.value))
 }
 
 const handleToggleActor = async () => {

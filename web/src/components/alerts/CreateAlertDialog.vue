@@ -56,7 +56,7 @@
                   <select
                     v-model="formData.riskLevel"
                     required
-                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 appearance-none cursor-pointer"
                   >
                     <option value="">{{ $t('alerts.create.selectRiskLevel') }}</option>
                     <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -75,7 +75,7 @@
                   <select
                     v-model="formData.status"
                     required
-                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors appearance-none cursor-pointer"
+                    class="w-full bg-gray-100 dark:bg-[#1e293b] text-gray-900 dark:text-white border border-gray-300 dark:border-[#324867] rounded-md px-4 py-2.5 appearance-none cursor-pointer"
                   >
                     <option value="open">{{ $t('alerts.list.open') }}</option>
                     <option value="block">{{ $t('alerts.list.block') }}</option>
@@ -352,49 +352,23 @@ onUnmounted(() => {
   background-color: rgba(59, 130, 246, 0.5);
 }
 
-:root select option {
-  background-color: #f3f4f6;
-  color: #111827;
-  padding: 0.5rem;
-}
-
-:root.dark select option {
-  background-color: #1e293b;
-  color: white;
-}
-
-/* 美化 select 下拉框 */
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1.25rem;
-  padding-right: 2.75rem !important;
-}
-
-select:focus {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232b7cee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-}
-
-/* 输入框和选择框的 hover 效果 */
+/* 输入框和文本域的 hover 效果 */
 :root.dark input:hover:not(:focus),
-:root.dark select:hover:not(:focus),
 :root.dark textarea:hover:not(:focus) {
   border-color: #3c4a60;
 }
 
 :root:not(.dark) input:hover:not(:focus),
-:root:not(.dark) select:hover:not(:focus),
 :root:not(.dark) textarea:hover:not(:focus) {
   border-color: #9ca3af;
 }
 
-/* 输入框和选择框的 focus 效果增强 */
+/* 输入框和文本域的 focus 效果 */
 input:focus,
-select:focus,
 textarea:focus {
   border-color: #2b7cee;
   box-shadow: 0 0 0 3px rgba(43, 124, 238, 0.1);
+  outline: none;
 }
 </style>
 

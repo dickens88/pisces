@@ -39,6 +39,15 @@ class AlertView(Resource):
                     workspace_id=workspace_id,
                 )
                 return {"data": data, "total": total}, 200
+            elif action == 'list_local':
+                data, total = AlertService.list_local_alerts(
+                    conditions,
+                    limit=limit,
+                    offset=offset,
+                    start_time=start_time,
+                    end_time=end_time
+                )
+                return {"data": data, "total": total}, 200
             elif action == 'create':
                 alert_data = data.get('data', data)
                 created = AlertService.create_alert(alert_data, workspace_id=workspace_id)
