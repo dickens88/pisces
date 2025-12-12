@@ -356,7 +356,7 @@ class AlertService:
             content = row["content"]
             if "Intelligence Information" in content or "情报信息" in content:
                 result["intelligence"].append(row)
-            elif "AI" in content or "Dify" in content or "智能体" in content:
+            elif "Dify" in content or "智能体" in content:
                 result["ai"].append(row)
             elif "Historical" in content or "历史参考" in content:
                 result["historic"].append(row)
