@@ -1,6 +1,14 @@
 <template>
   <header class="flex items-center justify-end px-6 py-4 border-b border-border-light dark:border-[#324867] bg-panel-light dark:bg-[#111822]">
     <div class="flex items-center gap-4">
+      <!-- AI 对话按钮 -->
+      <button
+        @click="handleOpenAISidebar"
+        class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+        :title="$t('common.aiChat') || 'AI对话'"
+      >
+        <span class="material-symbols-outlined text-white text-lg">auto_awesome</span>
+      </button>
       <!-- GitHub 图标 -->
       <a
         href="https://codehub-g.huawei.com/csirt_hunting/Tianyan-WEB/issues"
@@ -245,6 +253,11 @@ const handleLogout = async () => {
     // 使用本地认证，跳转到本地登录页
     router.push({ name: 'Login' })
   }
+}
+
+const handleOpenAISidebar = () => {
+  // 触发全局事件，让页面组件打开AI侧边栏
+  window.dispatchEvent(new CustomEvent('open-ai-sidebar'))
 }
 
 // 点击外部关闭菜单

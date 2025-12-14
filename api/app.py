@@ -78,7 +78,7 @@ api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/grap
 api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
-api.add_resource(toolkits_view.ToolkitRecordView, '/alerts/<alert_id>/toolkits')
+api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 

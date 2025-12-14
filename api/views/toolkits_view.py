@@ -6,7 +6,7 @@ from flask_restful import Resource
 from models.tookits import ToolkitRecord
 from utils.auth_util import auth_required
 from utils.logger_init import logger
-from utils.toolkit_api_engine import call_toolkit_api, load_toolkit_config
+from utils.toolkit_api_engine import call_toolkit_api
 
 
 def _extract_params_from_field_mapping(field_mapping):
@@ -94,21 +94,18 @@ class ToolkitsView(Resource):
 class ToolkitRecordView(Resource):
 
     @auth_required
-    def get(self, username=None, alert_id=None):
+    def get(self, username=None):
         """Query toolkit records by alert_id (event_id)."""
         try:
-            if not alert_id:
-                return {"error_message": "alert_id is required"}, 400
-            
             # Query records by event_id (which stores alert_id)
-            records = ToolkitRecord.list_toolkit_records(event_id=alert_id)
+            records = ToolkitRecord.list_toolkit_records(event_id=request.args.get("event_id"))
             return {"data": records, "total": len(records)}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
     @auth_required
-    def post(self, username=None, alert_id=None):
+    def post(self, username=None):
         """Create a new toolkit record, call 3rd party API, and update the result."""
         try:
             data = json.loads(request.data or "{}")
@@ -121,10 +118,10 @@ class ToolkitRecordView(Resource):
                 "status": "running",
                 "result": None,
                 "owner": username,
-                "event_id": alert_id
+                "event_id": data.get("event_id")
             })
             record_id = toolkit_record["id"]
-            logger.info(f"[Toolkit] Created record id={record_id} for alert_id={alert_id} [{username}]")
+            logger.info(f"[Toolkit] Created record id={record_id} for alert_id={data.get('event_id')} [{username}]")
 
             try:
                 api_result = call_toolkit_api(

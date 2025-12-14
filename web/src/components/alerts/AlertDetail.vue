@@ -11,16 +11,16 @@
         @click="handleClose"
       ></div>
       
-      <!-- Detail panel - with slide-in animation -->
-      <Transition name="slide" appear>
-        <div
-          v-if="visible"
-          :class="[
-            rightSidebarTab === 'securityAgent' ? 'w-[80vw]' : 'w-[70vw]',
-            'relative h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden'
-          ]"
-          @click.stop="handlePanelClick"
-        >
+      <!-- Detail panel and AI Sidebar container -->
+      <div class="relative h-full">
+        <!-- Detail panel - with slide-in animation -->
+        <Transition name="slide" appear>
+          <div
+            v-if="visible"
+            class="absolute right-0 h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-in-out w-[65vw]"
+            :class="showAISidebar ? '-translate-x-[400px]' : ''"
+            @click.stop="handlePanelClick"
+          >
           <!-- Header -->
           <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
@@ -127,6 +127,14 @@
                   :title="$t('alerts.detail.share') || 'Share'"
                 >
                   <span class="material-symbols-outlined text-base">share</span>
+                </button>
+                <!-- AI 对话按钮 -->
+                <button
+                  @click="handleOpenAISidebar"
+                  class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  :title="$t('common.aiChat') || 'AI对话'"
+                >
+                  <span class="material-symbols-outlined text-white text-lg">auto_awesome</span>
                 </button>
                 <button
                   @click="handleClose"
@@ -293,8 +301,6 @@
                 <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-white">{{ $t('alerts.detail.alertInfo') }}</h3>
                 <div class="grid grid-cols-1 @lg:grid-cols-2 gap-x-6 gap-y-2 text-sm font-mono @container">
                   
-                  <!-- Dynamically display all fields in description -->
-                  <!-- 如果 description 是对象（且不为 null），遍历显示所有字段 -->
                   <template v-if="alert?.description && typeof alert.description === 'object' && alert.description !== null && !Array.isArray(alert.description)">
                     <template
                       v-for="(value, key) in alert.description"
@@ -306,7 +312,6 @@
                       >
                         <p class="text-gray-600 dark:text-text-light w-40 shrink-0 font-bold">{{ key }}:</p>
                         <div class="flex-1 min-w-0 flex items-center gap-1.5">
-                          <!-- 如果是log_analysis且是http(s)链接，渲染成按钮 -->
                           <template v-if="key === 'log_analysis' && isHttpLink(value)">
                             <button
                               @click="openLinkInNewWindow(value)"
@@ -325,8 +330,8 @@
                             </p>
                             <button
                               v-if="isFieldMatchedWithEntity(key, value)"
-                              @click="handleSendFieldToSecurityAgent(key, value)"
-                              class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
+                              @click="handleSendFieldToAISidebar(key, value)"
+                              class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110 ml-2"
                               :title="$t('alerts.detail.aiAssistant')"
                             >
                               <img 
@@ -459,157 +464,12 @@
             <!-- Sidebar -->
             <aside
               v-if="!isLoading && alert"
-              :class="[
-                rightSidebarTab === 'securityAgent' ? 'w-[32rem]' : 'w-80',
-                'border-l border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-[#1f2937]/20 flex flex-col overflow-hidden'
-              ]"
+              class="w-[260px] border-l border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-[#1f2937]/20 flex flex-col overflow-hidden flex-shrink-0"
             >
-              <!-- 页签导航 -->
-              <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
-                <nav class="flex -mb-px space-x-4">
-                  <button
-                    @click="rightSidebarTab = 'response'"
-                    :class="[
-                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-                      rightSidebarTab === 'response'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
-                    ]"
-                  >
-                    {{ $t('alerts.detail.responseTab') }}
-                  </button>
-                  <button
-                    @click="rightSidebarTab = 'securityAgent'"
-                    :class="[
-                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-                      rightSidebarTab === 'securityAgent'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
-                    ]"
-                  >
-                    {{ $t('alerts.detail.securityAgentTab') }}
-                  </button>
-                </nav>
-              </div>
 
               <!-- Response 页签内容 -->
-              <div v-if="rightSidebarTab === 'response'" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
+              <div class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
                 <div class="pr-6 space-y-6">
-                <!-- 自动化响应 -->
-                <div class="space-y-4">
-                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
-                  
-                  <!-- 加载状态 -->
-                  <div v-if="loadingToolkits || loadingToolkitRecords" class="flex items-center justify-center py-8">
-                    <span class="material-symbols-outlined animate-spin text-primary text-2xl">refresh</span>
-                  </div>
-                  
-                  <div v-else class="space-y-4">
-                    <!-- 工具清单部分：显示所有可用工具 -->
-                    <div v-if="toolkits.length" class="space-y-2">
-                      <h4 class="text-sm font-medium text-gray-600 dark:text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
-                      <template v-for="tool in toolkits" :key="tool.app_id">
-                        <details class="group rounded-lg bg-gray-100 dark:bg-[#2a3546]">
-                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-[#3c4a60]">
-                            <div class="flex items-center gap-3">
-                              <span class="material-symbols-outlined text-primary">play_circle</span>
-                              <div>
-                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ tool.title }}</p>
-                                <p class="text-xs text-gray-600 dark:text-text-light">{{ $t('alerts.detail.toolkitClickToConfigure') }}</p>
-                              </div>
-                            </div>
-                            <span class="material-symbols-outlined text-gray-600 dark:text-text-light group-hover:text-gray-900 dark:group-hover:text-white marker">expand_more</span>
-                          </summary>
-                          <div class="px-3 pb-3 pt-2 text-sm text-gray-600 dark:text-text-light space-y-3 border-t border-gray-200 dark:border-border-dark/50">
-                            <div v-for="param in tool.params" :key="param.name">
-                              <label class="block text-xs font-medium text-gray-600 dark:text-text-light mb-1" :for="`toolkit-${tool.app_id}-${param.name}`">
-                                {{ param.label }}
-                                <span v-if="param.required !== false" class="text-red-500 ml-1">*</span>
-                              </label>
-                              <!-- Enum parameter: use select dropdown -->
-                              <div v-if="param.enum && param.enum.length > 0" class="relative">
-                                <select
-                                  class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 pr-8 text-gray-900 dark:text-white focus:border-primary focus:ring-primary text-sm appearance-none cursor-pointer"
-                                  :id="`toolkit-${tool.app_id}-${param.name}`"
-                                  :value="toolkitParams[tool.app_id]?.[param.name] ?? (param.default_value !== undefined && param.default_value !== null ? param.default_value : '')"
-                                  @change="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
-                                >
-                                  <option v-if="param.default_value === undefined || param.default_value === null" value="" disabled>请选择</option>
-                                  <option v-for="enumValue in param.enum" :key="enumValue" :value="enumValue">
-                                    {{ enumValue }}
-                                  </option>
-                                </select>
-                                <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 dark:text-gray-400 text-lg">expand_more</span>
-                              </div>
-                              <!-- Regular parameter: use input -->
-                              <input 
-                                v-else
-                                class="w-full rounded-md border border-gray-300 dark:border-border-dark bg-white dark:bg-[#1a202c] p-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-dark focus:border-primary focus:ring-primary text-sm" 
-                                :id="`toolkit-${tool.app_id}-${param.name}`"
-                                :placeholder="param.default_value !== undefined && param.default_value !== null ? `默认: ${param.default_value}` : `e.g., ${param.label}`"
-                                type="text" 
-                                :value="toolkitParams[tool.app_id]?.[param.name] ?? (param.default_value !== undefined && param.default_value !== null ? param.default_value : '')"
-                                @input="updateToolkitParam(tool.app_id, param.name, $event.target.value)"
-                              />
-                            </div>
-                            <button 
-                              @click="handleExecuteToolkit(tool)"
-                              :disabled="executingToolkitId === tool.app_id"
-                              class="w-full bg-primary hover:bg-blue-500 text-sm font-medium text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2 justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
-                            >
-                              <span :class="['material-symbols-outlined text-base', executingToolkitId === tool.app_id && 'animate-spin']">
-                                {{ executingToolkitId === tool.app_id ? 'refresh' : 'play_arrow' }}
-                              </span>
-                              {{ executingToolkitId === tool.app_id ? $t('alerts.detail.toolkitExecuting') : $t('alerts.detail.toolkitExecute') }}
-                            </button>
-                          </div>
-                        </details>
-                      </template>
-                    </div>
-                    
-                    <!-- 执行记录部分 -->
-                    <div v-if="toolkitRecords.length" class="space-y-2">
-                      <h4 class="text-sm font-medium text-gray-600 dark:text-text-light">{{ $t('alerts.detail.executionRecords') }}</h4>
-                      <template v-for="record in toolkitRecords" :key="record.id">
-                        <details :class="['group rounded-lg bg-gray-100 dark:bg-[#2a3546]', record.status === 'running' && 'animate-pulse']">
-                          <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-[#3c4a60]">
-                            <div class="flex items-center gap-3">
-                              <span :class="[
-                                'material-symbols-outlined',
-                                record.status === 'completed' && 'text-green-400',
-                                record.status === 'running' && 'text-yellow-400',
-                                record.status === 'failed' && 'text-red-400'
-                              ]">
-                                {{ record.status === 'completed' ? 'task_alt' : record.status === 'running' ? 'hourglass_top' : 'error' }}
-                              </span>
-                              <div>
-                                <p class="font-medium text-gray-900 dark:text-white text-sm">{{ record.title }}</p>
-                                <p class="text-xs text-gray-600 dark:text-text-light">
-                                  {{ formatDateTime(record.create_time) }}
-                                </p>
-                              </div>
-                            </div>
-                            <span class="material-symbols-outlined text-gray-600 dark:text-text-light group-hover:text-gray-900 dark:group-hover:text-white marker">expand_more</span>
-                          </summary>
-                          <div class="px-3 pb-3 pt-2 text-sm text-gray-600 dark:text-text-light font-mono space-y-1 border-t border-gray-200 dark:border-border-dark/50">
-                            <p><span class="text-gray-500 dark:text-text-dark">{{ $t('alerts.detail.executionTime') }}:</span> {{ formatDateTime(record.create_time) }}</p>
-                            <p><span class="text-gray-500 dark:text-text-dark">{{ $t('alerts.detail.executor') }}:</span> {{ record.owner || $t('alerts.detail.system') }}</p>
-                            <div v-if="record.result" :class="['mt-2 pt-2 border-t border-gray-200 dark:border-border-dark/50', record.status === 'failed' && 'text-red-600 dark:text-red-300']">
-                              <span class="text-gray-500 dark:text-text-dark">{{ record.status === 'failed' ? $t('alerts.detail.error') : $t('alerts.detail.result') }}:</span>
-                              <pre class="mt-1 text-xs whitespace-pre-wrap">{{ formatToolkitResult(record.result) }}</pre>
-                            </div>
-                          </div>
-                        </details>
-                      </template>
-                    </div>
-                    
-                    <!-- 如果没有工具和记录，显示空状态 -->
-                    <div v-if="!toolkits.length && !toolkitRecords.length" class="text-center py-8 text-text-light">
-                      <p class="text-sm">{{ $t('alerts.detail.noToolkitsAvailable') }}</p>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- 关联实体 -->
                 <div class="space-y-4" v-if="alert?.associatedEntities">
                   <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.associatedEntities') }}</h3>
@@ -617,7 +477,7 @@
                     <div
                       v-for="(entity, index) in alert.associatedEntities"
                       :key="index"
-                      @click="handleSendEntityToSecurityAgent(entity)"
+                      @click="handleSendEntityToAISidebar(entity)"
                       class="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] cursor-pointer transition-colors border border-gray-200 dark:border-transparent"
                     >
                       <span class="material-symbols-outlined text-primary">
@@ -656,26 +516,30 @@
                 </div>
                 </div>
               </div>
-
-              <!-- Security Agent 页签内容 -->
-              <div v-if="rightSidebarTab === 'securityAgent'" class="flex flex-col flex-1 min-h-0 min-w-0 pl-6 pb-6 pr-6">
-                
-                <!-- Security Agent 聊天组件 -->
-                <div class="flex-1 min-h-0 min-w-0">
-                  <SecurityAgentChat
-                    ref="securityAgentChatRef"
-                    :messages="securityAgentMessages"
-                    :auto-scroll="true"
-                    :disabled="isSendingSecurityAgentMessage"
-                    :loading="isSendingSecurityAgentMessage"
-                    @send="handleRightSidebarAiSend"
-                  />
-                </div>
-              </div>
             </aside>
           </div>
         </div>
       </Transition>
+
+        <!-- AI Sidebar - 在Detail panel外部，从右侧展开，紧贴Detail panel右边缘 -->
+        <Transition name="slide">
+          <AISidebar
+            v-if="showAISidebar && visible"
+            ref="aiSidebarRef"
+            :visible="showAISidebar"
+            :alert-title="alert?.title || ''"
+            :alert-id="currentAlertId"
+            :finding-summary="aiFindingSummary"
+            :show-finding-summary="showFindingSummary"
+            :show-overlay="false"
+            position="absolute"
+            @close="showAISidebar = false"
+            @open-in-new="handleAIOpenInNew"
+            @send-message="handleAISendMessage"
+            @tool-action="handleAIToolAction"
+          />
+        </Transition>
+      </div>
     </div>
 
     <!-- 批量关闭对话框 -->
@@ -832,6 +696,7 @@
         <span class="text-sm">{{ $t('alerts.detail.shareSuccess') || '已复制到剪切板' }}</span>
       </div>
     </Transition>
+
   </Teleport>
 </template>
 
@@ -842,20 +707,18 @@ import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
 import { useAuthStore } from '@/stores/auth'
 import { postComment } from '@/api/comments'
-import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import AssociateIncidentDialog from '@/components/alerts/AssociateIncidentDialog.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
-import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
-import { sendSecurityAgentMessage } from '@/api/securityAgent'
 import { formatDateTime, calculateTTR, parseToDate } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { useToast } from '@/composables/useToast'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
@@ -889,15 +752,10 @@ const newAiMessage = ref('')
 const uploadedAiFiles = ref([])
 const aiFileInput = ref(null)
 const isAiDragging = ref(false)
-const rightSidebarTab = ref('response')
 const rightSidebarAiMessage = ref('')
 const rightSidebarAiFiles = ref([])
 const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
-const isSendingSecurityAgentMessage = ref(false)
-const securityAgentMessages = ref([])
-const securityAgentChatRef = ref(null)
-const conversationId = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
@@ -935,13 +793,11 @@ const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
 const isSubmittingComment = ref(false)
 const isUpdatingActor = ref(false)
+const showAISidebar = ref(false)
+const aiSidebarRef = ref(null)
+const aiFindingSummary = ref('')
+const showFindingSummary = ref(false)
 
-const toolkits = ref([])
-const toolkitRecords = ref([])
-const loadingToolkits = ref(false)
-const loadingToolkitRecords = ref(false)
-const executingToolkitId = ref(null) // 正在执行的工具ID
-const toolkitParams = ref({}) // 存储每个工具的输入参数 { app_id: { param_name: value } }
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -1144,6 +1000,47 @@ const transformAlertDetailData = (apiData) => {
   }
 }
 
+// 提取HTML标签和实体字符的工具函数
+const stripHtmlAndEntities = (html) => {
+  if (typeof html !== 'string') return String(html || '')
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .trim()
+}
+
+// 查找AI Investigation内容
+const findInvestigationContent = () => {
+  if (!alert.value?.ai?.length) return ''
+  
+  const investigationItem = alert.value.ai.find(item => {
+    const content = String(item.content || '').toLowerCase()
+    const author = String(item.author || '').toLowerCase()
+    return content.includes('investigation') || 
+           content.includes('summary') || 
+           author.includes('investigation')
+  })
+  
+  return investigationItem?.content ? stripHtmlAndEntities(investigationItem.content) : ''
+}
+
+// 打开AI侧边栏并设置investigation内容
+const openAISidebarWithInvestigation = (autoOpen = false) => {
+  if (!alert.value) return
+  
+  const investigationContent = findInvestigationContent()
+  aiFindingSummary.value = investigationContent
+  showFindingSummary.value = !!investigationContent
+  
+  if (!autoOpen || investigationContent) {
+    showAISidebar.value = true
+  }
+}
+
 const loadAlertDetail = async (showLoading = true) => {
   if (!currentAlertId.value) return
   
@@ -1151,26 +1048,19 @@ const loadAlertDetail = async (showLoading = true) => {
     alert.value = null
     isLoading.value = true
   }
-  conversationId.value = null
-  
   visible.value = true
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const [response] = await Promise.all([
-      getAlertDetail(currentAlertId.value),
-      loadToolkits(),
-      loadToolkitRecords()
-    ])
+    const response = await getAlertDetail(currentAlertId.value)
     alert.value = transformAlertDetailData(response.data)
-    securityAgentMessages.value = []
     loadAssociatedAlerts()
-    
-    if (rightSidebarTab.value === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
-      appendWelcomeMessageWithTyping()
-    }
+    // 检查并自动展开AI侧边栏（如果有AI Investigation消息）
+    openAISidebarWithInvestigation(true)
   } catch (error) {
     console.error('Failed to load alert detail:', error)
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.detail.loadAlertDetailError') || '加载告警详情失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
     emit('close')
   } finally {
     if (showLoading) {
@@ -1184,12 +1074,9 @@ const loadAssociatedAlerts = async () => {
 
   loadingAssociatedAlerts.value = true
   try {
-    if (alert.value?.historic?.length) {
-      const data = transformHistoricEntries(alert.value.historic, alert.value?.id)
-      associatedAlerts.value = data
-    } else {
-      associatedAlerts.value = []
-    }
+    associatedAlerts.value = alert.value?.historic?.length
+      ? transformHistoricEntries(alert.value.historic, alert.value?.id)
+      : []
   } catch (error) {
     console.error('Failed to load associated alerts:', error)
     associatedAlerts.value = []
@@ -1198,168 +1085,19 @@ const loadAssociatedAlerts = async () => {
   }
 }
 
-const loadToolkits = async () => {
-  loadingToolkits.value = true
-  try {
-    const response = await getToolkits()
-    toolkits.value = response.tools || []
-    console.log('Loaded toolkits:', toolkits.value, 'Response:', response)
-    toolkits.value.forEach(tool => {
-      if (!toolkitParams.value[tool.app_id]) {
-        toolkitParams.value[tool.app_id] = {}
-      }
-    })
-  } catch (error) {
-    console.error('Failed to load toolkits:', error)
-    toolkits.value = []
-    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitsError') || '加载工具列表失败')
-  } finally {
-    loadingToolkits.value = false
-  }
-}
-
-const loadToolkitRecords = async () => {
-  if (!currentAlertId.value) return
-
-  loadingToolkitRecords.value = true
-  try {
-    const response = await getToolkitRecords(currentAlertId.value)
-    toolkitRecords.value = response.data || []
-    console.log('Loaded toolkit records:', toolkitRecords.value, 'Response:', response)
-  } catch (error) {
-    console.error('Failed to load toolkit records:', error)
-    toolkitRecords.value = []
-    if (error?.response?.status !== 400) {
-      toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.loadToolkitRecordsError') || '加载执行记录失败')
-    }
-  } finally {
-    loadingToolkitRecords.value = false
-  }
-}
-
-const handleExecuteToolkit = async (tool) => {
-  if (!currentAlertId.value) {
-    toast.error(t('alerts.detail.alertIdRequired') || '告警ID不存在')
-    return
-  }
-
-  const params = toolkitParams.value[tool.app_id] || {}
-  const allParams = tool.params || []
-  const requiredParams = allParams.filter(p => p.required !== false)
-  const missingParams = requiredParams.filter(p => {
-    const value = params[p.name]
-    return !value || (typeof value === 'string' && value.trim() === '')
-  })
-  
-  if (missingParams.length > 0) {
-    const paramNames = missingParams.map(p => p.label).join(', ')
-    toast.error(t('alerts.detail.toolkitParamsRequired', { params: paramNames }) || `请填写参数: ${paramNames}`)
-    return
-  }
-
-  executingToolkitId.value = tool.app_id
-
-  try {
-    const requestData = {
-      title: tool.title,
-      app_id: tool.app_id,
-      app_type: tool.app_type,
-      params: params
-    }
-
-    await executeToolkit(currentAlertId.value, requestData)
-    toast.success(t('alerts.detail.toolkitExecuteSuccess'))
-  } catch (error) {
-    console.error('Failed to execute toolkit:', error)
-    toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError'))
-  } finally {
-    executingToolkitId.value = null
-    await loadToolkitRecords()
-  }
-}
-
-const updateToolkitParam = (appId, paramName, value) => {
-  if (!toolkitParams.value[appId]) {
-    toolkitParams.value[appId] = {}
-  }
-  toolkitParams.value[appId][paramName] = value
-}
-
-const formatObjectAsKeyValue = (obj, indent = 0) => {
-  if (obj === null || obj === undefined) return String(obj)
-  
-  if (Array.isArray(obj)) {
-    if (obj.length === 0) return '[]'
-    return obj.map((item, index) => {
-      const prefix = '  '.repeat(indent)
-      if (typeof item === 'object' && item !== null) {
-        return `${prefix}${index}:\n${formatObjectAsKeyValue(item, indent + 1)}`
-      }
-      return `${prefix}${index}: ${String(item).replace(/\\n/g, '\n')}`
-    }).join('\n')
-  }
-  
-  if (typeof obj === 'object') {
-    const entries = Object.entries(obj)
-    if (entries.length === 0) return '{}'
-    return entries.map(([key, value]) => {
-      const prefix = '  '.repeat(indent)
-      if (typeof value === 'object' && value !== null) {
-        return `${prefix}${key}:\n${formatObjectAsKeyValue(value, indent + 1)}`
-      }
-      return `${prefix}${key}: ${String(value).replace(/\\n/g, '\n')}`
-    }).join('\n')
-  }
-  
-  return String(obj).replace(/\\n/g, '\n')
-}
-
-const formatToolkitResult = (result) => {
-  if (typeof result === 'string') {
-    try {
-      const trimmed = result.trim()
-      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-        const parsed = JSON.parse(result)
-        if (parsed && typeof parsed === 'object') {
-          const dataToFormat = parsed.data ?? parsed
-          return typeof dataToFormat === 'object' 
-            ? formatObjectAsKeyValue(dataToFormat)
-            : String(dataToFormat).replace(/\\n/g, '\n')
-        }
-      }
-    } catch {
-    }
-    return result.replace(/\\n/g, '\n')
-  }
-  
-  if (result && typeof result === 'object') {
-    const data = result.data ?? result
-    return typeof data === 'object' 
-      ? formatObjectAsKeyValue(data)
-      : String(data).replace(/\\n/g, '\n')
-  }
-  
-  return String(result).replace(/\\n/g, '\n')
-}
-
 const handleClose = async () => {
   showMoreActionsMenu.value = false
-  conversationId.value = null
   
-  const closeDelay = 300
-  const startTime = Date.now()
-  
+  // 如果正在加载，等待加载完成
   if (isLoading.value) {
-    while (isLoading.value && (Date.now() - startTime) < closeDelay) {
+    const startTime = Date.now()
+    while (isLoading.value && (Date.now() - startTime) < 300) {
       await new Promise(resolve => setTimeout(resolve, 50))
     }
   }
   
   visible.value = false
-  
-  setTimeout(() => {
-    emit('close')
-  }, closeDelay)
+  setTimeout(() => emit('close'), 300)
 }
 
 const openBatchCloseDialog = () => {
@@ -1758,285 +1496,6 @@ const removeRightSidebarAiFile = (index) => {
   rightSidebarAiFiles.value.splice(index, 1)
 }
 
-const getSecurityAgentUserLabel = () => t('alerts.detail.securityAgentUserLabel') || 'You'
-const getSecurityAgentAssistantLabel = () =>
-  t('alerts.detail.securityAgentAssistantLabel') ||
-  t('alerts.detail.securityAgentTab') ||
-  'Security Agent'
-
-const formatSecurityAgentContent = (text = '') => {
-  if (!text || typeof text !== 'string') return ''
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br />')
-}
-
-const generateSecurityAgentMessageId = () =>
-  `security-agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-const appendSecurityAgentMessage = (message) => {
-  if (!message) return null
-  const rawContent = message.content || ''
-  const normalizedMessage = {
-    id: message.id || generateSecurityAgentMessageId(),
-    author: message.author || getSecurityAgentAssistantLabel(),
-    rawContent,
-    content: formatSecurityAgentContent(rawContent),
-    create_time: message.create_time || new Date().toISOString(),
-    role: message.role || 'assistant',
-    isLocal: message.isLocal || false,
-    nodes: Array.isArray(message.nodes) ? [...message.nodes] : []
-  }
-  securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
-  return normalizedMessage.id
-}
-
-const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
-  if (!messageId || !nodeTitle || !status) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-
-    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
-    const existingIndex = nodes.findIndex(
-      n => n.title === nodeTitle || n.name === nodeTitle || n?.data?.title === nodeTitle
-    )
-
-    if (existingIndex === -1) {
-      nodes.push({
-        title: nodeTitle,
-        status
-      })
-    } else {
-      nodes[existingIndex] = {
-        ...nodes[existingIndex],
-        title: nodes[existingIndex].title || nodeTitle,
-        status
-      }
-    }
-
-    return {
-      ...message,
-      nodes
-    }
-  })
-}
-
-const appendToolCallToCurrentNode = (messageId, toolName) => {
-  if (!messageId || !toolName) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-
-    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
-    if (!nodes.length) {
-      nodes.push({
-        title: 'Agent',
-        status: 'running',
-        tools: []
-      })
-    }
-
-    let targetIndex = nodes.slice().reverse().findIndex(n => n.status === 'running')
-    if (targetIndex !== -1) {
-      targetIndex = nodes.length - 1 - targetIndex
-    } else {
-      targetIndex = nodes.length - 1
-    }
-
-    const targetNode = { ...(nodes[targetIndex] || {}), tools: Array.isArray(nodes[targetIndex]?.tools) ? [...nodes[targetIndex].tools] : [] }
-
-    const alreadyExists = targetNode.tools.some(t => t.name === toolName)
-    if (!alreadyExists) {
-      targetNode.tools.push({ name: toolName })
-    }
-
-    nodes[targetIndex] = targetNode
-
-    return {
-      ...message,
-      nodes
-    }
-  })
-}
-
-const setSecurityAgentMessageContent = (messageId, text) => {
-  if (!messageId) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-    const newRawContent = text || ''
-    return {
-      ...message,
-      rawContent: newRawContent,
-      content: formatSecurityAgentContent(newRawContent)
-    }
-  })
-}
-
-const appendToSecurityAgentMessage = (messageId, chunk) => {
-  if (!messageId || !chunk) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-    const newRawContent = (message.rawContent || '') + chunk
-    return {
-      ...message,
-      rawContent: newRawContent,
-      content: formatSecurityAgentContent(newRawContent)
-    }
-  })
-}
-
-const appendWelcomeMessageWithTyping = () => {
-  const messageId = appendSecurityAgentMessage({
-    author: getSecurityAgentAssistantLabel(),
-    content: '',
-    role: 'assistant',
-    isLocal: true
-  })
-  
-  if (!messageId) return
-  
-  const text = t('alerts.detail.securityAgentWelcomeMessage') || 'Hello! I can help you analyze this alert.'
-  
-  const getDelay = (char) => {
-    if (/[。！？]/.test(char)) return 150
-    if (/[，、；：]/.test(char)) return 80
-    if (/[\u4e00-\u9fa5]/.test(char)) return 50
-    if (char === ' ') return 20
-    if (/[a-zA-Z0-9]/.test(char)) return 25
-    return 30
-  }
-  
-  setTimeout(() => {
-    let index = 0
-    const typeNext = () => {
-      if (index < text.length) {
-        appendToSecurityAgentMessage(messageId, text[index])
-        setTimeout(typeNext, getDelay(text[index]))
-        index++
-      }
-    }
-    typeNext()
-  }, 500)
-}
-
-const handleRightSidebarAiSend = async (data) => {
-  if (!alert.value?.id) {
-    const missingAlertMsg = t('alerts.detail.securityAgentSendError') || 'Unable to send message: missing alert context'
-    toast.error(missingAlertMsg, 'ERROR')
-    return
-  }
-
-  if (!data || (!data.message && (!data.files || data.files.length === 0))) {
-    return
-  }
-
-  if (isSendingSecurityAgentMessage.value) {
-    return
-  }
-
-  const sanitizedUserMessage = (data.message || '').trim()
-  const payload = {
-    alertId: alert.value.id,
-    message: sanitizedUserMessage,
-    files: data.files,
-    conversationId: conversationId.value
-  }
-
-  if (sanitizedUserMessage) {
-    appendSecurityAgentMessage({
-      author: getSecurityAgentUserLabel(),
-      content: sanitizedUserMessage,
-      role: 'user',
-      isLocal: true
-    })
-  }
-
-  let assistantMessageId = null
-
-  try {
-    isSendingSecurityAgentMessage.value = true
-    assistantMessageId = appendSecurityAgentMessage({
-      author: getSecurityAgentAssistantLabel(),
-      content: '',
-      role: 'assistant',
-      isLocal: true
-    })
-
-    await sendSecurityAgentMessage({
-      ...payload,
-      onEvent: (event) => {
-        const receivedConversationId = event?.conversation_id || event?.conversationId
-        if (receivedConversationId) {
-          conversationId.value = receivedConversationId
-        }
-        if (!event) return
-        const eventType = event.event || event.type
-        if (eventType === 'message' || eventType === 'message_end') {
-          if (assistantMessageId && typeof event.answer === 'string') {
-            appendToSecurityAgentMessage(assistantMessageId, event.answer)
-          }
-        } else if (eventType === 'node_started' || eventType === 'node_finished') {
-          const nodeData = event.data || {}
-          const nodeTitle =
-            nodeData.title ||
-            nodeData.name ||
-            (typeof nodeData === 'string' ? nodeData : '') ||
-            ''
-          if (assistantMessageId && nodeTitle) {
-            const status = eventType === 'node_started' ? 'running' : 'finished'
-            updateSecurityAgentMessageNodes(assistantMessageId, nodeTitle, status)
-          }
-        } else if (eventType === 'agent_log') {
-          const logData = event.data || {}
-          const label = logData.label || ''
-
-          let toolName = ''
-          const match = label.match(/CALL\s+([^\s]+)(?:\s+|$)/i)
-          if (match && match[1]) {
-            toolName = match[1]
-          }
-
-          if (assistantMessageId && toolName) {
-            appendToolCallToCurrentNode(assistantMessageId, toolName)
-          }
-        } else if (eventType === 'error') {
-          const streamError = event?.message || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
-          toast.error(streamError, 'ERROR')
-          if (assistantMessageId) {
-            setSecurityAgentMessageContent(assistantMessageId, streamError)
-          } else {
-            appendSecurityAgentMessage({
-              author: getSecurityAgentAssistantLabel(),
-              content: streamError,
-              role: 'assistant',
-              isLocal: true
-            })
-          }
-        }
-      }
-    })
-  } catch (error) {
-    const rawMessage = error?.message || ''
-    const errorMsg = rawMessage.includes('VITE_AI_CHAT_API') || rawMessage.toLowerCase().includes('not configured')
-      ? t('alerts.detail.securityAgentMissingConfig') || 'Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.'
-      : rawMessage || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
-    toast.error(errorMsg, 'ERROR')
-    if (assistantMessageId) {
-      setSecurityAgentMessageContent(assistantMessageId, errorMsg)
-    } else {
-      appendSecurityAgentMessage({
-        author: getSecurityAgentAssistantLabel(),
-        content: errorMsg,
-        role: 'assistant',
-        isLocal: true
-      })
-    }
-  } finally {
-    isSendingSecurityAgentMessage.value = false
-  }
-}
-
 const getSeverityClass = (severity) => {
   const classes = {
     fatal: 'bg-red-950/20 text-red-300',
@@ -2098,132 +1557,95 @@ const isFieldMatchedWithEntity = (key, value) => {
   })
 }
 
-const handleSendFieldToSecurityAgent = (key, value) => {
-  if (!alert.value) {
-    return
-  }
-  
-  rightSidebarTab.value = 'securityAgent'
-  
+// 向AI侧边栏发送消息的通用函数
+const sendMessageToAISidebar = (message) => {
+  if (!message) return
+  showAISidebar.value = true
+  setTimeout(() => {
+    aiSidebarRef.value?.setMessage?.(message)
+  }, 100)
+}
+
+const handleSendFieldToAISidebar = (key, value) => {
+  if (!alert.value) return
   const valueStr = typeof value === 'object' && value !== null 
     ? JSON.stringify(value) 
     : String(value)
-  const message = `${key}: ${valueStr}`
-  
-  setTimeout(() => {
-    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
-      securityAgentChatRef.value.setMessage(message)
-    }
-  }, 100)
+  sendMessageToAISidebar(`${key}: ${valueStr}`)
 }
 
-const handleSendEntityToSecurityAgent = (entity) => {
-  if (!alert.value || !entity) {
-    return
-  }
-  
-  rightSidebarTab.value = 'securityAgent'
-  
+const handleSendEntityToAISidebar = (entity) => {
+  if (!alert.value || !entity) return
   const from = entity.from || entity.label || ''
   const name = entity.name || ''
-  const message = `${from}: ${name}`
-  
-  setTimeout(() => {
-    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
-      securityAgentChatRef.value.setMessage(message)
-    }
-  }, 100)
+  sendMessageToAISidebar(`${from}: ${name}`)
 }
 
 const isHttpLink = (value) => {
-  if (!value) {
-    return false
-  }
-  const valueStr = String(value).trim()
-  if (!valueStr) {
-    return false
-  }
-  return /^https?:\/\/.+/.test(valueStr)
+  const valueStr = String(value || '').trim()
+  return valueStr ? /^https?:\/\/.+/.test(valueStr) : false
 }
 
 const openLinkInNewWindow = (url) => {
-  if (!url || typeof url !== 'string') {
-    return
-  }
-  const trimmed = url.trim()
-  if (isHttpLink(trimmed)) {
-    window.open(trimmed, '_blank', 'noopener,noreferrer')
+  if (isHttpLink(url)) {
+    window.open(url.trim(), '_blank', 'noopener,noreferrer')
   }
 }
 
-const getRiskLevelClass = (level) => {
-  const classes = {
-    fatal: 'bg-red-950 text-red-200',
-    high: 'bg-red-900 text-red-300',
-    medium: 'bg-orange-900 text-orange-300',
-    low: 'bg-blue-900 text-blue-300',
-    tips: 'bg-gray-700 text-gray-300'
-  }
-  return classes[level] || classes.low
-}
-
-const getStatusClass = (status) => {
-  const classes = {
-    open: 'bg-primary/20 text-primary',
-    block: 'bg-yellow-500/20 text-yellow-400',
-    closed: 'bg-gray-500/20 text-gray-400'
-  }
-  return classes[status] || classes.open
-}
-
-const getStatusDotClass = (status) => {
-  const classes = {
-    open: 'bg-primary',
-    block: 'bg-yellow-400',
-    closed: 'bg-gray-400'
-  }
-  return classes[status] || classes.open
-}
 
 const getAlertUrl = () => {
   const raw = import.meta.env.VITE_WEB_BASE_PATH
-  let basePath = '/'
-  if (raw && raw !== '/') {
-    basePath = raw.startsWith('/') ? raw : `/${raw}`
-    basePath = basePath.replace(/\/$/, '')
+  const basePath = raw && raw !== '/' 
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  return `${window.location.origin}${basePath}/alerts/${currentAlertId.value}`
+}
+
+const handleOpenAISidebar = () => {
+  openAISidebarWithInvestigation()
+}
+
+const handleAIOpenInNew = () => {
+  if (currentAlertId.value) {
+    window.open(getAlertUrl(), '_blank')
   }
-  const origin = window.location.origin
-  const path = basePath === '/' ? '/alerts' : `${basePath}/alerts`
-  return `${origin}${path}/${currentAlertId.value}`
+}
+
+const handleAISendMessage = (message) => {
+  // AI消息发送由AISidebar组件内部处理
+}
+
+const handleAIToolAction = (tool) => {
+  // 工具操作由AISidebar组件内部处理
+}
+
+const showShareSuccessMessage = () => {
+  showShareSuccess.value = true
+  setTimeout(() => { showShareSuccess.value = false }, 2000)
 }
 
 const handleShare = async () => {
   if (!alert.value) return
   
-  const title = alert.value.title || ''
-  const url = getAlertUrl()
-  const textToCopy = `${title}: ${url}`
+  const textToCopy = `${alert.value.title || ''}: ${getAlertUrl()}`
   
   try {
     await navigator.clipboard.writeText(textToCopy)
-    showShareSuccess.value = true
-    setTimeout(() => {
-      showShareSuccess.value = false
-    }, 2000)
+    showShareSuccessMessage()
   } catch (err) {
     console.error('Failed to copy to clipboard:', err)
+    // 降级方案：使用传统方法
     const textArea = document.createElement('textarea')
+    Object.assign(textArea.style, {
+      position: 'fixed',
+      opacity: '0'
+    })
     textArea.value = textToCopy
-    textArea.style.position = 'fixed'
-    textArea.style.opacity = '0'
     document.body.appendChild(textArea)
     textArea.select()
     try {
       document.execCommand('copy')
-      showShareSuccess.value = true
-      setTimeout(() => {
-        showShareSuccess.value = false
-      }, 2000)
+      showShareSuccessMessage()
     } catch (fallbackErr) {
       console.error('Fallback copy failed:', fallbackErr)
     }
@@ -2288,11 +1710,6 @@ watch(activeTab, (newTab) => {
   }
 })
 
-watch(rightSidebarTab, (newTab) => {
-  if (newTab === 'securityAgent' && alert.value && (!securityAgentMessages.value || securityAgentMessages.value.length === 0)) {
-    appendWelcomeMessageWithTyping()
-  }
-})
 
 const handleClickOutside = (event) => {
   const dropdown = event.target.closest('.more-actions-dropdown')
@@ -2312,7 +1729,6 @@ onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('click', handleClickOutside)
   hideRecentCloseCommentsDropdown()
-  conversationId.value = null
 })
 </script>
 
@@ -2432,7 +1848,6 @@ onUnmounted(() => {
   color: #e2e8f0;
 }
 
-/* Details element styles for Automated Response */
 details > summary {
   list-style: none;
 }

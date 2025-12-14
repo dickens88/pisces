@@ -15,10 +15,7 @@
       <Transition name="slide" appear>
         <div
           v-if="visible"
-          :class="[
-            rightSidebarTab === 'securityAgent' ? 'w-[80vw]' : 'w-[70vw]',
-            'relative h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden'
-          ]"
+          class="relative h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden w-[70vw]"
           @click.stop="handlePanelClick"
         >
           <!-- Header -->
@@ -221,18 +218,6 @@
                             <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
                             <span v-else>{{ value }}</span>
                           </p>
-                          <button
-                            v-if="isFieldMatchedWithEntity(key, value)"
-                            @click="handleSendFieldToSecurityAgent(key, value)"
-                            class="inline-flex items-center justify-center shrink-0 cursor-pointer transition-all duration-200 hover:brightness-125 hover:scale-110"
-                            :title="$t('alerts.detail.aiAssistant')"
-                          >
-                            <img 
-                              src="/ai-chat.png" 
-                              :alt="$t('alerts.detail.aiAssistant')" 
-                              class="w-4 h-4"
-                            />
-                          </button>
                         </div>
                       </div>
                     </template>
@@ -332,41 +317,11 @@
             <!-- Sidebar -->
             <aside
               v-if="!isLoading && alert"
-              :class="[
-                rightSidebarTab === 'securityAgent' ? 'w-[32rem]' : 'w-80',
-                'border-l border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-[#1f2937]/20 flex flex-col overflow-hidden'
-              ]"
+              class="w-80 border-l border-gray-200 dark:border-border-dark bg-gray-50 dark:bg-[#1f2937]/20 flex flex-col overflow-hidden"
             >
-              <!-- 页签导航 -->
-              <div class="border-b border-border-dark pb-4 mb-4 flex-shrink-0 px-6 pt-6">
-                <nav class="flex -mb-px space-x-4">
-                  <button
-                    @click="rightSidebarTab = 'response'"
-                    :class="[
-                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-                      rightSidebarTab === 'response'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
-                    ]"
-                  >
-                    {{ $t('alerts.detail.responseTab') }}
-                  </button>
-                  <button
-                    @click="rightSidebarTab = 'securityAgent'"
-                    :class="[
-                      'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors',
-                      rightSidebarTab === 'securityAgent'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
-                    ]"
-                  >
-                    {{ $t('alerts.detail.securityAgentTab') }}
-                  </button>
-                </nav>
-              </div>
 
               <!-- Response 页签内容 -->
-              <div v-if="rightSidebarTab === 'response'" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
+              <div ref="toolkitScrollContainerRef" class="overflow-y-auto custom-scrollbar flex-1 pl-6 pb-6">
                 <div class="pr-6 space-y-6">
                 <!-- 自动化响应 -->
                 <div class="space-y-4">
@@ -382,7 +337,10 @@
                     <div v-if="toolkits.length" class="space-y-2">
                       <h4 class="text-sm font-medium text-gray-600 dark:text-text-light">{{ $t('alerts.detail.availableTools') }}</h4>
                       <template v-for="tool in toolkits" :key="tool.app_id">
-                        <details class="group rounded-lg bg-gray-100 dark:bg-[#2a3546]">
+                        <details 
+                          :open="expandedToolkitIds.has(tool.app_id)"
+                          class="group rounded-lg bg-gray-100 dark:bg-[#2a3546]"
+                        >
                           <summary class="flex items-center justify-between p-3 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-[#3c4a60]">
                             <div class="flex items-center gap-3">
                               <span class="material-symbols-outlined text-primary">play_circle</span>
@@ -435,6 +393,46 @@
                               </span>
                               {{ executingToolkitId === tool.app_id ? $t('alerts.detail.toolkitExecuting') : $t('alerts.detail.toolkitExecute') }}
                             </button>
+                            <!-- 执行结果展示 -->
+                            <div 
+                              v-if="toolkitExecutionResults[tool.app_id]"
+                              :ref="el => { if (el) toolkitResultRefs[tool.app_id] = el }"
+                              class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700"
+                            >
+                              <div class="flex items-center gap-1.5 mb-1">
+                                <span 
+                                  :class="[
+                                    'material-symbols-outlined text-sm',
+                                    toolkitExecutionResults[tool.app_id].status === 'completed' ? 'text-green-400' : 'text-red-400'
+                                  ]"
+                                >
+                                  {{ toolkitExecutionResults[tool.app_id].status === 'completed' ? 'check_circle' : 'error' }}
+                                </span>
+                                <span 
+                                  :class="[
+                                    'text-xs font-medium',
+                                    toolkitExecutionResults[tool.app_id].status === 'completed' 
+                                      ? 'text-green-600 dark:text-green-400' 
+                                      : 'text-red-600 dark:text-red-400'
+                                  ]"
+                                >
+                                  {{ toolkitExecutionResults[tool.app_id].status === 'completed' 
+                                    ? ($t('alerts.detail.result') || '结果') 
+                                    : ($t('alerts.detail.error') || '错误') 
+                                  }}
+                                </span>
+                              </div>
+                              <pre 
+                                :class="[
+                                  'text-xs whitespace-pre-wrap break-words font-mono',
+                                  toolkitExecutionResults[tool.app_id].status === 'failed' 
+                                    ? 'text-red-600 dark:text-red-300' 
+                                    : 'text-gray-700 dark:text-gray-300'
+                                ]"
+                              >
+                                {{ formatToolkitResult(toolkitExecutionResults[tool.app_id].result) }}
+                              </pre>
+                            </div>
                           </div>
                         </details>
                       </template>
@@ -513,22 +511,6 @@
                     </div>
                   </div>
                 </div>
-                </div>
-              </div>
-
-              <!-- Security Agent 页签内容 -->
-              <div v-if="rightSidebarTab === 'securityAgent'" class="flex flex-col flex-1 min-h-0 min-w-0 pl-6 pb-6 pr-6">
-                
-                <!-- Security Agent 聊天组件 -->
-                <div class="flex-1 min-h-0 min-w-0">
-                  <SecurityAgentChat
-                    ref="securityAgentChatRef"
-                    :messages="securityAgentMessages"
-                    :auto-scroll="true"
-                    :disabled="isSendingSecurityAgentMessage"
-                    :loading="isSendingSecurityAgentMessage"
-                    @send="handleRightSidebarAiSend"
-                  />
                 </div>
               </div>
             </aside>
@@ -671,7 +653,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getASMDetail, openASMItem, closeASMItem } from '@/api/asm'
@@ -681,8 +663,6 @@ import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
-import SecurityAgentChat from '@/components/alerts/SecurityAgentChat.vue'
-import { sendSecurityAgentMessage } from '@/api/securityAgent'
 import { formatDateTime, calculateTTR, parseToDate } from '@/utils/dateTime'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -723,17 +703,11 @@ const newAiMessage = ref('')
 const uploadedAiFiles = ref([])
 const aiFileInput = ref(null)
 const isAiDragging = ref(false)
-// 右侧侧边栏页签
-const rightSidebarTab = ref('response')
 // 右侧侧边栏AI问答相关（独立于主内容区域的AI问答）
 const rightSidebarAiMessage = ref('')
 const rightSidebarAiFiles = ref([])
 const rightSidebarAiFileInput = ref(null)
 const isRightSidebarAiDragging = ref(false)
-const isSendingSecurityAgentMessage = ref(false)
-const securityAgentMessages = ref([])
-const securityAgentChatRef = ref(null)
-const conversationId = ref(null)
 const showBatchCloseDialog = ref(false)
 const isClosing = ref(false)
 const closeConclusion = ref({
@@ -772,6 +746,10 @@ const loadingToolkits = ref(false)
 const loadingToolkitRecords = ref(false)
 const executingToolkitId = ref(null) // 正在执行的工具ID
 const toolkitParams = ref({}) // 存储每个工具的输入参数 { app_id: { param_name: value } }
+const toolkitExecutionResults = ref({}) // 存储每个工具的执行结果 { app_id: { status, result } }
+const expandedToolkitIds = ref(new Set()) // 存储展开的工具ID集合
+const toolkitResultRefs = ref({}) // 存储每个工具结果区域的 ref
+const toolkitScrollContainerRef = ref(null) // 工具区域的滚动容器 ref
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -935,7 +913,6 @@ const loadAlertDetail = async (showLoading = true) => {
     alert.value = null
     isLoading.value = true
   }
-  conversationId.value = null
   
   visible.value = true
   await new Promise(resolve => setTimeout(resolve, 50))
@@ -943,7 +920,6 @@ const loadAlertDetail = async (showLoading = true) => {
   try {
     const response = await getASMDetail(currentAlertId.value)
     alert.value = transformAlertDetailData(response.data)
-    securityAgentMessages.value = []
     loadToolkits()
     loadToolkitRecords()
   } catch (error) {
@@ -977,11 +953,9 @@ const loadToolkits = async () => {
 }
 
 const loadToolkitRecords = async () => {
-  if (!currentAlertId.value) return
-
   loadingToolkitRecords.value = true
   try {
-    const response = await getToolkitRecords(currentAlertId.value)
+    const response = await getToolkitRecords(currentAlertId.value || null)
     toolkitRecords.value = response.data || []
     console.log('Loaded toolkit records:', toolkitRecords.value, 'Response:', response)
   } catch (error) {
@@ -996,11 +970,6 @@ const loadToolkitRecords = async () => {
 }
 
 const handleExecuteToolkit = async (tool) => {
-  if (!currentAlertId.value) {
-    toast.error(t('alerts.detail.alertIdRequired') || '告警ID不存在')
-    return
-  }
-
   const params = toolkitParams.value[tool.app_id] || {}
   const allParams = tool.params || []
   // 只验证 required 为 true 的参数，如果 required 字段不存在，默认为必填（向后兼容）
@@ -1018,6 +987,8 @@ const handleExecuteToolkit = async (tool) => {
   }
 
   executingToolkitId.value = tool.app_id
+  // 清空之前的结果
+  toolkitExecutionResults.value[tool.app_id] = null
 
   try {
     const requestData = {
@@ -1027,11 +998,28 @@ const handleExecuteToolkit = async (tool) => {
       params: params
     }
 
-    await executeToolkit(currentAlertId.value, requestData)
+    const response = await executeToolkit(currentAlertId.value || null, requestData)
+    // 存储执行结果
+    const resultData = response?.data || response
+    if (resultData) {
+      toolkitExecutionResults.value[tool.app_id] = {
+        status: resultData.status || 'completed',
+        result: resultData.result || null
+      }
+    }
     toast.success(t('alerts.detail.toolkitExecuteSuccess'))
+    // 确保工具抽屉展开并滚动到结果区域
+    await scrollToToolkitResult(tool.app_id)
   } catch (error) {
     console.error('Failed to execute toolkit:', error)
+    // 存储错误结果
+    toolkitExecutionResults.value[tool.app_id] = {
+      status: 'failed',
+      result: error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError') || '工具执行失败'
+    }
     toast.error(error?.response?.data?.error_message || error?.message || t('alerts.detail.toolkitExecuteError'))
+    // 确保工具抽屉展开并滚动到结果区域
+    await scrollToToolkitResult(tool.app_id)
   } finally {
     executingToolkitId.value = null
     await loadToolkitRecords()
@@ -1043,6 +1031,33 @@ const updateToolkitParam = (appId, paramName, value) => {
     toolkitParams.value[appId] = {}
   }
   toolkitParams.value[appId][paramName] = value
+}
+
+const scrollToToolkitResult = async (appId) => {
+  // 确保工具抽屉展开
+  expandedToolkitIds.value.add(appId)
+  
+  // 等待 DOM 更新
+  await nextTick()
+  
+  // 再次等待，确保结果区域已渲染
+  await nextTick()
+  
+  // 滚动到结果区域
+  const resultElement = toolkitResultRefs.value[appId]
+  if (resultElement && toolkitScrollContainerRef.value) {
+    // 计算结果元素相对于滚动容器的位置
+    const containerRect = toolkitScrollContainerRef.value.getBoundingClientRect()
+    const elementRect = resultElement.getBoundingClientRect()
+    const scrollTop = toolkitScrollContainerRef.value.scrollTop
+    const targetScrollTop = scrollTop + elementRect.top - containerRect.top - 20 // 留20px的顶部间距
+    
+    // 平滑滚动到目标位置
+    toolkitScrollContainerRef.value.scrollTo({
+      top: targetScrollTop,
+      behavior: 'smooth'
+    })
+  }
 }
 
 const formatToolkitResult = (result) => {
@@ -1061,7 +1076,6 @@ const formatToolkitResult = (result) => {
 
 const handleClose = async () => {
   showMoreActionsMenu.value = false
-  conversationId.value = null
   
   const closeDelay = 300
   const startTime = Date.now()
@@ -1381,260 +1395,6 @@ const removeRightSidebarAiFile = (index) => {
   rightSidebarAiFiles.value.splice(index, 1)
 }
 
-const getSecurityAgentUserLabel = () => t('alerts.detail.securityAgentUserLabel') || 'You'
-const getSecurityAgentAssistantLabel = () =>
-  t('alerts.detail.securityAgentAssistantLabel') ||
-  t('alerts.detail.securityAgentTab') ||
-  'Security Agent'
-
-const formatSecurityAgentContent = (text = '') => {
-  if (!text || typeof text !== 'string') return ''
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br />')
-}
-
-const generateSecurityAgentMessageId = () =>
-  `security-agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-const appendSecurityAgentMessage = (message) => {
-  if (!message) return null
-  const rawContent = message.content || ''
-  const normalizedMessage = {
-    id: message.id || generateSecurityAgentMessageId(),
-    author: message.author || getSecurityAgentAssistantLabel(),
-    rawContent,
-    content: formatSecurityAgentContent(rawContent),
-    create_time: message.create_time || new Date().toISOString(),
-    role: message.role || 'assistant',
-    isLocal: message.isLocal || false,
-    // 执行节点信息（由 streaming 事件 node_started / node_finished / agent_log 填充）
-    nodes: Array.isArray(message.nodes) ? [...message.nodes] : []
-  }
-  securityAgentMessages.value = [...securityAgentMessages.value, normalizedMessage]
-  return normalizedMessage.id
-}
-
-// 根据 node_started / node_finished 事件更新某条消息上的节点状态
-const updateSecurityAgentMessageNodes = (messageId, nodeTitle, status) => {
-  if (!messageId || !nodeTitle || !status) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-
-    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
-    const existingIndex = nodes.findIndex(
-      n => n.title === nodeTitle || n.name === nodeTitle || n?.data?.title === nodeTitle
-    )
-
-    if (existingIndex === -1) {
-      nodes.push({
-        title: nodeTitle,
-        status
-      })
-    } else {
-      nodes[existingIndex] = {
-        ...nodes[existingIndex],
-        title: nodes[existingIndex].title || nodeTitle,
-        status
-      }
-    }
-
-    return {
-      ...message,
-      nodes
-    }
-  })
-}
-
-// 在当前运行中的节点下追加工具调用记录（由 agent_log 事件驱动）
-const appendToolCallToCurrentNode = (messageId, toolName) => {
-  if (!messageId || !toolName) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-
-    const nodes = Array.isArray(message.nodes) ? [...message.nodes] : []
-    if (!nodes.length) {
-      // 如果还没有节点，创建一个通用的 Agent 节点以容纳工具调用
-      nodes.push({
-        title: 'Agent',
-        status: 'running',
-        tools: []
-      })
-    }
-
-    // 尽量选择“当前运行中”的节点，否则选择最后一个节点
-    let targetIndex = nodes.slice().reverse().findIndex(n => n.status === 'running')
-    if (targetIndex !== -1) {
-      targetIndex = nodes.length - 1 - targetIndex
-    } else {
-      targetIndex = nodes.length - 1
-    }
-
-    const targetNode = { ...(nodes[targetIndex] || {}), tools: Array.isArray(nodes[targetIndex]?.tools) ? [...nodes[targetIndex].tools] : [] }
-
-    // 避免重复同名工具的连续插入（简单去重）
-    const alreadyExists = targetNode.tools.some(t => t.name === toolName)
-    if (!alreadyExists) {
-      targetNode.tools.push({ name: toolName })
-    }
-
-    nodes[targetIndex] = targetNode
-
-    return {
-      ...message,
-      nodes
-    }
-  })
-}
-
-const setSecurityAgentMessageContent = (messageId, text) => {
-  if (!messageId) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-    const newRawContent = text || ''
-    return {
-      ...message,
-      rawContent: newRawContent,
-      content: formatSecurityAgentContent(newRawContent)
-    }
-  })
-}
-
-const appendToSecurityAgentMessage = (messageId, chunk) => {
-  if (!messageId || !chunk) return
-  securityAgentMessages.value = securityAgentMessages.value.map(message => {
-    if (message.id !== messageId) return message
-    const newRawContent = (message.rawContent || '') + chunk
-    return {
-      ...message,
-      rawContent: newRawContent,
-      content: formatSecurityAgentContent(newRawContent)
-    }
-  })
-}
-
-const handleRightSidebarAiSend = async (data) => {
-  if (!alert.value?.id) {
-    const missingAlertMsg = t('alerts.detail.securityAgentSendError') || 'Unable to send message: missing alert context'
-    toast.error(missingAlertMsg, 'ERROR')
-    return
-  }
-
-  if (!data || (!data.message && (!data.files || data.files.length === 0))) {
-    return
-  }
-
-  if (isSendingSecurityAgentMessage.value) {
-    return
-  }
-
-  const sanitizedUserMessage = (data.message || '').trim()
-  const payload = {
-    alertId: alert.value.id,
-    message: sanitizedUserMessage,
-    files: data.files,
-    conversationId: conversationId.value
-  }
-
-  if (sanitizedUserMessage) {
-    appendSecurityAgentMessage({
-      author: getSecurityAgentUserLabel(),
-      content: sanitizedUserMessage,
-      role: 'user',
-      isLocal: true
-    })
-  }
-
-  let assistantMessageId = null
-
-  try {
-    isSendingSecurityAgentMessage.value = true
-    assistantMessageId = appendSecurityAgentMessage({
-      author: getSecurityAgentAssistantLabel(),
-      content: '',
-      role: 'assistant',
-      isLocal: true
-    })
-
-    await sendSecurityAgentMessage({
-      ...payload,
-      onEvent: (event) => {
-        const receivedConversationId = event?.conversation_id || event?.conversationId
-        if (receivedConversationId) {
-          conversationId.value = receivedConversationId
-        }
-        if (!event) return
-        const eventType = event.event || event.type
-        if (eventType === 'message' || eventType === 'message_end') {
-          // 追加消息内容，实现真正的前端流式渲染
-          if (assistantMessageId && typeof event.answer === 'string') {
-            appendToSecurityAgentMessage(assistantMessageId, event.answer)
-          }
-        } else if (eventType === 'node_started' || eventType === 'node_finished') {
-          // 处理节点执行状态，填充到当前 assistant 消息上
-          const nodeData = event.data || {}
-          const nodeTitle =
-            nodeData.title ||
-            nodeData.name ||
-            (typeof nodeData === 'string' ? nodeData : '') ||
-            ''
-          if (assistantMessageId && nodeTitle) {
-            const status = eventType === 'node_started' ? 'running' : 'finished'
-            updateSecurityAgentMessageNodes(assistantMessageId, nodeTitle, status)
-          }
-        } else if (eventType === 'agent_log') {
-          // 处理智能体日志，用于展示工具调用
-          const logData = event.data || {}
-          const label = logData.label || ''
-
-          // 解析形如 "CALL <tool_name>" 的日志
-          let toolName = ''
-          const match = label.match(/CALL\s+([^\s]+)(?:\s+|$)/i)
-          if (match && match[1]) {
-            toolName = match[1]
-          }
-
-          if (assistantMessageId && toolName) {
-            appendToolCallToCurrentNode(assistantMessageId, toolName)
-          }
-        } else if (eventType === 'error') {
-          const streamError = event?.message || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
-          toast.error(streamError, 'ERROR')
-          if (assistantMessageId) {
-            setSecurityAgentMessageContent(assistantMessageId, streamError)
-          } else {
-            appendSecurityAgentMessage({
-              author: getSecurityAgentAssistantLabel(),
-              content: streamError,
-              role: 'assistant',
-              isLocal: true
-            })
-          }
-        }
-      }
-    })
-  } catch (error) {
-    const rawMessage = error?.message || ''
-    const errorMsg = rawMessage.includes('VITE_AI_CHAT_API') || rawMessage.toLowerCase().includes('not configured')
-      ? t('alerts.detail.securityAgentMissingConfig') || 'Security Agent endpoint is not configured. Please set VITE_AI_CHAT_API.'
-      : rawMessage || t('alerts.detail.securityAgentSendError') || 'Failed to send message to Security Agent'
-    toast.error(errorMsg, 'ERROR')
-    if (assistantMessageId) {
-      setSecurityAgentMessageContent(assistantMessageId, errorMsg)
-    } else {
-      appendSecurityAgentMessage({
-        author: getSecurityAgentAssistantLabel(),
-        content: errorMsg,
-        role: 'assistant',
-        isLocal: true
-      })
-    }
-  } finally {
-    isSendingSecurityAgentMessage.value = false
-  }
-}
 
 const getSeverityClass = (severity) => {
   const classes = {
@@ -1697,42 +1457,6 @@ const isFieldMatchedWithEntity = (key, value) => {
   })
 }
 
-const handleSendFieldToSecurityAgent = (key, value) => {
-  if (!alert.value) {
-    return
-  }
-  
-  rightSidebarTab.value = 'securityAgent'
-  
-  const valueStr = typeof value === 'object' && value !== null 
-    ? JSON.stringify(value) 
-    : String(value)
-  const message = `${key}: ${valueStr}`
-  
-  setTimeout(() => {
-    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
-      securityAgentChatRef.value.setMessage(message)
-    }
-  }, 100)
-}
-
-const handleSendEntityToSecurityAgent = (entity) => {
-  if (!alert.value || !entity) {
-    return
-  }
-  
-  rightSidebarTab.value = 'securityAgent'
-  
-  const from = entity.from || entity.label || ''
-  const name = entity.name || ''
-  const message = `${from}: ${name}`
-  
-  setTimeout(() => {
-    if (securityAgentChatRef.value && securityAgentChatRef.value.setMessage) {
-      securityAgentChatRef.value.setMessage(message)
-    }
-  }, 100)
-}
 
 const getRiskLevelClass = (level) => {
   const classes = {
@@ -1845,7 +1569,6 @@ onUnmounted(() => {
   document.body.style.overflow = ''
   document.removeEventListener('click', handleClickOutside)
   hideRecentCloseCommentsDropdown()
-  conversationId.value = null
 })
 </script>
 
