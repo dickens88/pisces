@@ -532,7 +532,7 @@
             :finding-summary="aiFindingSummary"
             :show-finding-summary="showFindingSummary"
             :show-overlay="false"
-            position="absolute"
+            position="fixed"
             @close="showAISidebar = false"
             @open-in-new="handleAIOpenInNew"
             @send-message="handleAISendMessage"
@@ -701,7 +701,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
@@ -1028,17 +1028,17 @@ const findInvestigationContent = () => {
   return investigationItem?.content ? stripHtmlAndEntities(investigationItem.content) : ''
 }
 
+// 记录是否已因 AI Investigation 自动展开过，避免重复展开
+const hasAutoOpenedAiSidebar = ref(false)
+
 // 打开AI侧边栏并设置investigation内容
-const openAISidebarWithInvestigation = (autoOpen = false) => {
+const openAISidebarWithInvestigation = async () => {
   if (!alert.value) return
-  
   const investigationContent = findInvestigationContent()
   aiFindingSummary.value = investigationContent
   showFindingSummary.value = !!investigationContent
-  
-  if (!autoOpen || investigationContent) {
-    showAISidebar.value = true
-  }
+  showAISidebar.value = true
+  await nextTick()
 }
 
 const loadAlertDetail = async (showLoading = true) => {
@@ -1055,8 +1055,8 @@ const loadAlertDetail = async (showLoading = true) => {
     const response = await getAlertDetail(currentAlertId.value)
     alert.value = transformAlertDetailData(response.data)
     loadAssociatedAlerts()
-    // 检查并自动展开AI侧边栏（如果有AI Investigation消息）
-    openAISidebarWithInvestigation(true)
+    // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
+    hasAutoOpenedAiSidebar.value = false
   } catch (error) {
     console.error('Failed to load alert detail:', error)
     const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.detail.loadAlertDetailError') || '加载告警详情失败，请稍后重试'
@@ -1718,6 +1718,31 @@ const handleClickOutside = (event) => {
     showMoreActionsMenu.value = false
   }
 }
+
+// 监听 AI 数据，满足触发条件时自动展开 AI 侧边栏
+watch(
+  () => alert.value?.ai,
+  async (newAi) => {
+    if (hasAutoOpenedAiSidebar.value) return
+    const investigationContent = findInvestigationContent()
+    const hasAnyAi = Array.isArray(newAi) && newAi.length > 0
+
+    // 触发条件：有 investigation 文本，或至少有一条 AI 消息
+    if (investigationContent || hasAnyAi) {
+      hasAutoOpenedAiSidebar.value = true
+      await openAISidebarWithInvestigation()
+    }
+  },
+  { deep: true }
+)
+
+// 当 alert 变化时，重置自动展开标记
+watch(
+  () => alert.value?.id,
+  () => {
+    hasAutoOpenedAiSidebar.value = false
+  }
+)
 
 onMounted(() => {
   document.body.style.overflow = 'hidden'

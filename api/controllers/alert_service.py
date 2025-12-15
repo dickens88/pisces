@@ -179,7 +179,7 @@ class AlertService:
             "close_reason": item['data_object'].get('close_reason'),
             "is_auto_closed": item['data_object'].get('is_auto_closed'),
             "title": item['data_object']['title'],
-            "owner": item['data_object']['owner'],
+            "owner": item['data_object'].get('owner'),
             "actor": item['data_object'].get('actor'),
             "severity": item['data_object']['severity'],
             "close_comment": item['data_object'].get('close_comment'),
