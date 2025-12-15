@@ -26,11 +26,18 @@
           </div>
           <div class="flex items-center space-x-2" :class="position === 'absolute' && 'flex-shrink-0'">
             <button
+              @click="handleResetConversation"
+              class="h-8 w-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+              :title="$t('common.reset') || '重置'"
+            >
+              <span class="material-symbols-outlined text-base">restart_alt</span>
+            </button>
+            <button
               @click="handleClose"
-              class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+              class="h-8 w-8 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
               :title="$t('common.close') || '关闭'"
             >
-              <span class="material-symbols-outlined text-lg">close</span>
+              <span class="material-symbols-outlined text-base">close</span>
             </button>
           </div>
         </header>
@@ -261,7 +268,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0 security-agent-input">
+        <div class="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0 security-agent-input">
           <CommentInput
             v-model="inputMessage"
             :disabled="isSendingSecurityAgentMessage"
@@ -656,6 +663,15 @@ const handleExecuteToolkit = async (tool) => {
 }
 
 
+const generateConversationId = () =>
+  `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+const handleResetConversation = () => {
+  securityAgentMessages.value = []
+  conversationId.value = generateConversationId()
+  inputMessage.value = ''
+}
+
 const handleClose = () => emit('close')
 const handleOpenInNew = () => emit('open-in-new')
 
@@ -960,13 +976,33 @@ onMounted(() => {
   margin: 4px 0;
 }
 
-/* 隐藏 Security Agent 输入框中的头像 */
+/* 隐藏 Security Agent 输入框中的头像，并压缩整体布局 */
 .security-agent-input :deep(.comment-input-container > div > .shrink-0) {
   display: none;
 }
 
 .security-agent-input :deep(.comment-input-container > div) {
   gap: 0;
+  align-items: center;
+}
+
+.security-agent-input :deep(textarea) {
+  min-height: 30px;
+  max-height: 120px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1.4;
+}
+
+.security-agent-input :deep(.comment-input-container .absolute.left-3) {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.security-agent-input :deep(.comment-input-container .absolute.right-2) {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
 }
 
 /* 打字指示器动画 */
