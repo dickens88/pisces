@@ -491,10 +491,10 @@
         "conclusionPlaceholder": "请输入调查结论..."
       },
       "tabs": {
-        "overview": "概览",
-        "eventGraph": "攻击图谱",
-        "attackChain": "攻击链",
-        "comments": "评论"
+        "alertStory": "Alert story",
+        "alerts": "Alerts",
+        "assets": "资产",
+        "evidenceResponse": "证据与响应"
       },
       "eventGraph": {
         "title": "攻击图谱",

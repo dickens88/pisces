@@ -493,10 +493,10 @@
         "conclusionPlaceholder": "Please enter investigation conclusion..."
       },
       "tabs": {
-        "overview": "Overview",
-        "eventGraph": "Event Graph Intelligence",
-        "attackChain": "Attack Chain",
-        "comments": "Comments"
+        "alertStory": "Alert story",
+        "alerts": "Alerts",
+        "assets": "Assets",
+        "evidenceResponse": "Evidence & Response"
       },
       "eventGraph": {
         "title": "Event Graph Intelligence",
