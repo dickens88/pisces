@@ -15,7 +15,7 @@
         v-if="visible"
         :class="[
           position === 'fixed' ? 'fixed' : 'absolute',
-          'right-0 top-0 h-screen w-[400px] bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col z-50 shadow-2xl'
+          'right-0 top-0 h-screen w-[400px] bg-gray-100 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col z-50 shadow-none'
         ]"
       >
         <!-- Header -->
