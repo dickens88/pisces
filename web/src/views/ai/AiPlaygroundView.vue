@@ -81,8 +81,8 @@
     </section>
 
     <!-- Alert list table -->
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative lg:col-span-2">
+    <section :class="['grid grid-cols-1 gap-4', selectedAlert ? 'lg:grid-cols-3' : 'lg:grid-cols-1']">
+      <div :class="['bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative', selectedAlert ? 'lg:col-span-2' : 'lg:col-span-1']">
         <div
           v-if="loadingAlerts"
           class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
@@ -165,6 +165,32 @@
               <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
             </div>
           </div>
+
+          <div class="relative">
+            <select
+              v-model="matchFilter"
+              @change="handleFilter"
+              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+            >
+              <option value="all">{{ $t('aiPlayground.matchFilter.all') }}</option>
+              <option value="match">{{ $t('aiPlayground.matchStatus.match') }}</option>
+              <option value="mismatch">{{ $t('aiPlayground.matchStatus.mismatch') }}</option>
+              <option value="empty">{{ $t('aiPlayground.matchFilter.empty') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
+
+          <button
+            @click="handleToggleWordWrap"
+            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-medium px-4 hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
+            :title="isWordWrapEnabled ? 'Disable word wrap' : 'Enable word wrap'"
+          >
+            <span class="material-symbols-outlined text-base">
+              {{ isWordWrapEnabled ? 'text_fields' : 'wrap_text' }}
+            </span>
+          </button>
         </div>
 
         <DataTable
@@ -187,7 +213,7 @@
           </template>
           <template #cell-alertTitle="{ item }">
             <span
-              class="text-primary hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap block"
+              class="text-primary hover:underline cursor-pointer"
               :title="item.title"
             >
               {{ item.title }}
@@ -204,86 +230,278 @@
               {{ $t(`common.severity.${item.riskLevel}`) }}
             </span>
           </template>
-          <template #cell-status="{ item }">
-            <span
-              :class="[
-                'inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium',
-                getStatusClass(item.status)
-              ]"
-            >
-              <span :class="['size-1.5 rounded-full', getStatusDotClass(item.status)]"></span>
-              {{ getStatusText(item.status) }}
-            </span>
+          <template #cell-aiJudge="{ item }">
+            <div class="flex items-center justify-center">
+              <span
+                v-if="item.verification_state === 'True_Positive'"
+                class="text-sm font-medium text-red-600 dark:text-red-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.truePositive') }}
+              </span>
+              <span
+                v-else-if="item.verification_state === 'False_Positive'"
+                class="text-sm font-medium text-green-600 dark:text-green-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.falsePositive') }}
+              </span>
+              <span
+                v-else
+                class="text-sm font-medium text-gray-400 dark:text-gray-500"
+              >
+                {{ $t('alerts.list.aiJudgeResult.unknown') }}
+              </span>
+            </div>
+          </template>
+          <template #cell-humanVerdict="{ item }">
+            <div class="flex items-center justify-center">
+              <span class="text-sm text-gray-900 dark:text-white">
+                {{ item.close_reason || item.closeReason || '-' }}
+              </span>
+            </div>
+          </template>
+          <template #cell-match="{ item }">
+            <div class="flex items-center justify-center">
+              <span
+                v-if="getMatchStatus(item) === 'match'"
+                class="text-sm font-medium text-green-600 dark:text-green-400"
+              >
+                {{ $t('aiPlayground.matchStatus.match') }}
+              </span>
+              <span
+                v-else-if="getMatchStatus(item) === 'mismatch'"
+                class="text-sm font-medium text-red-600 dark:text-red-400"
+              >
+                {{ $t('aiPlayground.matchStatus.mismatch') }}
+              </span>
+              <span
+                v-else
+                class="text-sm text-gray-400 dark:text-gray-500"
+              >
+                -
+              </span>
+            </div>
           </template>
         </DataTable>
       </div>
 
-      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl p-5 min-h-[300px]">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">smart_toy</span>
-            {{ $t('alerts.detail.aiAgent') }}
-          </h2>
-          <span v-if="selectedAlert" class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]" :title="selectedAlert.title">
-            {{ selectedAlert.title }}
-          </span>
-        </div>
-        <div v-if="selectedAlertLoading" class="text-sm text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
-          <span class="material-symbols-outlined animate-spin text-base">refresh</span>
-          {{ $t('common.loading') }}
-        </div>
-        <div v-else class="space-y-4 mb-4">
-          <div
-            v-if="aiItems.length"
-            class="space-y-3"
-          >
-            <div
-              v-for="(aiItem, index) in aiItems"
-              :key="`ai-${aiItem.id || index}`"
-              class="flex items-start gap-3"
-            >
-              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                <span class="material-symbols-outlined text-white text-sm">smart_toy</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <p class="font-semibold text-gray-900 dark:text-white">{{ aiItem.author || 'AI Agent' }}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
-                </div>
-                <div class="mt-1 text-sm text-gray-700 dark:text-[#c3d3e8] bg-white dark:bg-[#2a3546] border border-gray-200 dark:border-transparent p-3 rounded-lg rounded-tl-none max-w-full overflow-hidden">
-                  <div
-                    :class="[
-                      'bg-gray-50 dark:bg-transparent text-gray-800 dark:text-inherit rounded-md p-2 border border-gray-200 dark:border-transparent ai-agent__html',
-                      { 'ai-agent__html--dark': isDarkMode() }
-                    ]"
-                  >
-                    <div v-html="sanitizeHtml(aiItem.content || '')"></div>
-                  </div>
-                </div>
+      <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl p-5 min-h-[300px]">
+          <!-- Judgment Comparison Section -->
+          <div class="grid grid-cols-2 gap-4 mb-6">
+          <!-- AI Judgment -->
+          <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">AI Judgment</h3>
+            <div class="space-y-2">
+              <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Verdict: </span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ getAiVerdictText(selectedAlert) }}
+                </span>
               </div>
             </div>
           </div>
-          <p v-else class="text-sm text-gray-600 dark:text-gray-400">
-            {{ $t('alerts.detail.noAiResponse') }}
-          </p>
+          
+          <!-- Human Judgment -->
+          <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Human Judgment</h3>
+            <div class="space-y-2">
+              <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Verdict: </span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ getHumanVerdictText(selectedAlert) }}
+                </span>
+              </div>
+              <div>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Analyst: </span>
+                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ selectedAlert?.actor || selectedAlert?.creator || '-' }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-        <button
-          type="button"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          disabled
-        >
-          <span class="material-symbols-outlined text-base">travel_explore</span>
-          Retrieval test
-        </button>
 
-        <div class="mt-8">
-          <p class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Human conclusion</p>
-          <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[100px] bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-3">
-            {{ selectedAlert?.close_comment || selectedAlertDetail?.close_comment || $t('alerts.detail.noAiResponse') || 'No conclusion available.' }}
-          </p>
+        <!-- Reasoning Comparison Section -->
+        <div class="space-y-4 mb-6">
+          <!-- AI Reasoning -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">AI Reasoning</h3>
+            <div v-if="selectedAlertLoading" class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <span class="material-symbols-outlined animate-spin text-base">refresh</span>
+              {{ $t('common.loading') }}
+            </div>
+            <div
+              v-else-if="aiItems.length"
+              :class="[
+                'bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 ai-agent__html',
+                { 'ai-agent__html--dark': isDarkMode() }
+              ]"
+            >
+              <div v-for="(aiItem, index) in aiItems" :key="`ai-${aiItem.id || index}`">
+                <div v-html="sanitizeHtml(aiItem.content || '')"></div>
+              </div>
+            </div>
+            <div v-else class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+              {{ $t('alerts.detail.noAiResponse') }}
+            </div>
+          </div>
+
+          <!-- Human Reasoning -->
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Human Reasoning</h3>
+            <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[80px]">
+              {{ humanConclusionValue || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Human Verdict Section -->
+        <div class="border-t border-gray-200 dark:border-[#324867] pt-6">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Edit Human Verdict</h3>
+          <div class="relative mb-4">
+            <select
+              v-model="humanVerdictValue"
+              class="w-full bg-white dark:bg-[#1c2533] text-gray-900 dark:text-white border border-gray-200 dark:border-[#324867] rounded-lg px-4 py-2.5 text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+            >
+              <option value="">{{ $t('aiPlayground.selectVerdict') }}</option>
+              <option value="falsePositive">{{ $t('aiPlayground.closeReason.falsePositive') }}</option>
+              <option value="resolved">{{ $t('aiPlayground.closeReason.resolved') }}</option>
+              <option value="repeated">{{ $t('aiPlayground.closeReason.repeated') }}</option>
+              <option value="other">{{ $t('aiPlayground.closeReason.other') }}</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button
+              type="button"
+              @click="handleUpdateVerdict"
+              :disabled="!selectedAlert || isUpdatingVerdict"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <span v-if="isUpdatingVerdict" class="material-symbols-outlined animate-spin text-base">sync</span>
+              <span v-else class="material-symbols-outlined text-base">save</span>
+              {{ $t('aiPlayground.saveChanges') }}
+            </button>
+            <button
+              type="button"
+              class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-transparent border-2 border-gray-300 dark:border-[#324867] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-[#1c2533] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              :disabled="!selectedAlert"
+              @click="!selectedAlert ? null : (showRetrievalOverlay = true)"
+            >
+              <span class="material-symbols-outlined text-base">tune</span>
+              {{ $t('aiPlayground.fineTuneAI') }}
+            </button>
+          </div>
         </div>
       </div>
     </section>
+
+    <!-- Retrieval overlay -->
+    <Teleport to="body">
+      <div
+        v-if="showRetrievalOverlay"
+        class="fixed inset-0 z-50 flex items-center justify-end"
+        @click.self="showRetrievalOverlay = false"
+      >
+        <!-- Overlay background -->
+        <div 
+          class="fixed inset-0 bg-black/75"
+          @click="showRetrievalOverlay = false"
+        ></div>
+        
+        <!-- Detail panel - with slide-in animation -->
+        <Transition name="slide" appear>
+          <div
+            v-if="showRetrievalOverlay"
+            class="relative w-[80vw] h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
+            @click.stop
+          >
+            <!-- Header -->
+            <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
+              <div class="flex items-center justify-between px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base">travel_explore</span>
+                  Retrieval test
+                </h3>
+                <button
+                  class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
+                  @click="showRetrievalOverlay = false"
+                  aria-label="Close"
+                >
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="flex-1 p-6 min-h-0 overflow-hidden flex flex-col">
+              <div class="flex-1 flex gap-4 min-h-0">
+                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822] p-4 flex flex-col space-y-4 overflow-y-auto custom-scrollbar min-h-0">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.id') }}</label>
+                    <textarea
+                      ref="alertIdTextarea"
+                      class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden"
+                      :value="alertId"
+                      readonly
+                    ></textarea>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.list.alertTitle') }}</label>
+                    <textarea
+                      ref="alertSubjectTextarea"
+                      class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden"
+                      :value="alertSubject"
+                      readonly
+                    ></textarea>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.alertContent') }}</label>
+                      <button
+                        @click="toggleContentFormat"
+                        class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md transition-colors bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867]"
+                        :title="contentFormatMode === 'json' ? 'Switch to rich text format' : 'Switch to JSON format'"
+                      >
+                        <span class="material-symbols-outlined text-sm">
+                          {{ contentFormatMode === 'json' ? 'text_fields' : 'code' }}
+                        </span>
+                        <span>{{ contentFormatMode === 'json' ? 'Rich Text' : 'JSON' }}</span>
+                      </button>
+                    </div>
+                    <textarea
+                      ref="alertContentTextarea"
+                      :class="[
+                        'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden',
+                        contentFormatMode === 'json' ? 'font-mono' : ''
+                      ]"
+                      :value="formattedAlertContent"
+                      readonly
+                    ></textarea>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</label>
+                    <div class="relative">
+                      <select
+                        v-model="selectedWorkflow"
+                        class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+                      >
+                        <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822]"></div>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -295,12 +513,14 @@ import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAlertDetail } from '@/api/alerts'
+import { getAiAccuracyByModel, getAlertDetail, updateAlert } from '@/api/alerts'
 import service from '@/api/axios'
+import { useToast } from '@/composables/useToast'
 
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 
 const { t } = useI18n()
+const toast = useToast()
 
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
@@ -326,25 +546,208 @@ const searchContainerRef = ref(null)
 const selectedAlert = ref(null)
 const selectedAlertDetail = ref(null)
 const selectedAlertLoading = ref(false)
+const showRetrievalOverlay = ref(false)
+const selectedWorkflow = ref('')
 const statusFilter = ref('all')
+const matchFilter = ref('all')
+const humanVerdictValue = ref('')
+const humanConclusionValue = ref('')
+const isUpdatingVerdict = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+
+// Textarea refs for auto-resize
+const alertIdTextarea = ref(null)
+const alertSubjectTextarea = ref(null)
+const alertContentTextarea = ref(null)
+
+const alertId = computed(() => selectedAlert.value?.alert_id || selectedAlert.value?.id || '')
+const alertSubject = computed(() => selectedAlert.value?.title || '')
+const contentFormatMode = ref('json') // 'json' or 'richtext'
+
+// Helper function to auto-resize textarea
+const autoResizeTextarea = (textarea, minHeight = 44, addExtraSpace = false) => {
+  if (!textarea) return
+  // Store current scroll position
+  const scrollTop = textarea.scrollTop
+  // Reset height to get accurate scrollHeight
+  textarea.style.height = 'auto'
+  textarea.style.overflow = 'hidden'
+  // Force a reflow to ensure content is measured
+  void textarea.offsetHeight
+  // Get the actual scroll height including padding
+  const scrollHeight = textarea.scrollHeight
+  // Calculate extra space only if requested (for content textarea)
+  let extraSpace = 0
+  if (addExtraSpace) {
+    const computedStyle = getComputedStyle(textarea)
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 20
+    // Add extra space (about 1 line height) to ensure last line is fully visible and readable
+    extraSpace = Math.ceil(lineHeight * 1) + 6
+  }
+  // Set the height, ensuring it's at least the minimum
+  const newHeight = Math.max(scrollHeight + extraSpace, minHeight)
+  textarea.style.height = newHeight + 'px'
+  // Restore scroll position if needed
+  textarea.scrollTop = scrollTop
+}
+
+const formatDescriptionAsJson = (desc) => {
+  if (desc === null || desc === undefined) return ''
+  if (typeof desc === 'string') return desc
+  // If it's an object, stringify for display
+  try {
+    return JSON.stringify(desc, null, 2)
+  } catch {
+    return String(desc)
+  }
+}
+
+const formatDescriptionAsRichText = (desc) => {
+  if (desc === null || desc === undefined) return ''
+  if (typeof desc === 'string') {
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(desc)
+      return formatObjectAsRichText(parsed)
+    } catch {
+      // If not JSON, return as is
+      return desc
+    }
+  }
+  // If it's already an object, format it
+  return formatObjectAsRichText(desc)
+}
+
+const formatObjectAsRichText = (obj, indent = 0) => {
+  if (obj === null || obj === undefined) return String(obj)
+  
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]'
+    return obj.map((item, index) => {
+      const prefix = '  '.repeat(indent)
+      const bullet = `${prefix}- `
+      if (typeof item === 'object' && item !== null) {
+        return `${bullet}${formatObjectAsRichText(item, indent + 1)}`
+      }
+      return `${bullet}${String(item)}`
+    }).join('\n')
+  }
+  
+  if (typeof obj === 'object') {
+    const entries = Object.entries(obj)
+    if (entries.length === 0) return '{}'
+    return entries.map(([key, value]) => {
+      const prefix = '  '.repeat(indent)
+      const formattedKey = key.replace(/_/g, ' ').replace(/([A-Z])/g, ' $1').trim()
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        return `${prefix}${formattedKey}:\n${formatObjectAsRichText(value, indent + 1)}`
+      } else if (Array.isArray(value)) {
+        return `${prefix}${formattedKey}:\n${formatObjectAsRichText(value, indent + 1)}`
+      }
+      return `${prefix}${formattedKey}: ${String(value)}`
+    }).join('\n\n')
+  }
+  
+  return String(obj)
+}
+
+const getRawDescription = () => {
+  const detail = selectedAlertDetail.value
+  const list = selectedAlert.value
+  return (
+    detail?.description ??
+    detail?.data?.description ??
+    detail?.data_object?.description ??
+    list?.description ??
+    list?.data_object?.description ??
+    ''
+  )
+}
+
+const formattedAlertContent = computed(() => {
+  const desc = getRawDescription()
+  if (contentFormatMode.value === 'json') {
+    return formatDescriptionAsJson(desc)
+  } else {
+    return formatDescriptionAsRichText(desc)
+  }
+})
+
+const toggleContentFormat = () => {
+  contentFormatMode.value = contentFormatMode.value === 'json' ? 'richtext' : 'json'
+  // Force height recalculation after format change
+  if (alertContentTextarea.value) {
+    // Use double nextTick and delay to ensure content is fully rendered
+    nextTick(() => {
+      nextTick(() => {
+        // Longer delay to ensure content is fully rendered, especially for rich text
+        setTimeout(() => {
+          autoResizeTextarea(alertContentTextarea.value, 200, true)
+          // Recalculate after a short delay to catch any layout changes
+          setTimeout(() => {
+            autoResizeTextarea(alertContentTextarea.value, 200, true)
+          }, 50)
+        }, 50)
+      })
+    })
+  }
+}
+
+// Watch content changes and auto-resize textareas
+watch([alertId, alertIdTextarea], () => {
+  nextTick(() => {
+    if (alertIdTextarea.value) {
+      // Use a smaller minHeight that accounts for padding (p-3 = 12px top + 12px bottom = 24px)
+      // Plus minimal space for text, so around 28-30px total
+      autoResizeTextarea(alertIdTextarea.value, 28)
+    }
+  })
+}, { immediate: true })
+
+watch([alertSubject, alertSubjectTextarea], () => {
+  nextTick(() => {
+    if (alertSubjectTextarea.value) {
+      autoResizeTextarea(alertSubjectTextarea.value, 64)
+    }
+  })
+}, { immediate: true })
+
+watch([formattedAlertContent, alertContentTextarea, contentFormatMode], () => {
+  if (alertContentTextarea.value) {
+    // Use double nextTick to ensure DOM is fully updated
+    nextTick(() => {
+      nextTick(() => {
+        // Longer delay to ensure content is fully rendered, especially for rich text
+        setTimeout(() => {
+          autoResizeTextarea(alertContentTextarea.value, 200, true)
+          // Recalculate after a short delay to catch any layout changes
+          setTimeout(() => {
+            autoResizeTextarea(alertContentTextarea.value, 200, true)
+          }, 50)
+        }, 50)
+      })
+    })
+  }
+}, { immediate: true })
 
 const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
-  { key: 'status', label: t('alerts.list.status') },
-  { key: 'actor', label: t('alerts.list.actor') }
+  { key: 'aiJudge', label: t('alerts.list.aiJudge') },
+  { key: 'humanVerdict', label: t('aiPlayground.humanVerdict') },
+  { key: 'match', label: t('aiPlayground.match') }
 ])
 
 const defaultWidths = {
   createTime: 180,
   alertTitle: 360,
   riskLevel: 120,
-  status: 140,
-  actor: 160
+  aiJudge: 120,
+  humanVerdict: 150,
+  match: 120
 }
 
 const searchFields = computed(() => [
@@ -629,6 +1032,73 @@ const getStatusText = (status) => {
   return map[status] || status
 }
 
+// Get AI Verdict text
+const getAiVerdictText = (alert) => {
+  if (!alert) return '-'
+  const verificationState = alert.verification_state
+  if (verificationState === 'True_Positive') {
+    return t('alerts.list.aiJudgeResult.truePositive')
+  } else if (verificationState === 'False_Positive') {
+    return t('alerts.list.aiJudgeResult.falsePositive')
+  }
+  return t('alerts.list.aiJudgeResult.unknown')
+}
+
+// Get Human Verdict text
+const getHumanVerdictText = (alert) => {
+  if (!alert) return '-'
+  const closeReason = alert.close_reason || alert.closeReason || ''
+  if (!closeReason) return '-'
+  
+  const normalized = String(closeReason).trim().toLowerCase()
+  const displayMap = {
+    'falsepositive': t('aiPlayground.closeReason.falsePositive'),
+    'false detection': t('aiPlayground.closeReason.falsePositive'),
+    'false positive': t('aiPlayground.closeReason.falsePositive'),
+    'resolved': t('aiPlayground.closeReason.resolved'),
+    'repeated': t('aiPlayground.closeReason.repeated'),
+    'other': t('aiPlayground.closeReason.other')
+  }
+  
+  return displayMap[normalized] || closeReason
+}
+
+// Determine match status between AI Verdict and Human Verdict
+// Match: (AI = False_Positive AND Human = "False Detection") OR (AI = True_Positive AND Human = "Resolved")
+// Mismatch: (AI = False_Positive AND Human = "Resolved") OR (AI = True_Positive AND Human = "False Detection")
+// Empty: Any other combination
+const getMatchStatus = (item) => {
+  const aiVerdict = item.verification_state
+  const humanVerdict = item.close_reason || item.closeReason || ''
+  
+  // Normalize values (case-insensitive)
+  const aiNormalized = aiVerdict ? String(aiVerdict).trim() : ''
+  const humanNormalized = humanVerdict ? String(humanVerdict).trim() : ''
+  
+  // Check if values are in the expected set
+  const isAiLow = aiNormalized === 'False_Positive'
+  const isAiHigh = aiNormalized === 'True_Positive'
+  const isHumanFalseDetection = humanNormalized.toLowerCase() === 'false detection'
+  const isHumanResolved = humanNormalized.toLowerCase() === 'resolved'
+  
+  // If either value is not in the expected set, return empty
+  if (!isAiLow && !isAiHigh) return ''
+  if (!isHumanFalseDetection && !isHumanResolved) return ''
+  
+  // Check match conditions
+  if ((isAiLow && isHumanFalseDetection) || (isAiHigh && isHumanResolved)) {
+    return 'match'
+  }
+  
+  // Check mismatch conditions
+  if ((isAiLow && isHumanResolved) || (isAiHigh && isHumanFalseDetection)) {
+    return 'mismatch'
+  }
+  
+  // Default to empty for any other combination
+  return ''
+}
+
 const handleSearchContainerClick = () => {
   if (searchInputRef.value) {
     searchInputRef.value.focus()
@@ -700,10 +1170,11 @@ const clearSearch = () => {
 const sanitizeHtml = (html = '') => DOMPurify.sanitize(html)
 
 const handleRowClick = async (item) => {
-  // Seed with list data (includes close_comment) to avoid stale values
+  // Seed with list data (includes close_comment and close_reason) to avoid stale values
   selectedAlert.value = {
     ...item,
-    close_comment: item.close_comment || item.closeComment || item?.data_object?.close_comment || null
+    close_comment: item.close_comment || item.closeComment || item?.data_object?.close_comment || null,
+    close_reason: item.close_reason || item.closeReason || item?.data_object?.close_reason || null
   }
   selectedAlertDetail.value = null
   selectedAlertLoading.value = true
@@ -723,14 +1194,107 @@ const handleRowClick = async (item) => {
       detail?.data_object?.close_comment ||
       null
 
+    const closeReason =
+      detail?.close_reason ||
+      detail?.data?.close_reason ||
+      detail?.data_object?.close_reason ||
+      null
+
     selectedAlert.value = {
       ...selectedAlert.value,
-      close_comment: closeComment ?? selectedAlert.value.close_comment ?? null
+      close_comment: closeComment ?? selectedAlert.value.close_comment ?? null,
+      close_reason: closeReason ?? selectedAlert.value.close_reason ?? null
     }
+
+    // Update form values
+    const finalCloseReason = selectedAlert.value.close_reason || selectedAlert.value.closeReason || ''
+    humanVerdictValue.value = mapCloseReasonToKey(finalCloseReason)
+    humanConclusionValue.value = selectedAlert.value.close_comment || ''
   } catch (error) {
     console.error('Failed to load alert detail:', error)
   } finally {
     selectedAlertLoading.value = false
+  }
+}
+
+// Map close_reason value to dropdown option key
+// Handles both key format (falsePositive) and display format (False detection)
+const mapCloseReasonToKey = (closeReason) => {
+  if (!closeReason) return ''
+  const value = String(closeReason).trim()
+  const normalized = value.toLowerCase()
+  
+  // Direct key match (case-insensitive)
+  const keyMap = {
+    'falsepositive': 'falsePositive',
+    'resolved': 'resolved',
+    'repeated': 'repeated',
+    'other': 'other'
+  }
+  
+  if (keyMap[normalized]) {
+    return keyMap[normalized]
+  }
+  
+  // Display value match (case-insensitive)
+  const displayToKey = {
+    'false detection': 'falsePositive',
+    'false positive': 'falsePositive',
+    'resolved': 'resolved',
+    'repeated': 'repeated',
+    'other': 'other'
+  }
+  
+  return displayToKey[normalized] || ''
+}
+
+// Watch selectedAlert to update form values
+watch(selectedAlert, (newAlert) => {
+  if (newAlert) {
+    const closeReason = newAlert.close_reason || newAlert.closeReason || ''
+    humanVerdictValue.value = mapCloseReasonToKey(closeReason)
+    humanConclusionValue.value = newAlert.close_comment || ''
+  } else {
+    humanVerdictValue.value = ''
+    humanConclusionValue.value = ''
+  }
+}, { immediate: true })
+
+// Handle update verdict
+const handleUpdateVerdict = async () => {
+  if (!selectedAlert.value || isUpdatingVerdict.value) return
+
+  const alertId = selectedAlert.value.alert_id || selectedAlert.value.id
+  if (!alertId) {
+    toast.error(t('alerts.edit.error') || 'Invalid alert ID', 'ERROR')
+    return
+  }
+
+  try {
+    isUpdatingVerdict.value = true
+
+    const updateData = {}
+    if (humanVerdictValue.value) {
+      updateData.close_reason = humanVerdictValue.value
+    }
+
+    await updateAlert(alertId, updateData)
+
+    // Update local state
+    if (selectedAlert.value) {
+      selectedAlert.value.close_reason = humanVerdictValue.value
+    }
+
+    // Refresh the alerts list to reflect changes
+    await loadAlerts()
+
+    toast.success(t('aiPlayground.updateVerdictSuccess') || 'Verdict updated successfully', 'SUCCESS')
+  } catch (error) {
+    console.error('Failed to update verdict:', error)
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.edit.error') || 'Failed to update verdict'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    isUpdatingVerdict.value = false
   }
 }
 
@@ -741,6 +1305,23 @@ const isDarkMode = () => document.documentElement.classList.contains('dark')
 const handleFilter = () => {
   currentPage.value = 1
   loadAlerts()
+}
+
+// Track word wrap state - DataTable stores it in localStorage with the storage key
+const getWordWrapState = () => {
+  const stored = localStorage.getItem('datatable-wordwrap-ai-playground-alerts-table-columns')
+  return stored !== null ? stored === 'true' : true
+}
+const wordWrapState = ref(getWordWrapState())
+
+const isWordWrapEnabled = computed(() => wordWrapState.value)
+
+const handleToggleWordWrap = () => {
+  if (dataTableRef.value?.toggleWordWrap) {
+    dataTableRef.value.toggleWordWrap()
+    // Update local state immediately
+    wordWrapState.value = !wordWrapState.value
+  }
 }
 
 const handlePageChange = (page) => {
@@ -833,17 +1414,30 @@ const loadAlerts = async () => {
       riskLevel: normalizeSeverity(item.riskLevel || item.severity),
       status: normalizeStatus(item.status || item.handle_status),
       model_name: item.model_name || item.model,
-      close_comment: item.close_comment || item.closeComment || item?.data_object?.close_comment || null
+      close_comment: item.close_comment || item.closeComment || item?.data_object?.close_comment || null,
+      close_reason: item.close_reason || item.closeReason || item?.data_object?.close_reason || null
     }))
 
     // Client-side fallback for model_name filter
+    let filtered = normalized
     const modelKeyword = searchKeywords.value.find(k => k.field === 'model_name' || k.field === 'model')
-    const filtered = modelKeyword
-      ? normalized.filter(a => {
-          const val = a.model_name || a.model || a?.extend_properties?.model_name || a?.extend_properties?.model
-          return val ? String(val).toLowerCase() === String(modelKeyword.value).toLowerCase() : false
-        })
-      : normalized
+    if (modelKeyword) {
+      filtered = filtered.filter(a => {
+        const val = a.model_name || a.model || a?.extend_properties?.model_name || a?.extend_properties?.model
+        return val ? String(val).toLowerCase() === String(modelKeyword.value).toLowerCase() : false
+      })
+    }
+
+    // Client-side filter for match status
+    if (matchFilter.value && matchFilter.value !== 'all') {
+      filtered = filtered.filter(a => {
+        const matchStatus = getMatchStatus(a)
+        if (matchFilter.value === 'empty') {
+          return matchStatus === ''
+        }
+        return matchStatus === matchFilter.value
+      })
+    }
 
     alerts.value = filtered
     total.value = response.total || filtered.length || 0
@@ -881,15 +1475,26 @@ watch([currentPage, pageSize], () => {
   loadAlerts()
 })
 
+watch(showRetrievalOverlay, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
+
 onMounted(() => {
   ensureAiAccuracyChart()
   document.addEventListener('click', handleClickOutside)
+  // Sync word wrap state with DataTable
+  wordWrapState.value = getWordWrapState()
   handleRefresh()
 })
 
 onBeforeUnmount(() => {
   disposeAiAccuracyChart()
   document.removeEventListener('click', handleClickOutside)
+  document.body.style.overflow = ''
 })
 </script>
 
@@ -944,6 +1549,46 @@ onBeforeUnmount(() => {
 :global(.dark) .ai-agent__html :deep(b),
 .ai-agent__html--dark :deep(b) {
   color: #e2e8f0;
+}
+
+/* Slide animation for retrieval overlay */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease-in-out;
+}
+
+.slide-enter-from {
+  transform: translateX(100%);
+}
+
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+/* Custom scrollbar for retrieval overlay */
+.custom-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+}
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.5);
 }
 </style>
 

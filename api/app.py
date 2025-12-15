@@ -11,7 +11,7 @@ from utils.app_config import config
 from utils.auth_util import parse_w3_token, TokenCache
 from utils.common_utils import scheduler
 from utils.logger_init import logger
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -79,6 +79,7 @@ api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
 api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')
+api.add_resource(ai_prompt_view.AIPromptView, '/ai/prompt')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 

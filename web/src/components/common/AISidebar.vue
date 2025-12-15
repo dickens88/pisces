@@ -279,6 +279,19 @@
             prefix-icon="auto_awesome"
             @submit="handleSecurityAgentSend"
           />
+          <div
+            v-if="promptSuggestions.length"
+            class="mt-2 flex flex-wrap gap-2"
+          >
+            <button
+              v-for="(prompt, idx) in promptSuggestions"
+              :key="`prompt-${idx}`"
+              class="ai-prompt-chip"
+              @click="applyPrompt(prompt)"
+            >
+              {{ prompt }}
+            </button>
+          </div>
         </div>
       </aside>
     </Transition>
@@ -288,6 +301,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
@@ -295,6 +309,7 @@ import DOMPurify from 'dompurify'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
 import CommentInput from '@/components/common/CommentInput.vue'
 import { sendSecurityAgentMessage } from '@/api/securityAgent'
+import { getAIPrompts } from '@/api/aiPrompts'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import ToolkitSection from '@/components/common/ToolkitSection.vue'
 
@@ -332,7 +347,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'open-in-new', 'send-message', 'tool-action'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const route = useRoute()
 const toast = useToast()
 const { isDarkMode } = useDarkModeObserver()
 
@@ -355,6 +371,15 @@ const isSendingSecurityAgentMessage = ref(false)
 const conversationId = ref(null)
 const chatHistoryRef = ref(null)
 const contentScrollRef = ref(null)
+
+// AI prompt suggestions state
+const promptSuggestions = ref([])
+const promptsLoading = ref(false)
+const promptMeta = ref({
+  fallbackUsed: false,
+  count: 0
+})
+const promptError = ref('')
 
 // Security Agent helper functions
 const getSecurityAgentUserLabel = () => t('common.securityAgentUserLabel') || 'You'
@@ -565,6 +590,48 @@ const loadToolkits = async () => {
   }
 }
 
+const currentRoutePath = computed(() => route?.path || '/')
+
+const resolveLang = () => {
+  const raw = (locale?.value || '').toLowerCase()
+  if (raw.startsWith('zh')) return 'zh'
+  if (raw.startsWith('en')) return 'en'
+  return 'zh'
+}
+
+const fetchPromptSuggestions = async () => {
+  if (!props.visible) return
+  promptsLoading.value = true
+  promptError.value = ''
+  try {
+    const response = await getAIPrompts({
+      route: currentRoutePath.value,
+      lang: resolveLang()
+    })
+    // 后端直接返回字符串数组
+    const data = response?.data || response || []
+    const prompts = Array.isArray(data) ? data : []
+    promptSuggestions.value = prompts.slice(0, 3)
+    promptMeta.value = {
+      fallbackUsed: false,
+      count: prompts.length || 0
+    }
+    if (!promptSuggestions.value.length) {
+      promptError.value = t('common.aiPromptEmpty') || 'No prompt available'
+    }
+  } catch (error) {
+    promptSuggestions.value = []
+    promptMeta.value = { fallbackUsed: false, count: 0 }
+    promptError.value =
+      error?.response?.data?.error_message ||
+      error?.message ||
+      t('common.aiPromptEmpty') ||
+      'No prompt available'
+  } finally {
+    promptsLoading.value = false
+  }
+}
+
 const loadToolkitRecords = async () => {
   loadingToolkitRecords.value = true
   try {
@@ -583,21 +650,27 @@ const loadToolkitRecords = async () => {
 }
 
 // 监听visible变化，当侧边栏打开时总是加载工具列表
-watch(() => props.visible, (visible) => {
-  if (visible) {
-    loadToolkits()
-    loadToolkitRecords()
-  } else {
-    // 关闭时清空数据
-    toolkits.value = []
-    toolkitParams.value = {}
-    toolkitRecords.value = []
-    toolkitExecutionResults.value = {}
-    expandedToolkitIds.value.clear()
-    toolkitResultRefs.value = {}
-    // 不清空消息，保留对话历史
+watch(
+  () => [props.visible, currentRoutePath.value, locale?.value],
+  ([visible], [prevVisible]) => {
+    if (visible) {
+      loadToolkits()
+      loadToolkitRecords()
+      fetchPromptSuggestions()
+    } else if (prevVisible) {
+      // 关闭时清空数据
+      toolkits.value = []
+      toolkitParams.value = {}
+      toolkitRecords.value = []
+      toolkitExecutionResults.value = {}
+      expandedToolkitIds.value.clear()
+      toolkitResultRefs.value = {}
+      promptSuggestions.value = []
+      promptMeta.value = { fallbackUsed: false, count: 0 }
+      promptError.value = ''
+    }
   }
-})
+)
 
 
 const updateToolkitParam = (appId, paramName, value) => {
@@ -676,11 +749,6 @@ const handleClose = () => emit('close')
 const handleOpenInNew = () => emit('open-in-new')
 
 const handleSecurityAgentSend = async (data) => {
-  if (!props.alertId) {
-    toast.error(t('common.alertIdRequired') || '告警ID不存在')
-    return
-  }
-
   // CommentInput 发出的是 { comment, files }，需要映射为 { message, files }
   const message = data?.comment || data?.message || ''
   const files = data?.files || []
@@ -810,6 +878,11 @@ const setMessage = (text) => {
   inputMessage.value = text || ''
 }
 
+const applyPrompt = (text) => {
+  if (!text) return
+  inputMessage.value = text
+}
+
 // 暴露方法供父组件调用
 defineExpose({
   setMessage
@@ -820,6 +893,7 @@ onMounted(() => {
   if (props.visible) {
     loadToolkits()
     loadToolkitRecords()
+    fetchPromptSuggestions()
   }
 })
 
@@ -884,6 +958,35 @@ onMounted(() => {
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+}
+
+.ai-prompt-chip {
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  color: #0f172a;
+  background: #f8fafc;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+}
+
+.ai-prompt-chip:hover {
+  border-color: rgba(59, 130, 246, 0.7);
+  color: #1d4ed8;
+  background: #e0ebff;
+}
+
+.dark .ai-prompt-chip {
+  border-color: rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.dark .ai-prompt-chip:hover {
+  border-color: rgba(96, 165, 250, 0.7);
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.15);
 }
 
 .ai-agent__html :deep(pre) {

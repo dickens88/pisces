@@ -1,0 +1,35 @@
+{
+  "default": [
+    {
+      "zh": "总结一下今天的安全态势",
+      "en": "Summarize what happened today"
+    }
+  ],
+  "/incidents": [
+    {
+      "zh": "这个月发生了什么",
+      "en": "What happened this month?"
+    },
+    {
+      "zh": "还有哪些事件没闭环",
+      "en": "Any open incident"
+    }
+  ],
+  "/alerts": [
+    {
+      "zh": "还有多少高风险告警",
+      "en": "How many high risk alert open"
+    }
+  ],
+  "/alerts/detail": [
+    {
+      "zh": "帮我分析一下这个告警",
+      "en": "Help me investigate this alert"
+    },
+    {
+      "zh": "帮我查询IP",
+      "en": "Check the IP address"
+    }
+  ]
+}
+

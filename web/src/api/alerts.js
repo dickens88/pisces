@@ -471,6 +471,12 @@ export const updateAlert = (alertId, data) => {
   if (data.actor !== undefined) {
     requestBody.data.actor = data.actor
   }
+  if (data.close_reason !== undefined) {
+    requestBody.data.close_reason = data.close_reason
+  }
+  if (data.close_comment !== undefined) {
+    requestBody.data.close_comment = data.close_comment
+  }
   
   return service.put(`/alerts/${alertId}`, requestBody)
 }
