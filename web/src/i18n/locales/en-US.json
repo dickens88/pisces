@@ -89,6 +89,32 @@
     },
     "list": {
       "title": "Alert Listing"
+    },
+    "retrievalTest": {
+      "selectWorkflow": "Select Workflow"
+    },
+    "humanVerdict": "Human Verdict",
+    "match": "Match",
+    "matchStatus": {
+      "match": "Match",
+      "mismatch": "Mismatch"
+    },
+    "matchFilter": {
+      "all": "All Match Status",
+      "empty": "No Match"
+    },
+    "selectVerdict": "Select Verdict",
+    "updateVerdict": "Update Verdict",
+    "updateHumanConclusion": "Update Human Conclusion",
+    "updateVerdictSuccess": "Verdict updated successfully",
+    "saveChanges": "Save Changes",
+    "fineTuneAI": "Fine-tune AI",
+    "noAlertSelected": "No alert selected",
+    "closeReason": {
+      "falsePositive": "False detection",
+      "resolved": "Resolved",
+      "repeated": "Repeated",
+      "other": "Other"
     }
   },
   "dashboard": {
@@ -140,8 +166,8 @@
       "alertTitle": "Alert Title",
       "riskLevel": "Risk Level",
       "status": "Status",
-      "aiJudge": "AI Judge",
-      "allAiJudge": "AI Judge",
+      "aiJudge": "AI Verdict",
+      "allAiJudge": "AI Verdict",
       "aiJudgeResult": {
         "truePositive": "Suspicious",
         "falsePositive": "False Positive",
@@ -336,7 +362,10 @@
       "actorLocked": "Assign to Me",
       "actorUnlocked": "Assign to Me",
       "actorUpdateSuccess": "Operation successful",
-      "actorUpdateError": "Operation failed, please try again later"
+      "actorUpdateError": "Operation failed, please try again later",
+      "id": "Alert ID",
+      "alertSubject": "Alert Subject",
+      "alertContent": "Alert Content"
     }
   },
   "incidents": {
@@ -635,6 +664,7 @@
       "alertInfo": "Information",
       "timestamp": "Timestamp",
       "status": "Status",
+      "description": "Description",
       "ruleName": "Rule Name",
       "owner": "Owner",
       "unassigned": "Unassigned",

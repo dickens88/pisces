@@ -89,6 +89,32 @@
     },
     "list": {
       "title": "告警列表"
+    },
+    "retrievalTest": {
+      "selectWorkflow": "选择工作流"
+    },
+    "humanVerdict": "人工判定",
+    "match": "匹配",
+    "matchStatus": {
+      "match": "匹配",
+      "mismatch": "不匹配"
+    },
+    "matchFilter": {
+      "all": "全部匹配状态",
+      "empty": "无匹配"
+    },
+    "selectVerdict": "选择判定",
+    "updateVerdict": "更新判定",
+    "updateHumanConclusion": "更新人工结论",
+    "updateVerdictSuccess": "判定更新成功",
+    "saveChanges": "保存更改",
+    "fineTuneAI": "微调AI",
+    "noAlertSelected": "未选择告警",
+    "closeReason": {
+      "falsePositive": "误检",
+      "resolved": "已解决",
+      "repeated": "重复",
+      "other": "其他"
     }
   },
   "dashboard": {
@@ -140,8 +166,8 @@
       "alertTitle": "告警标题",
       "riskLevel": "风险等级",
       "status": "状态",
-      "aiJudge": "AI研判",
-      "allAiJudge": "AI研判",
+      "aiJudge": "AI判定",
+      "allAiJudge": "AI判定",
       "aiJudgeResult": {
         "truePositive": "可疑",
         "falsePositive": "误报",
@@ -635,6 +661,7 @@
       "alertInfo": "信息",
       "timestamp": "时间戳",
       "status": "状态",
+      "description": "描述",
       "ruleName": "规则名称",
       "owner": "负责人",
       "unassigned": "未分配",
@@ -682,7 +709,10 @@
       "result": "结果",
       "error": "错误",
       "system": "系统",
-      "noToolkitsAvailable": "暂无可用工具"
+      "noToolkitsAvailable": "暂无可用工具",
+      "id": "告警ID",
+      "alertSubject": "告警主题",
+      "alertContent": "告警内容"
     }
   },
   "vulnerabilities": {
