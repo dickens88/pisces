@@ -628,6 +628,19 @@
       @created="handleVulnerabilityCreated"
     />
 
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      :alert-title="currentAlertTitle"
+      :finding-summary="aiFindingSummary"
+      :ai-disposition="aiDisposition"
+      :disposition-reasons="aiDispositionReasons"
+      @close="showAISidebar = false"
+      @accept="handleAIAccept"
+      @reject="handleAIReject"
+      @send-message="handleAISendMessage"
+    />
+
     <!-- Batch delete dialog -->
     <div
       v-if="showBatchDeleteDialog"
@@ -800,6 +813,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime, parseToDate, calculateTTR } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
@@ -1051,6 +1065,11 @@ const showBatchDeleteDialog = ref(false)
 const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
 const showAdvancedSearch = ref(false)
+const showAISidebar = ref(false)
+const currentAlertTitle = ref('')
+const aiFindingSummary = ref('')
+const aiDisposition = ref('Unknown')
+const aiDispositionReasons = ref([])
 
 const persistChartsVisibilityPreference = (value) => {
   try {
@@ -1455,6 +1474,8 @@ const loadAlertTypeDistribution = async () => {
     alertTypeChartValues.value = []
     alertTypeChartSeries.value = []
     alertTypeChartTotal.value = 0
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadAlertTypeChartError') || '加载告警类型分布图表失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     alertTypeChartLoading.value = false
     await nextTick()
@@ -1550,6 +1571,8 @@ const loadAlertStatusBySeverity = async () => {
     alertStatusChartSeries.value = []
     alertStatusYAxisCategories.value = []
     alertStatusTotal.value = 0
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadAlertStatusChartError') || '加载告警状态分布图表失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     alertStatusChartLoading.value = false
     await nextTick()
@@ -1609,6 +1632,8 @@ const loadAlerts = async () => {
     
   } catch (error) {
     console.error('Failed to load alerts:', error)
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadAlertsError') || '加载告警列表失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     loadingAlerts.value = false
   }
@@ -1650,6 +1675,8 @@ const loadHighRiskAlertCount = async () => {
   } catch (error) {
     console.error('Failed to load high risk alert count:', error)
     highRiskAlertCount.value = null
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadHighRiskCountError') || '加载高风险告警数量失败'
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -1711,6 +1738,8 @@ const loadStatistics = async () => {
     }
   } catch (error) {
     console.error('Failed to load statistics:', error)
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadStatisticsError') || '加载统计数据失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     automationRateLoading.value = false
   }
@@ -2243,6 +2272,35 @@ const handleCustomRangeChange = async (newRange) => {
   }
 }
 
+const handleOpenAISidebar = () => {
+  const selectedAlert = alerts.value.find(alert => selectedAlerts.value.includes(alert.id)) || alerts.value[0]
+  if (selectedAlert) {
+    currentAlertTitle.value = selectedAlert.title || ''
+    aiFindingSummary.value = selectedAlert.aiAnalysis?.description || selectedAlert.description || ''
+    aiDisposition.value = selectedAlert.verification_state || 'Unknown'
+    aiDispositionReasons.value = []
+  } else {
+    currentAlertTitle.value = ''
+  }
+  showAISidebar.value = true
+}
+
+const handleAIAccept = () => {
+  // TODO: 实现接受AI判断的逻辑
+  console.log('Accept AI disposition')
+}
+
+const handleAIReject = () => {
+  // TODO: 实现拒绝AI判断的逻辑
+  console.log('Reject AI disposition')
+}
+
+const handleAISendMessage = (message) => {
+  // TODO: 实现发送AI消息的逻辑
+  console.log('Send AI message:', message)
+}
+
+
 onMounted(async () => {
   if (showCharts.value) {
     ensureAlertTypeChart()
@@ -2251,6 +2309,9 @@ onMounted(async () => {
   await loadAllData(false)
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
+  
+  // 监听Header发出的打开AI侧边栏事件
+  window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
 onUnmounted(() => {
@@ -2258,6 +2319,7 @@ onUnmounted(() => {
   disposeAlertTypeChart()
   disposeAlertStatusChart()
   hideRecentCloseCommentsDropdown()
+  window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
 const alertsTimeRangeLabel = computed(() => {

@@ -109,7 +109,7 @@ class ToolkitRecord(Base):
             session.close()
 
     @classmethod
-    def list_toolkit_records(cls, *, app_id=None, app_type=None, status=None, owner=None, event_id=None, limit=None, offset=0):
+    def list_toolkit_records(cls, app_id=None, app_type=None, status=None, owner=None, event_id=None, limit=10, offset=0):
         """List toolkit records with optional filters. Returns list of dictionaries."""
         session = Session()
         try:
@@ -127,14 +127,11 @@ class ToolkitRecord(Base):
             if event_id is not None:
                 query = query.filter(cls.event_id == event_id)
             
-            # Apply pagination
-            if offset > 0:
-                query = query.offset(offset)
-            if limit is not None:
-                query = query.limit(limit)
-            
             # Order by create_time descending (newest first)
             query = query.order_by(cls.create_time.desc())
+
+            # Apply pagination
+            query = query.offset(offset).limit(limit)
             
             records = query.all()
             return [record.to_dict() for record in records]

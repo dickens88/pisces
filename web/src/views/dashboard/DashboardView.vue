@@ -221,10 +221,12 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
+import { useToast } from '@/composables/useToast'
 import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel, getAlertStatistics } from '@/api/alerts'
 import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
 
 const { t } = useI18n()
+const toast = useToast()
 
 /**
  * @brief 时间范围存储
@@ -425,6 +427,8 @@ const loadAlertCount24hData = async () => {
     alertCount24hTotal.value = 0
     alertCount24hChange.value = 0
     alertCount24hTrend.value = 'down'
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAlertCountError') || '加载告警数量数据失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -471,6 +475,8 @@ const loadIncidentCount30dData = async () => {
     incidentCount30dTotal.value = 0
     incidentCount30dChange.value = 0
     incidentCount30dTrend.value = 'down'
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadIncidentCountError') || '加载事件数量数据失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -517,6 +523,8 @@ const loadVulnerabilityCount30dData = async () => {
     vulnerabilityCount30dTotal.value = 0
     vulnerabilityCount30dChange.value = 0
     vulnerabilityCount30dTrend.value = 'down'
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadVulnerabilityCountError') || '加载漏洞数量数据失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   }
 }
 
@@ -870,6 +878,8 @@ const loadAlertSourceStatistics = async () => {
     alertSourceCategories.value = []
     alertSourceValues.value = []
     alertSourceTotal.value = 0
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAlertSourceError') || '加载告警来源统计失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     alertSourceLoading.value = false
     await nextTick()
@@ -892,6 +902,8 @@ const loadAlertTrendStatistics = async () => {
     alertTrendDates.value = []
     alertTrendValues.value = []
     alertTrendTotal.value = 0
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAlertTrendError') || '加载告警趋势统计失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     alertTrendLoading.value = false
     await nextTick()
@@ -913,6 +925,8 @@ const loadAutomationClosureRate = async () => {
   } catch (error) {
     console.error('Failed to load automation closure rate:', error)
     automationClosureRate.value = '0.0'
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAutomationRateError') || '加载自动化关闭率失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     automationClosureRateLoading.value = false
   }
@@ -937,6 +951,8 @@ const loadAiAccuracyStatistics = async () => {
   } catch (error) {
     console.error('Failed to load AI accuracy statistics:', error)
     aiAccuracyData.value = []
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAiAccuracyError') || '加载AI准确率统计失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   } finally {
     aiAccuracyLoading.value = false
     await nextTick()

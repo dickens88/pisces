@@ -17,10 +17,10 @@ class IncidentGraphIntelligenceJob:
 
     @classmethod
     def register(cls):
-        interval = config.get("application.incident_graph.refresh_interval_seconds", 300)
+        interval = config.get("application.incident_graph.refresh_interval_seconds")
         if not interval:
-            logger.warning("[IncidentGraphJob] refresh interval missing, using default 300s")
-            interval = 300
+            logger.warning("[IncidentGraphJob] refresh interval missing, scheduler stopped.")
+            return
 
         scheduler.add_job(
             id=cls.JOB_ID,

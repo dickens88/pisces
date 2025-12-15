@@ -14,21 +14,30 @@
           @dragover.prevent="handleDragOver"
           @dragleave.prevent="handleDragLeave"
         >
+          <div
+            v-if="prefixIcon && !imagePreviewUrl"
+            class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
+          >
+            <span class="material-symbols-outlined text-base leading-none">
+              {{ prefixIcon }}
+            </span>
+          </div>
           <textarea
             v-model="commentText"
             :class="[
-              'w-full rounded-xl bg-transparent p-4 pr-32 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[100px]',
-              imagePreviewUrl ? 'pl-20' : ''
+              'w-full rounded-xl bg-transparent p-2.5 pr-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
+              imagePreviewUrl ? 'pl-20' : '',
+              prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
             ]"
-            :placeholder="$t('common.addComment')"
-            rows="3"
+            :placeholder="placeholder"
+            rows="1"
             @input="handleTextareaInput"
             @keydown="handleKeyDown"
             @paste="handlePaste"
           ></textarea>
           
           <!-- 图片缩略图预览（显示在输入框内左上角） -->
-          <div v-if="imagePreviewUrl" class="group absolute top-3 left-3 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md">
+          <div v-if="imagePreviewUrl" class="group absolute top-2 left-2 w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md">
             <img
               :src="imagePreviewUrl"
               alt="Preview"
@@ -45,7 +54,7 @@
           <!-- Toolbar -->
           <div
             v-if="props.enableFileUpload"
-            class="absolute bottom-3 left-4 flex items-center gap-2"
+            class="absolute bottom-2 left-3 flex items-center gap-2"
           >
             <!-- File upload button -->
             <input
@@ -68,7 +77,8 @@
           <button
             @click="handleSubmit"
             :disabled="!canSubmit || props.loading"
-            class="absolute bottom-3 right-3 flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary to-blue-600 px-4 py-2 text-xs font-semibold text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl disabled:shadow-none"
+            class="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg disabled:shadow-none"
+            :title="$t('common.send') || '发送'"
           >
             <span 
               class="material-symbols-outlined text-base"
@@ -76,7 +86,6 @@
             >
               {{ props.loading ? 'refresh' : 'send' }}
             </span>
-            <span>{{ $t('common.send') }}</span>
           </button>
         </div>
         
@@ -124,6 +133,14 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  placeholder: {
+    type: String,
+    default: ''
+  },
+  prefixIcon: {
+    type: String,
+    default: ''
+  },
   submitOnEnter: {
     type: Boolean,
     default: false
@@ -153,8 +170,13 @@ const canSubmit = computed(() => {
   return !props.disabled && (commentText.value.trim().length > 0 || uploadedFiles.value.length > 0)
 })
 
-const handleTextareaInput = () => {
-  // 可以在这里添加自动调整高度的逻辑
+const handleTextareaInput = (event) => {
+  // 自动调整高度，但不超过最大高度
+  const textarea = event.target
+  textarea.style.height = 'auto'
+  const scrollHeight = textarea.scrollHeight
+  const maxHeight = 200 // 对应 max-h-[200px]
+  textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px'
 }
 
 const handleKeyDown = (event) => {

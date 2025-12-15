@@ -1,37 +1,44 @@
 {
   "tools": [
     {
-      "app_id": "example_enum_api",
+      "app_id": "serper_search",
       "app_type": "workflow",
-      "title": "Example API with Enum Parameter",
+      "title": "Serper Google Search",
       "api": {
         "method": "POST",
-        "base_url": "https://api.example.com",
-        "endpoint": "/v1/ip-filter",
+        "base_url": "https://google.serper.dev",
+        "endpoint": "/search",
         "timeout": 30,
         "auth": {
           "type": "api_key",
-          "key_name": "X-API-Key",
-          "key_value": "your-api-key-here"
+          "key_name": "X-API-KEY",
+          "key_value": "0976f0e8cc50d19500253ca994530e85716ec68f"
         },
         "request_body": {
           "field_mapping": {
-            "inputs.ip": {
-              "source": "ip",
-              "required": true
+            "q": "message",
+            "gl": {
+              "source": "country",
+              "default": "us"
             },
-            "inputs.type": {
-              "source": "type",
-              "enum": ["black", "white"],
-              "default": "black"
+            "hl": {
+              "source": "language",
+              "default": "en"
+            },
+            "num": {
+              "source": "num_results",
+              "default": 10,
+              "transform": "to_int"
             }
           }
         },
         "response": {
           "expected_status": [200],
-          "result_path": "data"
+          "result_path": "organic.0.snippet",
+          "error_path": "error"
         }
       }
     }
   ]
 }
+
