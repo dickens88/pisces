@@ -200,14 +200,19 @@
                   <div class="flex items-center gap-1.5">
                     <span
                       :class="[
-                        'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium',
+                        'inline-flex items-center rounded-full px-3 py-1 text-xs font-medium',
                         getSeverityClass(alert.riskLevel || alert.severity?.toLowerCase())
                       ]"
                     >
-                      <svg class="-ml-0.5 mr-1.5 h-2 w-2" fill="currentColor" viewBox="0 0 8 8">
+                      <svg class="-ml-0.5 mr-1 h-1.5 w-1.5" fill="currentColor" viewBox="0 0 8 8">
                         <circle cx="4" cy="4" r="3"></circle>
                       </svg>
-                      {{ $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`) }}
+                      {{
+                        $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`)
+                      }}
+                      <span class="opacity-80 ml-0.5">
+                        ({{ severityToNumber(alert.severity || alert.riskLevel) || '-' }})
+                      </span>
                     </span>
                     <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                     <!-- AI研判结果图标 -->
@@ -695,6 +700,7 @@ import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulner
 import AlertInfoCard from '@/components/alerts/AlertInfoCard.vue'
 import AiChatDialog from '@/components/alerts/AiChatDialog.vue'
 import { formatDateTime, calculateTTR, parseToDate } from '@/utils/dateTime'
+import { severityToNumber } from '@/utils/severity'
 import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'

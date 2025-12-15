@@ -125,96 +125,8 @@
 
     <!-- 标签页内容 -->
     <div class="mt-6 flex-grow">
-      <!-- Alert story：原 Event Graph Intelligence 内容 -->
+      <!-- Alert story：事件图谱 -->
       <div v-if="activeTab === 'alertStory'" class="space-y-4">
-        <div class="bg-white dark:bg-slate-800/60 border border-gray-200 dark:border-slate-700 rounded-xl p-3 space-y-2 relative overflow-hidden">
-          <div class="flex items-center justify-between mb-1">
-            <h3 class="text-[13px] font-semibold text-gray-900 dark:text-white">
-              {{ $t('incidents.detail.eventGraph.summaryTitle') }}
-            </h3>
-          </div>
-          <div class="flex items-start justify-between gap-3">
-            <p
-              v-if="graphStatus === 'processing'"
-              class="text-gray-500 dark:text-slate-400 text-xs"
-            >
-              {{ translateOr('incidents.detail.eventGraph.graphBuildingMessage', '图谱数据尚未准备完毕，已自动触发 LightRAG 构建，请稍后刷新查看。') }}
-            </p>
-            <p
-              v-else-if="!isGraphReady"
-              class="text-gray-500 dark:text-slate-400 text-xs"
-            >
-              {{ translateOr('incidents.detail.eventGraph.summaryUnavailable', '图谱摘要暂不可用') }}
-            </p>
-          </div>
-          <template v-if="isGraphReady">
-            <div class="space-y-2">
-              <div
-                v-if="incident?.graphSummary"
-                ref="graphSummaryRef"
-                class="text-gray-700 dark:text-slate-200 leading-relaxed prose dark:prose-invert max-w-none summary-content"
-                :class="{ 'summary-collapsed': !isSummaryExpanded }"
-                v-html="graphSummaryHtml"
-              ></div>
-              <p v-else class="text-gray-500 dark:text-slate-400 text-sm">
-                {{ $t('incidents.detail.eventGraph.summaryPlaceholder') }}
-              </p>
-              <button
-                v-if="incident?.graphSummary && shouldShowSummaryExpand"
-                type="button"
-                @click="isSummaryExpanded = !isSummaryExpanded"
-                class="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
-              >
-                <span class="material-symbols-outlined text-base">
-                  {{ isSummaryExpanded ? 'expand_less' : 'expand_more' }}
-                </span>
-                <span>{{ isSummaryExpanded ? $t('common.collapse') : $t('common.expand') }}</span>
-              </button>
-            </div>
-          </template>
-          <div class="mt-2">
-            <div class="border-t border-dashed border-gray-200 dark:border-slate-700 mb-2"></div>
-            <div class="flex items-center justify-between gap-3">
-              <div class="graph-status-hint">
-                <div class="flex flex-col gap-y-0.5 text-gray-500 dark:text-slate-500 text-[11px]">
-                  <div class="flex flex-nowrap items-center gap-x-2 overflow-hidden">
-                    <span class="inline-flex items-center gap-1 flex-shrink-0">
-                      <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                      <span>{{ graphStatusLabel }}</span>
-                    </span>
-                    <span class="truncate">
-                      {{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}
-                    </span>
-                  </div>
-                  <template v-if="isGraphReady">
-                    <div class="text-gray-500 dark:text-slate-500 text-[11px]">
-                      {{
-                        $t('incidents.detail.eventGraph.summaryParagraph2', {
-                          nodes: eventGraphStats.totalNodes,
-                          edges: eventGraphStats.totalEdges,
-                          alerts: eventGraphStats.alertNodes,
-                          ips: eventGraphStats.ipNodes
-                        })
-                      }}
-                    </div>
-                  </template>
-                </div>
-              </div>
-              <button
-                type="button"
-                class="graph-regenerate-btn"
-                :class="{ 'graph-regenerate-btn--loading': isRegeneratingGraph }"
-                :disabled="isRegeneratingGraph"
-                @click="handleRegenerateGraph"
-              >
-                <span class="material-symbols-outlined text-sm">
-                  {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix' }}
-                </span>
-                <span class="text-xs">{{ $t('incidents.detail.eventGraph.regenerateGraph') }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
         <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
           <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex min-h-[600px]">
             <!-- 左侧：告警时间线 -->
@@ -297,21 +209,21 @@
             <!-- 中间：事件图谱 -->
             <div ref="graphContainerRef" class="flex-1 relative bg-gray-50 dark:bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
-                <div class="flex flex-col xl:flex-row gap-4 items-start pointer-events-auto" @click.stop>
-                  <div class="flex flex-col md:flex-row gap-4 flex-1 w-full">
-                    <div class="relative w-full md:w-64 flex items-center bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-3 pr-3 h-11">
-                      <span class="material-symbols-outlined text-slate-400 text-base mr-2">search</span>
+                <div class="flex flex-col xl:flex-row gap-3 items-start pointer-events-auto text-[13px]" @click.stop>
+                  <div class="flex flex-col md:flex-row gap-2.5 flex-1 w-full">
+                    <div class="relative w-full md:w-60 flex items-center bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-2.5 pr-2.5 h-9">
+                      <span class="material-symbols-outlined text-slate-400 text-[18px] mr-1.5">search</span>
                       <input
                         v-model="graphSearchQuery"
                         type="text"
-                        class="w-full bg-transparent text-sm focus:ring-0 focus:outline-none placeholder:text-slate-500"
+                        class="w-full bg-transparent text-[13px] focus:ring-0 focus:outline-none placeholder:text-slate-500"
                         :placeholder="$t('incidents.detail.eventGraph.filterPlaceholder')"
                       />
                     </div>
-                    <div class="relative w-full md:w-64">
+                    <div class="relative w-full md:w-60">
                       <select
                         v-model="highlightedEntity"
-                        class="w-full h-11 bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-4 pr-10 text-sm focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
+                        class="w-full h-9 bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-3.5 pr-8 text-[13px] focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
                       >
                         <option value="">
                           {{
@@ -328,10 +240,10 @@
                           {{ option.label }}
                         </option>
                       </select>
-                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-base">expand_more</span>
+                      <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1 bg-slate-900/70 border border-slate-700 rounded-lg px-1 h-11">
+                  <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-700 rounded-lg px-1 h-9">
                     <button
                       type="button"
                       class="graph-control-btn"
@@ -382,25 +294,39 @@
                       :title="$t('incidents.detail.eventGraph.controls.refresh')"
                       @click="handleRefreshGraphStatus"
                     >
-                      <span class="material-symbols-outlined text-base">refresh</span>
+                      <span class="material-symbols-outlined text-[18px]">refresh</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="graph-control-btn ml-0.5"
+                      :class="{ 'graph-control-btn--loading': isRegeneratingGraph }"
+                      :disabled="isRegeneratingGraph"
+                      :title="$t('incidents.detail.eventGraph.regenerateGraph')"
+                      @click="handleRegenerateGraph"
+                    >
+                      <span class="material-symbols-outlined text-[18px]">
+                        {{ isRegeneratingGraph ? 'progress_activity' : 'auto_fix_high' }}
+                      </span>
                     </button>
                   </div>
                 </div>
               </div>
-              <div class="absolute inset-y-0 left-0 p-4 flex items-center z-10 pointer-events-none">
-                <div class="pointer-events-auto flex items-start" @click.stop>
-                  <div class="flex flex-col gap-1.5 text-[11px] uppercase tracking-wide">
-                    <button
-                      v-for="entry in legendEntries"
-                      :key="entry.key"
-                      type="button"
-                      class="legend-entry"
-                      :class="{ 'legend-entry--active': legendFlashKey === entry.key }"
-                      @click.stop="handleLegendClick(entry.key)"
-                    >
-                      <span class="legend-entry__dot" :style="{ backgroundColor: entry.color }"></span>
-                      <span class="legend-entry__label">{{ entry.label }}</span>
-                    </button>
+              <div class="absolute bottom-6 left-6 z-10 pointer-events-none">
+                <div class="pointer-events-auto" @click.stop>
+                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 shadow-lg">
+                    <div class="flex flex-col gap-1.5 text-[11px] uppercase tracking-wide">
+                      <button
+                        v-for="entry in legendEntries"
+                        :key="entry.key"
+                        type="button"
+                        class="legend-entry"
+                        :class="{ 'legend-entry--active': legendFlashKey === entry.key }"
+                        @click.stop="handleLegendClick(entry.key)"
+                      >
+                        <span class="legend-entry__dot" :style="{ backgroundColor: entry.color }"></span>
+                        <span class="legend-entry__label">{{ entry.label }}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -410,6 +336,28 @@
                   class="w-full h-full"
                   style="min-height: 600px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
                 ></div>
+              </div>
+              <div
+                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 z-10"
+              >
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="graph-status-dot" :class="graphStatusDotClass"></span>
+                  <span class="font-medium truncate">{{ graphStatusLabel }}</span>
+                  <span class="mx-2 text-slate-600">|</span>
+                  <span class="truncate">
+                    {{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}
+                  </span>
+                </div>
+                <div v-if="isGraphReady" class="text-[11px] text-slate-400 truncate">
+                  {{
+                    $t('incidents.detail.eventGraph.summaryParagraph2', {
+                      nodes: eventGraphStats.totalNodes,
+                      edges: eventGraphStats.totalEdges,
+                      alerts: eventGraphStats.alertNodes,
+                      ips: eventGraphStats.ipNodes
+                    })
+                  }}
+                </div>
               </div>
             </div>
 
@@ -539,7 +487,11 @@
                         class="col-span-2 font-medium"
                         :class="getSeverityTextClass(incident?.severity)"
                       >
-                        {{ severityToNumber(incident?.severity) || '-' }}
+                        {{
+                          incident?.severity
+                            ? incident.severity + ' (' + (severityToNumber(incident.severity) || '-') + ')'
+                            : '-'
+                        }}
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -947,7 +899,8 @@ const buildNodeVisualMeta = (node) => {
   const type = (node.properties?.entity_type || 'other').toLowerCase()
   const color = ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
   const degree = nodeDegreeMap?.value?.[node.id] || 0
-  const size = Math.min(26 + degree * 2, 48)
+  // 节点整体缩小，避免在视图里挤成一团
+  const size = Math.min(20 + degree * 1.5, 40)
   return { type, color, size }
 }
 
@@ -1102,16 +1055,21 @@ const initD3Graph = () => {
     .alphaDecay(0.02)
     .velocityDecay(0.4)
     .force('link', d3.forceLink().id((node) => node.id))
-    .force('charge', d3.forceManyBody()
-      .strength((node) => {
-        const degree = nodeDegreeMap.value[node.id] || 0
-        if (degree === 0) return -1500
-        if (degree === 1) return -800
-        return -400
-      })
-      .distanceMax(600))
+    .force(
+      'charge',
+      d3
+        .forceManyBody()
+        .strength((node) => {
+          const degree = nodeDegreeMap.value[node.id] || 0
+          if (degree === 0) return -1200
+          if (degree === 1) return -700
+          return -350
+        })
+        .distanceMax(700)
+    )
     .force('center', d3.forceCenter(width / 2, height / 2))
-    .force('collision', d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 50))
+    // 碰撞半径减小，让图在保持不重叠的前提下更松散
+    .force('collision', d3.forceCollide().radius((node) => (node.visual?.size || 24) / 2 + 36))
 
   simulation.on('tick', tickSimulation)
   d3SimulationRef.value = simulation
@@ -1145,7 +1103,7 @@ const updateD3Graph = ({ fitView = false } = {}) => {
   const { width, height } = getGraphSize()
   const centerX = width / 2
   const centerY = height / 2
-  const radius = Math.min(width, height) * 0.35
+  const radius = Math.min(width, height) * 0.42
   const nodeCount = displayGraphNodes.value.length
   const angleStep = (2 * Math.PI) / Math.max(nodeCount, 1)
 
@@ -1194,19 +1152,20 @@ const updateD3Graph = ({ fitView = false } = {}) => {
 
   d3SimulationRef.value.force(
     'charge',
-    d3.forceManyBody()
+    d3
+      .forceManyBody()
       .strength((node) => {
         const degree = nodeDegreeMap.value[node.id] || 0
-        if (degree === 0) return -1500
-        if (degree === 1) return -800
-        return -400
+        if (degree === 0) return -1200
+        if (degree === 1) return -700
+        return -350
       })
-      .distanceMax(600)
+      .distanceMax(700)
   )
 
   d3SimulationRef.value.force(
     'collision',
-    d3.forceCollide().radius((node) => (node.visual?.size || 30) / 2 + 50)
+    d3.forceCollide().radius((node) => (node.visual?.size || 24) / 2 + 36)
   )
 
   d3SimulationRef.value
@@ -3219,12 +3178,12 @@ onMounted(() => {
 }
 
 .graph-control-btn {
-  padding: 0.35rem;
+  padding: 0.25rem;
   border-radius: 0.375rem;
   color: #cbd5f5;
   transition: background-color 0.2s ease, color 0.2s ease;
-  min-height: 2.5rem;
-  min-width: 2.5rem;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
