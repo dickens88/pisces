@@ -268,6 +268,8 @@
             :loading="isSendingSecurityAgentMessage"
             :enable-file-upload="false"
             :submit-on-enter="true"
+            placeholder="Ask me anything about ..."
+            prefix-icon="auto_awesome"
             @submit="handleSecurityAgentSend"
           />
         </div>

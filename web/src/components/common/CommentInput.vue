@@ -14,13 +14,22 @@
           @dragover.prevent="handleDragOver"
           @dragleave.prevent="handleDragLeave"
         >
+          <div
+            v-if="prefixIcon && !imagePreviewUrl"
+            class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
+          >
+            <span class="material-symbols-outlined text-base leading-none">
+              {{ prefixIcon }}
+            </span>
+          </div>
           <textarea
             v-model="commentText"
             :class="[
               'w-full rounded-xl bg-transparent p-2.5 pr-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
-              imagePreviewUrl ? 'pl-20' : ''
+              imagePreviewUrl ? 'pl-20' : '',
+              prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
             ]"
-            :placeholder="$t('common.addComment')"
+            :placeholder="placeholder"
             rows="1"
             @input="handleTextareaInput"
             @keydown="handleKeyDown"
@@ -123,6 +132,14 @@ const props = defineProps({
   enableFileUpload: {
     type: Boolean,
     default: true
+  },
+  placeholder: {
+    type: String,
+    default: ''
+  },
+  prefixIcon: {
+    type: String,
+    default: ''
   },
   submitOnEnter: {
     type: Boolean,

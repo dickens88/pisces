@@ -417,42 +417,23 @@
               </div>
 
               <div v-if="activeTab === 'aiAgent'">
-                <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{{ $t('alerts.detail.aiAgent') }}</h3>
-                <div class="space-y-6">
-                  <!-- Display AI data returned from backend -->
-                  <div
-                    v-for="(aiItem, index) in alert?.ai || []"
-                    :key="`ai-${index}`"
-                    class="flex items-start gap-4"
-                  >
-                    <div
-                      class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600"
-                    >
-                      <span class="material-symbols-outlined text-gray-900 dark:text-white text-sm">smart_toy</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-baseline gap-2">
-                        <p class="font-semibold text-gray-900 dark:text-white">{{ aiItem.author || 'AI Agent' }}</p>
-                        <p class="text-xs text-text-light">{{ formatDateTime(aiItem.create_time || aiItem.time) }}</p>
-                      </div>
-                      <div class="mt-1 text-sm text-gray-700 dark:text-[#c3d3e8] bg-white dark:bg-[#2a3546] border border-gray-200 dark:border-transparent p-3 rounded-lg rounded-tl-none max-w-full overflow-hidden">
-                        <div
-                          :class="[
-                            'bg-gray-50 dark:bg-transparent text-gray-800 dark:text-inherit rounded-md p-2 border border-gray-200 dark:border-transparent ai-agent__html',
-                            { 'ai-agent__html--dark': isDarkMode }
-                          ]"
-                          v-html="sanitizeHtml(aiItem.content || '')"
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <!-- If no AI data, show prompt -->
-                  <div v-if="!alert?.ai || alert.ai.length === 0" class="text-text-light text-sm">
-                    {{ $t('alerts.detail.noAiResponse') }}
-                  </div>
-                </div>
                 
+                
+                <div v-if="!alert?.ai || alert.ai.length === 0" class="text-text-light text-sm py-12 text-center">
+                  {{ $t('alerts.detail.noAiResponse') }}
+                </div>
+
+                <div v-else class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
+                  <AlertInfoCard
+                    v-for="(aiItem, index) in alert.ai"
+                    :key="`ai-${index}`"
+                    :owner="aiItem.author || 'AI Agent'"
+                    owner-icon="smart_toy"
+                    :header-meta="aiItem.create_time || aiItem.time || '-'"
+                    :html-content="aiItem.content || ''"
+                    :summary="stripHtmlTags(aiItem.content || '')"
+                  />
+                </div>
               </div>
             </main>
             
