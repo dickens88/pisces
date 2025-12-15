@@ -69,19 +69,24 @@ export const sendSecurityAgentMessage = async ({
   let body
   const headers = {}
 
-    const requestBody = {
-      inputs: { alert_id: alertId },
-      query: sanitizedMessage,
-      response_mode: 'streaming',
-      user: resolvedUserName
-    }
+  const inputs = {}
+  if (alertId) {
+    inputs.alert_id = alertId
+  }
 
-    if (conversationId) {
-      requestBody.conversation_id = conversationId
-    }
+  const requestBody = {
+    inputs,
+    query: sanitizedMessage,
+    response_mode: 'streaming',
+    user: resolvedUserName
+  }
 
-    body = JSON.stringify(requestBody)
-    headers['Content-Type'] = 'application/json'
+  if (conversationId) {
+    requestBody.conversation_id = conversationId
+  }
+
+  body = JSON.stringify(requestBody)
+  headers['Content-Type'] = 'application/json'
 
   if (config.aiChatKey) {
     headers.Authorization = `Bearer ${config.aiChatKey}`
