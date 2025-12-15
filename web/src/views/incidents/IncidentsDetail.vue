@@ -483,15 +483,22 @@
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
                         {{ $t('incidents.detail.severity') }}
                       </span>
-                      <span
-                        class="col-span-2 font-medium"
-                        :class="getSeverityTextClass(incident?.severity)"
-                      >
-                        {{
-                          incident?.severity
-                            ? incident.severity + ' (' + (severityToNumber(incident.severity) || '-') + ')'
-                            : '-'
-                        }}
+                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
+                        <span
+                          v-if="incident?.severity"
+                          class="w-2 h-2 rounded-full mr-2"
+                          :class="getSeverityDotClass(incident.severity)"
+                        ></span>
+                        <span :class="getSeverityTextClass(incident?.severity)">
+                          {{
+                            incident?.severity
+                              ? $t(`common.severity.${String(incident.severity).toLowerCase()}`) +
+                                ' (' +
+                                (severityToNumber(incident.severity) || '-') +
+                                ')'
+                              : '-'
+                          }}
+                        </span>
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
