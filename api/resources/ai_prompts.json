@@ -124,6 +124,80 @@
       "zh": "这个漏洞的利用难度如何",
       "en": "What is the exploitation difficulty of this vulnerability"
     }
+  ],
+  "/dashboard": [
+    {
+      "zh": "帮我分析一下当前的安全态势",
+      "en": "Help me analyze the current security posture"
+    },
+    {
+      "zh": "最近24小时的安全趋势如何",
+      "en": "What is the security trend in the last 24 hours"
+    },
+    {
+      "zh": "哪些安全指标需要重点关注",
+      "en": "Which security metrics need attention"
+    },
+    {
+      "zh": "自动化关闭率的变化说明了什么",
+      "en": "What does the automation closure rate change indicate"
+    },
+    {
+      "zh": "AI准确率最近有什么变化",
+      "en": "What changes have occurred in AI accuracy recently"
+    },
+    {
+      "zh": "告警来源分布有什么异常吗",
+      "en": "Are there any anomalies in alert source distribution"
+    }
+  ],
+  "/asm": [
+    {
+      "zh": "还有多少暴露面资产需要处理",
+      "en": "How many exposed assets need to be handled"
+    },
+    {
+      "zh": "哪些暴露面资产风险最高",
+      "en": "Which exposed assets have the highest risk"
+    },
+    {
+      "zh": "最近暴露面资产的变化趋势是什么",
+      "en": "What is the trend of exposed assets recently"
+    },
+    {
+      "zh": "哪些暴露面资产需要立即处理",
+      "en": "Which exposed assets need immediate attention"
+    },
+    {
+      "zh": "暴露面资产的分布情况如何",
+      "en": "What is the distribution of exposed assets"
+    },
+    {
+      "zh": "哪些暴露面资产已经被封禁",
+      "en": "Which exposed assets have been blocked"
+    }
+  ],
+  "/asm/detail": [
+    {
+      "zh": "帮我分析一下这个暴露面资产的风险",
+      "en": "Help me analyze the risk of this exposed asset"
+    },
+    {
+      "zh": "这个暴露面资产涉及哪些威胁",
+      "en": "What threats are associated with this exposed asset"
+    },
+    {
+      "zh": "这个暴露面资产的处理建议是什么",
+      "en": "What are the handling recommendations for this exposed asset"
+    },
+    {
+      "zh": "这个暴露面资产是否与其他资产有关联",
+      "en": "Is this exposed asset related to other assets"
+    },
+    {
+      "zh": "这个暴露面资产的历史处理记录如何",
+      "en": "What is the historical handling record of this exposed asset"
+    }
   ]
 }
 

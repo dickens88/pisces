@@ -257,6 +257,12 @@
       @created="handleAlertCreated"
     />
 
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      @close="showAISidebar = false"
+    />
+
     <!-- Batch delete dialog -->
     <div
       v-if="showBatchDeleteDialog"
@@ -424,6 +430,7 @@ import ASMDetail from '@/components/asm/ASMDetail.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
 import { formatDateTime } from '@/utils/dateTime'
@@ -539,6 +546,7 @@ const isBatchDeleting = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
 const showCreateAlertDialog = ref(false)
+const showAISidebar = ref(false)
 
 const computeSelectedRange = () => {
   if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
@@ -995,15 +1003,23 @@ const handleVulnerabilityCreated = () => {
   }
 }
 
+const handleOpenAISidebar = () => {
+  showAISidebar.value = true
+}
+
 onMounted(async () => {
   await loadItems()
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
+  // 监听Header发出的打开AI侧边栏事件
+  window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   hideRecentCloseCommentsDropdown()
+  // 移除事件监听
+  window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 </script>
 

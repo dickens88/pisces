@@ -212,6 +212,12 @@
         </div>
       </div>
     </div>
+
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      @close="showAISidebar = false"
+    />
   </div>
 </template>
 
@@ -220,6 +226,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useToast } from '@/composables/useToast'
 import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel, getAlertStatistics } from '@/api/alerts'
@@ -237,6 +244,11 @@ const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('dashboard', 
  * @brief 是否正在刷新
  */
 const isRefreshing = ref(false)
+
+/**
+ * @brief AI侧边栏显示状态
+ */
+const showAISidebar = ref(false)
 
 const alertSourceChartRef = ref(null)
 const alertSourceCategories = ref([])
@@ -1013,6 +1025,13 @@ const loadData = async () => {
 
 
 /**
+ * @brief 处理打开AI侧边栏
+ */
+const handleOpenAISidebar = () => {
+  showAISidebar.value = true
+}
+
+/**
  * @brief 组件挂载时加载数据
  */
 onMounted(() => {
@@ -1020,12 +1039,16 @@ onMounted(() => {
   ensureAlertTrendChart()
   ensureAiAccuracyChart()
   loadData()
+  // 监听Header发出的打开AI侧边栏事件
+  window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
 onBeforeUnmount(() => {
   disposeAlertSourceChart()
   disposeAlertTrendChart()
   disposeAiAccuracyChart()
+  // 移除事件监听
+  window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
 const dashboardTimeRangeLabel = computed(() => {

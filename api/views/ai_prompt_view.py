@@ -62,6 +62,8 @@ class AIPromptView(Resource):
         route_key = route
         if route.startswith("/alerts/") and route.count("/") == 2:
             route_key = "/alerts/detail"
+        elif route.startswith("/asm/") and route.count("/") == 2:
+            route_key = "/asm/detail"
 
         config = _load_config()
         entries = config.get(route_key) or []
