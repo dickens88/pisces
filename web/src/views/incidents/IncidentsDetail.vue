@@ -10,7 +10,7 @@
           <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
           <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
         </div>
-        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || 'Loading...' }}</p>
       </div>
     </div>
     <!-- 面包屑导航 -->
@@ -22,7 +22,7 @@
             class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 font-medium"
           >
             <span class="material-symbols-outlined text-base">folder</span>
-            <span>{{ $t('incidents.title') || '事件管理' }}</span>
+            <span>{{ $t('incidents.title') || 'Incidents' }}</span>
           </router-link>
         </li>
         <li class="flex items-center text-gray-300 dark:text-gray-600">
@@ -47,17 +47,17 @@
             <span>{{ $t('incidents.detail.actor') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.createTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.closeTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.closeTime || incident?.close_time) }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.updateTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.updateTime) }}</span>
@@ -105,7 +105,7 @@
     <!-- 顶部统计卡片（已按需求移除） -->
 
     <!-- 标签页导航 -->
-    <div class="mt-8 border-b border-slate-700">
+    <div class="mt-8 border-b border-gray-200 dark:border-slate-700">
       <nav aria-label="Tabs" class="flex -mb-px space-x-6">
         <button
           v-for="tab in tabs"
@@ -115,7 +115,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === tab.key
               ? 'text-primary border-primary'
-              : 'text-slate-400 hover:text-white border-transparent'
+              : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
           ]"
         >
           {{ $t(tab.label) }}
@@ -127,118 +127,110 @@
     <div class="mt-6 flex-grow">
       <!-- Alert story：事件图谱 -->
       <div v-if="activeTab === 'alertStory'" class="space-y-4">
-        <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+        <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
           <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex min-h-[600px]">
             <!-- 左侧：告警时间线 -->
             <aside
               v-if="!isLeftPaneCollapsed"
-              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col"
+              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
             >
-              <div class="px-3 py-2 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-slate-900 text-[11px]">
-                <div class="flex items-center gap-1.5">
-                  <h3 class="font-semibold text-gray-800 dark:text-slate-100">
+              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-[#111822]">
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
                     {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
                   </h3>
-                  <span class="text-[10px] text-gray-400 dark:text-slate-500">
+                  <span class="text-xs text-gray-400 dark:text-slate-500">
                     {{ associatedAlertsTimeline.length }}
                   </span>
                 </div>
                 <button
                   type="button"
                   class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
-                  :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', '收起告警列表')"
+                  :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', 'Collapse alert list')"
                   @click="isLeftPaneCollapsed = true"
                 >
                   <span class="material-symbols-outlined text-base">chevron_left</span>
                 </button>
               </div>
-              <div class="flex-1 flex flex-col overflow-hidden">
-                <div class="flex-1 text-[11px]">
-                  <div
-                    v-for="item in paginatedAssociatedAlertsTimeline"
-                    :key="item.id"
-                    class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
-                  >
-                    <div class="flex items-center justify-between mb-1">
-                      <div class="flex items-center space-x-2">
-                        <span
-                          :class="[
-                            'w-2 h-2 rounded-full',
-                            item.severity === 'high'
-                              ? 'bg-red-500'
-                              : item.severity === 'medium'
-                                ? 'bg-orange-500'
-                                : 'bg-emerald-500'
-                          ]"
-                        ></span>
-                        <span class="text-[10px] text-gray-500 dark:text-slate-400">
-                          {{ formatDateTime(item.createTime) }}
-                        </span>
-                      </div>
-                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
-                        {{ $t(`alerts.list.${item.status}`) }}
+              <div class="flex-1 overflow-y-auto">
+                <div
+                  v-for="item in paginatedAssociatedAlertsTimeline"
+                  :key="item.id"
+                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors cursor-default"
+                >
+                  <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center space-x-2">
+                      <span
+                        :class="[
+                          'w-2 h-2 rounded-full',
+                          item.severity === 'high'
+                            ? 'bg-red-500'
+                            : item.severity === 'medium'
+                              ? 'bg-orange-500'
+                              : 'bg-emerald-500'
+                        ]"
+                      ></span>
+                      <span class="text-[11px] text-gray-500 dark:text-slate-400">
+                        {{ formatDateTime(item.createTime) }}
                       </span>
                     </div>
-                    <h4 class="leading-4 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
-                      <span :title="item.title || '-'">
-                        {{ item.title || '-' }}
-                      </span>
-                    </h4>
-                    <p class="mt-1 text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
-                      {{ item.owner || '-' }}
-                    </p>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#1e293b] text-gray-600 dark:text-slate-300">
+                      {{ $t(`alerts.list.${item.status}`) }}
+                    </span>
                   </div>
-                  <div
-                    v-if="associatedAlertsTimeline.length === 0"
-                    class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
-                  >
-                    {{ translateOr('incidents.detail.eventGraph.timelineEmpty', '暂无关联告警') }}
-                  </div>
+                  <h4 class="text-[11px] leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
+                    <span :title="item.title || '-'">
+                      {{ item.title || '-' }}
+                    </span>
+                  </h4>
+                  <p class="mt-1 text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
+                    {{ item.owner || '-' }}
+                  </p>
                 </div>
                 <div
-                  v-if="associatedAlertsTimelineTotalPages > 1 || associatedAlertsTimeline.length > associatedAlertsTimelinePageSize"
-                  class="px-3 py-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-slate-400"
+                  v-if="associatedAlertsTimeline.length === 0"
+                  class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
                 >
-                  <div class="flex items-center gap-1">
-                    <span>
-                      {{ translateOr('incidents.detail.eventGraph.timelinePagination', '第') }}
-                      {{ associatedAlertsTimelineCurrentPage }}
-                      {{ translateOr('incidents.detail.eventGraph.timelinePaginationOf', '页 / 共') }}
-                      {{ associatedAlertsTimelineTotalPages }}
-                      {{ translateOr('incidents.detail.eventGraph.timelinePaginationPages', '页') }}
-                    </span>
-                    <span class="mx-1 text-gray-300 dark:text-slate-600">·</span>
-                    <span>
-                      {{ translateOr('incidents.detail.eventGraph.timelinePageSizeLabel', '每页') }}
-                      <select
-                        v-model.number="associatedAlertsTimelinePageSize"
-                        class="ml-1 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-                      >
-                        <option :value="5">5</option>
-                        <option :value="10">10</option>
-                        <option :value="20">20</option>
-                      </select>
-                      {{ translateOr('incidents.detail.eventGraph.timelinePageSizeUnit', '条') }}
-                    </span>
-                  </div>
-                  <div class="inline-flex items-center gap-1">
-                    <button
-                      type="button"
-                      class="p-1 rounded border border-transparent hover:border-gray-200 dark:hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                      :disabled="associatedAlertsTimelineCurrentPage <= 1"
-                      @click="changeAssociatedAlertsTimelinePage(associatedAlertsTimelineCurrentPage - 1)"
-                    >
-                      <span class="material-symbols-outlined text-xs">chevron_left</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="p-1 rounded border border-transparent hover:border-gray-200 dark:hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                      :disabled="associatedAlertsTimelineCurrentPage >= associatedAlertsTimelineTotalPages"
-                      @click="changeAssociatedAlertsTimelinePage(associatedAlertsTimelineCurrentPage + 1)"
-                    >
-                      <span class="material-symbols-outlined text-xs">chevron_right</span>
-                    </button>
-                  </div>
+                  {{ translateOr('incidents.detail.eventGraph.timelineEmpty', 'No associated alerts') }}
+                </div>
+              </div>
+              <div
+                v-if="timelineTotalPages > 0"
+                class="px-2.5 py-1.5 border-t border-gray-100 dark:border-slate-800/70 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400"
+              >
+                <div class="flex items-center gap-[2px]">
+                  <button
+                    type="button"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="timelineCurrentPage === 1"
+                    @click="timelineCurrentPage = Math.max(1, timelineCurrentPage - 1)"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+                  </button>
+                  <span class="text-center">{{ timelineCurrentPage }}/{{ timelineTotalPages }}</span>
+                  <button
+                    type="button"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="timelineCurrentPage === timelineTotalPages"
+                    @click="timelineCurrentPage = Math.min(timelineTotalPages, timelineCurrentPage + 1)"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                  </button>
+                </div>
+                <div class="flex items-center gap-0.5">
+                  <select
+                    v-model.number="timelinePageSize"
+                    class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
+                    :title="translateOr('incidents.detail.eventGraph.perPageTooltip', 'Items per page')"
+                  >
+                    <option v-for="size in timelinePageSizeOptions" :key="size" :value="size">
+                      {{ size }}
+                    </option>
+                  </select>
+                  <span class="text-[9px] text-gray-400 dark:text-slate-500">
+                    /{{ translateOr('incidents.detail.eventGraph.perPageUnit', 'page') }}
+                  </span>
                 </div>
               </div>
             </aside>
@@ -246,8 +238,8 @@
             <button
               v-else
               type="button"
-              class="flex items-center justify-center w-4 bg-slate-900/70 hover:bg-slate-900 text-slate-400 hover:text-white transition-colors"
-              :title="translateOr('incidents.detail.eventGraph.expandLeftPane', '展开告警列表')"
+              class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              :title="translateOr('incidents.detail.eventGraph.expandLeftPane', 'Expand alert list')"
               @click="isLeftPaneCollapsed = false"
             >
               <span class="material-symbols-outlined text-base">chevron_right</span>
@@ -258,19 +250,19 @@
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-3 items-start pointer-events-auto text-[13px]" @click.stop>
                   <div class="flex flex-col md:flex-row gap-2.5 flex-1 w-full">
-                    <div class="relative w-full md:w-60 flex items-center bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-2.5 pr-2.5 h-9">
-                      <span class="material-symbols-outlined text-slate-400 text-[18px] mr-1.5">search</span>
+                    <div class="relative w-full md:w-60 flex items-center bg-gray-100 dark:bg-slate-900/70 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-lg pl-2.5 pr-2.5 h-9">
+                      <span class="material-symbols-outlined text-gray-500 dark:text-slate-400 text-[18px] mr-1.5">search</span>
                       <input
                         v-model="graphSearchQuery"
                         type="text"
-                        class="w-full bg-transparent text-[13px] focus:ring-0 focus:outline-none placeholder:text-slate-500"
+                        class="w-full bg-transparent text-[13px] focus:ring-0 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         :placeholder="$t('incidents.detail.eventGraph.filterPlaceholder')"
                       />
                     </div>
                     <div class="relative w-full md:w-60">
                       <select
                         v-model="highlightedEntity"
-                        class="w-full h-9 bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-3.5 pr-8 text-[13px] focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
+                        class="w-full h-9 bg-gray-100 dark:bg-slate-900/70 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-lg pl-3.5 pr-8 text-[13px] focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
                       >
                         <option value="">
                           {{
@@ -287,10 +279,10 @@
                           {{ option.label }}
                         </option>
                       </select>
-                      <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                      <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 pointer-events-none text-[18px]">expand_more</span>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-700 rounded-lg px-1 h-9">
+                  <div class="flex items-center gap-1 bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-1 h-9">
                     <button
                       type="button"
                       class="graph-control-btn"
@@ -360,7 +352,7 @@
               </div>
               <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
                 <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
+                  <div class="bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
                     <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
                       <button
                         v-for="entry in legendEntries"
@@ -385,23 +377,23 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-gray-100 dark:bg-slate-900/80 border-t border-gray-300 dark:border-slate-800 px-4 py-2 text-[11px] text-gray-700 dark:text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
               >
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="graph-status-dot" :class="graphStatusDotClass"></span>
                   <span class="font-semibold">{{ graphStatusLabel }}</span>
-                  <span class="text-slate-600">|</span>
+                  <span class="text-gray-400 dark:text-slate-600">|</span>
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}：{{ graphLastGeneratedTime || '--' }}
+                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}: {{ graphLastGeneratedTime || '--' }}
                   </span>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}：{{ eventGraphStats.totalNodes ?? 0 }}
+                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}: {{ eventGraphStats.totalNodes ?? 0 }}
                   </span>
-                  <span class="text-slate-600">|</span>
+                  <span class="text-gray-400 dark:text-slate-600">|</span>
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}：{{ eventGraphStats.totalEdges ?? 0 }}
+                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}: {{ eventGraphStats.totalEdges ?? 0 }}
                   </span>
                 </div>
               </div>
@@ -410,13 +402,13 @@
             <!-- 右侧：事件关键信息 + 节点详情 -->
             <aside
               v-if="!isRightPaneCollapsed"
-              class="w-80 flex-none border-l border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-y-auto"
+              class="w-80 flex-none border-l border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col overflow-y-auto"
             >
-              <div class="px-3 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-2 bg-gray-50 dark:bg-slate-900">
+              <div class="px-3 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-2 bg-gray-50 dark:bg-[#111822]">
                 <button
                   type="button"
                   class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
-                  :title="translateOr('incidents.detail.eventGraph.collapseRightPane', '收起信息面板')"
+                  :title="translateOr('incidents.detail.eventGraph.collapseRightPane', 'Collapse information panel')"
                   @click="isRightPaneCollapsed = true"
                 >
                   <span class="material-symbols-outlined text-base">chevron_right</span>
@@ -431,10 +423,10 @@
                 <Transition name="fade">
                   <div
                     v-if="selectedGraphNode"
-                    class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 shadow-sm"
+                    class="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm"
                   >
                     <div class="flex items-center justify-between mb-1">
-                      <h4 class="text-xs font-bold text-slate-100 uppercase tracking-wide">
+                      <h4 class="text-xs font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide">
                         {{ $t('incidents.detail.eventGraph.nodeDetail.title') }}
                       </h4>
                       <div class="flex items-center space-x-1">
@@ -463,15 +455,15 @@
                     </div>
                     <div class="space-y-3">
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.id') }}
                         </p>
-                        <p class="text-xs text-slate-100 break-all whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 break-all whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.id) }}
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.label', 'Label') }}
                         </p>
                         <p class="text-xs text-slate-100 whitespace-pre-wrap">
@@ -479,7 +471,7 @@
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}
                         </p>
                         <p class="text-xs text-slate-100 whitespace-pre-wrap">
@@ -487,20 +479,20 @@
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
-                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescription', '属性描述') }}
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
+                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescription', 'Property Description') }}
                         </p>
                         <p
                           v-if="selectedNodeDescription"
-                          class="text-xs text-slate-100 whitespace-pre-wrap"
+                          class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap"
                         >
                           {{ selectedNodeDescription }}
                         </p>
                         <p
                           v-else
-                          class="text-xs text-slate-500 italic whitespace-pre-wrap"
+                          class="text-xs text-gray-500 dark:text-slate-500 italic whitespace-pre-wrap"
                         >
-                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescriptionPlaceholder', '暂无属性描述') }}
+                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescriptionPlaceholder', 'No property description') }}
                         </p>
                       </div>
                     </div>
@@ -529,15 +521,18 @@
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
                         {{ $t('incidents.detail.severity') }}
                       </span>
-                      <span class="col-span-2 flex items-center">
+                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
                         <span
                           v-if="incident?.severity"
-                          class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                          :class="getRiskLevelClass(String(incident.severity).toLowerCase())"
+                          :class="[
+                            'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
+                            getRiskLevelClass(getIncidentRiskLevel(incident.severity))
+                          ]"
+                          :title="$t(`common.severity.${getIncidentRiskLevel(incident.severity)}`)"
                         >
-                          {{ $t(`common.severity.${String(incident.severity).toLowerCase()}`) }}
+                          {{ $t(`common.severity.${getIncidentRiskLevel(incident.severity)}`) }}
                         </span>
-                        <span v-else class="text-gray-500 dark:text-slate-400">-</span>
+                        <span v-else>-</span>
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -575,10 +570,10 @@
                   </div>
                 </div>
 
-                <!-- 分割线：事件详情 与 受影响资产 之间 -->
+                <!-- 分割线：事件详情 与 受影响资产 之间（略微减弱暗色边框） -->
                 <div
                   v-if="topImpactedEntities.length"
-                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
                 <!-- 受影响资产：图谱中关联度最高的实体 Top 5 -->
@@ -610,7 +605,7 @@
                 <!-- 分割线：受影响资产 与 描述 之间 -->
                 <div
                   v-if="incident?.description"
-                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
                 <!-- 描述 -->
@@ -631,8 +626,8 @@
             <button
               v-else
               type="button"
-              class="flex items-center justify-center w-4 bg-slate-900/70 hover:bg-slate-900 text-slate-400 hover:text-white transition-colors"
-              :title="translateOr('incidents.detail.eventGraph.expandRightPane', '展开信息面板')"
+              class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              :title="translateOr('incidents.detail.eventGraph.expandRightPane', 'Expand information panel')"
               @click="isRightPaneCollapsed = false"
             >
               <span class="material-symbols-outlined text-base">chevron_left</span>
@@ -643,7 +638,7 @@
             class="min-h-[420px] flex items-center justify-center p-10"
           >
             <svg
-              class="w-24 h-24 text-slate-600/80"
+              class="w-24 h-24 text-gray-400 dark:text-slate-600/80"
               viewBox="0 0 120 120"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -698,7 +693,7 @@
                 <button
                   @click.stop="openAlertDetailInNewWindow(item.id)"
                   class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
-                  :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+                  :title="$t('alerts.list.openInNewWindow') || 'Open in new window'"
                 >
                   <span class="material-symbols-outlined text-base">open_in_new</span>
                 </button>
@@ -743,9 +738,44 @@
         </div>
       </div>
 
+      <!-- Assets 标签页：受影响资产 -->
+      <div v-else-if="activeTab === 'assets'" class="flex flex-col gap-6">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl">
+          <div class="p-6 border-b border-gray-200 dark:border-slate-800">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
+              {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
+            </h3>
+          </div>
+          <div class="p-6">
+            <div v-if="topImpactedEntities.length > 0" class="space-y-3">
+              <div
+                v-for="item in topImpactedEntities"
+                :key="item.id"
+                class="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
+              >
+                <div class="flex flex-col flex-1 min-w-0">
+                  <span class="text-gray-900 dark:text-white font-medium truncate">
+                    {{ item.label }}
+                  </span>
+                  <span class="text-sm text-gray-500 dark:text-slate-400 truncate mt-1">
+                    {{ item.type }}
+                  </span>
+                </div>
+                <span class="text-sm text-gray-600 dark:text-slate-300 ml-4 whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.degreeLabel', 'Relations') }}: {{ item.degree }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="text-center py-12 text-gray-400 dark:text-slate-500">
+              {{ translateOr('common.noData', 'No data') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Evidence & Response 标签页：评论 / 证据 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow">
-        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col">
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
@@ -836,7 +866,7 @@
         class="fixed top-4 right-4 z-[100] bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2"
       >
         <span class="material-symbols-outlined text-sm">check_circle</span>
-        <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || '已复制到剪切板' }}</span>
+        <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || 'Copied to clipboard' }}</span>
       </div>
     </Transition>
 
@@ -867,6 +897,7 @@ import CommentSection from '@/components/common/CommentSection.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
+import { severityToNumber } from '@/utils/severity'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import * as d3 from 'd3'
@@ -887,12 +918,82 @@ const ENTITY_COLOR_SOLID = {
   host: '#fda4af',
   ip: '#67e8f9',
   domain: '#6ee7b7',
+  domainname: '#6ee7b7',
   operation: '#fcd34d',
   user: '#c4b5fd',
   tenant: '#c4b5fd',
   alert: '#fda4af',
   service: '#6ee7b7',
+  api: '#7dd3fc',
   other: '#60a5fa'
+}
+
+const ENTITY_TYPE_ALIAS = {
+  domainname: 'domain',
+  fqdn: 'domain',
+  url: 'domain',
+  service: 'api',
+  userid: 'user'
+}
+
+const normalizeEntityType = (type) => ENTITY_TYPE_ALIAS[type] || type
+
+const ENTITY_ICON_PATHS = {
+  // IP地址图标 - DNS/网络图标，优化为更适合stroke渲染的路径
+  ip: {
+    viewBox: 16,
+    path: 'M3 2.5a1.5 1.5 0 0 0-1.5 1.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V4a1.5 1.5 0 0 0-1.5-1.5H3Zm-1.5 4a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11Zm0 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11Zm-1 3a1.5 1.5 0 0 0-1.5 1.5v1a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-1a1.5 1.5 0 0 0-1.5-1.5h-13Zm1.5 1.5v1h11v-1h-11Z'
+  },
+  // 域名图标 - 地球/全球网络图标，优化网格线使其更清晰
+  domain: {
+    viewBox: 16,
+    path: 'M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13ZM3.5 8c0-.68.1-1.34.3-1.96.97.54 2.13.94 3.4 1.17v1.58c-1.27.23-2.43.63-3.4 1.17-.2-.62-.3-1.28-.3-1.96Zm9.2-1.96c-.97.54-2.13.94-3.4 1.17V5.13c1.27-.23 2.43-.63 3.4-1.17.2.62.3 1.28.3 1.96 0 .68-.1 1.34-.3 1.96-.97-.54-2.13-.94-3.4-1.17V6.71c1.27-.23 2.43-.63 3.4-1.17ZM8 3.5c.68 0 1.34.1 1.96.3-.54.97-.94 2.13-1.17 3.4H7.21c-.23-1.27-.63-2.43-1.17-3.4.62-.2 1.28-.3 1.96-.3Zm0 9c-.68 0-1.34-.1-1.96-.3.54-.97.94-2.13 1.17-3.4h1.58c.23 1.27.63 2.43 1.17 3.4-.62.2-1.28.3-1.96.3Z'
+  },
+  // 主机图标 - 桌面/计算机图标，优化为更清晰的显示器形状
+  host: {
+    viewBox: 16,
+    path: 'M2 3.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H4Zm1 2h6v1H5V4.5Zm0 2h6v1H5v-1Zm0 2h4v1H5v-1Zm-1 4h8v1.5a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V12.5Z'
+  },
+  // API图标 - 接口/端点图标，优化齿轮形状使其更清晰
+  api: {
+    viewBox: 16,
+    path: 'M8 2.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h.5V4a.5.5 0 0 1 .5-.5h.5V3a.5.5 0 0 1 .5-.5h1Zm0 1h-.5v.5a.5.5 0 0 1-.5.5h-.5v1h.5a.5.5 0 0 1 .5.5v.5h1v-.5a.5.5 0 0 1 .5-.5h.5v-1h-.5a.5.5 0 0 1-.5-.5V3.5h-1Zm-2 4.5a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H6Zm0 1h6v2H6v-2Z'
+  },
+  // 告警图标 - 警告三角形，优化为更适合stroke渲染
+  alert: {
+    viewBox: 16,
+    path: 'M8 2.5L2.5 13.5h11L8 2.5ZM8 6.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5A.75.75 0 0 1 8 6.5Zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'
+  },
+  // 用户图标 - 用户头像，优化为更清晰的轮廓
+  user: {
+    viewBox: 16,
+    path: 'M8 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM3.5 12.75A4.5 4.5 0 0 1 8 8.25a4.5 4.5 0 0 1 4.5 4.5.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75Z'
+  },
+  // 租户图标 - 群组/组织图标，优化为更清晰的多个用户轮廓
+  tenant: {
+    viewBox: 16,
+    path: 'M5 2.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2ZM8 9a3 3 0 0 0-3 3v1.5a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5V12a3 3 0 0 0-3-3Zm-2 3a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2H6Z'
+  },
+  // 服务图标 - 齿轮/设置图标，优化齿轮形状
+  service: {
+    viewBox: 16,
+    path: 'M8 2.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h.5V4a.5.5 0 0 1 .5-.5h.5V3a.5.5 0 0 1 .5-.5h1Zm0 1h-.5v.5a.5.5 0 0 1-.5.5h-.5v1h.5a.5.5 0 0 1 .5.5v.5h1v-.5a.5.5 0 0 1 .5-.5h.5v-1h-.5a.5.5 0 0 1-.5-.5V3.5h-1Zm-2 4.5a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H6Zm0 1h6v2H6v-2Z'
+  },
+  // 操作图标 - 操作/动作图标，优化加号形状
+  operation: {
+    viewBox: 16,
+    path: 'M8 2.5a.5.5 0 0 1 .5.5v2h2a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 1 0-1h2V3a.5.5 0 0 1 .5-.5Zm-4 6a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V9a.5.5 0 0 0-.5-.5H4Zm0 1h8v4H4v-4Z'
+  },
+  // 事件图标 - 事件/日志图标，优化文档和列表形状
+  event: {
+    viewBox: 16,
+    path: 'M3 2.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3Zm0 1h10v9H3v-9Zm2 2v1h6v-1H5Zm0 2v1h4v-1H5Zm0 2v1h6v-1H5Z'
+  },
+  // 其他类型 - 使用圆形图标（但带边框，不是实心）
+  other: {
+    viewBox: 16,
+    path: 'M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm0 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z'
+  }
 }
 
 const route = useRoute()
@@ -965,8 +1066,40 @@ const edgeIdKey = (edge, index) => `${edge.source}-${edge.target}-${index}`
 
 const getNodeId = (nodeRef) => (typeof nodeRef === 'object' && nodeRef !== null ? nodeRef.id : nodeRef)
 
+const getNodeType = (node) => normalizeEntityType((node.properties?.entity_type || 'other').toLowerCase())
+
+const getNodeIconMeta = (node) => {
+  const type = getNodeType(node)
+  return ENTITY_ICON_PATHS[type] || ENTITY_ICON_PATHS.other
+}
+
+const getNodeIconTransform = (node) => {
+  const meta = getNodeIconMeta(node)
+  const viewBox = meta.viewBox || 16
+  const size = node.visual?.size || 30
+  // 增大图标尺寸，使用1.2倍节点大小，最大尺寸增加到32
+  const targetSize = Math.min(size * 1.2, 32)
+  const scale = targetSize / viewBox
+  return `translate(-${viewBox / 2}, -${viewBox / 2}) scale(${scale})`
+}
+
+const getNodeIconStrokeColor = (node) => {
+  const type = getNodeType(node)
+  return ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+}
+
+const getGraphTextColor = () => {
+  const svgElement = d3SvgRef.value?.node?.()
+  if (svgElement) {
+    const dataColor = svgElement.getAttribute('data-text-color')
+    if (dataColor) return dataColor
+  }
+  const isDark = document.documentElement.classList.contains('dark')
+  return isDark ? '#e2e8f0' : '#374151'
+}
+
 const buildNodeVisualMeta = (node) => {
-  const type = (node.properties?.entity_type || 'other').toLowerCase()
+  const type = getNodeType(node)
   const color = ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
   const degree = nodeDegreeMap?.value?.[node.id] || 0
   // 节点整体缩小，避免在视图里挤成一团
@@ -1276,13 +1409,17 @@ const updateD3Graph = ({ fitView = false } = {}) => {
     .append('g')
     .attr('class', 'graph-node')
 
+  // 只保留中间的图标，不再绘制外围圆点
   nodeEnter
-    .append('circle')
-    .attr('r', (d) => (d.visual?.size || 30) / 2)
-    .attr('fill', (d) => d.visual?.color || ENTITY_COLOR_SOLID.other)
-    .attr('stroke', '#94a3b8')
-    .attr('stroke-width', 1.2)
-    .attr('fill-opacity', 0.9)
+    .append('path')
+    .attr('class', 'graph-node__icon')
+    .attr('d', (d) => getNodeIconMeta(d).path)
+    .attr('transform', (d) => getNodeIconTransform(d))
+    .attr('fill', 'none')
+    .attr('stroke', (d) => getNodeIconStrokeColor(d))
+    .attr('stroke-width', 1.5)
+    .attr('stroke-linecap', 'round')
+    .attr('stroke-linejoin', 'round')
 
   // 获取文字颜色（从 SVG 的 data 属性或检测主题）
   const getTextColor = () => {
@@ -1361,8 +1498,6 @@ const updateNodeStyles = () => {
     return
   }
   const selectedId = selectedGraphNodeId.value
-  const legendKey = legendFlashKey.value
-  const legendActive = !!legendKey
   const searchActive = !!graphSearchQuery.value.trim()
   const highlightSet = filteredNodeIds.value
   const relations = relatedNodeIds.value
@@ -1374,12 +1509,6 @@ const updateNodeStyles = () => {
       (node) => !!selectedId && node.id !== selectedId && relations.has(node.id)
     )
     .classed('graph-node--dimmed', (node) => {
-      const nodeType = (node.properties?.entity_type || 'entity').toLowerCase()
-      const matchLegend = legendActive && nodeType === legendKey
-      if (legendActive) {
-        // 图例高亮时，非该类型节点统一变暗
-        return !matchLegend
-      }
       if (selectedId) {
         return node.id !== selectedId && !relations.has(node.id)
       }
@@ -1390,18 +1519,7 @@ const updateNodeStyles = () => {
     })
     .classed(
       'graph-node--search-hit',
-      (node) => {
-        const nodeType = (node.properties?.entity_type || 'entity').toLowerCase()
-        const matchLegend = legendActive && nodeType === legendKey
-        // 没有选中节点时，搜索命中或图例命中的节点使用高亮描边
-        if (!selectedId && searchActive && highlightSet.has(node.id)) {
-          return true
-        }
-        if (!selectedId && !searchActive && matchLegend) {
-          return true
-        }
-        return false
-      }
+      (node) => !selectedId && searchActive && highlightSet.has(node.id)
     )
 
   // 获取文字颜色
@@ -1433,6 +1551,25 @@ const updateNodeStyles = () => {
   d3NodeSelection.value
     .select('text')
     .attr('fill', getTextColor())
+
+  d3NodeSelection.value
+    .select('path.graph-node__icon')
+    .attr('d', (node) => getNodeIconMeta(node).path)
+    .attr('transform', (node) => getNodeIconTransform(node))
+    .attr('fill', 'none')
+    .attr('stroke', (node) => getNodeIconStrokeColor(node))
+    .attr('stroke-width', 1.5)
+    .attr('stroke-linecap', 'round')
+    .attr('stroke-linejoin', 'round')
+    .attr('opacity', (node) => {
+      if (selectedId) {
+        return node.id === selectedId || relations.has(node.id) ? 0.95 : 0.2
+      }
+      if (searchActive) {
+        return highlightSet.has(node.id) ? 0.95 : 0.25
+      }
+      return 0.9
+    })
 
   const isEdgeRelated = (edge) => {
     const sourceId = getNodeId(edge.source)
@@ -1782,7 +1919,7 @@ const nodeLabelMap = computed(() => {
 const nodeTypeMap = computed(() => {
   const map = {}
   ;(eventGraphData.value.nodes || []).forEach((node) => {
-    map[node.id] = (node.properties?.entity_type || 'entity').toLowerCase()
+    map[node.id] = getNodeType(node)
   })
   return map
 })
@@ -1825,7 +1962,7 @@ const legendEntries = computed(() => {
   const seen = new Set()
   const entries = []
   displayGraphNodes.value.forEach((node) => {
-    const type = (node.properties?.entity_type || 'entity').toLowerCase()
+    const type = getNodeType(node)
     if (seen.has(type)) {
       return
     }
@@ -2145,20 +2282,14 @@ const handleLegendClick = (key) => {
   if (!key) {
     return
   }
-  // 再次点击相同图例时取消高亮
-  if (legendFlashKey.value === key) {
-    legendFlashKey.value = ''
-  } else {
-    legendFlashKey.value = key
+  legendFlashKey.value = key
+  if (legendFlashTimer.value) {
+    clearTimeout(legendFlashTimer.value)
   }
-
-  // 图例筛选时清空节点选中和搜索关键字，避免样式冲突
-  selectedGraphNodeId.value = ''
-  graphSearchQuery.value = ''
-
-  nextTick(() => {
-    updateNodeStyles()
-  })
+  legendFlashTimer.value = setTimeout(() => {
+    legendFlashKey.value = ''
+    legendFlashTimer.value = null
+  }, 800)
 }
 
 const handleRelationClick = (neighborId) => {
@@ -2567,35 +2698,29 @@ const associatedAlertsTimeline = computed(() => {
   })
 })
 
-// 告警时间线分页（确保一屏展示）
-const associatedAlertsTimelinePageSize = ref(5)
-const associatedAlertsTimelineCurrentPage = ref(1)
-
-const associatedAlertsTimelineTotalPages = computed(() => {
+// Alert timeline 左侧分页（每页默认 5 条，用户可调整）
+const timelinePageSizeOptions = [5, 10, 20]
+const timelinePageSize = ref(5)
+const timelineCurrentPage = ref(1)
+const timelineTotalPages = computed(() => {
+  const size = timelinePageSize.value || 5
   const total = associatedAlertsTimeline.value.length
-  if (!total) return 1
-  return Math.ceil(total / associatedAlertsTimelinePageSize.value)
+  return total > 0 ? Math.ceil(total / size) : 0
 })
-
 const paginatedAssociatedAlertsTimeline = computed(() => {
-  const page = associatedAlertsTimelineCurrentPage.value
-  const size = associatedAlertsTimelinePageSize.value
+  const size = timelinePageSize.value || 5
+  if (!associatedAlertsTimeline.value.length) return []
+  const totalPages = timelineTotalPages.value || 1
+  const page = Math.min(Math.max(timelineCurrentPage.value, 1), totalPages)
   const start = (page - 1) * size
-  return associatedAlertsTimeline.value.slice(start, start + size)
+  const end = start + size
+  return associatedAlertsTimeline.value.slice(start, end)
 })
 
-const changeAssociatedAlertsTimelinePage = (page) => {
-  if (page < 1) {
-    associatedAlertsTimelineCurrentPage.value = 1
-    return
-  }
-  const maxPage = associatedAlertsTimelineTotalPages.value
-  if (page > maxPage) {
-    associatedAlertsTimelineCurrentPage.value = maxPage
-    return
-  }
-  associatedAlertsTimelineCurrentPage.value = page
-}
+// 当页大小或列表长度变化时，自动纠正当前页
+watch([timelinePageSize, associatedAlertsTimeline], () => {
+  timelineCurrentPage.value = 1
+})
 
 // 左右侧面板收起状态（Alert story 布局）
 const isLeftPaneCollapsed = ref(false)
@@ -2821,7 +2946,7 @@ const closeAlertDetail = () => {
 
 const handlePostComment = async ({ comment, files }) => {
   if (!incident.value?.id) {
-    toast.error(t('incidents.detail.comments.postError') || '无法提交评论：事件ID不存在', 'ERROR')
+    toast.error(t('incidents.detail.comments.postError') || 'Failed to post comment: Incident ID does not exist', 'ERROR')
     return
   }
   
@@ -2842,10 +2967,10 @@ const handlePostComment = async ({ comment, files }) => {
     await loadIncidentDetail()
     
     // 显示成功提示
-    toast.success(t('incidents.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
+    toast.success(t('incidents.detail.comments.postSuccess') || 'Comment posted successfully', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || '评论提交失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || 'Failed to post comment, please try again later'
     toast.error(errorMessage, 'ERROR')
   }
 }
@@ -2925,6 +3050,21 @@ const getRiskLevelClass = (level) => {
   return classes[level] || classes.low
 }
 
+// 将事件 severity 映射为告警的 risk level（用于复用颜色样式）
+const getIncidentRiskLevel = (severity) => {
+  if (!severity) return 'low'
+  const severityLower = String(severity).toLowerCase().trim()
+  const map = {
+    fatal: 'fatal',
+    critical: 'fatal',
+    high: 'high',
+    medium: 'medium',
+    low: 'low',
+    tips: 'tips'
+  }
+  return map[severityLower] || severityLower
+}
+
 const getStatusClass = (status) => {
   const classes = {
     open: 'bg-primary/20 text-primary',
@@ -2968,48 +3108,20 @@ const getStatusText = (status) => {
   return statusMap[statusLower] || status
 }
 
-const getSeverityDotClass = (severity) => {
-  if (!severity) return 'bg-gray-500'
-  const severityLower = String(severity).toLowerCase().trim()
-  const classes = {
-    fatal: 'bg-red-600',
-    critical: 'bg-red-600',
-    high: 'bg-red-500',
-    medium: 'bg-orange-500',
-    low: 'bg-blue-500',
-    tips: 'bg-gray-400'
-  }
-  return classes[severityLower] || classes.low
-}
-
-const getSeverityTextClass = (severity) => {
-  if (!severity) return 'text-gray-400'
-  const severityLower = String(severity).toLowerCase().trim()
-  const classes = {
-    fatal: 'text-red-400',
-    critical: 'text-red-400',
-    high: 'text-red-400',
-    medium: 'text-orange-400',
-    low: 'text-blue-400',
-    tips: 'text-gray-400'
-  }
-  return classes[severityLower] || classes.low
-}
-
 const getTimelineIconBgClass = (severity) => {
   const classes = {
-    high: 'bg-red-500/20 ring-1 ring-inset ring-red-500/30',
-    medium: 'bg-amber-500/20 ring-1 ring-inset ring-amber-500/30',
-    low: 'bg-slate-700'
+    high: 'bg-red-500/20 dark:bg-red-500/20 ring-1 ring-inset ring-red-500/30 dark:ring-red-500/30',
+    medium: 'bg-amber-500/20 dark:bg-amber-500/20 ring-1 ring-inset ring-amber-500/30 dark:ring-amber-500/30',
+    low: 'bg-gray-300 dark:bg-slate-700'
   }
   return classes[severity] || classes.low
 }
 
 const getTimelineIconColorClass = (severity) => {
   const classes = {
-    high: 'text-red-400',
-    medium: 'text-amber-400',
-    low: 'text-slate-300'
+    high: 'text-red-600 dark:text-red-400',
+    medium: 'text-amber-600 dark:text-amber-400',
+    low: 'text-gray-600 dark:text-slate-300'
   }
   return classes[severity] || classes.low
 }
@@ -3168,7 +3280,7 @@ const handleCloseIncident = async (data) => {
     await axios.put(url, body, { headers })
     
     // 显示成功提示
-    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', 'SUCCESS')
+    toast.success(t('incidents.detail.closeSuccess') || 'Incident closed successfully', 'SUCCESS')
     
     // 关闭对话框
     closeCloseDialog()
@@ -3178,7 +3290,7 @@ const handleCloseIncident = async (data) => {
   } catch (error) {
     console.error('Failed to close incident:', error)
     // 显示错误提示
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || 'Failed to close incident, please try again later'
     toast.error(errorMessage, 'ERROR')
   } finally {
     isClosingIncident.value = false
@@ -3319,7 +3431,7 @@ onMounted(() => {
 .graph-control-btn {
   padding: 0.25rem;
   border-radius: 0.375rem;
-  color: #cbd5f5;
+  color: #475569;
   transition: background-color 0.2s ease, color 0.2s ease;
   min-height: 2.25rem;
   min-width: 2.25rem;
@@ -3328,7 +3440,16 @@ onMounted(() => {
   justify-content: center;
 }
 
+.dark .graph-control-btn {
+  color: #cbd5f5;
+}
+
 .graph-control-btn:hover {
+  color: #1e293b;
+  background-color: rgba(71, 85, 105, 0.2);
+}
+
+.dark .graph-control-btn:hover {
   color: #fff;
   background-color: rgba(71, 85, 105, 0.6);
 }
@@ -3346,10 +3467,14 @@ onMounted(() => {
 }
 
 .graph-link {
-  stroke: #475569;
+  stroke: #94a3b8;
   stroke-width: 1.2px;
   stroke-opacity: 0.35;
   transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+.dark .graph-link {
+  stroke: #475569;
 }
 
 .graph-link--related {
@@ -3372,10 +3497,14 @@ onMounted(() => {
 }
 
 .graph-node__label {
-  fill: rgba(255, 255, 255, 0.85);
+  fill: rgba(30, 41, 59, 0.9);
   font-size: 10px;
   pointer-events: none;
   text-transform: none;
+}
+
+.dark .graph-node__label {
+  fill: rgba(255, 255, 255, 0.85);
 }
 
 .graph-node--selected circle {
@@ -3418,11 +3547,15 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.65rem;
   transition: color 0.2s ease;
+}
+
+.dark .legend-entry {
+  color: #94a3b8;
 }
 
 .legend-entry__dot {
@@ -3433,10 +3566,18 @@ onMounted(() => {
 }
 
 .legend-entry--active {
+  color: #1e293b;
+}
+
+.dark .legend-entry--active {
   color: #ffffff;
 }
 
 .legend-entry:hover {
+  color: #334155;
+}
+
+.dark .legend-entry:hover {
   color: #e2e8f0;
 }
 
@@ -3447,8 +3588,12 @@ onMounted(() => {
 .node-detail-resize-handle {
   width: 6px;
   cursor: col-resize;
-  background: linear-gradient(to bottom, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
+  background: linear-gradient(to bottom, rgba(100, 116, 139, 0.2), rgba(100, 116, 139, 0.05));
   position: relative;
+}
+
+.dark .node-detail-resize-handle {
+  background: linear-gradient(to bottom, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
 }
 
 .node-detail-resize-handle::after {
@@ -3458,18 +3603,31 @@ onMounted(() => {
   left: 50%;
   width: 2px;
   height: 60px;
-  background-color: rgba(148, 163, 184, 0.35);
+  background-color: rgba(100, 116, 139, 0.35);
   transform: translate(-50%, -50%);
 }
 
+.dark .node-detail-resize-handle::after {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
 .detail-action-btn {
-  color: #94a3b8;
+  color: #64748b;
   padding: 0.4rem;
   border-radius: 0.35rem;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.dark .detail-action-btn {
+  color: #94a3b8;
+}
+
 .detail-action-btn:hover:not(:disabled) {
+  color: #1e293b;
+  background-color: rgba(71, 85, 105, 0.2);
+}
+
+.dark .detail-action-btn:hover:not(:disabled) {
   color: #fff;
   background-color: rgba(71, 85, 105, 0.6);
 }

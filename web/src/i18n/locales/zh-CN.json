@@ -517,9 +517,9 @@
         "conclusionPlaceholder": "请输入调查结论..."
       },
       "tabs": {
-        "alertStory": "Alert story",
-        "alerts": "Alerts",
-        "assets": "资产",
+        "alertStory": "事件图谱",
+        "alerts": "关联告警",
+        "assets": "受影响资产",
         "evidenceResponse": "证据与响应"
       },
       "eventGraph": {
@@ -584,6 +584,19 @@
         "lastGenerationTime": "上次生成时间",
         "entityCount": "实体个数",
         "relationCount": "关系个数",
+        "timelineTitle": "告警时间线",
+        "timelineEmpty": "暂无关联告警",
+        "informationTitle": "信息",
+        "incidentInfoTitle": "事件详情",
+        "impactedAssetsTitle": "受影响资产",
+        "descriptionTitle": "描述",
+        "degreeLabel": "关联度",
+        "collapseLeftPane": "收起告警列表",
+        "expandLeftPane": "展开告警列表",
+        "collapseRightPane": "收起信息面板",
+        "expandRightPane": "展开信息面板",
+        "perPageTooltip": "每页条数",
+        "perPageUnit": "页",
         "incidentCreated": "图谱引擎初始化",
         "incidentCreatedDesc": "初始主机与租户侧FIP已写入攻击图谱。",
         "alertConverted": "告警写入图谱",
