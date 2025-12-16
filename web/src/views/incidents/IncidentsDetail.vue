@@ -873,6 +873,7 @@
       :visible="showAISidebar"
       :alert-title="currentTitle"
       :finding-summary="findingSummary"
+      :show-finding-summary="true"
       :alert-id="route.params.id"
       @close="showAISidebar = false"
     />
@@ -2446,7 +2447,7 @@ const nodeDetailPaneStyle = computed(() => ({
 const handleOpenAISidebar = () => {
   if (incident.value) {
     currentTitle.value = incident.value.title || incident.value.name || ''
-    findingSummary.value = incident.value.description || ''
+    findingSummary.value = incident.value.graphSummary || ''
   } else {
     currentTitle.value = ''
     findingSummary.value = ''
