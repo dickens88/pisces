@@ -79,11 +79,11 @@ api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
 api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')
+
+# for AI suggested prompts
 api.add_resource(ai_prompt_view.AIPromptView, '/ai/prompt')
 
 api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
-
-# for ASM functions api
 
 # for system common functions
 api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')

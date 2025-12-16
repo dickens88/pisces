@@ -43,7 +43,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_automation_closure_rate(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Trend of alerts automatically closed by automation in the selected time range.",
+                }, 200
             elif chart_name_normalized == "data-source-count":
                 # end_date is optional for data-source-count chart
                 end_date = None
@@ -54,8 +57,13 @@ class AlertCountBySourceView(Resource):
                             return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
                     except Exception as e:
                         return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
-                data = StatisticsService.get_alert_count_by_product_name(start_date, end_date=end_date, status=status)
-                return {"data": data}, 200
+                data = StatisticsService.get_alert_count_by_product_name(
+                    start_date, end_date=end_date, status=status
+                )
+                return {
+                    "data": data,
+                    "description": "Alert counts by data source / product in the selected time range.",
+                }, 200
             elif chart_name_normalized == "alert-trend":
                 # For trend chart, end_date is required
                 if not end_date_str:
@@ -67,7 +75,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_alert_trend(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Time trend of alert volume in the selected time range.",
+                }, 200
             elif chart_name_normalized == "incident-trend":
                 # For incident trend chart, end_date is required
                 if not end_date_str:
@@ -79,7 +90,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_incident_trend(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Time trend of incident volume in the selected time range.",
+                }, 200
             elif chart_name_normalized == "vulnerability-trend":
                 # For vulnerability trend chart, end_date is required
                 if not end_date_str:
@@ -91,7 +105,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_trend(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Time trend of vulnerability volume in the selected time range.",
+                }, 200
             elif chart_name_normalized == "vulnerability-trend-by-severity":
                 # For vulnerability trend by severity chart, end_date is required
                 if not end_date_str:
@@ -103,7 +120,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_trend_by_severity(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Time trend of vulnerabilities by severity level in the selected time range.",
+                }, 200
             elif chart_name_normalized == "vulnerability-department-distribution":
                 # For vulnerability department distribution chart, end_date is required
                 if not end_date_str:
@@ -115,7 +135,10 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 data = StatisticsService.get_vulnerability_department_distribution(start_date, end_date)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Distribution of vulnerabilities by department / business unit.",
+                }, 200
             elif chart_name_normalized in (
                 "ai-model-accuracy",
                 "ai_model_accuracy",
@@ -134,12 +157,18 @@ class AlertCountBySourceView(Resource):
 
                 limit = request.args.get("limit", default=10, type=int)
                 data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Accuracy of each AI model in the selected time range.",
+                }, 200
             elif chart_name_normalized == "alert-status-by-severity":
                 end_date = parse_datetime_with_timezone(end_date_str)
                 status = request.args.get("status")  # Get status filter parameter
                 data = StatisticsService.get_alert_status_by_severity(start_date, end_date, status=status)
-                return {"data": data}, 200
+                return {
+                    "data": data,
+                    "description": "Distribution of alert statuses by severity in the selected time range.",
+                }, 200
             else:
                 raise Exception("chart_name is invalid")
         except Exception as ex:
