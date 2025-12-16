@@ -466,7 +466,7 @@
                         <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.label', 'Label') }}
                         </p>
-                        <p class="text-xs text-slate-100 whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap">
                           {{ formatNodeDetailValue(primaryNodeLabel) || '-' }}
                         </p>
                       </div>
@@ -474,7 +474,7 @@
                         <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}
                         </p>
-                        <p class="text-xs text-slate-100 whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
                         </p>
                       </div>
