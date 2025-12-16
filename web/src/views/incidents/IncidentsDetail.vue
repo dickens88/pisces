@@ -127,14 +127,15 @@
     <div class="mt-6 flex-grow">
       <!-- Alert story：事件图谱 -->
       <div v-if="activeTab === 'alertStory'" class="space-y-4">
-        <div class="bg-gray-100 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+        <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
           <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex min-h-[600px]">
             <!-- 左侧：告警时间线 -->
             <aside
               v-if="!isLeftPaneCollapsed"
-              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col"
+              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
             >
-              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-slate-900">
+              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-[#111822]">
                 <div class="flex items-center gap-2">
                   <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
                     {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
@@ -156,7 +157,7 @@
                 <div
                   v-for="item in paginatedAssociatedAlertsTimeline"
                   :key="item.id"
-                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
+                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors cursor-default"
                 >
                   <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center space-x-2">
@@ -174,7 +175,7 @@
                         {{ formatDateTime(item.createTime) }}
                       </span>
                     </div>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#1e293b] text-gray-600 dark:text-slate-300">
                       {{ $t(`alerts.list.${item.status}`) }}
                     </span>
                   </div>
@@ -196,12 +197,12 @@
               </div>
               <div
                 v-if="timelineTotalPages > 0"
-                class="px-2.5 py-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400"
+                class="px-2.5 py-1.5 border-t border-gray-100 dark:border-slate-800/70 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400"
               >
                 <div class="flex items-center gap-[2px]">
                   <button
                     type="button"
-                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
                     :disabled="timelineCurrentPage === 1"
                     @click="timelineCurrentPage = Math.max(1, timelineCurrentPage - 1)"
                   >
@@ -210,7 +211,7 @@
                   <span class="text-center">{{ timelineCurrentPage }}/{{ timelineTotalPages }}</span>
                   <button
                     type="button"
-                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
                     :disabled="timelineCurrentPage === timelineTotalPages"
                     @click="timelineCurrentPage = Math.min(timelineTotalPages, timelineCurrentPage + 1)"
                   >
@@ -220,7 +221,7 @@
                 <div class="flex items-center gap-0.5">
                   <select
                     v-model.number="timelinePageSize"
-                    class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
+                    class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
                     :title="translateOr('incidents.detail.eventGraph.perPageTooltip', '每页条数')"
                   >
                     <option v-for="size in timelinePageSizeOptions" :key="size" :value="size">
@@ -401,9 +402,9 @@
             <!-- 右侧：事件关键信息 + 节点详情 -->
             <aside
               v-if="!isRightPaneCollapsed"
-              class="w-80 flex-none border-l border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col overflow-y-auto"
+              class="w-80 flex-none border-l border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col overflow-y-auto"
             >
-              <div class="px-3 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-2 bg-gray-50 dark:bg-slate-900">
+              <div class="px-3 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center gap-2 bg-gray-50 dark:bg-[#111822]">
                 <button
                   type="button"
                   class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
@@ -569,10 +570,10 @@
                   </div>
                 </div>
 
-                <!-- 分割线：事件详情 与 受影响资产 之间 -->
+                <!-- 分割线：事件详情 与 受影响资产 之间（略微减弱暗色边框） -->
                 <div
                   v-if="topImpactedEntities.length"
-                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
                 <!-- 受影响资产：图谱中关联度最高的实体 Top 5 -->
@@ -604,7 +605,7 @@
                 <!-- 分割线：受影响资产 与 描述 之间 -->
                 <div
                   v-if="incident?.description"
-                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
                 <!-- 描述 -->
@@ -737,9 +738,44 @@
         </div>
       </div>
 
+      <!-- Assets 标签页：受影响资产 -->
+      <div v-else-if="activeTab === 'assets'" class="flex flex-col gap-6">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl">
+          <div class="p-6 border-b border-gray-200 dark:border-slate-800">
+            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
+              {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
+            </h3>
+          </div>
+          <div class="p-6">
+            <div v-if="topImpactedEntities.length > 0" class="space-y-3">
+              <div
+                v-for="item in topImpactedEntities"
+                :key="item.id"
+                class="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
+              >
+                <div class="flex flex-col flex-1 min-w-0">
+                  <span class="text-gray-900 dark:text-white font-medium truncate">
+                    {{ item.label }}
+                  </span>
+                  <span class="text-sm text-gray-500 dark:text-slate-400 truncate mt-1">
+                    {{ item.type }}
+                  </span>
+                </div>
+                <span class="text-sm text-gray-600 dark:text-slate-300 ml-4 whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.degreeLabel', 'Relations') }}: {{ item.degree }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="text-center py-12 text-gray-400 dark:text-slate-500">
+              {{ translateOr('common.noData', '暂无数据') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Evidence & Response 标签页：评论 / 证据 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow">
-        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col">
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
