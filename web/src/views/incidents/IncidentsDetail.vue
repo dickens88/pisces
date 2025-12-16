@@ -178,7 +178,7 @@
                       {{ $t(`alerts.list.${item.status}`) }}
                     </span>
                   </div>
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
+                  <h4 class="text-xs leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
                     <span :title="item.title || '-'">
                       {{ item.title || '-' }}
                     </span>
@@ -311,10 +311,10 @@
                   </div>
                 </div>
               </div>
-              <div class="absolute bottom-6 left-6 z-10 pointer-events-none">
+              <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
                 <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 shadow-lg">
-                    <div class="flex flex-col gap-1.5 text-[11px] uppercase tracking-wide">
+                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
+                    <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
                       <button
                         v-for="entry in legendEntries"
                         :key="entry.key"
@@ -338,25 +338,24 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
               >
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                  <span class="font-medium truncate">{{ graphStatusLabel }}</span>
-                  <span class="mx-2 text-slate-600">|</span>
-                  <span class="truncate">
-                    {{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}
+                  <span class="font-semibold">{{ graphStatusLabel }}</span>
+                  <span class="text-slate-600">|</span>
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}：{{ graphLastGeneratedTime || '--' }}
                   </span>
                 </div>
-                <div v-if="isGraphReady" class="text-[11px] text-slate-400 truncate">
-                  {{
-                    $t('incidents.detail.eventGraph.summaryParagraph2', {
-                      nodes: eventGraphStats.totalNodes,
-                      edges: eventGraphStats.totalEdges,
-                      alerts: eventGraphStats.alertNodes,
-                      ips: eventGraphStats.ipNodes
-                    })
-                  }}
+                <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}：{{ eventGraphStats.totalNodes ?? 0 }}
+                  </span>
+                  <span class="text-slate-600">|</span>
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}：{{ eventGraphStats.totalEdges ?? 0 }}
+                  </span>
                 </div>
               </div>
             </div>
