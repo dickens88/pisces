@@ -10,7 +10,7 @@
           <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
           <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
         </div>
-        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+        <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || 'Loading...' }}</p>
       </div>
     </div>
     <!-- 面包屑导航 -->
@@ -22,7 +22,7 @@
             class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors duration-200 font-medium"
           >
             <span class="material-symbols-outlined text-base">folder</span>
-            <span>{{ $t('incidents.title') || '事件管理' }}</span>
+            <span>{{ $t('incidents.title') || 'Incidents' }}</span>
           </router-link>
         </li>
         <li class="flex items-center text-gray-300 dark:text-gray-600">
@@ -47,17 +47,17 @@
             <span>{{ $t('incidents.detail.actor') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.createTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.closeTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.closeTime || incident?.close_time) }}</span>
           </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
+          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
           <div class="flex items-center gap-1.5">
             <span>{{ $t('incidents.detail.updateTime') }}:</span>
             <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.updateTime) }}</span>
@@ -105,7 +105,7 @@
     <!-- 顶部统计卡片（已按需求移除） -->
 
     <!-- 标签页导航 -->
-    <div class="mt-8 border-b border-slate-700">
+    <div class="mt-8 border-b border-gray-200 dark:border-slate-700">
       <nav aria-label="Tabs" class="flex -mb-px space-x-6">
         <button
           v-for="tab in tabs"
@@ -115,7 +115,7 @@
             'whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === tab.key
               ? 'text-primary border-primary'
-              : 'text-slate-400 hover:text-white border-transparent'
+              : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white border-transparent'
           ]"
         >
           {{ $t(tab.label) }}
@@ -147,7 +147,7 @@
                 <button
                   type="button"
                   class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
-                  :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', '收起告警列表')"
+                  :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', 'Collapse alert list')"
                   @click="isLeftPaneCollapsed = true"
                 >
                   <span class="material-symbols-outlined text-base">chevron_left</span>
@@ -192,7 +192,7 @@
                   v-if="associatedAlertsTimeline.length === 0"
                   class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
                 >
-                  {{ translateOr('incidents.detail.eventGraph.timelineEmpty', '暂无关联告警') }}
+                  {{ translateOr('incidents.detail.eventGraph.timelineEmpty', 'No associated alerts') }}
                 </div>
               </div>
               <div
@@ -222,14 +222,14 @@
                   <select
                     v-model.number="timelinePageSize"
                     class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
-                    :title="translateOr('incidents.detail.eventGraph.perPageTooltip', '每页条数')"
+                    :title="translateOr('incidents.detail.eventGraph.perPageTooltip', 'Items per page')"
                   >
                     <option v-for="size in timelinePageSizeOptions" :key="size" :value="size">
                       {{ size }}
                     </option>
                   </select>
                   <span class="text-[9px] text-gray-400 dark:text-slate-500">
-                    /{{ translateOr('incidents.detail.eventGraph.perPageUnit', '页') }}
+                    /{{ translateOr('incidents.detail.eventGraph.perPageUnit', 'page') }}
                   </span>
                 </div>
               </div>
@@ -238,8 +238,8 @@
             <button
               v-else
               type="button"
-              class="flex items-center justify-center w-4 bg-slate-900/70 hover:bg-slate-900 text-slate-400 hover:text-white transition-colors"
-              :title="translateOr('incidents.detail.eventGraph.expandLeftPane', '展开告警列表')"
+              class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              :title="translateOr('incidents.detail.eventGraph.expandLeftPane', 'Expand alert list')"
               @click="isLeftPaneCollapsed = false"
             >
               <span class="material-symbols-outlined text-base">chevron_right</span>
@@ -250,19 +250,19 @@
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-3 items-start pointer-events-auto text-[13px]" @click.stop>
                   <div class="flex flex-col md:flex-row gap-2.5 flex-1 w-full">
-                    <div class="relative w-full md:w-60 flex items-center bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-2.5 pr-2.5 h-9">
-                      <span class="material-symbols-outlined text-slate-400 text-[18px] mr-1.5">search</span>
+                    <div class="relative w-full md:w-60 flex items-center bg-gray-100 dark:bg-slate-900/70 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-lg pl-2.5 pr-2.5 h-9">
+                      <span class="material-symbols-outlined text-gray-500 dark:text-slate-400 text-[18px] mr-1.5">search</span>
                       <input
                         v-model="graphSearchQuery"
                         type="text"
-                        class="w-full bg-transparent text-[13px] focus:ring-0 focus:outline-none placeholder:text-slate-500"
+                        class="w-full bg-transparent text-[13px] focus:ring-0 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-slate-500"
                         :placeholder="$t('incidents.detail.eventGraph.filterPlaceholder')"
                       />
                     </div>
                     <div class="relative w-full md:w-60">
                       <select
                         v-model="highlightedEntity"
-                        class="w-full h-9 bg-slate-900/70 border border-slate-700 text-white rounded-lg pl-3.5 pr-8 text-[13px] focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
+                        class="w-full h-9 bg-gray-100 dark:bg-slate-900/70 border border-gray-300 dark:border-slate-700 text-gray-900 dark:text-white rounded-lg pl-3.5 pr-8 text-[13px] focus:ring-2 focus:ring-primary/60 focus:border-primary/60 appearance-none"
                       >
                         <option value="">
                           {{
@@ -279,10 +279,10 @@
                           {{ option.label }}
                         </option>
                       </select>
-                      <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+                      <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400 pointer-events-none text-[18px]">expand_more</span>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-700 rounded-lg px-1 h-9">
+                  <div class="flex items-center gap-1 bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-1 h-9">
                     <button
                       type="button"
                       class="graph-control-btn"
@@ -352,7 +352,7 @@
               </div>
               <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
                 <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
+                  <div class="bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
                     <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
                       <button
                         v-for="entry in legendEntries"
@@ -377,23 +377,23 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-gray-100 dark:bg-slate-900/80 border-t border-gray-300 dark:border-slate-800 px-4 py-2 text-[11px] text-gray-700 dark:text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
               >
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="graph-status-dot" :class="graphStatusDotClass"></span>
                   <span class="font-semibold">{{ graphStatusLabel }}</span>
-                  <span class="text-slate-600">|</span>
+                  <span class="text-gray-400 dark:text-slate-600">|</span>
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}：{{ graphLastGeneratedTime || '--' }}
+                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}: {{ graphLastGeneratedTime || '--' }}
                   </span>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}：{{ eventGraphStats.totalNodes ?? 0 }}
+                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}: {{ eventGraphStats.totalNodes ?? 0 }}
                   </span>
-                  <span class="text-slate-600">|</span>
+                  <span class="text-gray-400 dark:text-slate-600">|</span>
                   <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}：{{ eventGraphStats.totalEdges ?? 0 }}
+                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}: {{ eventGraphStats.totalEdges ?? 0 }}
                   </span>
                 </div>
               </div>
@@ -408,7 +408,7 @@
                 <button
                   type="button"
                   class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
-                  :title="translateOr('incidents.detail.eventGraph.collapseRightPane', '收起信息面板')"
+                  :title="translateOr('incidents.detail.eventGraph.collapseRightPane', 'Collapse information panel')"
                   @click="isRightPaneCollapsed = true"
                 >
                   <span class="material-symbols-outlined text-base">chevron_right</span>
@@ -423,10 +423,10 @@
                 <Transition name="fade">
                   <div
                     v-if="selectedGraphNode"
-                    class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 shadow-sm"
+                    class="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-4 space-y-3 shadow-sm"
                   >
                     <div class="flex items-center justify-between mb-1">
-                      <h4 class="text-xs font-bold text-slate-100 uppercase tracking-wide">
+                      <h4 class="text-xs font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide">
                         {{ $t('incidents.detail.eventGraph.nodeDetail.title') }}
                       </h4>
                       <div class="flex items-center space-x-1">
@@ -455,15 +455,15 @@
                     </div>
                     <div class="space-y-3">
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.id') }}
                         </p>
-                        <p class="text-xs text-slate-100 break-all whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 break-all whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.id) }}
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.label', 'Label') }}
                         </p>
                         <p class="text-xs text-slate-100 whitespace-pre-wrap">
@@ -471,7 +471,7 @@
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}
                         </p>
                         <p class="text-xs text-slate-100 whitespace-pre-wrap">
@@ -479,20 +479,20 @@
                         </p>
                       </div>
                       <div class="flex flex-col gap-1">
-                        <p class="text-xs font-semibold text-slate-300">
-                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescription', '属性描述') }}
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
+                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescription', 'Property Description') }}
                         </p>
                         <p
                           v-if="selectedNodeDescription"
-                          class="text-xs text-slate-100 whitespace-pre-wrap"
+                          class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap"
                         >
                           {{ selectedNodeDescription }}
                         </p>
                         <p
                           v-else
-                          class="text-xs text-slate-500 italic whitespace-pre-wrap"
+                          class="text-xs text-gray-500 dark:text-slate-500 italic whitespace-pre-wrap"
                         >
-                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescriptionPlaceholder', '暂无属性描述') }}
+                          {{ translateOr('incidents.detail.eventGraph.nodeDetail.propertyDescriptionPlaceholder', 'No property description') }}
                         </p>
                       </div>
                     </div>
@@ -626,8 +626,8 @@
             <button
               v-else
               type="button"
-              class="flex items-center justify-center w-4 bg-slate-900/70 hover:bg-slate-900 text-slate-400 hover:text-white transition-colors"
-              :title="translateOr('incidents.detail.eventGraph.expandRightPane', '展开信息面板')"
+              class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              :title="translateOr('incidents.detail.eventGraph.expandRightPane', 'Expand information panel')"
               @click="isRightPaneCollapsed = false"
             >
               <span class="material-symbols-outlined text-base">chevron_left</span>
@@ -638,7 +638,7 @@
             class="min-h-[420px] flex items-center justify-center p-10"
           >
             <svg
-              class="w-24 h-24 text-slate-600/80"
+              class="w-24 h-24 text-gray-400 dark:text-slate-600/80"
               viewBox="0 0 120 120"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -693,7 +693,7 @@
                 <button
                   @click.stop="openAlertDetailInNewWindow(item.id)"
                   class="flex-shrink-0 text-gray-400 hover:text-primary transition-colors p-1"
-                  :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+                  :title="$t('alerts.list.openInNewWindow') || 'Open in new window'"
                 >
                   <span class="material-symbols-outlined text-base">open_in_new</span>
                 </button>
@@ -767,7 +767,7 @@
               </div>
             </div>
             <div v-else class="text-center py-12 text-gray-400 dark:text-slate-500">
-              {{ translateOr('common.noData', '暂无数据') }}
+              {{ translateOr('common.noData', 'No data') }}
             </div>
           </div>
         </div>
@@ -866,7 +866,7 @@
         class="fixed top-4 right-4 z-[100] bg-green-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2"
       >
         <span class="material-symbols-outlined text-sm">check_circle</span>
-        <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || '已复制到剪切板' }}</span>
+        <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || 'Copied to clipboard' }}</span>
       </div>
     </Transition>
   </div>
@@ -2921,7 +2921,7 @@ const closeAlertDetail = () => {
 
 const handlePostComment = async ({ comment, files }) => {
   if (!incident.value?.id) {
-    toast.error(t('incidents.detail.comments.postError') || '无法提交评论：事件ID不存在', 'ERROR')
+    toast.error(t('incidents.detail.comments.postError') || 'Failed to post comment: Incident ID does not exist', 'ERROR')
     return
   }
   
@@ -2942,10 +2942,10 @@ const handlePostComment = async ({ comment, files }) => {
     await loadIncidentDetail()
     
     // 显示成功提示
-    toast.success(t('incidents.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
+    toast.success(t('incidents.detail.comments.postSuccess') || 'Comment posted successfully', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || '评论提交失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || 'Failed to post comment, please try again later'
     toast.error(errorMessage, 'ERROR')
   }
 }
@@ -3085,18 +3085,18 @@ const getStatusText = (status) => {
 
 const getTimelineIconBgClass = (severity) => {
   const classes = {
-    high: 'bg-red-500/20 ring-1 ring-inset ring-red-500/30',
-    medium: 'bg-amber-500/20 ring-1 ring-inset ring-amber-500/30',
-    low: 'bg-slate-700'
+    high: 'bg-red-500/20 dark:bg-red-500/20 ring-1 ring-inset ring-red-500/30 dark:ring-red-500/30',
+    medium: 'bg-amber-500/20 dark:bg-amber-500/20 ring-1 ring-inset ring-amber-500/30 dark:ring-amber-500/30',
+    low: 'bg-gray-300 dark:bg-slate-700'
   }
   return classes[severity] || classes.low
 }
 
 const getTimelineIconColorClass = (severity) => {
   const classes = {
-    high: 'text-red-400',
-    medium: 'text-amber-400',
-    low: 'text-slate-300'
+    high: 'text-red-600 dark:text-red-400',
+    medium: 'text-amber-600 dark:text-amber-400',
+    low: 'text-gray-600 dark:text-slate-300'
   }
   return classes[severity] || classes.low
 }
@@ -3255,7 +3255,7 @@ const handleCloseIncident = async (data) => {
     await axios.put(url, body, { headers })
     
     // 显示成功提示
-    toast.success(t('incidents.detail.closeSuccess') || '事件关闭成功', 'SUCCESS')
+    toast.success(t('incidents.detail.closeSuccess') || 'Incident closed successfully', 'SUCCESS')
     
     // 关闭对话框
     closeCloseDialog()
@@ -3265,7 +3265,7 @@ const handleCloseIncident = async (data) => {
   } catch (error) {
     console.error('Failed to close incident:', error)
     // 显示错误提示
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || '事件关闭失败，请稍后重试'
+    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.closeError') || 'Failed to close incident, please try again later'
     toast.error(errorMessage, 'ERROR')
   } finally {
     isClosingIncident.value = false
@@ -3404,7 +3404,7 @@ onMounted(() => {
 .graph-control-btn {
   padding: 0.25rem;
   border-radius: 0.375rem;
-  color: #cbd5f5;
+  color: #475569;
   transition: background-color 0.2s ease, color 0.2s ease;
   min-height: 2.25rem;
   min-width: 2.25rem;
@@ -3413,7 +3413,16 @@ onMounted(() => {
   justify-content: center;
 }
 
+.dark .graph-control-btn {
+  color: #cbd5f5;
+}
+
 .graph-control-btn:hover {
+  color: #1e293b;
+  background-color: rgba(71, 85, 105, 0.2);
+}
+
+.dark .graph-control-btn:hover {
   color: #fff;
   background-color: rgba(71, 85, 105, 0.6);
 }
@@ -3431,10 +3440,14 @@ onMounted(() => {
 }
 
 .graph-link {
-  stroke: #475569;
+  stroke: #94a3b8;
   stroke-width: 1.2px;
   stroke-opacity: 0.35;
   transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+}
+
+.dark .graph-link {
+  stroke: #475569;
 }
 
 .graph-link--related {
@@ -3457,10 +3470,14 @@ onMounted(() => {
 }
 
 .graph-node__label {
-  fill: rgba(255, 255, 255, 0.85);
+  fill: rgba(30, 41, 59, 0.9);
   font-size: 10px;
   pointer-events: none;
   text-transform: none;
+}
+
+.dark .graph-node__label {
+  fill: rgba(255, 255, 255, 0.85);
 }
 
 .graph-node--selected circle {
@@ -3503,11 +3520,15 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  color: #94a3b8;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.65rem;
   transition: color 0.2s ease;
+}
+
+.dark .legend-entry {
+  color: #94a3b8;
 }
 
 .legend-entry__dot {
@@ -3518,10 +3539,18 @@ onMounted(() => {
 }
 
 .legend-entry--active {
+  color: #1e293b;
+}
+
+.dark .legend-entry--active {
   color: #ffffff;
 }
 
 .legend-entry:hover {
+  color: #334155;
+}
+
+.dark .legend-entry:hover {
   color: #e2e8f0;
 }
 
@@ -3532,8 +3561,12 @@ onMounted(() => {
 .node-detail-resize-handle {
   width: 6px;
   cursor: col-resize;
-  background: linear-gradient(to bottom, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
+  background: linear-gradient(to bottom, rgba(100, 116, 139, 0.2), rgba(100, 116, 139, 0.05));
   position: relative;
+}
+
+.dark .node-detail-resize-handle {
+  background: linear-gradient(to bottom, rgba(148, 163, 184, 0.2), rgba(148, 163, 184, 0.05));
 }
 
 .node-detail-resize-handle::after {
@@ -3543,18 +3576,31 @@ onMounted(() => {
   left: 50%;
   width: 2px;
   height: 60px;
-  background-color: rgba(148, 163, 184, 0.35);
+  background-color: rgba(100, 116, 139, 0.35);
   transform: translate(-50%, -50%);
 }
 
+.dark .node-detail-resize-handle::after {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
 .detail-action-btn {
-  color: #94a3b8;
+  color: #64748b;
   padding: 0.4rem;
   border-radius: 0.35rem;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+.dark .detail-action-btn {
+  color: #94a3b8;
+}
+
 .detail-action-btn:hover:not(:disabled) {
+  color: #1e293b;
+  background-color: rgba(71, 85, 105, 0.2);
+}
+
+.dark .detail-action-btn:hover:not(:disabled) {
   color: #fff;
   background-color: rgba(71, 85, 105, 0.6);
 }
