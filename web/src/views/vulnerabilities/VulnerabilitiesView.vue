@@ -389,6 +389,15 @@
         </div>
       </div>
     </div>
+
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      :alert-title="currentTitle"
+      :finding-summary="findingSummary"
+      :alert-id="currentVulnerabilityId"
+      @close="showAISidebar = false"
+    />
   </div>
 </template>
 
@@ -407,6 +416,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { severityToNumber } from '@/utils/severity'
 import { useToast } from '@/composables/useToast'
@@ -454,6 +464,10 @@ const showCloseVulnerabilityDialog = ref(false)
 const closeVulnerabilityDialogRef = ref(null)
 const isClosingVulnerability = ref(false)
 const authStore = useAuthStore()
+const showAISidebar = ref(false)
+const currentVulnerabilityId = ref(null)
+const currentTitle = ref('')
+const findingSummary = ref('')
 
 // Charts visibility state
 const chartsVisibilityStorageKey = 'vulnerabilities-showCharts-visible'
@@ -1330,6 +1344,26 @@ const handleBatchDelete = async () => {
   }
 }
 
+const openAISidebarFromList = () => {
+  if (!vulnerabilities.value.length) {
+    currentVulnerabilityId.value = null
+    currentTitle.value = ''
+    findingSummary.value = ''
+    showAISidebar.value = true
+    return
+  }
+
+  const selectedId = selectedVulnerabilities.value[0]
+  const target =
+    vulnerabilities.value.find(vul => vul.id === selectedId) ||
+    vulnerabilities.value[0]
+
+  currentVulnerabilityId.value = target?.id ?? null
+  currentTitle.value = target?.title || target?.name || ''
+  findingSummary.value = target?.description || ''
+  showAISidebar.value = true
+}
+
 const handleCreateVulnerability = () => {
   showMoreMenu.value = false
   showCreateDialog.value = true
@@ -1434,6 +1468,8 @@ onMounted(() => {
   }
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
+  // 监听 Header 发出的打开 AI 侧边栏事件
+  window.addEventListener('open-ai-sidebar', openAISidebarFromList)
 })
 
 onBeforeUnmount(() => {
@@ -1441,6 +1477,7 @@ onBeforeUnmount(() => {
   disposeDepartmentChart()
   // Clean up event listener
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('open-ai-sidebar', openAISidebarFromList)
 })
 </script>
 

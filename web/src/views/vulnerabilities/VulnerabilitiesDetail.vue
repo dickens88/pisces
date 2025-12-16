@@ -379,11 +379,20 @@
         <span class="text-sm">{{ $t('vulnerabilities.detail.shareSuccess') || '已复制到剪切板' }}</span>
       </div>
     </Transition>
+
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      :alert-title="currentTitle"
+      :finding-summary="findingSummary"
+      :alert-id="route.params.id"
+      @close="showAISidebar = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -397,6 +406,7 @@ import CommentSection from '@/components/common/CommentSection.vue'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { severityToNumber } from '@/utils/severity'
@@ -421,6 +431,9 @@ const associatedAlertsTableRef = ref(null)
 const showDisassociateDialog = ref(false)
 const isDisassociating = ref(false)
 const selectedAlertId = ref(null)
+const showAISidebar = ref(false)
+const currentTitle = ref('')
+const findingSummary = ref('')
 
 const tabs = [
   { key: 'overview', label: 'vulnerabilities.detail.tabs.overview' },
@@ -854,8 +867,25 @@ const closeAlertDetail = () => {
   selectedAlertId.value = null
 }
 
+const handleOpenAISidebar = () => {
+  if (vulnerability.value) {
+    currentTitle.value = vulnerability.value.title || vulnerability.value.name || ''
+    findingSummary.value = vulnerability.value.description || vulnerability.value.aiAnalysis?.description || ''
+  } else {
+    currentTitle.value = ''
+    findingSummary.value = ''
+  }
+  showAISidebar.value = true
+}
+
 onMounted(() => {
   loadVulnerabilityDetail()
+  // 监听Header发出的打开AI侧边栏事件
+  window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 </script>
 

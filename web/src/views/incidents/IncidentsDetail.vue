@@ -839,6 +839,15 @@
         <span class="text-sm">{{ $t('incidents.detail.shareSuccess') || '已复制到剪切板' }}</span>
       </div>
     </Transition>
+
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      :alert-title="currentTitle"
+      :finding-summary="findingSummary"
+      :alert-id="route.params.id"
+      @close="showAISidebar = false"
+    />
   </div>
 </template>
 
@@ -855,6 +864,7 @@ import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
@@ -911,6 +921,9 @@ const selectedAlerts = ref([])
 const associatedAlertsTableRef = ref(null)
 const showDisassociateDialog = ref(false)
 const isDisassociating = ref(false)
+const showAISidebar = ref(false)
+const currentTitle = ref('')
+const findingSummary = ref('')
 
 const createEmptyGraphData = () => ({
   nodes: [],
@@ -2282,6 +2295,17 @@ const nodeDetailPaneStyle = computed(() => ({
   maxWidth: `${Math.round(nodeDetailWidth.value)}px`
 }))
 
+const handleOpenAISidebar = () => {
+  if (incident.value) {
+    currentTitle.value = incident.value.title || incident.value.name || ''
+    findingSummary.value = incident.value.description || ''
+  } else {
+    currentTitle.value = ''
+    findingSummary.value = ''
+  }
+  showAISidebar.value = true
+}
+
 onBeforeUnmount(() => {
   window.removeEventListener('pointermove', handleNodeDetailResize)
   window.removeEventListener('pointerup', stopNodeDetailResize)
@@ -2294,6 +2318,7 @@ onBeforeUnmount(() => {
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
   }
+  window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
   destroyD3Graph()
 })
 
@@ -3263,6 +3288,8 @@ onMounted(() => {
     fullscreenEventNames.forEach((eventName) => document.addEventListener(eventName, syncGraphFullscreenState))
     syncGraphFullscreenState()
   }
+  // 监听Header发出的打开AI侧边栏事件
+  window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
   nextTick(() => {
     if (hasGraphData.value && activeTab.value === 'alertStory') {
       initD3Graph()
