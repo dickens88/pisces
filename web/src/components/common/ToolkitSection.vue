@@ -123,27 +123,34 @@
             <template v-for="record in toolkitRecords" :key="record.id">
               <details :class="['group rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700', record.status === 'running' && 'animate-pulse']">
                 <summary class="flex items-center justify-between p-2 cursor-pointer list-none hover:bg-gray-200 dark:hover:bg-gray-700">
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
                     <span :class="[
-                      'material-symbols-outlined text-sm',
+                      'material-symbols-outlined text-sm shrink-0',
                       record.status === 'completed' && 'text-green-400',
                       record.status === 'running' && 'text-yellow-400',
                       record.status === 'failed' && 'text-red-400'
                     ]">
                       {{ record.status === 'completed' ? 'task_alt' : record.status === 'running' ? 'hourglass_top' : 'error' }}
                     </span>
-                    <div>
-                      <p class="font-medium text-gray-900 dark:text-white text-xs">{{ record.title }}</p>
-                      <p class="text-[10px] text-gray-600 dark:text-gray-400">
-                        {{ formatDateTime(record.create_time) }}
-                      </p>
+                    <div class="flex-1 min-w-0">
+                      <p class="font-medium text-gray-900 dark:text-white text-xs truncate">{{ record.title }}</p>
+                      <div class="flex items-center gap-2 mt-0.5">
+                        <p class="text-[10px] text-gray-600 dark:text-gray-400">
+                          {{ formatDateTime(record.create_time) }}
+                        </p>
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500">•</span>
+                        <div class="flex items-center gap-1">
+                          <p class="text-[10px] text-gray-700 dark:text-gray-300 font-medium truncate">
+                            {{ record.owner }}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-sm group-hover:text-gray-700 dark:group-hover:text-gray-300">expand_more</span>
+                  <span class="material-symbols-outlined text-gray-500 dark:text-gray-400 text-sm group-hover:text-gray-700 dark:group-hover:text-gray-300 shrink-0">expand_more</span>
                 </summary>
                 <div class="px-2 pb-2 pt-1 text-[10px] text-gray-600 dark:text-gray-400 font-mono space-y-1 border-t border-gray-200 dark:border-gray-700">
                   <p><span class="text-gray-500 dark:text-gray-500">{{ $t('common.executionTime') || '执行时间' }}:</span> {{ formatDateTime(record.create_time) }}</p>
-                  <p><span class="text-gray-500 dark:text-gray-500">{{ $t('common.executor') || '执行人' }}:</span> {{ record.owner || ($t('common.system') || '系统') }}</p>
                   <div v-if="record.result" :class="['mt-2 pt-2 border-t border-gray-200 dark:border-gray-700', record.status === 'failed' && 'text-red-600 dark:text-red-300']">
                     <span class="text-gray-500 dark:text-gray-500">{{ record.status === 'failed' ? ($t('common.error') || '错误') : ($t('common.result') || '结果') }}:</span>
                     <pre class="mt-1 text-[10px] whitespace-pre-wrap break-words">{{ formatToolkitResult(record.result) }}</pre>
