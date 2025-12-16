@@ -154,9 +154,9 @@
               </div>
               <div class="flex-1 overflow-y-auto">
                 <div
-                  v-for="item in associatedAlertsTimeline"
+                  v-for="item in paginatedAssociatedAlertsTimeline"
                   :key="item.id"
-                  class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
+                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
                 >
                   <div class="flex items-center justify-between mb-1">
                     <div class="flex items-center space-x-2">
@@ -174,16 +174,16 @@
                         {{ formatDateTime(item.createTime) }}
                       </span>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
                       {{ $t(`alerts.list.${item.status}`) }}
                     </span>
                   </div>
-                  <h4 class="text-xs leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
+                  <h4 class="text-[11px] leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
                     <span :title="item.title || '-'">
                       {{ item.title || '-' }}
                     </span>
                   </h4>
-                  <p class="mt-1 text-xs text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
+                  <p class="mt-1 text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
                     {{ item.owner || '-' }}
                   </p>
                 </div>
@@ -192,6 +192,44 @@
                   class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
                 >
                   {{ translateOr('incidents.detail.eventGraph.timelineEmpty', '暂无关联告警') }}
+                </div>
+              </div>
+              <div
+                v-if="timelineTotalPages > 0"
+                class="px-2.5 py-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400"
+              >
+                <div class="flex items-center gap-[2px]">
+                  <button
+                    type="button"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="timelineCurrentPage === 1"
+                    @click="timelineCurrentPage = Math.max(1, timelineCurrentPage - 1)"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">chevron_left</span>
+                  </button>
+                  <span class="text-center">{{ timelineCurrentPage }}/{{ timelineTotalPages }}</span>
+                  <button
+                    type="button"
+                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    :disabled="timelineCurrentPage === timelineTotalPages"
+                    @click="timelineCurrentPage = Math.min(timelineTotalPages, timelineCurrentPage + 1)"
+                  >
+                    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                  </button>
+                </div>
+                <div class="flex items-center gap-0.5">
+                  <select
+                    v-model.number="timelinePageSize"
+                    class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
+                    :title="translateOr('incidents.detail.eventGraph.perPageTooltip', '每页条数')"
+                  >
+                    <option v-for="size in timelinePageSizeOptions" :key="size" :value="size">
+                      {{ size }}
+                    </option>
+                  </select>
+                  <span class="text-[9px] text-gray-400 dark:text-slate-500">
+                    /{{ translateOr('incidents.detail.eventGraph.perPageUnit', '页') }}
+                  </span>
                 </div>
               </div>
             </aside>
@@ -2472,6 +2510,30 @@ const associatedAlertsTimeline = computed(() => {
       severity
     }
   })
+})
+
+// Alert timeline 左侧分页（每页默认 5 条，用户可调整）
+const timelinePageSizeOptions = [5, 10, 20]
+const timelinePageSize = ref(5)
+const timelineCurrentPage = ref(1)
+const timelineTotalPages = computed(() => {
+  const size = timelinePageSize.value || 5
+  const total = associatedAlertsTimeline.value.length
+  return total > 0 ? Math.ceil(total / size) : 0
+})
+const paginatedAssociatedAlertsTimeline = computed(() => {
+  const size = timelinePageSize.value || 5
+  if (!associatedAlertsTimeline.value.length) return []
+  const totalPages = timelineTotalPages.value || 1
+  const page = Math.min(Math.max(timelineCurrentPage.value, 1), totalPages)
+  const start = (page - 1) * size
+  const end = start + size
+  return associatedAlertsTimeline.value.slice(start, end)
+})
+
+// 当页大小或列表长度变化时，自动纠正当前页
+watch([timelinePageSize, associatedAlertsTimeline], () => {
+  timelineCurrentPage.value = 1
 })
 
 // 左右侧面板收起状态（Alert story 布局）
