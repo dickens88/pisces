@@ -134,12 +134,12 @@
               v-if="!isLeftPaneCollapsed"
               class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col"
             >
-              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-slate-900">
-                <div class="flex items-center gap-2">
-                  <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
+              <div class="px-3 py-2 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-slate-900 text-[11px]">
+                <div class="flex items-center gap-1.5">
+                  <h3 class="font-semibold text-gray-800 dark:text-slate-100">
                     {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
                   </h3>
-                  <span class="text-xs text-gray-400 dark:text-slate-500">
+                  <span class="text-[10px] text-gray-400 dark:text-slate-500">
                     {{ associatedAlertsTimeline.length }}
                   </span>
                 </div>
@@ -152,46 +152,93 @@
                   <span class="material-symbols-outlined text-base">chevron_left</span>
                 </button>
               </div>
-              <div class="flex-1 overflow-y-auto">
-                <div
-                  v-for="item in associatedAlertsTimeline"
-                  :key="item.id"
-                  class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
-                >
-                  <div class="flex items-center justify-between mb-1">
-                    <div class="flex items-center space-x-2">
-                      <span
-                        :class="[
-                          'w-2 h-2 rounded-full',
-                          item.severity === 'high'
-                            ? 'bg-red-500'
-                            : item.severity === 'medium'
-                              ? 'bg-orange-500'
-                              : 'bg-emerald-500'
-                        ]"
-                      ></span>
-                      <span class="text-[11px] text-gray-500 dark:text-slate-400">
-                        {{ formatDateTime(item.createTime) }}
+              <div class="flex-1 flex flex-col overflow-hidden">
+                <div class="flex-1 text-[11px]">
+                  <div
+                    v-for="item in paginatedAssociatedAlertsTimeline"
+                    :key="item.id"
+                    class="px-4 py-3 border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-900/80 transition-colors cursor-default"
+                  >
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="flex items-center space-x-2">
+                        <span
+                          :class="[
+                            'w-2 h-2 rounded-full',
+                            item.severity === 'high'
+                              ? 'bg-red-500'
+                              : item.severity === 'medium'
+                                ? 'bg-orange-500'
+                                : 'bg-emerald-500'
+                          ]"
+                        ></span>
+                        <span class="text-[10px] text-gray-500 dark:text-slate-400">
+                          {{ formatDateTime(item.createTime) }}
+                        </span>
+                      </div>
+                      <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                        {{ $t(`alerts.list.${item.status}`) }}
                       </span>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
-                      {{ $t(`alerts.list.${item.status}`) }}
-                    </span>
+                    <h4 class="leading-4 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
+                      <span :title="item.title || '-'">
+                        {{ item.title || '-' }}
+                      </span>
+                    </h4>
+                    <p class="mt-1 text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
+                      {{ item.owner || '-' }}
+                    </p>
                   </div>
-                  <h4 class="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
-                    <span :title="item.title || '-'">
-                      {{ item.title || '-' }}
-                    </span>
-                  </h4>
-                  <p class="mt-1 text-xs text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
-                    {{ item.owner || '-' }}
-                  </p>
+                  <div
+                    v-if="associatedAlertsTimeline.length === 0"
+                    class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
+                  >
+                    {{ translateOr('incidents.detail.eventGraph.timelineEmpty', '暂无关联告警') }}
+                  </div>
                 </div>
                 <div
-                  v-if="associatedAlertsTimeline.length === 0"
-                  class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
+                  v-if="associatedAlertsTimelineTotalPages > 1 || associatedAlertsTimeline.length > associatedAlertsTimelinePageSize"
+                  class="px-3 py-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-gray-500 dark:text-slate-400"
                 >
-                  {{ translateOr('incidents.detail.eventGraph.timelineEmpty', '暂无关联告警') }}
+                  <div class="flex items-center gap-1">
+                    <span>
+                      {{ translateOr('incidents.detail.eventGraph.timelinePagination', '第') }}
+                      {{ associatedAlertsTimelineCurrentPage }}
+                      {{ translateOr('incidents.detail.eventGraph.timelinePaginationOf', '页 / 共') }}
+                      {{ associatedAlertsTimelineTotalPages }}
+                      {{ translateOr('incidents.detail.eventGraph.timelinePaginationPages', '页') }}
+                    </span>
+                    <span class="mx-1 text-gray-300 dark:text-slate-600">·</span>
+                    <span>
+                      {{ translateOr('incidents.detail.eventGraph.timelinePageSizeLabel', '每页') }}
+                      <select
+                        v-model.number="associatedAlertsTimelinePageSize"
+                        class="ml-1 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                      >
+                        <option :value="5">5</option>
+                        <option :value="10">10</option>
+                        <option :value="20">20</option>
+                      </select>
+                      {{ translateOr('incidents.detail.eventGraph.timelinePageSizeUnit', '条') }}
+                    </span>
+                  </div>
+                  <div class="inline-flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="p-1 rounded border border-transparent hover:border-gray-200 dark:hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      :disabled="associatedAlertsTimelineCurrentPage <= 1"
+                      @click="changeAssociatedAlertsTimelinePage(associatedAlertsTimelineCurrentPage - 1)"
+                    >
+                      <span class="material-symbols-outlined text-xs">chevron_left</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="p-1 rounded border border-transparent hover:border-gray-200 dark:hover:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      :disabled="associatedAlertsTimelineCurrentPage >= associatedAlertsTimelineTotalPages"
+                      @click="changeAssociatedAlertsTimelinePage(associatedAlertsTimelineCurrentPage + 1)"
+                    >
+                      <span class="material-symbols-outlined text-xs">chevron_right</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </aside>
@@ -311,10 +358,10 @@
                   </div>
                 </div>
               </div>
-              <div class="absolute bottom-6 left-6 z-10 pointer-events-none">
+              <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
                 <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 shadow-lg">
-                    <div class="flex flex-col gap-1.5 text-[11px] uppercase tracking-wide">
+                  <div class="bg-slate-900/80 border border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
+                    <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
                       <button
                         v-for="entry in legendEntries"
                         :key="entry.key"
@@ -338,25 +385,24 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-slate-900/80 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
               >
-                <div class="flex items-center gap-2 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                  <span class="font-medium truncate">{{ graphStatusLabel }}</span>
-                  <span class="mx-2 text-slate-600">|</span>
-                  <span class="truncate">
-                    {{ $t('incidents.detail.eventGraph.lastGenerationTime') }}：{{ graphLastGeneratedTime || '--' }}
+                  <span class="font-semibold">{{ graphStatusLabel }}</span>
+                  <span class="text-slate-600">|</span>
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}：{{ graphLastGeneratedTime || '--' }}
                   </span>
                 </div>
-                <div v-if="isGraphReady" class="text-[11px] text-slate-400 truncate">
-                  {{
-                    $t('incidents.detail.eventGraph.summaryParagraph2', {
-                      nodes: eventGraphStats.totalNodes,
-                      edges: eventGraphStats.totalEdges,
-                      alerts: eventGraphStats.alertNodes,
-                      ips: eventGraphStats.ipNodes
-                    })
-                  }}
+                <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}：{{ eventGraphStats.totalNodes ?? 0 }}
+                  </span>
+                  <span class="text-slate-600">|</span>
+                  <span class="whitespace-nowrap">
+                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}：{{ eventGraphStats.totalEdges ?? 0 }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -483,22 +529,15 @@
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
                         {{ $t('incidents.detail.severity') }}
                       </span>
-                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
+                      <span class="col-span-2 flex items-center">
                         <span
                           v-if="incident?.severity"
-                          class="w-2 h-2 rounded-full mr-2"
-                          :class="getSeverityDotClass(incident.severity)"
-                        ></span>
-                        <span :class="getSeverityTextClass(incident?.severity)">
-                          {{
-                            incident?.severity
-                              ? $t(`common.severity.${String(incident.severity).toLowerCase()}`) +
-                                ' (' +
-                                (severityToNumber(incident.severity) || '-') +
-                                ')'
-                              : '-'
-                          }}
+                          class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          :class="getRiskLevelClass(String(incident.severity).toLowerCase())"
+                        >
+                          {{ $t(`common.severity.${String(incident.severity).toLowerCase()}`) }}
                         </span>
+                        <span v-else class="text-gray-500 dark:text-slate-400">-</span>
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -536,6 +575,12 @@
                   </div>
                 </div>
 
+                <!-- 分割线：事件详情 与 受影响资产 之间 -->
+                <div
+                  v-if="topImpactedEntities.length"
+                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                ></div>
+
                 <!-- 受影响资产：图谱中关联度最高的实体 Top 5 -->
                 <div v-if="topImpactedEntities.length">
                   <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
@@ -561,6 +606,12 @@
                     </li>
                   </ul>
                 </div>
+
+                <!-- 分割线：受影响资产 与 描述 之间 -->
+                <div
+                  v-if="incident?.description"
+                  class="my-3 border-t border-slate-200 dark:border-slate-700/60"
+                ></div>
 
                 <!-- 描述 -->
                 <div v-if="incident?.description">
@@ -806,7 +857,6 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
-import { severityToNumber } from '@/utils/severity'
 import DOMPurify from 'dompurify'
 import { marked } from 'marked'
 import * as d3 from 'd3'
@@ -1298,6 +1348,8 @@ const updateNodeStyles = () => {
     return
   }
   const selectedId = selectedGraphNodeId.value
+  const legendKey = legendFlashKey.value
+  const legendActive = !!legendKey
   const searchActive = !!graphSearchQuery.value.trim()
   const highlightSet = filteredNodeIds.value
   const relations = relatedNodeIds.value
@@ -1309,6 +1361,12 @@ const updateNodeStyles = () => {
       (node) => !!selectedId && node.id !== selectedId && relations.has(node.id)
     )
     .classed('graph-node--dimmed', (node) => {
+      const nodeType = (node.properties?.entity_type || 'entity').toLowerCase()
+      const matchLegend = legendActive && nodeType === legendKey
+      if (legendActive) {
+        // 图例高亮时，非该类型节点统一变暗
+        return !matchLegend
+      }
       if (selectedId) {
         return node.id !== selectedId && !relations.has(node.id)
       }
@@ -1319,7 +1377,18 @@ const updateNodeStyles = () => {
     })
     .classed(
       'graph-node--search-hit',
-      (node) => !selectedId && searchActive && highlightSet.has(node.id)
+      (node) => {
+        const nodeType = (node.properties?.entity_type || 'entity').toLowerCase()
+        const matchLegend = legendActive && nodeType === legendKey
+        // 没有选中节点时，搜索命中或图例命中的节点使用高亮描边
+        if (!selectedId && searchActive && highlightSet.has(node.id)) {
+          return true
+        }
+        if (!selectedId && !searchActive && matchLegend) {
+          return true
+        }
+        return false
+      }
     )
 
   // 获取文字颜色
@@ -2063,14 +2132,20 @@ const handleLegendClick = (key) => {
   if (!key) {
     return
   }
-  legendFlashKey.value = key
-  if (legendFlashTimer.value) {
-    clearTimeout(legendFlashTimer.value)
-  }
-  legendFlashTimer.value = setTimeout(() => {
+  // 再次点击相同图例时取消高亮
+  if (legendFlashKey.value === key) {
     legendFlashKey.value = ''
-    legendFlashTimer.value = null
-  }, 800)
+  } else {
+    legendFlashKey.value = key
+  }
+
+  // 图例筛选时清空节点选中和搜索关键字，避免样式冲突
+  selectedGraphNodeId.value = ''
+  graphSearchQuery.value = ''
+
+  nextTick(() => {
+    updateNodeStyles()
+  })
 }
 
 const handleRelationClick = (neighborId) => {
@@ -2466,6 +2541,36 @@ const associatedAlertsTimeline = computed(() => {
     }
   })
 })
+
+// 告警时间线分页（确保一屏展示）
+const associatedAlertsTimelinePageSize = ref(5)
+const associatedAlertsTimelineCurrentPage = ref(1)
+
+const associatedAlertsTimelineTotalPages = computed(() => {
+  const total = associatedAlertsTimeline.value.length
+  if (!total) return 1
+  return Math.ceil(total / associatedAlertsTimelinePageSize.value)
+})
+
+const paginatedAssociatedAlertsTimeline = computed(() => {
+  const page = associatedAlertsTimelineCurrentPage.value
+  const size = associatedAlertsTimelinePageSize.value
+  const start = (page - 1) * size
+  return associatedAlertsTimeline.value.slice(start, start + size)
+})
+
+const changeAssociatedAlertsTimelinePage = (page) => {
+  if (page < 1) {
+    associatedAlertsTimelineCurrentPage.value = 1
+    return
+  }
+  const maxPage = associatedAlertsTimelineTotalPages.value
+  if (page > maxPage) {
+    associatedAlertsTimelineCurrentPage.value = maxPage
+    return
+  }
+  associatedAlertsTimelineCurrentPage.value = page
+}
 
 // 左右侧面板收起状态（Alert story 布局）
 const isLeftPaneCollapsed = ref(false)

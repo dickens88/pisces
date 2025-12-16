@@ -587,6 +587,8 @@
         "regenerateSuccess": "Graph regeneration started. Refresh later to view updates.",
         "regenerateError": "Failed to regenerate graph, please try again.",
         "lastGenerationTime": "Last Generation Time",
+        "entityCount": "Entities",
+        "relationCount": "Relations",
         "incidentCreated": "Correlation Seed Created",
         "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
         "alertConverted": "Alert Enriched in Graph",
