@@ -733,12 +733,9 @@ const handleExecuteToolkit = async (tool) => {
 }
 
 
-const generateConversationId = () =>
-  `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
 const handleResetConversation = () => {
   securityAgentMessages.value = []
-  conversationId.value = generateConversationId()
+  conversationId.value = null
   inputMessage.value = ''
 }
 
