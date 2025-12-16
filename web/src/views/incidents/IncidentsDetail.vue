@@ -13,8 +13,8 @@
         <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || 'Loading...' }}</p>
       </div>
     </div>
-    <!-- 面包屑导航 -->
-    <nav class="mb-5">
+    <!-- 面包屑导航和操作按钮 -->
+    <nav class="mb-5 flex items-center justify-between gap-4 flex-wrap">
       <ol class="flex items-center gap-2.5 text-sm">
         <li>
           <router-link
@@ -35,46 +35,17 @@
           </span>
         </li>
       </ol>
-    </nav>
-    <!-- 页面标题和操作 -->
-    <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
-      <div class="flex flex-col gap-2">
-        <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
-          {{ incident?.name }}
-        </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm font-normal leading-normal">
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.actor') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
-          </div>
-          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.createTime') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
-          </div>
-          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.closeTime') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.closeTime || incident?.close_time) }}</span>
-          </div>
-          <div class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('incidents.detail.updateTime') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.updateTime) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-1 gap-3 flex-wrap justify-start sm:justify-end min-w-max">
+      <div class="flex gap-3 flex-wrap justify-end">
         <button
           @click="openEditDialog"
-          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          class="btn-secondary"
         >
           <span class="material-symbols-outlined text-base">edit</span>
           <span class="truncate">{{ $t('incidents.detail.edit') }}</span>
         </button>
         <button
           @click="openCloseDialog"
-          class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-primary hover:bg-primary/90 text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
+          class="btn-primary"
         >
           <span class="material-symbols-outlined text-base">archive</span>
           <span class="truncate">{{ $t('incidents.detail.closeIncident') }}</span>
@@ -82,7 +53,7 @@
         <button
           @click="handleRefresh"
           :disabled="loadingIncident"
-          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
+          class="btn-icon"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
@@ -94,11 +65,38 @@
         </button>
         <button
           @click="handleShare"
-          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
+          class="btn-icon"
           :title="$t('incidents.detail.share') || 'Share'"
         >
           <span class="material-symbols-outlined text-base">share</span>
         </button>
+      </div>
+    </nav>
+    <!-- 页面标题 -->
+    <header class="flex flex-col gap-2 mb-6">
+      <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
+        {{ incident?.name }}
+      </h1>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm">
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('incidents.detail.actor') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ incident?.actor }}</span>
+        </div>
+        <span class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></span>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('incidents.detail.createTime') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.createTime) }}</span>
+        </div>
+        <span class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></span>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('incidents.detail.closeTime') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.closeTime || incident?.close_time) }}</span>
+        </div>
+        <span class="h-4 w-px bg-gray-300 dark:bg-slate-600/50"></span>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('incidents.detail.updateTime') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(incident?.updateTime) }}</span>
+        </div>
       </div>
     </header>
 
@@ -3430,6 +3428,87 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 按钮样式 */
+.btn-secondary,
+.btn-primary,
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  min-width: 84px;
+  background-color: rgb(229 231 235);
+  color: rgb(55 65 81);
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.dark .btn-secondary {
+  background-color: rgb(51 65 85);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: rgb(209 213 219);
+}
+
+.dark .btn-secondary:hover {
+  background-color: rgb(71 85 105);
+}
+
+.btn-primary {
+  min-width: 84px;
+  background-color: #2b7cee;
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+}
+
+.btn-primary:hover {
+  background-color: rgba(43, 124, 238, 0.9);
+}
+
+.btn-icon {
+  background-color: rgb(229 231 235);
+  color: rgb(55 65 81);
+}
+
+.dark .btn-icon {
+  background-color: #2a3546;
+  color: white;
+}
+
+.btn-icon:hover {
+  background-color: rgb(209 213 219);
+}
+
+.dark .btn-icon:hover {
+  background-color: #3c4a60;
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon:disabled:hover {
+  background-color: rgb(229 231 235);
+}
+
+.dark .btn-icon:disabled:hover {
+  background-color: #2a3546;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
