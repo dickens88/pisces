@@ -97,8 +97,20 @@ class ToolkitRecordView(Resource):
     def get(self, username=None):
         """Query toolkit records by alert_id (event_id)."""
         try:
+            event_id = request.args.get("event_id") or request.args.get("alert_id")
+            limit = request.args.get("limit", default=10, type=int)
+            recent_days = request.args.get("recent_days", default=3, type=int)
+
+            # Enforce sensible defaults: max 10 results from the last 3 days
+            limit = 10 if not limit or limit < 1 else limit
+            recent_days = 3 if recent_days is None or recent_days <= 0 else recent_days
+
             # Query records by event_id (which stores alert_id)
-            records = ToolkitRecord.list_toolkit_records(event_id=request.args.get("event_id"))
+            records = ToolkitRecord.list_toolkit_records(
+                event_id=event_id,
+                limit=limit,
+                recent_days=recent_days
+            )
             return {"data": records, "total": len(records)}, 200
         except Exception as ex:
             logger.exception(ex)
@@ -109,6 +121,7 @@ class ToolkitRecordView(Resource):
         """Create a new toolkit record, call 3rd party API, and update the result."""
         try:
             data = json.loads(request.data or "{}")
+            event_id = data.get("event_id") or data.get("alert_id")
 
             toolkit_record = ToolkitRecord.create_toolkit_record({
                 "title": data.get("title"),
@@ -118,10 +131,10 @@ class ToolkitRecordView(Resource):
                 "status": "running",
                 "result": None,
                 "owner": username,
-                "event_id": data.get("event_id")
+                "event_id": event_id
             })
             record_id = toolkit_record["id"]
-            logger.info(f"[Toolkit] Created record id={record_id} for alert_id={data.get('event_id')} [{username}]")
+            logger.info(f"[Toolkit] Created record id={record_id} for alert_id={event_id} [{username}]")
 
             try:
                 api_result = call_toolkit_api(

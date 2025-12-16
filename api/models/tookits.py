@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP
 from sqlalchemy.sql import func
 
@@ -109,7 +110,7 @@ class ToolkitRecord(Base):
             session.close()
 
     @classmethod
-    def list_toolkit_records(cls, app_id=None, app_type=None, status=None, owner=None, event_id=None, limit=10, offset=0):
+    def list_toolkit_records(cls, app_id=None, app_type=None, status=None, owner=None, event_id=None, limit=10, offset=0, recent_days=3):
         """List toolkit records with optional filters. Returns list of dictionaries."""
         session = Session()
         try:
@@ -126,6 +127,9 @@ class ToolkitRecord(Base):
                 query = query.filter(cls.owner == owner)
             if event_id is not None:
                 query = query.filter(cls.event_id == event_id)
+            if recent_days is not None and recent_days > 0:
+                cutoff_time = datetime.utcnow() - timedelta(days=recent_days)
+                query = query.filter(cls.create_time >= cutoff_time)
             
             # Order by create_time descending (newest first)
             query = query.order_by(cls.create_time.desc())

@@ -1000,19 +1000,10 @@ const stripHtmlAndEntities = (html) => {
     .trim()
 }
 
-// 查找AI Investigation内容
 const findInvestigationContent = () => {
   if (!alert.value?.ai?.length) return ''
-  
-  const investigationItem = alert.value.ai.find(item => {
-    const content = String(item.content || '').toLowerCase()
-    const author = String(item.author || '').toLowerCase()
-    return content.includes('investigation') || 
-           content.includes('summary') || 
-           author.includes('investigation')
-  })
-  
-  return investigationItem?.content ? stripHtmlAndEntities(investigationItem.content) : ''
+  const firstContent = alert.value.ai[0]?.content || ''
+  return stripHtmlAndEntities(firstContent)
 }
 
 // 记录是否已因 AI Investigation 自动展开过，避免重复展开
