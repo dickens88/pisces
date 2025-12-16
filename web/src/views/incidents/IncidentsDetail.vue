@@ -466,7 +466,7 @@
                         <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ translateOr('incidents.detail.eventGraph.nodeDetail.label', 'Label') }}
                         </p>
-                        <p class="text-xs text-slate-100 whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap">
                           {{ formatNodeDetailValue(primaryNodeLabel) || '-' }}
                         </p>
                       </div>
@@ -474,7 +474,7 @@
                         <p class="text-xs font-semibold text-gray-600 dark:text-slate-300">
                           {{ $t('incidents.detail.eventGraph.nodeDetail.entityType') }}
                         </p>
-                        <p class="text-xs text-slate-100 whitespace-pre-wrap">
+                        <p class="text-xs text-gray-900 dark:text-slate-100 whitespace-pre-wrap">
                           {{ formatNodeDetailValue(selectedGraphNode.properties?.entity_type) }}
                         </p>
                       </div>
@@ -914,24 +914,46 @@ const ENTITY_COLOR_GRADIENT = {
   other: 'grad-cyan'
 }
 
-const ENTITY_COLOR_SOLID = {
+// Light模式下的颜色配置 - 使用更深的颜色提高对比度
+const ENTITY_COLOR_SOLID_LIGHT = {
+  host: '#dc2626',      // 更深的红色
+  ip: '#0284c7',        // 更深的青色
+  domain: '#059669',    // 更深的绿色
+  domainname: '#059669',
+  url: '#059669',
+  operation: '#d97706', // 更深的黄色
+  user: '#7c3aed',      // 更深的紫色
+  tenant: '#7c3aed',
+  alert: '#dc2626',
+  service: '#059669',
+  api: '#0369a1',       // 更深的蓝色
+  malware: '#b91c1c',   // 更深的红色
+  other: '#2563eb'      // 更深的蓝色
+}
+
+// Dark模式下的颜色配置 - 保持原有较亮的颜色
+const ENTITY_COLOR_SOLID_DARK = {
   host: '#fda4af',
   ip: '#67e8f9',
   domain: '#6ee7b7',
   domainname: '#6ee7b7',
+  url: '#6ee7b7',
   operation: '#fcd34d',
   user: '#c4b5fd',
   tenant: '#c4b5fd',
   alert: '#fda4af',
   service: '#6ee7b7',
   api: '#7dd3fc',
+  malware: '#ef4444',
   other: '#60a5fa'
 }
+
+const ENTITY_COLOR_SOLID = ENTITY_COLOR_SOLID_LIGHT
 
 const ENTITY_TYPE_ALIAS = {
   domainname: 'domain',
   fqdn: 'domain',
-  url: 'domain',
+  url: 'url',
   service: 'api',
   userid: 'user'
 }
@@ -939,60 +961,57 @@ const ENTITY_TYPE_ALIAS = {
 const normalizeEntityType = (type) => ENTITY_TYPE_ALIAS[type] || type
 
 const ENTITY_ICON_PATHS = {
-  // IP地址图标 - DNS/网络图标，优化为更适合stroke渲染的路径
+  // IP地址图标 - 使用 Material Symbols bring_your_own_ip
   ip: {
-    viewBox: 16,
-    path: 'M3 2.5a1.5 1.5 0 0 0-1.5 1.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5V4a1.5 1.5 0 0 0-1.5-1.5H3Zm-1.5 4a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11Zm0 3a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11Zm-1 3a1.5 1.5 0 0 0-1.5 1.5v1a1.5 1.5 0 0 0 1.5 1.5h13a1.5 1.5 0 0 0 1.5-1.5v-1a1.5 1.5 0 0 0-1.5-1.5h-13Zm1.5 1.5v1h11v-1h-11Z'
+    icon: 'bring_your_own_ip'
   },
-  // 域名图标 - 地球/全球网络图标，优化网格线使其更清晰
+  // 域名图标 - 地球/全球网络图标
   domain: {
-    viewBox: 16,
-    path: 'M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13ZM3.5 8c0-.68.1-1.34.3-1.96.97.54 2.13.94 3.4 1.17v1.58c-1.27.23-2.43.63-3.4 1.17-.2-.62-.3-1.28-.3-1.96Zm9.2-1.96c-.97.54-2.13.94-3.4 1.17V5.13c1.27-.23 2.43-.63 3.4-1.17.2.62.3 1.28.3 1.96 0 .68-.1 1.34-.3 1.96-.97-.54-2.13-.94-3.4-1.17V6.71c1.27-.23 2.43-.63 3.4-1.17ZM8 3.5c.68 0 1.34.1 1.96.3-.54.97-.94 2.13-1.17 3.4H7.21c-.23-1.27-.63-2.43-1.17-3.4.62-.2 1.28-.3 1.96-.3Zm0 9c-.68 0-1.34-.1-1.96-.3.54-.97.94-2.13 1.17-3.4h1.58c.23 1.27.63 2.43 1.17 3.4-.62.2-1.28.3-1.96.3Z'
+    icon: 'public'
   },
-  // 主机图标 - 桌面/计算机图标，优化为更清晰的显示器形状
+  // 主机图标 - 使用 Material Symbols host
   host: {
-    viewBox: 16,
-    path: 'M2 3.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-7Zm2-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H4Zm1 2h6v1H5V4.5Zm0 2h6v1H5v-1Zm0 2h4v1H5v-1Zm-1 4h8v1.5a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5V12.5Z'
+    icon: 'host'
   },
-  // API图标 - 接口/端点图标，优化齿轮形状使其更清晰
+  // API图标 - 使用 Material Symbols api
   api: {
-    viewBox: 16,
-    path: 'M8 2.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h.5V4a.5.5 0 0 1 .5-.5h.5V3a.5.5 0 0 1 .5-.5h1Zm0 1h-.5v.5a.5.5 0 0 1-.5.5h-.5v1h.5a.5.5 0 0 1 .5.5v.5h1v-.5a.5.5 0 0 1 .5-.5h.5v-1h-.5a.5.5 0 0 1-.5-.5V3.5h-1Zm-2 4.5a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H6Zm0 1h6v2H6v-2Z'
+    icon: 'api'
   },
-  // 告警图标 - 警告三角形，优化为更适合stroke渲染
+  // URL图标 - 使用 Material Symbols link
+  url: {
+    icon: 'link'
+  },
+  // 告警图标 - 警告三角形
   alert: {
-    viewBox: 16,
-    path: 'M8 2.5L2.5 13.5h11L8 2.5ZM8 6.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5A.75.75 0 0 1 8 6.5Zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z'
+    icon: 'warning'
   },
-  // 用户图标 - 用户头像，优化为更清晰的轮廓
+  // 用户图标 - 使用 Material Symbols person
   user: {
-    viewBox: 16,
-    path: 'M8 1.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM3.5 12.75A4.5 4.5 0 0 1 8 8.25a4.5 4.5 0 0 1 4.5 4.5.75.75 0 0 1-.75.75h-7.5a.75.75 0 0 1-.75-.75Z'
+    icon: 'person'
   },
-  // 租户图标 - 群组/组织图标，优化为更清晰的多个用户轮廓
+  // 租户图标 - 群组/组织图标
   tenant: {
-    viewBox: 16,
-    path: 'M5 2.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2ZM8 9a3 3 0 0 0-3 3v1.5a.5.5 0 0 0 .5.5h5a.5.5 0 0 0 .5-.5V12a3 3 0 0 0-3-3Zm-2 3a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2H6Z'
+    icon: 'groups'
   },
-  // 服务图标 - 齿轮/设置图标，优化齿轮形状
+  // 服务图标 - 齿轮/设置图标
   service: {
-    viewBox: 16,
-    path: 'M8 2.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-.5v.5a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-.5h-.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h.5V4a.5.5 0 0 1 .5-.5h.5V3a.5.5 0 0 1 .5-.5h1Zm0 1h-.5v.5a.5.5 0 0 1-.5.5h-.5v1h.5a.5.5 0 0 1 .5.5v.5h1v-.5a.5.5 0 0 1 .5-.5h.5v-1h-.5a.5.5 0 0 1-.5-.5V3.5h-1Zm-2 4.5a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H6Zm0 1h6v2H6v-2Z'
+    icon: 'settings'
   },
-  // 操作图标 - 操作/动作图标，优化加号形状
+  // 操作图标 - 操作/动作图标
   operation: {
-    viewBox: 16,
-    path: 'M8 2.5a.5.5 0 0 1 .5.5v2h2a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 1 0-1h2V3a.5.5 0 0 1 .5-.5Zm-4 6a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5V9a.5.5 0 0 0-.5-.5H4Zm0 1h8v4H4v-4Z'
+    icon: 'add'
   },
-  // 事件图标 - 事件/日志图标，优化文档和列表形状
+  // 事件图标 - 事件/日志图标
   event: {
-    viewBox: 16,
-    path: 'M3 2.5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1H3Zm0 1h10v9H3v-9Zm2 2v1h6v-1H5Zm0 2v1h4v-1H5Zm0 2v1h6v-1H5Z'
+    icon: 'event'
   },
-  // 其他类型 - 使用圆形图标（但带边框，不是实心）
+  // 恶意软件图标 - 使用 Material Symbols skull
+  malware: {
+    icon: 'skull'
+  },
+  // 其他类型 - 使用圆形图标
   other: {
-    viewBox: 16,
-    path: 'M8 1.5a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13Zm0 1a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11Z'
+    icon: 'circle'
   }
 }
 
@@ -1073,19 +1092,18 @@ const getNodeIconMeta = (node) => {
   return ENTITY_ICON_PATHS[type] || ENTITY_ICON_PATHS.other
 }
 
-const getNodeIconTransform = (node) => {
-  const meta = getNodeIconMeta(node)
-  const viewBox = meta.viewBox || 16
+const getNodeIconSize = (node) => {
   const size = node.visual?.size || 30
-  // 增大图标尺寸，使用1.2倍节点大小，最大尺寸增加到32
-  const targetSize = Math.min(size * 1.2, 32)
-  const scale = targetSize / viewBox
-  return `translate(-${viewBox / 2}, -${viewBox / 2}) scale(${scale})`
+  // 增大图标尺寸，使用3.0倍节点大小，最大尺寸增加到72，并确保最小尺寸
+  const calculatedSize = Math.max(size * 3.0, 36)
+  return Math.min(calculatedSize, 72)
 }
 
 const getNodeIconStrokeColor = (node) => {
   const type = getNodeType(node)
-  return ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+  const isDark = document.documentElement.classList.contains('dark')
+  const colorMap = isDark ? ENTITY_COLOR_SOLID_DARK : ENTITY_COLOR_SOLID_LIGHT
+  return colorMap[type] || colorMap.other
 }
 
 const getGraphTextColor = () => {
@@ -1095,12 +1113,15 @@ const getGraphTextColor = () => {
     if (dataColor) return dataColor
   }
   const isDark = document.documentElement.classList.contains('dark')
-  return isDark ? '#e2e8f0' : '#374151'
+  // Light模式下使用更深的颜色提高可读性
+  return isDark ? '#e2e8f0' : '#1e293b'
 }
 
 const buildNodeVisualMeta = (node) => {
   const type = getNodeType(node)
-  const color = ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+  const isDark = document.documentElement.classList.contains('dark')
+  const colorMap = isDark ? ENTITY_COLOR_SOLID_DARK : ENTITY_COLOR_SOLID_LIGHT
+  const color = colorMap[type] || colorMap.other
   const degree = nodeDegreeMap?.value?.[node.id] || 0
   // 节点整体缩小，避免在视图里挤成一团
   const size = Math.min(20 + degree * 1.5, 40)
@@ -1409,17 +1430,15 @@ const updateD3Graph = ({ fitView = false } = {}) => {
     .append('g')
     .attr('class', 'graph-node')
 
-  // 只保留中间的图标，不再绘制外围圆点
+  // 只保留中间的图标，不再绘制外围圆点 - 使用 Material Symbols
   nodeEnter
-    .append('path')
-    .attr('class', 'graph-node__icon')
-    .attr('d', (d) => getNodeIconMeta(d).path)
-    .attr('transform', (d) => getNodeIconTransform(d))
-    .attr('fill', 'none')
-    .attr('stroke', (d) => getNodeIconStrokeColor(d))
-    .attr('stroke-width', 1.5)
-    .attr('stroke-linecap', 'round')
-    .attr('stroke-linejoin', 'round')
+    .append('text')
+    .attr('class', 'graph-node__icon material-symbols-outlined')
+    .attr('text-anchor', 'middle')
+    .attr('dominant-baseline', 'central')
+    .attr('font-size', (d) => `${getNodeIconSize(d)}px`)
+    .attr('fill', (d) => getNodeIconStrokeColor(d))
+    .text((d) => getNodeIconMeta(d).icon)
 
   // 获取文字颜色（从 SVG 的 data 属性或检测主题）
   const getTextColor = () => {
@@ -1429,7 +1448,8 @@ const updateD3Graph = ({ fitView = false } = {}) => {
       if (dataColor) return dataColor
     }
     const isDark = document.documentElement.classList.contains('dark')
-    return isDark ? '#e2e8f0' : '#374151'
+    // Light模式下使用更深的颜色提高可读性
+    return isDark ? '#e2e8f0' : '#1e293b'
   }
 
   nodeEnter
@@ -1530,7 +1550,8 @@ const updateNodeStyles = () => {
       if (dataColor) return dataColor
     }
     const isDark = document.documentElement.classList.contains('dark')
-    return isDark ? '#e2e8f0' : '#374151'
+    // Light模式下使用更深的颜色提高可读性
+    return isDark ? '#e2e8f0' : '#1e293b'
   }
 
   d3NodeSelection.value
@@ -1553,14 +1574,10 @@ const updateNodeStyles = () => {
     .attr('fill', getTextColor())
 
   d3NodeSelection.value
-    .select('path.graph-node__icon')
-    .attr('d', (node) => getNodeIconMeta(node).path)
-    .attr('transform', (node) => getNodeIconTransform(node))
-    .attr('fill', 'none')
-    .attr('stroke', (node) => getNodeIconStrokeColor(node))
-    .attr('stroke-width', 1.5)
-    .attr('stroke-linecap', 'round')
-    .attr('stroke-linejoin', 'round')
+    .select('text.graph-node__icon')
+    .text((node) => getNodeIconMeta(node).icon)
+    .attr('font-size', (node) => `${getNodeIconSize(node)}px`)
+    .attr('fill', (node) => getNodeIconStrokeColor(node))
     .attr('opacity', (node) => {
       if (selectedId) {
         return node.id === selectedId || relations.has(node.id) ? 0.95 : 0.2
@@ -1961,6 +1978,8 @@ const topImpactedEntities = computed(() => {
 const legendEntries = computed(() => {
   const seen = new Set()
   const entries = []
+  const isDark = document.documentElement.classList.contains('dark')
+  const colorMap = isDark ? ENTITY_COLOR_SOLID_DARK : ENTITY_COLOR_SOLID_LIGHT
   displayGraphNodes.value.forEach((node) => {
     const type = getNodeType(node)
     if (seen.has(type)) {
@@ -1970,7 +1989,7 @@ const legendEntries = computed(() => {
     entries.push({
       key: type,
       label: t(`incidents.detail.eventGraph.legendLabels.${type}`, type),
-      color: ENTITY_COLOR_SOLID[type] || ENTITY_COLOR_SOLID.other
+      color: colorMap[type] || colorMap.other
     })
   })
   return entries
@@ -3467,14 +3486,15 @@ onMounted(() => {
 }
 
 .graph-link {
-  stroke: #94a3b8;
-  stroke-width: 1.2px;
-  stroke-opacity: 0.35;
+  stroke: #64748b;
+  stroke-width: 1.4px;
+  stroke-opacity: 0.5;
   transition: stroke 0.2s ease, stroke-width 0.2s ease, opacity 0.2s ease;
 }
 
 .dark .graph-link {
   stroke: #475569;
+  stroke-opacity: 0.35;
 }
 
 .graph-link--related {
@@ -3496,15 +3516,26 @@ onMounted(() => {
   opacity: 0.2;
 }
 
+.graph-node__icon {
+  pointer-events: none;
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+  user-select: none;
+}
+
 .graph-node__label {
-  fill: rgba(30, 41, 59, 0.9);
+  fill: #1e293b;
   font-size: 10px;
+  font-weight: 500;
   pointer-events: none;
   text-transform: none;
 }
 
 .dark .graph-node__label {
   fill: rgba(255, 255, 255, 0.85);
+  font-weight: normal;
 }
 
 .graph-node--selected circle {
