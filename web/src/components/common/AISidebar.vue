@@ -571,11 +571,9 @@ const loadToolkits = async () => {
   loadingToolkits.value = true
   try {
     const response = await getToolkits()
-    console.log('AISidebar loadToolkits response:', response)
     // 处理不同的响应格式：response.tools 或 response.data.tools
     const tools = response?.tools || response?.data?.tools || []
     toolkits.value = tools
-    console.log('AISidebar loaded toolkits:', toolkits.value)
     toolkits.value.forEach(tool => {
       if (!toolkitParams.value[tool.app_id]) {
         toolkitParams.value[tool.app_id] = {}
@@ -637,7 +635,6 @@ const loadToolkitRecords = async () => {
   try {
     const response = await getToolkitRecords(props.alertId)
     toolkitRecords.value = response.data || []
-    console.log('AISidebar loaded toolkit records:', toolkitRecords.value)
   } catch (error) {
     console.error('Failed to load toolkit records:', error)
     toolkitRecords.value = []

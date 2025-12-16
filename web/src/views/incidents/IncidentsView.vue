@@ -302,6 +302,15 @@
         </div>
       </div>
     </div>
+
+    <!-- AI Sidebar -->
+    <AISidebar
+      :visible="showAISidebar"
+      :alert-title="currentTitle"
+      :finding-summary="findingSummary"
+      :alert-id="currentIncidentId"
+      @close="showAISidebar = false"
+    />
   </div>
 </template>
 
@@ -315,6 +324,7 @@ import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
@@ -404,6 +414,10 @@ const showMoreMenu = ref(false)
 const showBatchDeleteDialog = ref(false)
 const deleteConfirmInput = ref('')
 const isBatchDeleting = ref(false)
+const showAISidebar = ref(false)
+const currentIncidentId = ref(null)
+const currentTitle = ref('')
+const findingSummary = ref('')
 
 // Time range picker
 // Time range picker
@@ -826,6 +840,26 @@ const handleBatchDelete = async () => {
   }
 }
 
+const openAISidebarFromList = () => {
+  if (!incidents.value.length) {
+    currentIncidentId.value = null
+    currentTitle.value = ''
+    findingSummary.value = ''
+    showAISidebar.value = true
+    return
+  }
+
+  const selectedId = selectedIncidents.value[0]
+  const target =
+    incidents.value.find(inc => inc.id === selectedId) ||
+    incidents.value[0]
+
+  currentIncidentId.value = target?.id ?? null
+  currentTitle.value = target?.title || target?.name || ''
+  findingSummary.value = target?.description || ''
+  showAISidebar.value = true
+}
+
 // Close more menu when clicking outside
 const handleClickOutside = (event) => {
   if (!event.target.closest('.more-menu-button') && !event.target.closest('.more-menu-dropdown')) {
@@ -837,11 +871,14 @@ onMounted(() => {
   loadIncidents()
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
+  // 监听 Header 发出的打开 AI 侧边栏事件
+  window.addEventListener('open-ai-sidebar', openAISidebarFromList)
 })
 
 // Clean up event listener
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('open-ai-sidebar', openAISidebarFromList)
 })
 </script>
 

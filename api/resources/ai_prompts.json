@@ -3,6 +3,18 @@
     {
       "zh": "总结一下今天的安全态势",
       "en": "Summarize what happened today"
+    },
+    {
+      "zh": "最近有哪些需要关注的安全事件",
+      "en": "What security incidents need attention recently"
+    },
+    {
+      "zh": "当前最紧急的安全问题是什么",
+      "en": "What is the most urgent security issue right now"
+    },
+    {
+      "zh": "帮我分析一下整体的安全趋势",
+      "en": "Help me analyze the overall security trends"
     }
   ],
   "/incidents": [
@@ -13,16 +25,50 @@
     {
       "zh": "还有哪些事件没闭环",
       "en": "Any open incident"
+    },
+    {
+      "zh": "哪些事件需要优先处理",
+      "en": "Which incidents need priority handling"
+    },
+    {
+      "zh": "最近的事件处理效率如何",
+      "en": "How is the recent incident handling efficiency"
+    }
+  ],
+  "/incidents/detail": [
+    {
+      "zh": "帮我分析一下这个事件的严重程度",
+      "en": "Help me analyze the severity of this incident"
+    },
+    {
+      "zh": "这个事件涉及哪些资产和告警",
+      "en": "What assets and alerts are involved in this incident"
+    },
+    {
+      "zh": "这个事件的处理建议是什么",
+      "en": "What are the handling recommendations for this incident"
+    },
+    {
+      "zh": "类似的事件之前是如何处理的",
+      "en": "How were similar incidents handled before"
     }
   ],
   "/alerts": [
     {
       "zh": "还有多少高风险告警",
-      "en": "How many high risk alert open"
+      "en": "How many high risk alerts are open"
     },
     {
-      "zh": "还有多少高风险告警",
-      "en": "How many high risk alert open"
+      "zh": "哪些告警需要立即处理",
+      "en": "Which alerts need immediate attention"
+    },
+    {
+      "zh": "最近告警的趋势是什么",
+      "en": "What is the recent alert trend"
+    },
+    {
+      "zh": "哪些来源的告警最多",
+      "en": "Which sources have the most alerts"
     }
   ],
   "/alerts/detail": [
@@ -33,6 +79,50 @@
     {
       "zh": "帮我查询IP",
       "en": "Check the IP address"
+    },
+    {
+      "zh": "这个告警是否与其他告警有关联",
+      "en": "Is this alert related to other alerts"
+    },
+    {
+      "zh": "这个告警的处理步骤是什么",
+      "en": "What are the handling steps for this alert"
+    }
+  ],
+  "/vulnerabilities": [
+    {
+      "zh": "还有多少高危漏洞未修复",
+      "en": "How many high-risk vulnerabilities are unpatched"
+    },
+    {
+      "zh": "哪些漏洞需要优先处理",
+      "en": "Which vulnerabilities need priority patching"
+    },
+    {
+      "zh": "最近漏洞的修复进度如何",
+      "en": "What is the recent vulnerability patching progress"
+    },
+    {
+      "zh": "哪些资产存在最多的漏洞",
+      "en": "Which assets have the most vulnerabilities"
+    }
+  ],
+  "/vulnerabilities/detail": [
+    {
+      "zh": "帮我分析一下这个漏洞的影响范围",
+      "en": "Help me analyze the impact scope of this vulnerability"
+    },
+    {
+      "zh": "这个漏洞的修复方案是什么",
+      "en": "What is the remediation plan for this vulnerability"
+    },
+    {
+      "zh": "哪些资产受到这个漏洞影响",
+      "en": "Which assets are affected by this vulnerability"
+    },
+    {
+      "zh": "这个漏洞的利用难度如何",
+      "en": "What is the exploitation difficulty of this vulnerability"
     }
   ]
 }
