@@ -73,12 +73,12 @@ export const sendSecurityAgentMessage = async ({
   if (alertId) {
     inputs.alert_id = alertId
   }
+  inputs.user = resolvedUserName
 
   const requestBody = {
     inputs,
     query: sanitizedMessage,
-    response_mode: 'streaming',
-    user: resolvedUserName
+    response_mode: 'streaming'
   }
 
   if (conversationId) {
