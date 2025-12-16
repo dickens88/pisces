@@ -18,6 +18,9 @@ class CallbackMessageHandler(Resource):
         event_type = payload.get("event_type")
 
         try:
+            if not event_id or len(event_id) < 5:
+                return {"message": f"The event_id {event_id} is invalid"}, 400
+
             if event_type == "alert":
                 result = AlertService.retrieve_alert_by_id(event_id)
                 if action in ("create", "update"):

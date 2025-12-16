@@ -200,8 +200,8 @@
       "aiJudge": "AI判定",
       "allAiJudge": "AI判定",
       "aiJudgeResult": {
-        "truePositive": "可疑",
-        "falsePositive": "误报",
+        "truePositive": "攻击",
+        "falsePositive": "非攻击",
         "unknown": "未知"
       },
       "responseTime": "TTA",

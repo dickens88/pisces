@@ -19,6 +19,10 @@
     {
       "zh": "还有多少高风险告警",
       "en": "How many high risk alert open"
+    },
+    {
+      "zh": "还有多少高风险告警",
+      "en": "How many high risk alert open"
     }
   ],
   "/alerts/detail": [

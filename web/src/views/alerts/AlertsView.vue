@@ -154,6 +154,44 @@
     <!-- Alert list table -->
     <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl">
       <div class="flex flex-wrap items-center gap-3 p-4 border-b border-[#324867]">
+        <!-- Alert Filter Mode Switch - moved before search box -->
+        <div class="flex-shrink-0">
+          <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
+              {{ $t('alerts.list.riskFilter')}}
+            </span>
+            <button
+              @click="toggleRiskFilter"
+              :class="[
+                'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
+                isRiskFilterActive
+                  ? 'text-white bg-red-600 hover:bg-red-700 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              ]"
+              :title="riskFilterText"
+            >
+              <span
+                class="material-symbols-outlined"
+                :class="isRiskFilterActive ? '' : 'text-red-500'"
+                style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+              >
+                release_alert
+              </span>
+              <span
+                v-if="highRiskAlertCount !== null && highRiskAlertCount > 0"
+                class="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-600 text-white text-xs font-bold rounded-full"
+              >
+                {{ highRiskAlertCount > 99 ? '99+' : highRiskAlertCount }}
+              </span>
+              <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
+                  {{ riskFilterText }}
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div class="relative w-[30%] min-w-[300px] max-w-lg" ref="searchContainerRef">
           <div 
             class="flex items-start gap-2 min-h-[42px] rounded-lg border-0 bg-gray-100 dark:bg-[#233348] pl-3 pr-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
@@ -210,26 +248,23 @@
             </button>
           </div>
         </div>
-        <div class="relative min-w-[100px] max-w-[8rem]">
-          <select
+        <div class="min-w-[100px] max-w-[12rem]">
+          <ClearableSelect
             v-model="statusFilter"
+            clear-value="all"
             @change="handleFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
           >
             <option value="all">{{ $t('alerts.list.allStatus') }}</option>
             <option value="open">{{ $t('alerts.list.open') }}</option>
             <option value="block">{{ $t('alerts.list.block') }}</option>
             <option value="closed">{{ $t('alerts.list.closed') }}</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-          </div>
+          </ClearableSelect>
         </div>
-        <div class="relative min-w-[120px] max-w-[10rem]">
-          <select
+        <div class="min-w-[120px] max-w-[12rem]">
+          <ClearableSelect
             v-model="severityFilter"
-            @change="handleSeverityFilter"
-            class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
+            clear-value="all"
+            @change="reloadAlertsFromFirstPage"
           >
             <option value="all">{{ $t('common.severity.all') || $t('common.filter') }}</option>
             <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -237,47 +272,7 @@
             <option value="medium">{{ $t('common.severity.medium') }}</option>
             <option value="low">{{ $t('common.severity.low') }}</option>
             <option value="tips">{{ $t('common.severity.tips') }}</option>
-          </select>
-          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-          </div>
-        </div>
-        <!-- Alert Filter Mode Switch -->
-        <div class="flex-shrink-0">
-          <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
-              {{ $t('alerts.list.riskFilter')}}
-            </span>
-            <button
-              @click="toggleRiskFilter"
-              :class="[
-                'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
-                isRiskFilterActive
-                  ? 'text-white bg-red-600 hover:bg-red-700 shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              ]"
-              :title="riskFilterText"
-            >
-              <span
-                class="material-symbols-outlined"
-                :class="isRiskFilterActive ? '' : 'text-red-500'"
-                style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-              >
-                release_alert
-              </span>
-              <span
-                v-if="highRiskAlertCount !== null && highRiskAlertCount > 0"
-                class="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-600 text-white text-xs font-bold rounded-full"
-              >
-                {{ highRiskAlertCount > 99 ? '99+' : highRiskAlertCount }}
-              </span>
-              <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
-                <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
-                  {{ riskFilterText }}
-                </span>
-              </div>
-            </button>
-          </div>
+          </ClearableSelect>
         </div>
         <!-- Advanced Search Toggle Button -->
         <button
@@ -394,64 +389,45 @@
         class="border-b border-[#324867] bg-gray-50 dark:bg-[#0f1419] transition-all duration-300 overflow-hidden"
       >
         <div class="flex flex-wrap items-center gap-3 p-4">
-          <div class="relative min-w-[100px] max-w-[10rem]">
-            <select
+          <div class="min-w-[100px] max-w-[10rem]">
+            <ClearableSelect
               v-model="autoCloseFilter"
-              @change="handleAutoCloseFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
+              clear-value="all"
+              @change="reloadAlertsFromFirstPage"
             >
               <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
               <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
               <option value="Manual">{{ $t('alerts.list.autoClose.manual') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-            </div>
+            </ClearableSelect>
           </div>
-          <div class="relative min-w-[100px] max-w-[10rem]">
-            <select
+          <div class="min-w-[100px] max-w-[10rem]">
+            <ClearableSelect
               v-model="aiJudgeFilter"
-              @change="handleAiJudgeFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-300 dark:border-[#324867] bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 sm:text-sm text-sm"
+              clear-value="all"
+              @change="reloadAlertsFromFirstPage"
             >
               <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
               <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
               <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
               <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-            </div>
+            </ClearableSelect>
           </div>
-          <!-- Phase Filter Switch -->
-          <div class="flex-shrink-0">
-            <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
-                {{ $t('alerts.list.phase') }}
-              </span>
-              <button
-                @click="togglePhaseFilter"
-                :class="[
-                  'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
-                  phaseFilter
-                    ? 'text-white bg-yellow-500 hover:bg-yellow-600 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-                ]"
-                :title="phaseFilter ? $t('alerts.list.phaseToIncident') : $t('alerts.list.phaseAll')"
+          <!-- Phase Filter Dropdown -->
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              {{ $t('alerts.list.associateIncident') }}
+            </span>
+            <div class="min-w-[100px] max-w-[10rem]">
+              <ClearableSelect
+                v-model="phaseFilterValue"
+                clear-value="no"
+                @change="handlePhaseFilterChange"
               >
-                <span
-                  class="material-symbols-outlined"
-                  :class="phaseFilter ? '' : 'text-yellow-500'"
-                  style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                >
-                  warning
-                </span>
-                <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
-                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
-                    {{ phaseFilter ? $t('alerts.list.phaseToIncident') : $t('alerts.list.phaseAll') }}
-                  </span>
-                </div>
-              </button>
+                <!-- 否：表示不筛选 -->
+                <option value="no">No</option>
+                <!-- 是：表示筛选 -->
+                <option value="yes">Yes</option>
+              </ClearableSelect>
             </div>
           </div>
         </div>
@@ -814,6 +790,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
+import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import { formatDateTime, parseToDate, calculateTTR } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
@@ -873,29 +850,7 @@ const statistics = ref({
   typeStats: []
 })
 
-const getStoredSearchKeywords = () => {
-  try {
-    const stored = localStorage.getItem('alerts-searchKeywords')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      // Support both old format (string array) and new format (object array)
-      if (Array.isArray(parsed)) {
-        if (parsed.length > 0 && typeof parsed[0] === 'string') {
-          // Old format: convert to new format
-          return parsed.map(k => ({ field: 'title', value: k }))
-        } else if (parsed.every(k => k && typeof k === 'object' && k.field && k.value)) {
-          // New format
-          return parsed
-        }
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read search keywords from localStorage:', error)
-  }
-  return []
-}
-
-const searchKeywords = ref(getStoredSearchKeywords())
+const searchKeywords = ref([])
 const currentSearchInput = ref('')
 const currentField = ref('')
 const showFieldMenu = ref(false)
@@ -949,55 +904,16 @@ const getSearchPlaceholder = () => {
   return ''
 }
 
-const getStoredStatusFilter = () => {
-  try {
-    const stored = localStorage.getItem('alerts-status-filter')
-    if (stored && ['all', 'open', 'block', 'closed'].includes(stored)) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read status filter from localStorage:', error)
-  }
-  return 'all'
-}
-const statusFilter = ref(getStoredStatusFilter())
-
-const getStoredSeverityFilter = () => {
-  try {
-    const stored = localStorage.getItem('alerts-severity-filter')
-    if (stored) {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read severity filter from localStorage:', error)
-  }
-  return 'all'
-}
-const severityFilter = ref(getStoredSeverityFilter())
+const statusFilter = ref('all')
+const severityFilter = ref('all')
 
 const autoCloseFilter = ref('all')
 
 const aiJudgeFilter = ref('all')
 const phaseFilter = ref(false)
+const phaseFilterValue = ref('no')
 
-const getStoredAlertFilterMode = () => {
-  try {
-    const stored = localStorage.getItem('alerts-filter-mode')
-    if (stored === 'unclosedHighRisk') {
-      return stored
-    }
-  } catch (error) {
-    console.warn('Failed to read alert filter mode from localStorage:', error)
-  }
-  return 'allAlerts'
-}
-const alertFilterMode = ref(getStoredAlertFilterMode())
-const previousStatusFilterBeforeRisk = ref(statusFilter.value)
-if (alertFilterMode.value === 'unclosedHighRisk') {
-  previousStatusFilterBeforeRisk.value = 'all'
-  statusFilter.value = 'open'
-  localStorage.setItem('alerts-status-filter', 'open')
-}
+const alertFilterMode = ref('allAlerts')
 const isRiskFilterActive = computed(() => alertFilterMode.value === 'unclosedHighRisk')
 const riskFilterText = computed(() =>
   isRiskFilterActive.value
@@ -1745,14 +1661,6 @@ const loadStatistics = async () => {
   }
 }
 
-const saveSearchKeywords = () => {
-  try {
-    localStorage.setItem('alerts-searchKeywords', JSON.stringify(searchKeywords.value))
-  } catch (error) {
-    console.warn('Failed to save search keywords to localStorage:', error)
-  }
-}
-
 const addKeyword = () => {
   const keyword = currentSearchInput.value.trim()
   if (keyword) {
@@ -1769,7 +1677,6 @@ const addKeyword = () => {
       currentSearchInput.value = ''
       currentField.value = ''
       showFieldMenu.value = false
-      saveSearchKeywords()
       reloadAlertsFromFirstPage()
     }
   }
@@ -1777,7 +1684,6 @@ const addKeyword = () => {
 
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
-  saveSearchKeywords()
   reloadAlertsFromFirstPage()
 }
 
@@ -1843,43 +1749,32 @@ const handleSearchContainerClick = () => {
 }
 
 const handleFilter = () => {
-  localStorage.setItem('alerts-status-filter', statusFilter.value)
-  if (!isRiskFilterActive.value) {
-    previousStatusFilterBeforeRisk.value = statusFilter.value
-  }
   reloadAlertsFromFirstPage()
   loadAlertTypeDistribution()
   loadAlertStatusBySeverity()
 }
 
-const handleSeverityFilter = () => {
-  localStorage.setItem('alerts-severity-filter', severityFilter.value)
-  reloadAlertsFromFirstPage()
-}
+const handlePhaseFilterChange = () => {
+  phaseFilter.value = phaseFilterValue.value === 'yes'
 
-const handleAutoCloseFilter = () => {
-  reloadAlertsFromFirstPage()
-}
+  if (phaseFilter.value) {
+    // 开启“转事件告警”筛选时，将状态筛选设为 closed
+    statusFilter.value = 'closed'
+  } else {
+    // 关闭“转事件告警”筛选时，直接重置状态筛选为 all
+    statusFilter.value = 'all'
+  }
 
-const handleAiJudgeFilter = () => {
   reloadAlertsFromFirstPage()
-}
-
-const togglePhaseFilter = () => {
-  phaseFilter.value = !phaseFilter.value
-  reloadAlertsFromFirstPage()
+  loadAlertTypeDistribution()
+  loadAlertStatusBySeverity()
 }
 
 const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
-  localStorage.setItem('alerts-filter-mode', mode)
-
   if (mode === 'unclosedHighRisk') {
-    previousStatusFilterBeforeRisk.value = statusFilter.value
+    // 高风险模式：状态筛选设为 open，风险等级筛选设为 all
     statusFilter.value = 'open'
-    localStorage.setItem('alerts-status-filter', 'open')
-  } else {
-    statusFilter.value = previousStatusFilterBeforeRisk.value || 'all'
-    localStorage.setItem('alerts-status-filter', statusFilter.value)
+    severityFilter.value = 'all'
   }
 
   if (!skipReload) {
