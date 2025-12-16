@@ -1094,8 +1094,9 @@ const getNodeIconMeta = (node) => {
 
 const getNodeIconSize = (node) => {
   const size = node.visual?.size || 30
-  // 增大图标尺寸，使用1.6倍节点大小，最大尺寸增加到42
-  return Math.min(size * 1.6, 42)
+  // 增大图标尺寸，使用3.0倍节点大小，最大尺寸增加到72，并确保最小尺寸
+  const calculatedSize = Math.max(size * 3.0, 36)
+  return Math.min(calculatedSize, 72)
 }
 
 const getNodeIconStrokeColor = (node) => {
@@ -1435,7 +1436,7 @@ const updateD3Graph = ({ fitView = false } = {}) => {
     .attr('class', 'graph-node__icon material-symbols-outlined')
     .attr('text-anchor', 'middle')
     .attr('dominant-baseline', 'central')
-    .attr('font-size', (d) => getNodeIconSize(d))
+    .attr('font-size', (d) => `${getNodeIconSize(d)}px`)
     .attr('fill', (d) => getNodeIconStrokeColor(d))
     .text((d) => getNodeIconMeta(d).icon)
 
@@ -1575,7 +1576,7 @@ const updateNodeStyles = () => {
   d3NodeSelection.value
     .select('text.graph-node__icon')
     .text((node) => getNodeIconMeta(node).icon)
-    .attr('font-size', (node) => getNodeIconSize(node))
+    .attr('font-size', (node) => `${getNodeIconSize(node)}px`)
     .attr('fill', (node) => getNodeIconStrokeColor(node))
     .attr('opacity', (node) => {
       if (selectedId) {
@@ -3520,6 +3521,7 @@ onMounted(() => {
   font-family: 'Material Symbols Outlined', sans-serif;
   font-weight: normal;
   font-style: normal;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
   user-select: none;
 }
 
