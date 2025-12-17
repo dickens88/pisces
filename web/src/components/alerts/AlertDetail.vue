@@ -210,9 +210,6 @@
                       {{
                         $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`)
                       }}
-                      <span class="opacity-80 ml-0.5">
-                        ({{ severityToNumber(alert.severity || alert.riskLevel) || '-' }})
-                      </span>
                     </span>
                     <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                     <!-- AI研判结果图标 -->
@@ -716,10 +713,11 @@ const props = defineProps({
     required: false,
     default: null
   },
-  preventAutoOpenAi: {
-    type: Boolean,
+  // 可选 workspace，用于在特定页面（如 ASM 漏洞详情）下带上 workspace 查询参数
+  workspace: {
+    type: String,
     required: false,
-    default: false
+    default: null
   }
 })
 
@@ -1035,7 +1033,8 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const response = await getAlertDetail(currentAlertId.value)
+    // 如果父组件传入 workspace（例如从 ASM 漏洞详情页打开），则在请求中带上 workspace
+    const response = await getAlertDetail(currentAlertId.value, props.workspace)
     alert.value = transformAlertDetailData(response.data)
     loadAssociatedAlerts()
     // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
@@ -1706,8 +1705,6 @@ const handleClickOutside = (event) => {
 watch(
   () => alert.value?.ai,
   async (newAi) => {
-    // 如果设置了阻止自动打开AI，则不自动打开
-    if (props.preventAutoOpenAi) return
     if (hasAutoOpenedAiSidebar.value) return
     const investigationContent = findInvestigationContent()
     const hasAnyAi = Array.isArray(newAi) && newAi.length > 0

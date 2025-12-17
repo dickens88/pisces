@@ -1786,10 +1786,13 @@ const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
   }
 }
 
-const toggleRiskFilter = () => {
+const toggleRiskFilter = async () => {
   const nextMode = isRiskFilterActive.value ? 'allAlerts' : 'unclosedHighRisk'
   alertFilterMode.value = nextMode
-  applyRiskFilterMode(nextMode)
+  await Promise.all([
+    applyRiskFilterMode(nextMode),
+    loadHighRiskAlertCount()
+  ])
 }
 
 const handlePageSizeChange = () => {
