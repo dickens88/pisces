@@ -786,15 +786,23 @@ const handleSecurityAgentSend = async (data) => {
     await sendSecurityAgentMessage({
       ...payload,
       onEvent: (event) => {
+        if (!event) return
+
         const receivedConversationId = event?.conversation_id || event?.conversationId
         if (receivedConversationId) {
           conversationId.value = receivedConversationId
         }
-        if (!event) return
+
         const eventType = event.event || event.type
+
         if (eventType === 'message' || eventType === 'message_end') {
           if (assistantMessageId && typeof event.answer === 'string') {
             appendToSecurityAgentMessage(assistantMessageId, event.answer)
+          }
+
+          // 当收到 message_end（或类似结束事件）时，提前结束发送中的 loading 状态
+          if (eventType === 'message_end') {
+            isSendingSecurityAgentMessage.value = false
           }
         } else if (eventType === 'node_started' || eventType === 'node_finished') {
           const nodeData = event.data || {}
@@ -833,6 +841,9 @@ const handleSecurityAgentSend = async (data) => {
               isLocal: true
             })
           }
+
+          // 出错时也需要立刻结束 loading 状态
+          isSendingSecurityAgentMessage.value = false
         }
       }
     })

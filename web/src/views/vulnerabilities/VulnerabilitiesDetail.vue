@@ -852,12 +852,19 @@ const handleDisassociate = async () => {
 }
 
 const openAlertDetail = (alertId) => {
-  selectedAlertId.value = alertId
+  // 在当前窗口跳转到告警详情页，并携带 workspace=asm 查询参数
+  router.push({
+    path: `/alerts/${alertId}`,
+    query: { workspace: 'asm' }
+  })
 }
 
 const openAlertDetailInNewWindow = (alertId) => {
-  // 在新窗口打开告警详情
-  const route = router.resolve({ path: `/alerts/${alertId}` })
+  // 在新窗口打开告警详情（携带 workspace=asm 查询参数）
+  const route = router.resolve({
+    path: `/alerts/${alertId}`,
+    query: { workspace: 'asm' }
+  })
   // 构建完整的 URL
   const url = window.location.origin + route.href
   window.open(url, '_blank')

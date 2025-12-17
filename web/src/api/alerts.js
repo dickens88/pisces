@@ -212,10 +212,15 @@ export const getAlerts = async (params = {}) => {
 /**
  * @brief 获取告警详情
  * @param {string|number} id - 告警ID
+ * @param {string} [workspace] - 可选的 workspace 参数（例如 'asm'）
  * @returns {Promise} 返回告警详情数据
  */
-export const getAlertDetail = (id) => {
-  return service.get(`/alerts/${id}`)
+export const getAlertDetail = (id, workspace) => {
+  const config = {}
+  if (workspace) {
+    config.params = { workspace }
+  }
+  return service.get(`/alerts/${id}`, config)
 }
 
 /**

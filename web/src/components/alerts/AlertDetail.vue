@@ -210,9 +210,6 @@
                       {{
                         $t(`common.severity.${alert.riskLevel || alert.severity?.toLowerCase() || 'medium'}`)
                       }}
-                      <span class="opacity-80 ml-0.5">
-                        ({{ severityToNumber(alert.severity || alert.riskLevel) || '-' }})
-                      </span>
                     </span>
                     <div class="h-4 w-px bg-gray-300 dark:bg-gray-600 flex-shrink-0"></div>
                     <!-- AI研判结果图标 -->
@@ -1030,7 +1027,8 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const response = await getAlertDetail(currentAlertId.value)
+    // 如果当前路由上带有 workspace（例如从漏洞详情页以 ASM workspace 打开），则一并传给后端
+    const response = await getAlertDetail(currentAlertId.value, route.query.workspace)
     alert.value = transformAlertDetailData(response.data)
     loadAssociatedAlerts()
     // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
