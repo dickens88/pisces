@@ -13,8 +13,8 @@
         <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
       </div>
     </div>
-    <!-- 面包屑导航 -->
-    <nav class="mb-5">
+    <!-- 面包屑导航和操作按钮 -->
+    <nav class="mb-5 flex items-center justify-between gap-4 flex-wrap">
       <ol class="flex items-center gap-2.5 text-sm">
         <li>
           <router-link
@@ -35,36 +35,7 @@
           </span>
         </li>
       </ol>
-    </nav>
-    <!-- 页面标题和操作 -->
-    <header class="flex flex-wrap justify-between items-start gap-4 mb-6">
-      <div class="flex flex-col gap-2">
-        <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
-          {{ vulnerability?.title || vulnerability?.name || 'CVE-' + route.params.id }}
-        </h1>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm font-normal leading-normal">
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('vulnerabilities.detail.actor') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ vulnerability?.actor || '-' }}</span>
-          </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('vulnerabilities.detail.createTime') || 'Create Time' }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.createTime || vulnerability?.create_time) }}</span>
-          </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('vulnerabilities.detail.closeTime') }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.closeTime || vulnerability?.close_time) }}</span>
-          </div>
-          <div class="h-4 w-px bg-slate-600/50"></div>
-          <div class="flex items-center gap-1.5">
-            <span>{{ $t('vulnerabilities.detail.updateTime') || 'Update Time' }}:</span>
-            <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.updateTime || vulnerability?.update_time) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-1 gap-3 flex-wrap justify-start sm:justify-end min-w-max">
+      <div class="flex gap-3 flex-wrap justify-end min-w-max">
         <button
           @click="openEditDialog"
           class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
@@ -99,6 +70,33 @@
         >
           <span class="material-symbols-outlined text-base">share</span>
         </button>
+      </div>
+    </nav>
+    <!-- 页面标题 -->
+    <header class="flex flex-col gap-2 mb-6">
+      <h1 class="text-gray-900 dark:text-white text-xl font-bold leading-tight tracking-tight">
+        {{ vulnerability?.title || vulnerability?.name || 'CVE-' + route.params.id }}
+      </h1>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-gray-600 dark:text-slate-400 text-sm font-normal leading-normal">
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('vulnerabilities.detail.actor') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ vulnerability?.actor || '-' }}</span>
+        </div>
+        <div class="h-4 w-px bg-slate-600/50"></div>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('vulnerabilities.detail.createTime') || 'Create Time' }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.createTime || vulnerability?.create_time) }}</span>
+        </div>
+        <div class="h-4 w-px bg-slate-600/50"></div>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('vulnerabilities.detail.closeTime') }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.closeTime || vulnerability?.close_time) }}</span>
+        </div>
+        <div class="h-4 w-px bg-slate-600/50"></div>
+        <div class="flex items-center gap-1.5">
+          <span>{{ $t('vulnerabilities.detail.updateTime') || 'Update Time' }}:</span>
+          <span class="text-gray-900 dark:text-white">{{ formatDateTime(vulnerability?.updateTime || vulnerability?.update_time) }}</span>
+        </div>
       </div>
     </header>
 
@@ -320,6 +318,7 @@
     <AlertDetail
       v-if="selectedAlertId"
       :alert-id="selectedAlertId"
+      workspace="asm"
       @close="closeAlertDetail"
     />
 
@@ -852,19 +851,12 @@ const handleDisassociate = async () => {
 }
 
 const openAlertDetail = (alertId) => {
-  // 在当前窗口跳转到告警详情页，并携带 workspace=asm 查询参数
-  router.push({
-    path: `/alerts/${alertId}`,
-    query: { workspace: 'asm' }
-  })
+  selectedAlertId.value = alertId
 }
 
 const openAlertDetailInNewWindow = (alertId) => {
-  // 在新窗口打开告警详情（携带 workspace=asm 查询参数）
-  const route = router.resolve({
-    path: `/alerts/${alertId}`,
-    query: { workspace: 'asm' }
-  })
+  // 在新窗口打开告警详情
+  const route = router.resolve({ path: `/alerts/${alertId}` })
   // 构建完整的 URL
   const url = window.location.origin + route.href
   window.open(url, '_blank')

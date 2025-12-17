@@ -212,15 +212,13 @@ export const getAlerts = async (params = {}) => {
 /**
  * @brief 获取告警详情
  * @param {string|number} id - 告警ID
- * @param {string} [workspace] - 可选的 workspace 参数（例如 'asm'）
+ * @param {string} [workspace] - 可选 workspace 标识，例如 'asm'
  * @returns {Promise} 返回告警详情数据
  */
 export const getAlertDetail = (id, workspace) => {
-  const config = {}
-  if (workspace) {
-    config.params = { workspace }
-  }
-  return service.get(`/alerts/${id}`, config)
+  // 如果传入 workspace，则在路径后追加 query 参数，仅在特定场景（如 ASM 漏洞详情页）使用
+  const url = workspace ? `/alerts/${id}?workspace=${workspace}` : `/alerts/${id}`
+  return service.get(url)
 }
 
 /**
