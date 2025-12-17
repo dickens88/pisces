@@ -306,25 +306,6 @@
                   </div>
                 </div>
               </div>
-              <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
-                <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
-                    <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
-                      <button
-                        v-for="entry in legendEntries"
-                        :key="entry.key"
-                        type="button"
-                        class="legend-entry"
-                        :class="{ 'legend-entry--active': legendFlashKey === entry.key }"
-                        @click.stop="handleLegendClick(entry.key)"
-                      >
-                        <span class="legend-entry__dot" :style="{ backgroundColor: entry.color }"></span>
-                        <span class="legend-entry__label">{{ entry.label }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
               <div class="w-full h-full" style="position: relative;" @click="handleGraphContainerClick">
                 <div
                   ref="graphCanvasRef"
@@ -333,25 +314,23 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-gray-100 dark:bg-slate-900/80 border-t border-gray-300 dark:border-slate-800 px-4 py-2 text-[11px] text-gray-700 dark:text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#111822] border-t border-l border-gray-200 dark:border-slate-800 px-4 py-2.5 text-[11px] text-gray-700 dark:text-slate-300 flex items-center gap-2 flex-wrap z-10"
               >
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                  <span class="font-semibold">{{ graphStatusLabel }}</span>
-                  <span class="text-gray-400 dark:text-slate-600">|</span>
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}: {{ graphLastGeneratedTime || '--' }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}: {{ eventGraphStats.totalNodes ?? 0 }}
-                  </span>
-                  <span class="text-gray-400 dark:text-slate-600">|</span>
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}: {{ eventGraphStats.totalEdges ?? 0 }}
-                  </span>
-                </div>
+                <span class="graph-status-dot" :class="graphStatusDotClass"></span>
+                <span class="font-semibold whitespace-nowrap">
+                  {{ graphStatusLabel }}
+                </span>
+                <span class="text-gray-400 dark:text-slate-600">|</span>
+                <span class="whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', '上次生成时间') }}: {{ graphLastGeneratedTime || '--' }}
+                </span>
+                <span class="whitespace-nowrap ml-auto">
+                  {{ translateOr('incidents.detail.eventGraph.entityCount', '实体个数') }}: {{ eventGraphStats.totalNodes ?? 0 }}
+                </span>
+                <span class="text-gray-400 dark:text-slate-600">|</span>
+                <span class="whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.relationCount', '关系个数') }}: {{ eventGraphStats.totalEdges ?? 0 }}
+                </span>
               </div>
             </div>
 
