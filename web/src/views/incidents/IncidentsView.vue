@@ -31,6 +31,117 @@
       </div>
     </header>
 
+    <!-- Statistics charts -->
+    <section
+      v-if="showCharts"
+      class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6"
+    >
+      <!-- Incident trend statistics -->
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
+          {{ $t('incidents.statistics.trend') || 'Incident Trend Statistics' }}
+        </p>
+        <div class="flex h-64 w-full flex-col justify-end relative">
+          <!-- Loading state -->
+          <div
+            v-if="incidentTrendChartLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-8 h-8">
+                <div class="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 text-xs">{{ $t('common.loading') || '加载中...' }}</p>
+            </div>
+          </div>
+          <!-- Empty state -->
+          <div
+            v-else-if="incidentTrendChartDates.length === 0"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <p class="text-gray-600 dark:text-gray-400 text-sm">{{ $t('common.noData') }}</p>
+          </div>
+          <!-- Chart container -->
+          <div
+            v-show="!incidentTrendChartLoading && incidentTrendChartDates.length > 0"
+            ref="incidentTrendChartRef"
+            class="w-full h-full min-h-[200px]"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Incident department distribution (bar chart by severity) -->
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
+          {{ $t('incidents.statistics.departmentDistribution') || 'Incident Department Distribution' }}
+        </p>
+        <div class="flex h-64 w-full flex-col justify-end relative">
+          <!-- Loading state -->
+          <div
+            v-if="departmentChartLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-8 h-8">
+                <div class="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 text-xs">{{ $t('common.loading') || '加载中...' }}</p>
+            </div>
+          </div>
+          <!-- Empty state -->
+          <div
+            v-else-if="Object.keys(departmentChartData).length === 0"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <p class="text-gray-600 dark:text-gray-400 text-sm">{{ $t('common.noData') }}</p>
+          </div>
+          <!-- Chart container -->
+          <div
+            v-show="!departmentChartLoading && Object.keys(departmentChartData).length > 0"
+            ref="departmentChartRef"
+            class="w-full h-full min-h-[200px]"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Incident root cause distribution -->
+      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
+        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
+          {{ $t('incidents.statistics.rootCauseDistribution') || 'Incident Root Cause Distribution' }}
+        </p>
+        <div class="flex h-64 w-full flex-col justify-end relative">
+          <!-- Loading state -->
+          <div
+            v-if="rootCauseChartLoading"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <div class="flex flex-col items-center gap-2">
+              <div class="relative w-8 h-8">
+                <div class="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-2 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 text-xs">{{ $t('common.loading') || '加载中...' }}</p>
+            </div>
+          </div>
+          <!-- Empty state -->
+          <div
+            v-else-if="rootCauseChartData.length === 0"
+            class="absolute inset-0 flex items-center justify-center"
+          >
+            <p class="text-gray-600 dark:text-gray-400 text-sm">{{ $t('common.noData') }}</p>
+          </div>
+          <!-- Chart container -->
+          <div
+            v-show="!rootCauseChartLoading && rootCauseChartData.length > 0"
+            ref="rootCauseChartRef"
+            class="w-full h-full min-h-[200px]"
+          ></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Incident list table -->
     <section class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative">
       <!-- Loading overlay -->
@@ -118,6 +229,16 @@
               v-if="showMoreMenu"
               class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
             >
+              <button
+                @click="handleToggleChartsVisibility"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ showCharts ? 'monitoring' : 'visibility_off' }}
+                </span>
+                <span>{{ showCharts ? $t('alerts.list.hideCharts') : $t('alerts.list.showCharts') }}</span>
+              </button>
+              <div class="mx-3 my-1 h-px bg-gray-200 dark:bg-[#3b4c65]"></div>
               <button
                 @click="handleCreateIncident"
                 class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
@@ -318,7 +439,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { getIncidents, deleteIncidents } from '@/api/incidents'
+import { getIncidents, deleteIncidents, getIncidentTrendBySeverity, getIncidentDepartmentDistribution, getIncidentRootCauseDistribution } from '@/api/incidents'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -330,6 +451,7 @@ import { useToast } from '@/composables/useToast'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useAuthStore } from '@/stores/auth'
 import { severityToNumber } from '@/utils/severity'
+import { useTrendChartBySeverity, useDepartmentChart, useRootCauseChart } from '@/composables/useChart'
 import axios from 'axios'
 
 const { t } = useI18n()
@@ -419,9 +541,54 @@ const currentIncidentId = ref(null)
 const currentTitle = ref('')
 const findingSummary = ref('')
 
-// Time range picker
+// Charts visibility state
+const chartsVisibilityStorageKey = 'incidents-showCharts-visible'
+const getStoredChartsVisibility = () => {
+  try {
+    const stored = localStorage.getItem(chartsVisibilityStorageKey)
+    if (stored === 'true' || stored === 'false') {
+      return stored === 'true'
+    }
+  } catch (error) {
+    console.warn('Failed to read charts visibility preference:', error)
+  }
+  return true
+}
+const showCharts = ref(getStoredChartsVisibility())
+
 // Time range picker
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('incidents', 'last3Months')
+
+// Chart refs
+const incidentTrendChartRef = ref(null)
+const departmentChartRef = ref(null)
+const rootCauseChartRef = ref(null)
+
+// Use composables for charts
+const {
+  chartDates: incidentTrendChartDates,
+  chartData: incidentTrendChartData,
+  loading: incidentTrendChartLoading,
+  loadData: loadIncidentTrendBySeverity,
+  ensureChart: ensureIncidentTrendChart,
+  disposeChart: disposeIncidentTrendChart
+} = useTrendChartBySeverity(incidentTrendChartRef, getIncidentTrendBySeverity)
+
+const {
+  chartData: departmentChartData,
+  loading: departmentChartLoading,
+  loadData: loadDepartmentData,
+  ensureChart: ensureDepartmentChart,
+  disposeChart: disposeDepartmentChart
+} = useDepartmentChart(departmentChartRef, getIncidentDepartmentDistribution, 'incidents.statistics.departmentDistribution')
+
+const {
+  chartData: rootCauseChartData,
+  loading: rootCauseChartLoading,
+  loadData: loadRootCauseData,
+  ensureChart: ensureRootCauseChart,
+  disposeChart: disposeRootCauseChart
+} = useRootCauseChart(rootCauseChartRef, getIncidentRootCauseDistribution, 'incidents.statistics.rootCauseDistribution')
 
 const computeSelectedRange = () => {
   if (selectedTimeRange.value === 'customRange') {
@@ -525,7 +692,45 @@ const reloadIncidentsFromFirstPage = () => {
  * @brief 刷新事件列表
  */
 const handleRefresh = async () => {
-  await loadIncidents()
+  const tasks = [loadIncidents()]
+  if (showCharts.value) {
+    tasks.push(
+      loadIncidentTrendBySeverity(computeSelectedRange),
+      loadDepartmentData(computeSelectedRange),
+      loadRootCauseData(computeSelectedRange)
+    )
+  }
+  await Promise.all(tasks)
+}
+
+const persistChartsVisibilityPreference = (value) => {
+  try {
+    localStorage.setItem(chartsVisibilityStorageKey, value ? 'true' : 'false')
+  } catch (error) {
+    console.warn('Failed to save charts visibility preference:', error)
+  }
+}
+
+const handleToggleChartsVisibility = async () => {
+  const next = !showCharts.value
+  showCharts.value = next
+  persistChartsVisibilityPreference(next)
+  showMoreMenu.value = false
+
+  if (next) {
+    ensureIncidentTrendChart()
+    ensureDepartmentChart()
+    ensureRootCauseChart()
+    await Promise.all([
+      loadIncidentTrendBySeverity(computeSelectedRange),
+      loadDepartmentData(computeSelectedRange),
+      loadRootCauseData(computeSelectedRange)
+    ])
+  } else {
+    disposeIncidentTrendChart()
+    disposeDepartmentChart()
+    disposeRootCauseChart()
+  }
 }
 
 // 保存搜索关键词到 localStorage
@@ -689,21 +894,45 @@ const openIncidentDetailInNewWindow = (incidentId) => {
 
 const handleIncidentCreated = () => {
   // Reload incident list
-  loadIncidents()
+  const tasks = [loadIncidents()]
+  if (showCharts.value) {
+    tasks.push(
+      loadIncidentTrendBySeverity(computeSelectedRange),
+      loadDepartmentData(computeSelectedRange),
+      loadRootCauseData(computeSelectedRange)
+    )
+  }
+  Promise.all(tasks)
 }
 
 const handleTimeRangeChange = (rangeKey) => {
   selectedTimeRange.value = rangeKey
   if (rangeKey !== 'customRange') {
     // Load data based on selected time range
-    reloadIncidentsFromFirstPage()
+    const tasks = [reloadIncidentsFromFirstPage()]
+    if (showCharts.value) {
+      tasks.push(
+        loadIncidentTrendBySeverity(computeSelectedRange),
+        loadDepartmentData(computeSelectedRange),
+        loadRootCauseData(computeSelectedRange)
+      )
+    }
+    Promise.all(tasks)
   }
 }
 
 const handleCustomRangeChange = (newRange) => {
   customTimeRange.value = newRange
   if (selectedTimeRange.value === 'customRange' && newRange && newRange.length === 2) {
-    reloadIncidentsFromFirstPage()
+    const tasks = [reloadIncidentsFromFirstPage()]
+    if (showCharts.value) {
+      tasks.push(
+        loadIncidentTrendBySeverity(computeSelectedRange),
+        loadDepartmentData(computeSelectedRange),
+        loadRootCauseData(computeSelectedRange)
+      )
+    }
+    Promise.all(tasks)
   }
 }
 
@@ -764,7 +993,15 @@ const handleCloseIncident = async (data) => {
     closeCloseDialog()
     
     // 重新加载事件列表
-    loadIncidents()
+    const tasks = [loadIncidents()]
+    if (showCharts.value) {
+      tasks.push(
+        loadIncidentTrendBySeverity(computeSelectedRange),
+        loadDepartmentData(computeSelectedRange),
+        loadRootCauseData(computeSelectedRange)
+      )
+    }
+    await Promise.all(tasks)
   } catch (error) {
     console.error('Failed to close incident:', error)
     // 显示错误提示
@@ -829,7 +1066,15 @@ const handleBatchDelete = async () => {
     }
     
     // Reload incident list
-    loadIncidents()
+    const tasks = [loadIncidents()]
+    if (showCharts.value) {
+      tasks.push(
+        loadIncidentTrendBySeverity(computeSelectedRange),
+        loadDepartmentData(computeSelectedRange),
+        loadRootCauseData(computeSelectedRange)
+      )
+    }
+    await Promise.all(tasks)
   } catch (error) {
     console.error('Failed to delete incidents:', error)
     // 显示错误提示
@@ -869,6 +1114,14 @@ const handleClickOutside = (event) => {
 
 onMounted(() => {
   loadIncidents()
+  if (showCharts.value) {
+    ensureIncidentTrendChart()
+    ensureDepartmentChart()
+    ensureRootCauseChart()
+    loadIncidentTrendBySeverity(computeSelectedRange)
+    loadDepartmentData(computeSelectedRange)
+    loadRootCauseData(computeSelectedRange)
+  }
   // Add click outside listener
   document.addEventListener('click', handleClickOutside)
   // 监听 Header 发出的打开 AI 侧边栏事件
@@ -877,6 +1130,9 @@ onMounted(() => {
 
 // Clean up event listener
 onUnmounted(() => {
+  disposeIncidentTrendChart()
+  disposeDepartmentChart()
+  disposeRootCauseChart()
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('open-ai-sidebar', openAISidebarFromList)
 })

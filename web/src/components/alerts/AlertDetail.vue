@@ -253,7 +253,7 @@
                         <span class="material-symbols-outlined text-sm">link</span>
                       </button>
                     </template>
-                    <span v-else class="text-gray-500 dark:text-gray-400">NA</span>
+                    <span v-else class="text-gray-500 dark:text-gray-400">-</span>
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">

@@ -452,6 +452,11 @@
         "deleteError": "Failed to delete incidents, please try again later"
       }
     },
+    "statistics": {
+      "trend": "Incident Trend Statistics",
+      "departmentDistribution": "Incident Department Distribution",
+      "rootCauseDistribution": "Incident Root Cause Distribution"
+    },
     "edit": {
       "title": "Edit Incident",
       "success": "Incident updated successfully",

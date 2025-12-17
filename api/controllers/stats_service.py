@@ -513,6 +513,184 @@ class StatisticsService:
             return distribution
 
     @classmethod
+    def get_incident_trend_by_severity(cls, start_date, end_date):
+        """
+        Get incident count grouped by date (day) and severity between start_date and end_date.
+        Events are incidents where labels field does NOT contain 'vulscan_riskscan'.
+        Returns a list of dictionaries with 'date', 'severity', and 'count' keys.
+        """
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        if start_dt is None or end_dt is None:
+            return []
+        
+        with Session() as session:
+            # Group by day and severity: extract date from string format, severity
+            # Filter incidents where labels does NOT contain 'vulscan_riskscan'
+            query = (
+                session.query(
+                    func.substring(Incident.create_time, 1, 10).label('date'),
+                    Incident.severity.label('severity'),
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
+                    ~Incident.labels.like('%vulscan%')
+                )
+            )
+            
+            results = query.group_by(
+                func.substring(Incident.create_time, 1, 10),
+                Incident.severity
+            ).order_by('date', 'severity').all()
+            
+            # Convert results to list of dicts, ensure date format is YYYY-MM-DD
+            # Normalize severity to capitalize first letter (e.g., 'high' -> 'High')
+            def normalize_severity(severity):
+                if not severity:
+                    return 'Unknown'
+                # Capitalize first letter, keep rest lowercase
+                return severity.capitalize() if severity else 'Unknown'
+            
+            trend_data = []
+            for row in results:
+                date_str = row.date if isinstance(row.date, str) else str(row.date)
+                trend_data.append({
+                    'date': date_str,
+                    'severity': normalize_severity(row.severity),
+                    'count': row.count
+                })
+            
+            # Fill in missing dates and severities with 0 count
+            # Get all unique dates and severities
+            all_dates = set()
+            # Standard severity levels (capitalized)
+            all_severities = set(['Critical', 'High', 'Medium', 'Low', 'Unknown'])
+            current_date = start_dt.date()
+            end_date_obj = end_dt.date()
+            
+            while current_date <= end_date_obj:
+                date_str = current_date.strftime('%Y-%m-%d')
+                all_dates.add(date_str)
+                current_date += timedelta(days=1)
+            
+            # Add severities from actual data (already normalized)
+            for item in trend_data:
+                if item['severity']:
+                    all_severities.add(item['severity'])
+            
+            # Build a dictionary for quick lookup: {date: {severity: count}}
+            trend_dict = {}
+            for item in trend_data:
+                date = item['date']
+                severity = item['severity']
+                count = item['count']
+                if date not in trend_dict:
+                    trend_dict[date] = {}
+                trend_dict[date][severity] = count
+            
+            # Build complete trend data
+            complete_trend = []
+            for date in sorted(all_dates):
+                for severity in sorted(all_severities):
+                    count = trend_dict.get(date, {}).get(severity, 0)
+                    complete_trend.append({
+                        'date': date,
+                        'severity': severity,
+                        'count': count
+                    })
+            
+            return complete_trend
+
+    @classmethod
+    def get_incident_department_distribution(cls, start_date, end_date):
+        """
+        Get incident count grouped by responsible department and severity between start_date and end_date.
+        Events are incidents where labels field does NOT contain 'vulscan_riskscan'.
+        Returns a nested dictionary: {department: {severity: count, ...}, ...}
+        """
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        with Session() as session:
+            # Group by responsible_dept and severity
+            # Filter incidents where labels does NOT contain 'vulscan_riskscan'
+            query = (
+                session.query(
+                    Incident.responsible_dept,
+                    Incident.severity,
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
+                    ~Incident.labels.like('%vulscan_riskscan%')
+                )
+                .group_by(Incident.responsible_dept, Incident.severity)
+            )
+            
+            results = query.all()
+            
+            # Convert results to nested dictionary
+            # Handle None/null department names and severity
+            distribution = {}
+            for row in results:
+                dept = row.responsible_dept if row.responsible_dept else 'Unknown'
+                severity = row.severity if row.severity else 'Unknown'
+                # Normalize severity to capitalize first letter
+                severity = severity.capitalize() if severity else 'Unknown'
+                
+                if dept not in distribution:
+                    distribution[dept] = {}
+                distribution[dept][severity] = row.count
+            
+            return distribution
+
+    @classmethod
+    def get_incident_root_cause_distribution(cls, start_date, end_date):
+        """
+        Get incident count grouped by root_cause between start_date and end_date.
+        Events are incidents where labels field does NOT contain 'vulscan_riskscan'.
+        Returns a dictionary with root_cause names as keys and counts as values.
+        """
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        with Session() as session:
+            # Group by root_cause
+            # Filter incidents where labels does NOT contain 'vulscan_riskscan'
+            query = (
+                session.query(
+                    Incident.root_cause,
+                    func.count(Incident.id).label('count')
+                )
+                .filter(
+                    Incident.create_time >= start_date_str,
+                    Incident.create_time <= end_date_str,
+                    ~Incident.labels.like('%vulscan_riskscan%'),
+                    Incident.root_cause.isnot(None),
+                    Incident.root_cause != ''
+                )
+                .group_by(Incident.root_cause)
+            )
+            
+            results = query.all()
+            
+            # Convert results to dictionary
+            # Handle None/null root_cause names as 'Unknown'
+            distribution = {}
+            for row in results:
+                root_cause = row.root_cause if row.root_cause else 'Unknown'
+                distribution[root_cause] = row.count
+            
+            return distribution
+
+    @classmethod
     def get_ai_accuracy_by_model(cls, start_date, end_date, limit=10):
         """
         Calculate AI decision accuracy per model between start_date and end_date.

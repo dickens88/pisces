@@ -139,6 +139,51 @@ class AlertCountBySourceView(Resource):
                     "data": data,
                     "description": "Distribution of vulnerabilities by department / business unit.",
                 }, 200
+            elif chart_name_normalized == "incident-trend-by-severity":
+                # For incident trend by severity chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for incident-trend-by-severity chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_incident_trend_by_severity(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "Time trend of incidents by severity level in the selected time range.",
+                }, 200
+            elif chart_name_normalized == "incident-department-distribution":
+                # For incident department distribution chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for incident-department-distribution chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_incident_department_distribution(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "Distribution of incidents by department / business unit grouped by severity.",
+                }, 200
+            elif chart_name_normalized == "incident-root-cause-distribution":
+                # For incident root cause distribution chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for incident-root-cause-distribution chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_incident_root_cause_distribution(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "Distribution of incidents by root cause.",
+                }, 200
             elif chart_name_normalized in (
                 "ai-model-accuracy",
                 "ai_model_accuracy",

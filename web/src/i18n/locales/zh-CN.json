@@ -447,6 +447,11 @@
         "deleteError": "删除事件失败，请稍后重试"
       }
     },
+    "statistics": {
+      "trend": "事件趋势统计",
+      "departmentDistribution": "事件部门分布",
+      "rootCauseDistribution": "事件根因分布"
+    },
     "edit": {
       "title": "编辑事件",
       "success": "事件更新成功",

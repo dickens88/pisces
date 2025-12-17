@@ -118,3 +118,48 @@ export const getVulnerabilityTrendBySeverity = (startDate, endDate) => {
   return service.get('/stats/alerts', { params })
 }
 
+/**
+ * @brief 获取事件趋势数据（按日期和severity分组统计）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} 事件趋势数据数组，格式为 [{date: string, severity: string, count: number}, ...]
+ */
+export const getIncidentTrendBySeverity = (startDate, endDate) => {
+  const params = {
+    chart: 'incident-trend-by-severity'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
+}
+
+/**
+ * @brief 获取事件部门分布数据（按严重程度分组）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} 事件部门分布数据，格式为 {department: {severity: count, ...}, ...}
+ */
+export const getIncidentDepartmentDistribution = (startDate, endDate) => {
+  const params = {
+    chart: 'incident-department-distribution'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
+}
+
+/**
+ * @brief 获取事件根因分布数据
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} 事件根因分布数据，格式为 {root_cause: count, ...}
+ */
+export const getIncidentRootCauseDistribution = (startDate, endDate) => {
+  const params = {
+    chart: 'incident-root-cause-distribution'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
+}
+
