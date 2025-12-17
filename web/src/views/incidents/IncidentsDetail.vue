@@ -127,7 +127,8 @@
       <div v-if="activeTab === 'alertStory'" class="space-y-4">
         <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
-          <div v-if="hasGraphData" ref="graphWorkspaceRef" class="flex min-h-[600px]">
+          <!-- 始终保留整体工作区结构（左右栏 + 中间区域），只根据状态切换中间区域内容 -->
+          <div ref="graphWorkspaceRef" class="flex min-h-[600px]">
             <!-- 左侧：告警时间线 -->
             <aside
               v-if="!isLeftPaneCollapsed"
@@ -192,7 +193,7 @@
             </aside>
             <!-- 左侧收起后的小按钮 -->
             <button
-              v-else
+              v-if="isLeftPaneCollapsed"
               type="button"
               class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               :title="translateOr('incidents.detail.eventGraph.expandLeftPane', 'Expand alert list')"
@@ -307,11 +308,48 @@
                 </div>
               </div>
               <div class="w-full h-full" style="position: relative;" @click="handleGraphContainerClick">
+                <!-- 仅在重新生成图谱时遮罩中间图区域，不遮挡左右栏 -->
                 <div
+                  v-if="isRegeneratingGraph"
+                  class="absolute inset-0 bg-white/75 dark:bg-[#111822]/75 backdrop-blur-sm z-20 flex items-center justify-center"
+                >
+                  <div class="flex flex-col items-center gap-3">
+                    <div class="relative w-10 h-10">
+                      <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                      <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 text-xs font-medium">
+                      {{ translateOr('incidents.detail.eventGraph.regeneratingGraph', '正在重新生成图谱...') }}
+                    </p>
+                  </div>
+                </div>
+                <!-- 有图数据时渲染 D3 画布；否则在中间区域显示空状态，占位但保留左右栏 -->
+                <div
+                  v-if="hasGraphData"
                   ref="graphCanvasRef"
                   class="w-full h-full"
                   style="min-height: 600px; width: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0;"
                 ></div>
+                <div
+                  v-else
+                  class="w-full h-full flex items-center justify-center p-10"
+                >
+                  <svg
+                    class="w-24 h-24 text-gray-400 dark:text-slate-600/80"
+                    viewBox="0 0 120 120"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle cx="24" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+                    <circle cx="60" cy="24" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+                    <circle cx="96" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
+                    <circle cx="60" cy="96" r="12" stroke="currentColor" stroke-width="3" fill="none" />
+                    <path d="M33 53 L51 35" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                    <path d="M69 35 L87 53" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                    <path d="M51 85 L33 67" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                    <path d="M87 67 L69 85" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
+                  </svg>
+                </div>
               </div>
               <div
                 class="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#111822] border-t border-l border-gray-200 dark:border-slate-800 px-4 py-2.5 text-[11px] text-gray-700 dark:text-slate-300 flex items-center gap-2 flex-wrap z-10"
@@ -559,7 +597,7 @@
             </aside>
             <!-- 右侧收起后的小按钮 -->
             <button
-              v-else
+              v-if="isRightPaneCollapsed"
               type="button"
               class="flex items-center justify-center w-4 bg-gray-200 dark:bg-slate-900/70 hover:bg-gray-300 dark:hover:bg-slate-900 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
               :title="translateOr('incidents.detail.eventGraph.expandRightPane', 'Expand information panel')"
@@ -567,26 +605,6 @@
             >
               <span class="material-symbols-outlined text-base">chevron_left</span>
             </button>
-          </div>
-          <div
-            v-else
-            class="min-h-[420px] flex items-center justify-center p-10"
-          >
-            <svg
-              class="w-24 h-24 text-gray-400 dark:text-slate-600/80"
-              viewBox="0 0 120 120"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle cx="24" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
-              <circle cx="60" cy="24" r="12" stroke="currentColor" stroke-width="3" fill="none" />
-              <circle cx="96" cy="60" r="10" stroke="currentColor" stroke-width="3" fill="none" />
-              <circle cx="60" cy="96" r="12" stroke="currentColor" stroke-width="3" fill="none" />
-              <path d="M33 53 L51 35" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              <path d="M69 35 L87 53" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              <path d="M51 85 L33 67" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-              <path d="M87 67 L69 85" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
-            </svg>
           </div>
         </div>
       </div>
@@ -1698,6 +1716,15 @@ const loadGraphData = (rawData) => {
   selectedGraphNodeId.value = ''
   highlightedEntity.value = ''
   prunedNodeIds.value = new Set()
+
+  // 如果当前没有任何节点（如重新生成图谱时清空画布），主动销毁并清空中间图区域，
+  // 但保留左右栏（通过模板中的 hasGraphData || isRegeneratingGraph 控制）
+  if (!parsed.nodes || parsed.nodes.length === 0) {
+    destroyD3Graph()
+    if (graphCanvasRef.value) {
+      graphCanvasRef.value.innerHTML = ''
+    }
+  }
   
   // 如果当前在 Alert story（图谱）标签页，初始化图表
   // 否则等待用户切换到该标签页时再初始化（通过 watch activeTab）
