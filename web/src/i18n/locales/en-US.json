@@ -197,8 +197,8 @@
       "alertTitle": "Alert Title",
       "riskLevel": "Risk Level",
       "status": "Status",
-      "aiJudge": "AI Verdict",
-      "allAiJudge": "AI Verdict",
+      "aiJudge": "AI Judge",
+      "allAiJudge": "AI Judge",
       "aiJudgeResult": {
         "truePositive": "Suspicious",
         "falsePositive": "False Positive",
@@ -342,6 +342,8 @@
       "owner": "Owner",
       "unassigned": "Unassigned",
       "actor": "Actor",
+      "relatedIncident": "To Incident",
+      "openRelatedIncident": "Open Related Incident in New Window",
       "created": "Created",
       "responseTime": "TTA",
       "addComment": "Add a comment...",
@@ -482,7 +484,7 @@
       "selectSeverity": "Please select severity",
       "currentStatus": "Current Status",
       "description": "Description",
-      "descriptionPlaceholder": "Please enter incident description",
+      "descriptionPlaceholder": "Please enter incident description, including Summary, Incident Overview, Response Measures, etc.",
       "success": "Incident created successfully",
       "successWithAlerts": "Incident created successfully, alerts associated",
       "error": "Failed to create incident, please try again later"
@@ -522,10 +524,10 @@
         "conclusionPlaceholder": "Please enter investigation conclusion..."
       },
       "tabs": {
-        "alertStory": "Alert story",
-        "alerts": "Alerts",
-        "assets": "Assets",
-        "evidenceResponse": "Evidence & Response"
+        "overview": "Overview",
+        "eventGraph": "Event Graph Intelligence",
+        "attackChain": "Attack Chain",
+        "comments": "Comments"
       },
       "eventGraph": {
         "title": "Event Graph Intelligence",
@@ -587,8 +589,6 @@
         "regenerateSuccess": "Graph regeneration started. Refresh later to view updates.",
         "regenerateError": "Failed to regenerate graph, please try again.",
         "lastGenerationTime": "Last Generation Time",
-        "entityCount": "Entities",
-        "relationCount": "Relations",
         "incidentCreated": "Correlation Seed Created",
         "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
         "alertConverted": "Alert Enriched in Graph",

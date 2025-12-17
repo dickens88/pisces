@@ -132,6 +132,22 @@ class IncidentView(Resource):
             return {"error_message": str(ex)}, 500
 
 
+class AlertRelations(Resource):
+
+    @auth_required
+    def get(self, username=None, alert_id=None):
+        try:
+            workspace_id = get_workspace_id(request.args.get('workspace'))
+
+            resp = IncidentService.query_object_relations(alert_id=alert_id, workspace_id=workspace_id)
+            if resp["data"]:
+                return {"data": {"incident_id": resp["data"][0]["id"]}}, 200
+            else:
+                return {"data": None}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
 
 class IncidentRelations(Resource):
 

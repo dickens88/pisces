@@ -240,6 +240,23 @@
                   </div>
                   <div class="h-4 w-px bg-border-dark/50"></div>
                   <div class="flex items-center gap-1.5">
+                    <span class="font-semibold text-gray-900 dark:text-white mr-1">
+                      {{ $t('alerts.detail.relatedIncident') }}
+                    </span>
+                    <template v-if="relatedIncidentId">
+                      <button
+                        type="button"
+                        @click="openIncidentInNewWindow"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-0.5 transition-colors"
+                        :title="t('alerts.detail.openRelatedIncident', { id: relatedIncidentId })"
+                      >
+                        <span class="material-symbols-outlined text-sm">link</span>
+                      </button>
+                    </template>
+                    <span v-else class="text-gray-500 dark:text-gray-400">NA</span>
+                  </div>
+                  <div class="h-4 w-px bg-border-dark/50"></div>
+                  <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-gray-900 dark:text-white mr-1">{{ $t('alerts.detail.status') }}:</span>
                     <span
                       :class="[
@@ -687,7 +704,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
+import { getAlertDetail, getAlertRelations, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
 import { useAuthStore } from '@/stores/auth'
 import { postComment } from '@/api/comments'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
@@ -732,6 +749,7 @@ const authStore = useAuthStore()
 const visible = ref(false)
 const alert = ref(null)
 const isLoading = ref(false)
+const relatedIncidentId = ref(null)
 
 const currentAlertId = computed(() => {
   return props.alertId || route.params.id
@@ -1037,6 +1055,14 @@ const loadAlertDetail = async (showLoading = true) => {
     const response = await getAlertDetail(currentAlertId.value, props.workspace)
     alert.value = transformAlertDetailData(response.data)
     loadAssociatedAlerts()
+    // 加载与当前告警关联的事件（如果存在）
+    try {
+      const relationsResp = await getAlertRelations(currentAlertId.value, props.workspace)
+      relatedIncidentId.value = relationsResp.data?.incident_id || null
+    } catch (relationsError) {
+      console.error('Failed to load alert relations:', relationsError)
+      relatedIncidentId.value = null
+    }
     // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
     hasAutoOpenedAiSidebar.value = false
   } catch (error) {
@@ -1574,13 +1600,26 @@ const openLinkInNewWindow = (url) => {
   }
 }
 
-
 const getAlertUrl = () => {
   const raw = import.meta.env.VITE_WEB_BASE_PATH
   const basePath = raw && raw !== '/' 
     ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
     : ''
   return `${window.location.origin}${basePath}/alerts/${currentAlertId.value}`
+}
+
+const getIncidentUrl = (incidentId) => {
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  const basePath = raw && raw !== '/'
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  return `${window.location.origin}${basePath}/incidents/${incidentId}`
+}
+
+const openIncidentInNewWindow = () => {
+  if (!relatedIncidentId.value) return
+  const url = getIncidentUrl(relatedIncidentId.value)
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 const handleOpenAISidebar = () => {

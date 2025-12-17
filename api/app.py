@@ -72,6 +72,7 @@ api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident
 api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabilities/<incident_id>', endpoint='vulnerabilityview')
 
 api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
+api.add_resource(incident_view.AlertRelations, '/alerts/<alert_id>/relations')
 
 api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
 

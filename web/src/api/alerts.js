@@ -222,6 +222,17 @@ export const getAlertDetail = (id, workspace) => {
 }
 
 /**
+ * @brief 获取与告警关联的事件关系（如果有的话会返回 incident_id）
+ * @param {string|number} id - 告警ID
+ * @param {string} [workspace] - 可选 workspace 标识，例如 'asm'
+ * @returns {Promise} 返回关系数据，形式为 { data: { incident_id: string } | null }
+ */
+export const getAlertRelations = (id, workspace) => {
+  const url = workspace ? `/alerts/${id}/relations?workspace=${workspace}` : `/alerts/${id}/relations`
+  return service.get(url)
+}
+
+/**
  * @brief 获取自动化关闭率统计
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）

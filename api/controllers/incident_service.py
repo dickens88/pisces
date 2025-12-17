@@ -259,6 +259,27 @@ class IncidentService:
         return json.loads(resp.text)
 
     @classmethod
+    def query_object_relations(cls, alert_id, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/alerts/{alert_id}/incidents/search"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+        body = {
+            "limit": 10,
+            "offset": 0,
+            "sort_by": "create_time",
+            "order": "DESC",
+            "condition": {
+                "conditions": [],
+                "logics": []
+            }
+        }
+
+        resp = request_with_auth("POST", url=base_url, data=json.dumps(body, ensure_ascii=False), headers=headers)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+        return json.loads(resp.text)
+
+    @classmethod
     def delete_incidents(cls, batch_ids, workspace_id=None):
         """Delete incidents."""
         ws_id = workspace_id or cls.workspace_id

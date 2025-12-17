@@ -652,6 +652,34 @@
                 {{ $t(`common.severity.${item.riskLevel}`) }}
               </span>
             </template>
+            <template #cell-aiJudge="{ item }">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span
+                  v-if="item.verification_state === 'True_Positive'"
+                  class="material-symbols-outlined text-red-500 flex-shrink-0"
+                  style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                  :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.truePositive')"
+                >
+                  Input_circle
+                </span>
+                <span
+                  v-else-if="item.verification_state === 'False_Positive'"
+                  class="material-symbols-outlined text-green-500 flex-shrink-0"
+                  style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                  :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.falsePositive')"
+                >
+                  output_circle
+                </span>
+                <span
+                  v-else
+                  class="material-symbols-outlined text-gray-400 flex-shrink-0"
+                  style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                  :title="$t('alerts.list.aiJudge') + ': ' + $t('alerts.list.aiJudgeResult.unknown')"
+                >
+                  Unknown_5
+                </span>
+              </div>
+            </template>
             <template #cell-status="{ item }">
               <span
                 :class="[
@@ -664,7 +692,7 @@
                 {{ $t(`alerts.list.${item.status}`) }}
               </span>
             </template>
-            <template #cell-owner="{ value }">
+            <template #cell-actor="{ value }">
               <div class="flex justify-center w-full">
                 <UserAvatar :name="value" />
               </div>
@@ -2575,13 +2603,13 @@ const tabs = [
   { key: 'evidenceResponse', label: 'incidents.detail.tabs.evidenceResponse' }
 ]
 
-// 关联告警表格列配置
 const associatedAlertsColumns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
+  { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'status', label: t('alerts.list.status') },
-  { key: 'owner', label: t('alerts.list.owner') }
+  { key: 'actor', label: t('alerts.list.actor') }
 ])
 
 // 关联告警表格默认列宽
@@ -2589,8 +2617,9 @@ const associatedAlertsDefaultWidths = {
   createTime: 180,
   alertTitle: 400,
   riskLevel: 120,
+  aiJudge: 120,
   status: 120,
-  owner: 50
+  actor: 50
 }
 
 // 格式化关联告警数据，将事件详情的数据格式转换为告警管理页面的格式
@@ -2607,10 +2636,10 @@ const formattedAssociatedAlerts = computed(() => {
       'Low': 'low',
       'Tips': 'tips'
     }
-    const riskLevel = alert.severity 
+    const riskLevel = alert.severity
       ? (severityMap[alert.severity] || alert.severity.toLowerCase())
       : 'low'
-    
+
     // 转换 handle_status 为 status (需要转换为小写)
     const statusMap = {
       'Open': 'open',
@@ -2620,14 +2649,15 @@ const formattedAssociatedAlerts = computed(() => {
     const status = alert.handle_status
       ? (statusMap[alert.handle_status] || alert.handle_status.toLowerCase())
       : 'open'
-    
+
     return {
       id: alert.id,
       createTime: alert.create_time || alert.createTime || '-',
       title: alert.title || '-',
       riskLevel: riskLevel,
       status: status,
-      owner: alert.owner || '-'
+      actor: alert.actor || '-',
+      verification_state: alert.verification_state || alert.verificationState || 'Unknown'
     }
   })
 })
