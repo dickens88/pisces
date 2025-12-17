@@ -715,6 +715,11 @@ const props = defineProps({
     type: [Number, String],
     required: false,
     default: null
+  },
+  preventAutoOpenAi: {
+    type: Boolean,
+    required: false,
+    default: false
   }
 })
 
@@ -1701,6 +1706,8 @@ const handleClickOutside = (event) => {
 watch(
   () => alert.value?.ai,
   async (newAi) => {
+    // 如果设置了阻止自动打开AI，则不自动打开
+    if (props.preventAutoOpenAi) return
     if (hasAutoOpenedAiSidebar.value) return
     const investigationContent = findInvestigationContent()
     const hasAnyAi = Array.isArray(newAi) && newAi.length > 0
