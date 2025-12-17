@@ -133,7 +133,8 @@ class _LightRAGClient:
 
             if time.monotonic() - start > self.track_timeout:
                 raise EventGraphGenerationError(
-                    f"Timed out waiting for LightRAG track {track_id} to complete"
+                    f"Timed out waiting for LightRAG track {track_id} to complete "
+                    f"(timeout={self.track_timeout}s)"
                 )
             time.sleep(self.poll_interval)
 
@@ -206,10 +207,70 @@ class _LightRAGClient:
         return data.get("response") or data.get("data")
 
     def clear_documents(self):
-        try:
-            self._request("DELETE", "/documents")
-        except EventGraphGenerationError as exc:
-            logger.warning("Failed to clear LightRAG workspace: %s", exc)
+        """
+        清理 LightRAG workspace。
+
+        - 正常情况下调用一次 DELETE /documents 即可。
+        - 如果后端返回 busy / cannot clear while pipeline is busy，则按照配置做有限次数重试，
+          避免像日志中那样在 pipeline 仍在运行时立刻放弃清理，导致残留 processed 文档。
+        """
+        # 复用已有配置：重试次数用 max_retry_attempts，重试间隔用 poll_interval
+        attempts = max(1, int(config.get("application.lightrag.max_retry_attempts", 2)))
+        delay = max(1, int(self.poll_interval or 1))
+
+        last_error: Optional[Exception] = None
+
+        for attempt in range(1, attempts + 1):
+            try:
+                response = self._request("DELETE", "/documents")
+                # 尝试解析业务状态，兼容 {"status":"busy", ...} 场景
+                try:
+                    data = self._safe_json(response)
+                except EventGraphGenerationError:
+                    # 返回的不是 JSON，保底认为清理成功
+                    logger.info("[LightRAG] Cleared workspace with non-JSON response")
+                    return
+
+                status = ""
+                if isinstance(data, dict):
+                    status = str(data.get("status", "")).lower()
+
+                if status == "busy":
+                    logger.warning(
+                        "[LightRAG] Workspace busy on DELETE /documents (attempt %s/%s): %s",
+                        attempt,
+                        attempts,
+                        data,
+                    )
+                    last_error = EventGraphGenerationError(
+                        f"LightRAG workspace busy when clearing documents: {data}"
+                    )
+                    if attempt < attempts:
+                        time.sleep(delay)
+                        continue
+                else:
+                    logger.info(
+                        "[LightRAG] Cleared workspace successfully on attempt %s/%s: %s",
+                        attempt,
+                        attempts,
+                        data,
+                    )
+                    return
+            except EventGraphGenerationError as exc:
+                last_error = exc
+                logger.warning(
+                    "[LightRAG] Failed to clear workspace on attempt %s/%s: %s",
+                    attempt,
+                    attempts,
+                    exc,
+                )
+                if attempt < attempts:
+                    time.sleep(delay)
+                    continue
+
+        # 所有重试都失败，给调用方一个统一的告警，但不抛出异常阻断主流程
+        if last_error:
+            logger.warning("Failed to clear LightRAG workspace after %s attempts: %s", attempts, last_error)
 
     def _get_status_counts(self) -> Dict[str, int]:
         response = self._request("GET", "/documents/status_counts")
