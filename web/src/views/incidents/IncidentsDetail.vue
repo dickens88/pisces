@@ -123,7 +123,7 @@
 
     <!-- 标签页内容 -->
     <div class="mt-6 flex-grow">
-      <!-- Alert story：事件图谱 -->
+      <!-- Alert story：事件沙盘 -->
       <div v-if="activeTab === 'alertStory'" class="space-y-4">
         <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
@@ -132,6 +132,7 @@
             <aside
               v-if="!isLeftPaneCollapsed"
               class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
+              style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
             >
               <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-[#111822]">
                 <div class="flex items-center gap-2">
@@ -151,84 +152,41 @@
                   <span class="material-symbols-outlined text-base">chevron_left</span>
                 </button>
               </div>
-              <div class="flex-1 overflow-y-auto">
+              <div class="flex-1 overflow-y-auto" style="height: 0;">
                 <div
-                  v-for="item in paginatedAssociatedAlertsTimeline"
+                  v-for="item in associatedAlertsTimeline"
                   :key="item.id"
-                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors cursor-default"
+                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
                 >
-                  <div class="flex items-center justify-between mb-1">
-                    <div class="flex items-center space-x-2">
-                      <span
-                        :class="[
-                          'w-2 h-2 rounded-full',
-                          item.severity === 'high'
-                            ? 'bg-red-500'
-                            : item.severity === 'medium'
-                              ? 'bg-orange-500'
-                              : 'bg-emerald-500'
-                        ]"
-                      ></span>
-                      <span class="text-[11px] text-gray-500 dark:text-slate-400">
-                        {{ formatDateTime(item.createTime) }}
-                      </span>
-                    </div>
-                    <span class="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#1e293b] text-gray-600 dark:text-slate-300">
-                      {{ $t(`alerts.list.${item.status}`) }}
+                  <div class="flex items-center gap-2 mb-1">
+                    <span
+                      :class="[
+                        'text-[9px] px-1.5 py-0.5 rounded',
+                        getRiskLevelClass(item.riskLevel)
+                      ]"
+                      :title="$t(`common.severity.${item.riskLevel}`)"
+                    >
+                      {{ $t(`common.severity.${item.riskLevel}`) }}
+                    </span>
+                    <span class="text-[11px] text-gray-500 dark:text-slate-400">
+                      {{ formatDateTime(item.createTime) }}
                     </span>
                   </div>
                   <h4 class="text-[11px] leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
-                    <span :title="item.title || '-'">
+                    <a
+                      @click="openAlertDetail(item.id)"
+                      class="text-primary hover:underline cursor-pointer"
+                      :title="item.title || '-'"
+                    >
                       {{ item.title || '-' }}
-                    </span>
+                    </a>
                   </h4>
-                  <p class="mt-1 text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2" :title="item.owner || '-'">
-                    {{ item.owner || '-' }}
-                  </p>
                 </div>
                 <div
                   v-if="associatedAlertsTimeline.length === 0"
                   class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
                 >
                   {{ translateOr('incidents.detail.eventGraph.timelineEmpty', 'No associated alerts') }}
-                </div>
-              </div>
-              <div
-                v-if="timelineTotalPages > 0"
-                class="px-2.5 py-1.5 border-t border-gray-100 dark:border-slate-800/70 flex items-center justify-between text-[10px] text-gray-500 dark:text-slate-400"
-              >
-                <div class="flex items-center gap-[2px]">
-                  <button
-                    type="button"
-                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
-                    :disabled="timelineCurrentPage === 1"
-                    @click="timelineCurrentPage = Math.max(1, timelineCurrentPage - 1)"
-                  >
-                    <span class="material-symbols-outlined text-[14px]">chevron_left</span>
-                  </button>
-                  <span class="text-center">{{ timelineCurrentPage }}/{{ timelineTotalPages }}</span>
-                  <button
-                    type="button"
-                    class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-[#1e293b] disabled:opacity-40 disabled:cursor-not-allowed"
-                    :disabled="timelineCurrentPage === timelineTotalPages"
-                    @click="timelineCurrentPage = Math.min(timelineTotalPages, timelineCurrentPage + 1)"
-                  >
-                    <span class="material-symbols-outlined text-[14px]">chevron_right</span>
-                  </button>
-                </div>
-                <div class="flex items-center gap-0.5">
-                  <select
-                    v-model.number="timelinePageSize"
-                    class="h-5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#0f172a] px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/60 focus:border-primary/60"
-                    :title="translateOr('incidents.detail.eventGraph.perPageTooltip', 'Items per page')"
-                  >
-                    <option v-for="size in timelinePageSizeOptions" :key="size" :value="size">
-                      {{ size }}
-                    </option>
-                  </select>
-                  <span class="text-[9px] text-gray-400 dark:text-slate-500">
-                    /{{ translateOr('incidents.detail.eventGraph.perPageUnit', 'page') }}
-                  </span>
                 </div>
               </div>
             </aside>
@@ -243,7 +201,7 @@
               <span class="material-symbols-outlined text-base">chevron_right</span>
             </button>
 
-            <!-- 中间：事件图谱 -->
+            <!-- 中间：事件沙盘 -->
             <div ref="graphContainerRef" class="flex-1 relative bg-gray-50 dark:bg-[#0f172a] min-h-[600px]">
               <div class="absolute top-4 left-4 right-4 z-10 pointer-events-none">
                 <div class="flex flex-col xl:flex-row gap-3 items-start pointer-events-auto text-[13px]" @click.stop>
@@ -348,25 +306,6 @@
                   </div>
                 </div>
               </div>
-              <div class="absolute bottom-12 left-4 z-10 pointer-events-none">
-                <div class="pointer-events-auto" @click.stop>
-                  <div class="bg-gray-100 dark:bg-slate-900/80 border border-gray-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 shadow-lg">
-                    <div class="flex flex-col gap-1 text-[11px] uppercase tracking-wide">
-                      <button
-                        v-for="entry in legendEntries"
-                        :key="entry.key"
-                        type="button"
-                        class="legend-entry"
-                        :class="{ 'legend-entry--active': legendFlashKey === entry.key }"
-                        @click.stop="handleLegendClick(entry.key)"
-                      >
-                        <span class="legend-entry__dot" :style="{ backgroundColor: entry.color }"></span>
-                        <span class="legend-entry__label">{{ entry.label }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
               <div class="w-full h-full" style="position: relative;" @click="handleGraphContainerClick">
                 <div
                   ref="graphCanvasRef"
@@ -375,25 +314,23 @@
                 ></div>
               </div>
               <div
-                class="absolute bottom-0 left-0 right-0 bg-gray-100 dark:bg-slate-900/80 border-t border-gray-300 dark:border-slate-800 px-4 py-2 text-[11px] text-gray-700 dark:text-slate-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3 z-10"
+                class="absolute bottom-0 left-0 right-0 bg-white dark:bg-[#111822] border-t border-l border-gray-200 dark:border-slate-800 px-4 py-2.5 text-[11px] text-gray-700 dark:text-slate-300 flex items-center gap-2 flex-wrap z-10"
               >
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="graph-status-dot" :class="graphStatusDotClass"></span>
-                  <span class="font-semibold">{{ graphStatusLabel }}</span>
-                  <span class="text-gray-400 dark:text-slate-600">|</span>
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', 'Last generation time') }}: {{ graphLastGeneratedTime || '--' }}
-                  </span>
-                </div>
-                <div class="flex items-center gap-2 text-[11px] sm:ml-auto">
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.entityCount', 'Entities') }}: {{ eventGraphStats.totalNodes ?? 0 }}
-                  </span>
-                  <span class="text-gray-400 dark:text-slate-600">|</span>
-                  <span class="whitespace-nowrap">
-                    {{ translateOr('incidents.detail.eventGraph.relationCount', 'Relations') }}: {{ eventGraphStats.totalEdges ?? 0 }}
-                  </span>
-                </div>
+                <span class="graph-status-dot" :class="graphStatusDotClass"></span>
+                <span class="font-semibold whitespace-nowrap">
+                  {{ graphStatusLabel }}
+                </span>
+                <span class="text-gray-400 dark:text-slate-600">|</span>
+                <span class="whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.lastGenerationTime', '上次生成时间') }}: {{ graphLastGeneratedTime || '--' }}
+                </span>
+                <span class="whitespace-nowrap ml-auto">
+                  {{ translateOr('incidents.detail.eventGraph.entityCount', '实体个数') }}: {{ eventGraphStats.totalNodes ?? 0 }}
+                </span>
+                <span class="text-gray-400 dark:text-slate-600">|</span>
+                <span class="whitespace-nowrap">
+                  {{ translateOr('incidents.detail.eventGraph.relationCount', '关系个数') }}: {{ eventGraphStats.totalEdges ?? 0 }}
+                </span>
               </div>
             </div>
 
@@ -789,6 +726,7 @@
     <AlertDetail
       v-if="selectedAlertId"
       :alert-id="selectedAlertId"
+      :prevent-auto-open-ai="true"
       @close="closeAlertDetail"
     />
 

@@ -517,7 +517,7 @@
         "conclusionPlaceholder": "请输入调查结论..."
       },
       "tabs": {
-        "alertStory": "事件图谱",
+        "alertStory": "事件沙盘",
         "alerts": "关联告警",
         "assets": "受影响资产",
         "evidenceResponse": "证据与响应"

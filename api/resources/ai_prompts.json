@@ -17,10 +17,24 @@
       "en": "Help me analyze the overall security trends"
     }
   ],
+  "/dashboard": [
+    {
+      "zh": "最近24小时的告警趋势如何",
+      "en": "What is the security trend in the last 24 hours"
+    },
+    {
+      "zh": "自动化关闭率的变化说明了什么",
+      "en": "What does the automation closure rate change indicate"
+    },
+    {
+      "zh": "告警来源分布有什么异常吗",
+      "en": "Are there any anomalies in alert source distribution"
+    }
+  ],
   "/incidents": [
     {
-      "zh": "这个月发生了什么",
-      "en": "What happened this month?"
+      "zh": "总结一下这个月新增哪些事件",
+      "en": "Summarize new incident for this month?"
     },
     {
       "zh": "还有哪些事件没闭环",
@@ -31,8 +45,8 @@
       "en": "Which incidents need priority handling"
     },
     {
-      "zh": "最近的事件处理效率如何",
-      "en": "How is the recent incident handling efficiency"
+      "zh": "最近安全事件的趋势如何？",
+      "en": "How is trend of incident"
     }
   ],
   "/incidents/detail": [
@@ -59,16 +73,16 @@
       "en": "How many high risk alerts are open"
     },
     {
-      "zh": "哪些告警需要立即处理",
-      "en": "Which alerts need immediate attention"
-    },
-    {
       "zh": "最近告警的趋势是什么",
       "en": "What is the recent alert trend"
     },
     {
-      "zh": "哪些来源的告警最多",
-      "en": "Which sources have the most alerts"
+      "zh": "告警来源top10",
+      "en": "Get top 10 sources of alerts"
+    },
+    {
+      "zh": "处理告警最多的top5调查员",
+      "en": "Get top 5 actor of alert handling"
     }
   ],
   "/alerts/detail": [
@@ -81,12 +95,8 @@
       "en": "Check the IP address"
     },
     {
-      "zh": "这个告警是否与其他告警有关联",
-      "en": "Is this alert related to other alerts"
-    },
-    {
-      "zh": "这个告警的处理步骤是什么",
-      "en": "What are the handling steps for this alert"
+      "zh": "帮我分析这个payload是否恶意",
+      "en": "Help me check if this payload is malicious"
     }
   ],
   "/vulnerabilities": [
@@ -125,33 +135,7 @@
       "en": "What is the exploitation difficulty of this vulnerability"
     }
   ],
-  "/dashboard": [
-    {
-      "zh": "帮我分析一下当前的安全态势",
-      "en": "Help me analyze the current security posture"
-    },
-    {
-      "zh": "最近24小时的安全趋势如何",
-      "en": "What is the security trend in the last 24 hours"
-    },
-    {
-      "zh": "哪些安全指标需要重点关注",
-      "en": "Which security metrics need attention"
-    },
-    {
-      "zh": "自动化关闭率的变化说明了什么",
-      "en": "What does the automation closure rate change indicate"
-    },
-    {
-      "zh": "AI准确率最近有什么变化",
-      "en": "What changes have occurred in AI accuracy recently"
-    },
-    {
-      "zh": "告警来源分布有什么异常吗",
-      "en": "Are there any anomalies in alert source distribution"
-    }
-  ],
-  "/asm": [
+    "/asm": [
     {
       "zh": "还有多少暴露面资产需要处理",
       "en": "How many exposed assets need to be handled"
@@ -163,28 +147,12 @@
     {
       "zh": "最近暴露面资产的变化趋势是什么",
       "en": "What is the trend of exposed assets recently"
-    },
-    {
-      "zh": "哪些暴露面资产需要立即处理",
-      "en": "Which exposed assets need immediate attention"
-    },
-    {
-      "zh": "暴露面资产的分布情况如何",
-      "en": "What is the distribution of exposed assets"
-    },
-    {
-      "zh": "哪些暴露面资产已经被封禁",
-      "en": "Which exposed assets have been blocked"
     }
   ],
   "/asm/detail": [
     {
       "zh": "帮我分析一下这个暴露面资产的风险",
       "en": "Help me analyze the risk of this exposed asset"
-    },
-    {
-      "zh": "这个暴露面资产涉及哪些威胁",
-      "en": "What threats are associated with this exposed asset"
     },
     {
       "zh": "这个暴露面资产的处理建议是什么",
@@ -200,4 +168,3 @@
     }
   ]
 }
-
