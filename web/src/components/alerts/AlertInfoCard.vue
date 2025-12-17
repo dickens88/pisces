@@ -117,10 +117,23 @@ const sanitizedHtmlContent = computed(() => {
   if (!props.htmlContent) {
     return ''
   }
-  return DOMPurify.sanitize(props.htmlContent, {
+  
+  // 预处理：将 div 标签转换为 p 标签，以便更好地显示分段
+  let processedContent = props.htmlContent
+    // 将 <div> 转换为 <p>，保留内容
+    .replace(/<div[^>]*>/gi, '<p>')
+    .replace(/<\/div>/gi, '</p>')
+  
+  // 使用 DOMPurify 清理 HTML
+  const sanitized = DOMPurify.sanitize(processedContent, {
     ALLOWED_TAGS: ['br', 'strong', 'em', 'pre', 'code', 'b', 'i', 'u', 'p'],
     ALLOWED_ATTR: []
   })
+  
+  // 后处理：清理空的段落标签
+  return sanitized
+    .replace(/<p>\s*<\/p>/gi, '') // 移除空段落
+    .trim()
 })
 
 const primaryHeaderText = computed(() => props.owner || props.title)
@@ -169,6 +182,27 @@ const headerMetaIconToShow = computed(() => (displayHeaderMeta.value ? props.hea
 </script>
 
 <style scoped>
+/* 段落样式 - 使分段更明显，两个段落之间显示一个空行 */
+.alert-info-card__html :deep(p) {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.alert-info-card__html :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+/* 连续的段落之间增加分隔，模拟空行效果 */
+.alert-info-card__html :deep(p + p) {
+  margin-top: 1.5rem; /* 约等于一个空行的高度（1.6行高 * 1.5 ≈ 2.4，这里用1.5rem） */
+}
+
+/* 空段落处理 */
+.alert-info-card__html :deep(p:empty) {
+  margin: 0.5rem 0;
+  min-height: 0.5rem;
+}
+
 .alert-info-card__html :deep(pre) {
   background: rgba(226, 232, 240, 0.8);
   border: 1px solid rgba(148, 163, 184, 0.4);
@@ -205,6 +239,13 @@ const headerMetaIconToShow = computed(() => (displayHeaderMeta.value ? props.hea
 :global(.dark) .alert-info-card__html :deep(b),
 .alert-info-card__html--dark :deep(b) {
   color: #e2e8f0;
+}
+
+/* 处理多个连续的 br 标签，使其看起来像段落分隔 */
+.alert-info-card__html :deep(br + br) {
+  display: block;
+  content: '';
+  margin-top: 0.75rem;
 }
 </style>
 
