@@ -314,11 +314,10 @@
       @updated="handleVulnerabilityUpdated"
     />
 
-    <!-- 告警详情抽屉 -->
-    <AlertDetail
+    <!-- ASM 告警详情抽屉（关联漏洞的告警使用 ASM 风格详情） -->
+    <ASMDetail
       v-if="selectedAlertId"
       :alert-id="selectedAlertId"
-      workspace="asm"
       @close="closeAlertDetail"
     />
 
@@ -402,7 +401,7 @@ import { disassociateAlertsFromIncident } from '@/api/incidents'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
 import EditVulnerabilityDialog from '@/components/vulnerabilities/EditVulnerabilityDialog.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
-import AlertDetail from '@/components/alerts/AlertDetail.vue'
+import ASMDetail from '@/components/asm/ASMDetail.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import AISidebar from '@/components/common/AISidebar.vue'

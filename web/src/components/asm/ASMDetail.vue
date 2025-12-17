@@ -325,7 +325,7 @@
                 <div class="pr-6 space-y-6">
                 <!-- 自动化响应 -->
                 <div class="space-y-4">
-                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.automatedResponse') }}</h3>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('common.automatedResponse') }}</h3>
                   
                   <!-- 加载状态 -->
                   <div v-if="loadingToolkits || loadingToolkitRecords" class="flex items-center justify-center py-8">
