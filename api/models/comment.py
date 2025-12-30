@@ -2,7 +2,6 @@ import json
 from sqlalchemy import Column, Integer, String, Text, LargeBinary, DateTime
 from datetime import datetime, timezone
 
-from controllers.comment_service import CommentService
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
 from utils.common_utils import format_utc_datetime_to_db_string
@@ -92,6 +91,8 @@ class Comment(Base):
             content_info = comment_data.get("content", {})
             author = content_info.get('come_from')
             content = content_info.get("value")
+
+            from controllers.comment_service import CommentService
             owner = CommentService.extract_owner_from_content(content) or author
             create_time = comment_data.get("create_time")
             
