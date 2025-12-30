@@ -103,7 +103,7 @@ class AlertView(Resource):
                                                   comment=close_comment,
                                                   actor=username,
                                                   workspace_id=workspace_id)
-                logger.info(f"[Alert] Update Alert: {alert_id} successfully.[{username}]")
+                logger.info(f"[Alert] Close Alert: {alert_id} successfully.[{username}]")
                 return {"data": result}, 200
             else:
                 raise Exception(f"The action {action} is not supported")

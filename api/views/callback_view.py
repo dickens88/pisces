@@ -36,15 +36,11 @@ class CallbackMessageHandler(Resource):
             if event_type == "alert":
                 result = AlertService.retrieve_alert_by_id(event_id)
                 Alert.upsert_alert(result)
-                if action == "update":
-                    self._upsert_comments(event_id)
-
             elif event_type == "incident":
                 result = IncidentService.retrieve_incident_by_id(event_id, include_graph=False)
                 Incident.upsert_incident(result)
-                if action == "update":
-                    self._upsert_comments(event_id)
 
+            self._upsert_comments(event_id)
             logger.info(f"[Callback] processed: event_id={event_id}, action={action}, event_type={event_type}")
             return {"data": {"message": f"{event_type.capitalize()} synchronized successfully"}}, 201
         except Exception as ex:

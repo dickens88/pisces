@@ -76,13 +76,41 @@ const transformAlertData = (apiAlert) => {
 }
 
 /**
+ * 统一格式化搜索关键字
+ * 期望格式：[{ field: 'id'|'title'|'creator'|'actor', value: 'keyword' }]
+ */
+const normalizeSearchKeywords = (searchKeywords) => {
+  if (!searchKeywords) return []
+  if (!Array.isArray(searchKeywords)) return []
+  
+  // 兼容旧格式：字符串数组
+  if (searchKeywords.length > 0 && typeof searchKeywords[0] === 'string') {
+    return searchKeywords
+      .filter(kw => kw && typeof kw === 'string')
+      .map(kw => ({
+        field: 'title',
+        value: kw.trim()
+      }))
+      .filter(kw => kw.value !== '')
+  }
+  
+  // 新格式：对象数组
+  return searchKeywords
+    .filter(kw => kw && typeof kw === 'object' && kw.field && kw.value)
+    .map(kw => ({
+      field: kw.field,
+      value: typeof kw.value === 'string' ? kw.value.trim() : kw.value
+    }))
+    .filter(kw => kw.value !== '')
+}
+
+/**
  * @brief 构建查询条件
- * @param {Array<string>|string} searchKeywords - 搜索关键字
+ * @param {Array<Object>|Array<string>} searchKeywords - 搜索关键字（支持对象数组：{field: 'id'|'title'|'creator'|'actor', value: 'keyword'} 或字符串数组（兼容旧格式））
  * @param {string} status - 状态过滤
- * @param {string} owner - 责任人搜索关键字
  * @returns {Array} 条件数组，格式为 [{field_name: value}, ...]
  */
-const buildConditions = (searchKeywords, status, owner) => {
+const buildConditions = (searchKeywords, status) => {
   const conditions = []
   
   // Add status condition
@@ -92,29 +120,21 @@ const buildConditions = (searchKeywords, status, owner) => {
     })
   }
   
-  // Add search keyword conditions (search title)
+  // Add search keyword conditions
   // Note: According to API implementation, multiple keywords will use AND logic
-  if (searchKeywords) {
-    const keywords = Array.isArray(searchKeywords) 
-      ? searchKeywords 
-      : searchKeywords.split(',').map(k => k.trim()).filter(k => k)
-    
-    if (keywords.length > 0) {
-      // If multiple keywords, each keyword is a condition (backend will use AND logic)
-      keywords.forEach(keyword => {
-        conditions.push({
-          'title': keyword
-        })
-      })
+  normalizeSearchKeywords(searchKeywords).forEach(keywordObj => {
+    // Map field names to API field names
+    const fieldMap = {
+      'title': 'title',
+      'id': 'alert_id',
+      'creator': 'creator',
+      'actor': 'actor'
     }
-  }
-  
-  // Add owner condition (mapped to API field `creator`)
-  if (owner && owner.trim()) {
+    const apiField = fieldMap[keywordObj.field] || keywordObj.field
     conditions.push({
-      'creator': owner.trim()
+      [apiField]: keywordObj.value
     })
-  }
+  })
   
   return conditions
 }
@@ -131,9 +151,8 @@ const formatTimestamp = (timestamp) => {
 /**
  * @brief 获取攻击面管理列表
  * @param {Object} params - 查询参数
- * @param {Array<string>|string} params.searchKeywords - 搜索关键字数组或逗号分隔字符串（支持多关键字AND搜索）
+ * @param {Array<Object>|Array<string>} params.searchKeywords - 搜索关键字（支持对象数组：{field: 'id'|'title'|'creator'|'actor', value: 'keyword'} 或字符串数组（兼容旧格式））
  * @param {string} params.status - 状态过滤
- * @param {string} params.owner - 责任人搜索关键字
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
  * @param {string} params.startTime - 开始时间（ISO字符串）
@@ -148,7 +167,7 @@ export const getASMItems = async (params = {}) => {
   const offset = (page - 1) * pageSize
   
   // Build query conditions
-  const conditions = buildConditions(params.searchKeywords, params.status, params.owner)
+  const conditions = buildConditions(params.searchKeywords, params.status)
   
   // Build request body
   const requestBody = {
