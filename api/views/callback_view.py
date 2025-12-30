@@ -19,6 +19,8 @@ class CallbackMessageHandler(Resource):
         try:
             comments = CommentService.retrieve_comments(event_id)
             for item in comments["data"]:
+                if "[剧本实例名称]" in item["content"]["value"]:
+                    continue # 过滤云脑自动添加的评论
                 Comment.upsert_comment(item, event_id)
         except Exception as ex:
             logger.warning(f"[Callback] Failed to upsert comments for event_id={event_id}: {ex}")
