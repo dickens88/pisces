@@ -11,13 +11,16 @@
         @click="handleClose"
       ></div>
       
-      <!-- Detail panel - with slide-in animation -->
-      <Transition name="slide" appear>
-        <div
-          v-if="visible"
-          class="relative h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden w-[70vw]"
-          @click.stop="handlePanelClick"
-        >
+      <!-- Detail panel and AI Sidebar container -->
+      <div class="relative h-full">
+        <!-- Detail panel - with slide-in animation -->
+        <Transition name="slide" appear>
+          <div
+            v-if="visible"
+            class="absolute right-0 h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden transition-transform duration-300 ease-in-out w-[65vw]"
+            :class="showAISidebar ? '-translate-x-[400px]' : ''"
+            @click.stop="handlePanelClick"
+          >
           <!-- Header -->
           <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
             <div class="flex items-center justify-between px-6 py-4">
@@ -91,6 +94,14 @@
                   :title="$t('alerts.detail.share') || 'Share'"
                 >
                   <span class="material-symbols-outlined text-base">share</span>
+                </button>
+                <!-- AI 对话按钮 -->
+                <button
+                  @click="handleOpenAISidebar"
+                  class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-orange-500 flex items-center justify-center transition-all duration-200 hover:scale-110 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                  :title="$t('common.aiChat') || 'AI对话'"
+                >
+                  <span class="material-symbols-outlined text-white text-lg">auto_awesome</span>
                 </button>
                 <button
                   @click="handleClose"
@@ -517,6 +528,26 @@
           </div>
         </div>
       </Transition>
+
+        <!-- AI Sidebar - 在Detail panel外部，从右侧展开，紧贴Detail panel右边缘 -->
+        <Transition name="slide">
+          <AISidebar
+            v-if="showAISidebar && visible"
+            ref="aiSidebarRef"
+            :visible="showAISidebar"
+            :alert-title="alert?.title || ''"
+            :alert-id="currentAlertId"
+            :finding-summary="aiFindingSummary"
+            :show-finding-summary="showFindingSummary"
+            :show-overlay="false"
+            position="fixed"
+            @close="showAISidebar = false"
+            @open-in-new="handleAIOpenInNew"
+            @send-message="handleAISendMessage"
+            @tool-action="handleAIToolAction"
+          />
+        </Transition>
+      </div>
     </div>
 
     <!-- 批量关闭对话框 -->
@@ -668,6 +699,7 @@ import DOMPurify from 'dompurify'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
+import AISidebar from '@/components/common/AISidebar.vue'
 import { useToast } from '@/composables/useToast'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
@@ -738,6 +770,11 @@ const isRefreshing = ref(false)
 const showCreateVulnerabilityDialog = ref(false)
 const createVulnerabilityInitialData = ref(null)
 const isSubmittingComment = ref(false)
+const showAISidebar = ref(false)
+const aiSidebarRef = ref(null)
+const aiFindingSummary = ref('')
+const showFindingSummary = ref(false)
+const hasAutoOpenedAiSidebar = ref(false)
 
 // Toolkit related state
 const toolkits = ref([])
@@ -906,6 +943,42 @@ const transformAlertDetailData = (apiData) => {
   }
 }
 
+const stripHtmlAndEntities = (html = '') => {
+  if (!html || typeof html !== 'string') return ''
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|pre)>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\n{2,}/g, '\n')
+    .trim()
+}
+
+const findInvestigationContent = () => {
+  if (!alert.value?.ai?.length) return ''
+  const firstContent = alert.value.ai[0]?.content || ''
+  return stripHtmlAndEntities(firstContent)
+}
+
+// 打开AI侧边栏并设置investigation内容
+const openAISidebarWithInvestigation = async () => {
+  if (!alert.value) return
+  const investigationContent = findInvestigationContent()
+  aiFindingSummary.value = investigationContent
+  showFindingSummary.value = !!investigationContent
+  showAISidebar.value = true
+  await nextTick()
+}
+
+const getASMUrl = () => {
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  const basePath = raw && raw !== '/' 
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  return `${window.location.origin}${basePath}/asm/${currentAlertId.value}`
+}
+
 const loadAlertDetail = async (showLoading = true) => {
   if (!currentAlertId.value) return
   
@@ -922,6 +995,8 @@ const loadAlertDetail = async (showLoading = true) => {
     alert.value = transformAlertDetailData(response.data)
     loadToolkits()
     loadToolkitRecords()
+    // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
+    hasAutoOpenedAiSidebar.value = false
   } catch (error) {
     console.error('Failed to load alert detail:', error)
     emit('close')
@@ -1499,6 +1574,24 @@ const getAlertUrl = () => {
   return `${origin}${path}/${currentAlertId.value}`
 }
 
+const handleOpenAISidebar = () => {
+  openAISidebarWithInvestigation()
+}
+
+const handleAIOpenInNew = () => {
+  if (currentAlertId.value) {
+    window.open(getAlertUrl(), '_blank')
+  }
+}
+
+const handleAISendMessage = (message) => {
+  // AI消息发送由AISidebar组件内部处理
+}
+
+const handleAIToolAction = (tool) => {
+  // 工具操作由AISidebar组件内部处理
+}
+
 const handleShare = async () => {
   if (!alert.value) return
   
@@ -1532,6 +1625,31 @@ const handleShare = async () => {
     document.body.removeChild(textArea)
   }
 }
+
+// 监听 AI 数据，满足触发条件时自动展开 AI 侧边栏
+watch(
+  () => alert.value?.ai,
+  async (newAi) => {
+    if (hasAutoOpenedAiSidebar.value) return
+    const investigationContent = findInvestigationContent()
+    const hasAnyAi = Array.isArray(newAi) && newAi.length > 0
+
+    // 触发条件：有 investigation 文本，或至少有一条 AI 消息
+    if (investigationContent || hasAnyAi) {
+      hasAutoOpenedAiSidebar.value = true
+      await openAISidebarWithInvestigation()
+    }
+  },
+  { deep: true }
+)
+
+// 当 alert 变化时，重置自动展开标记
+watch(
+  () => alert.value?.id,
+  () => {
+    hasAutoOpenedAiSidebar.value = false
+  }
+)
 
 watch(currentAlertId, async (newId, oldId) => {
   if (!newId) {
