@@ -3,13 +3,25 @@ from flask import request
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
+from controllers.comment_service import CommentService
 from controllers.incident_service import IncidentService
 from models.alert import Alert
+from models.comment import Comment
 from models.incident import Incident
 from utils.logger_init import logger
 
 
 class CallbackMessageHandler(Resource):
+
+    @staticmethod
+    def _upsert_comments(event_id: str):
+        """Retrieve and upsert comments for the given event_id"""
+        try:
+            comments = CommentService.retrieve_comments(event_id)
+            for item in comments["data"]:
+                Comment.upsert_comment(item, event_id)
+        except Exception as ex:
+            logger.warning(f"[Callback] Failed to upsert comments for event_id={event_id}: {ex}")
 
     def post(self):
         payload = json.loads(request.data)
@@ -23,17 +35,18 @@ class CallbackMessageHandler(Resource):
 
             if event_type == "alert":
                 result = AlertService.retrieve_alert_by_id(event_id)
-                if action in ("create", "update"):
-                    Alert.upsert_alert(result)
+                Alert.upsert_alert(result)
+                if action == "update":
+                    self._upsert_comments(event_id)
 
             elif event_type == "incident":
                 result = IncidentService.retrieve_incident_by_id(event_id, include_graph=False)
-                if action in ("create", "update"):
-                    Incident.upsert_incident(result)
+                Incident.upsert_incident(result)
+                if action == "update":
+                    self._upsert_comments(event_id)
 
             logger.info(f"[Callback] processed: event_id={event_id}, action={action}, event_type={event_type}")
-            result = {"message": f"{event_type.capitalize()} synchronized successfully"}
-            return {"data": result}, 201
+            return {"data": {"message": f"{event_type.capitalize()} synchronized successfully"}}, 201
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

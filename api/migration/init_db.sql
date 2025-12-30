@@ -55,7 +55,7 @@ CREATE TABLE `t_comments` (
   `event_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '事件ID（告警ID或事件ID）',
   `comment_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '评论ID（唯一键，关联外部评论系统）',
   `owner` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '评论所有者',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `create_time` varchar(40) DEFAULT NULL COMMENT '创建时间，ISO8601含时区',
   `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '评论内容',
   `file_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件类型（MIME类型，如 image/jpeg）',
   `file_obj` longblob COMMENT '文件二进制数据',
@@ -63,8 +63,7 @@ CREATE TABLE `t_comments` (
   `last_update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_comment_id` (`comment_id`),
-  KEY `idx_event_id` (`event_id`),
-  KEY `idx_create_time` (`create_time`)
+  KEY `idx_event_id` (`event_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评论表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
