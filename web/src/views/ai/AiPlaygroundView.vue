@@ -1339,9 +1339,14 @@ const handlePageSizeChange = (newSize) => {
 }
 
 const buildConditions = () => {
+  const fieldMap = {
+    id: 'alert_id',  // Map 'id' to 'alert_id' for backend API
+    title: 'title'
+  }
+  
   return searchKeywords.value
     .filter(k => k.field && k.value)
-    .map(k => ({ [k.field]: k.value }))
+    .map(k => ({ [fieldMap[k.field] || k.field]: k.value }))
 }
 
 const loadAlerts = async () => {
