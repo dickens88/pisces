@@ -37,25 +37,31 @@
     <!-- Charts -->
     <section
       v-if="showCharts"
-      class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6"
+      class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6"
     >
-      <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
-        <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
-          {{ $t('aiPlayground.charts.aiAccuracy') || $t('dashboard.charts.aiAccuracy') }}
-        </p>
-        <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
-          {{ timeRangeLabel }}
-        </p>
-        <div class="relative h-72 w-full">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+        <div class="flex justify-between items-center p-3 pt-2">
+          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
+          <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
+        </div>
+        <div class="flex flex-col gap-1 px-3 pb-2">
+          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
+            {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
+          </span>
+          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+            {{ aiAccuracyAverage }}%
+          </span>
+        </div>
+        <div class="relative h-52">
           <div
             v-if="aiAccuracyLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div
             v-else-if="aiAccuracyData.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('dashboard.charts.noData') }}
           </div>
@@ -63,20 +69,9 @@
             v-show="!aiAccuracyLoading && aiAccuracyData.length > 0"
             ref="aiAccuracyChartRef"
             class="absolute inset-0"
+            style="margin: 0; padding: 0;"
           ></div>
         </div>
-      </div>
-
-      <div class="flex flex-col gap-2 rounded-xl border border-dashed border-gray-300 dark:border-[#324867] bg-white dark:bg-[#111822] p-6 items-start justify-between">
-        <div>
-          <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
-            {{ $t('aiPlayground.charts.placeholder') }}
-          </p>
-          <p class="text-gray-600 dark:text-gray-400 text-sm">
-            {{ $t('common.noData') }}
-          </p>
-        </div>
-        <span class="material-symbols-outlined text-gray-300 dark:text-gray-600 text-5xl">upcoming</span>
       </div>
     </section>
 
@@ -150,20 +145,17 @@
             </div>
           </div>
 
-          <div class="relative">
-            <select
-              v-model="statusFilter"
+          <div class="relative min-w-[120px] max-w-[12rem]">
+            <ClearableSelect
+              v-model="aiJudgeFilter"
+              clear-value="all"
               @change="handleFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
             >
-              <option value="all">{{ $t('alerts.list.allStatus') }}</option>
-              <option value="open">{{ $t('alerts.list.open') }}</option>
-              <option value="block">{{ $t('alerts.list.block') }}</option>
-              <option value="closed">{{ $t('alerts.list.closed') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-            </div>
+              <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
+              <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
+              <option value="False_Positive">{{ $t('alerts.list.aiJudgeResult.falsePositive') }}</option>
+              <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
+            </ClearableSelect>
           </div>
 
           <div class="relative">
@@ -284,7 +276,22 @@
         </DataTable>
       </div>
 
-      <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl p-5 min-h-[300px]">
+      <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl min-h-[300px] flex flex-col">
+        <!-- Header with title and close button -->
+        <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867]">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ $t('alerts.detail.title') }} #{{ alertId }}
+          </h2>
+          <button
+            @click="selectedAlert = null"
+            class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors"
+            :aria-label="$t('common.close') || 'Close'"
+          >
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+        
+        <div class="flex-1 p-5 overflow-y-auto">
           <!-- Judgment Comparison Section -->
           <div class="grid grid-cols-2 gap-4 mb-6">
           <!-- AI Judgment -->
@@ -394,6 +401,7 @@
             </button>
           </div>
         </div>
+        </div>
       </div>
     </section>
 
@@ -422,7 +430,7 @@
               <div class="flex items-center justify-between px-6 py-4">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   <span class="material-symbols-outlined text-base">travel_explore</span>
-                  Retrieval test
+                  Retrieval Test
                 </h3>
                 <button
                   class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -512,6 +520,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
+import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { getAiAccuracyByModel, getAlertDetail, updateAlert } from '@/api/alerts'
 import service from '@/api/axios'
@@ -532,6 +541,13 @@ const aiAccuracyData = ref([])
 const aiAccuracyLoading = ref(false)
 let aiAccuracyChartInstance = null
 let aiAccuracyResizeListenerBound = false
+const aiAccuracyAverage = computed(() => {
+  if (!aiAccuracyData.value.length) {
+    return '0.0'
+  }
+  const sum = aiAccuracyData.value.reduce((total, item) => total + (Number(item.accuracy) || 0), 0)
+  return (sum / aiAccuracyData.value.length).toFixed(1)
+})
 
 // Alert list state
 const alerts = ref([])
@@ -548,7 +564,7 @@ const selectedAlertDetail = ref(null)
 const selectedAlertLoading = ref(false)
 const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
-const statusFilter = ref('all')
+const aiJudgeFilter = ref('all')
 const matchFilter = ref('all')
 const humanVerdictValue = ref('')
 const humanConclusionValue = ref('')
@@ -751,10 +767,8 @@ const defaultWidths = {
 }
 
 const searchFields = computed(() => [
-  { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
-  { value: 'creator', label: t('alerts.list.owner'), icon: 'person' },
-  { value: 'actor', label: t('alerts.list.actor'), icon: 'person_search' },
-  { value: 'model_name', label: 'Model Name', icon: 'robot_2' }
+  { value: 'id', label: t('alerts.list.alertId'), icon: 'tag' },
+  { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' }
 ])
 
 const getFieldLabel = (field) => {
@@ -788,10 +802,9 @@ const displaySearchInput = computed({
 })
 
 const getSearchPlaceholder = () => {
-  if (!currentField.value) {
-    return searchKeywords.value.length === 0 ? (t('alerts.list.searchPlaceholder') || '点击选择搜索字段...') : ''
-  }
-  return ''
+  return !currentField.value && searchKeywords.value.length === 0 
+    ? (t('alerts.list.searchPlaceholder') || '点击选择搜索字段...') 
+    : ''
 }
 
 const timeRangeLabel = computed(() => {
@@ -843,7 +856,9 @@ const disposeAiAccuracyChart = () => {
 
 const updateAiAccuracyChart = () => {
   ensureAiAccuracyChart()
-  if (!aiAccuracyChartInstance) return
+  if (!aiAccuracyChartInstance) {
+    return
+  }
 
   aiAccuracyChartInstance.clear()
 
@@ -860,7 +875,9 @@ const updateAiAccuracyChart = () => {
       textStyle: { color: '#e2e8f0' },
       padding: [10, 12],
       formatter: (params) => {
-        if (!params || params.length === 0) return ''
+        if (!params || params.length === 0) {
+          return ''
+        }
         const dataIndex = params[0].dataIndex
         const dataPoint = aiAccuracyData.value[dataIndex]
         if (!dataPoint) {
@@ -893,19 +910,30 @@ const updateAiAccuracyChart = () => {
         interval: 0,
         formatter: wrapAxisLabel
       },
-      axisLine: { lineStyle: { color: '#334155' } },
-      axisTick: { show: true, inside: true, alignWithLabel: true }
+      axisLine: {
+        lineStyle: { color: '#334155' }
+      },
+      axisTick: {
+        show: true,
+        inside: true,
+        alignWithLabel: true
+      }
     },
     yAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { color: '#94a3b8', formatter: '{value}%' },
-      splitLine: { lineStyle: { color: '#1f2a37' } },
+      axisLabel: {
+        color: '#94a3b8',
+        formatter: '{value}%'
+      },
+      splitLine: {
+        lineStyle: { color: '#1f2a37' }
+      },
       axisLine: { show: false }
     },
     series: [
       {
-        name: t('aiPlayground.charts.aiAccuracy') || t('dashboard.charts.aiAccuracy'),
+        name: t('dashboard.charts.aiAccuracy'),
         type: 'bar',
         data: accuracies,
         barWidth: '45%',
@@ -922,7 +950,9 @@ const updateAiAccuracyChart = () => {
   }
 
   aiAccuracyChartInstance.setOption(option, true)
-  nextTick(() => aiAccuracyChartInstance.resize())
+  setTimeout(() => {
+    aiAccuracyChartInstance?.resize()
+  }, 0)
 
   // Bind click to filter alerts by model name
   aiAccuracyChartInstance.off('click')
@@ -1004,33 +1034,6 @@ const getRiskLevelClass = (level) => {
   return classes[level] || classes.low
 }
 
-const getStatusClass = (status) => {
-  const classes = {
-    open: 'bg-primary/20 text-primary',
-    block: 'bg-yellow-500/20 text-yellow-400',
-    closed: 'bg-gray-500/20 text-gray-400'
-  }
-  return classes[status] || classes.open
-}
-
-const getStatusDotClass = (status) => {
-  const classes = {
-    open: 'bg-primary',
-    block: 'bg-yellow-400',
-    closed: 'bg-gray-400'
-  }
-  return classes[status] || classes.open
-}
-
-const getStatusText = (status) => {
-  if (!status) return t('alerts.list.open')
-  const map = {
-    open: t('alerts.list.open'),
-    block: t('alerts.list.block'),
-    closed: t('alerts.list.closed')
-  }
-  return map[status] || status
-}
 
 // Get AI Verdict text
 const getAiVerdictText = (alert) => {
@@ -1336,35 +1339,9 @@ const handlePageSizeChange = (newSize) => {
 }
 
 const buildConditions = () => {
-  const fieldMap = {
-    title: 'title',
-    creator: 'creator',
-    actor: 'actor',
-    model_name: 'model_name',
-    model: 'model_name'
-  }
-  const statusApiMap = {
-    open: 'Open',
-    block: 'Block',
-    closed: 'Closed'
-  }
-
-  const conditions = []
-
-  if (statusFilter.value && statusFilter.value !== 'all') {
-    conditions.push({
-      handle_status: statusApiMap[statusFilter.value] || statusFilter.value
-    })
-  }
-
-  searchKeywords.value.forEach(k => {
-    if (k.field && k.value) {
-      const mappedField = fieldMap[k.field] || k.field
-      conditions.push({ [mappedField]: k.value })
-    }
-  })
-
-  return conditions
+  return searchKeywords.value
+    .filter(k => k.field && k.value)
+    .map(k => ({ [k.field]: k.value }))
 }
 
 const loadAlerts = async () => {
@@ -1383,30 +1360,20 @@ const loadAlerts = async () => {
     const raw = response.data || []
 
     const normalizeSeverity = (value) => {
-      if (value === undefined || value === null) return 'medium'
-      const v = String(value).toLowerCase()
+      if (value == null) return 'medium'
       const map = {
-        'fatal': 'fatal',
-        'critical': 'fatal',
-        'high': 'high',
-        'medium': 'medium',
-        'low': 'low',
-        'tips': 'tips',
-        'info': 'tips',
-        '1': 'fatal',
-        '2': 'high',
-        '3': 'medium',
-        '4': 'low',
-        '5': 'tips'
+        fatal: 'fatal', critical: 'fatal', '1': 'fatal',
+        high: 'high', '2': 'high',
+        medium: 'medium', '3': 'medium',
+        low: 'low', '4': 'low',
+        tips: 'tips', info: 'tips', '5': 'tips'
       }
-      return map[v] || 'medium'
+      return map[String(value).toLowerCase()] || 'medium'
     }
 
     const normalizeStatus = (value) => {
       if (!value) return 'open'
-      const v = String(value).toLowerCase()
-      if (['open', 'block', 'closed'].includes(v)) return v
-      return v
+      return String(value).toLowerCase()
     }
 
     const normalized = raw.map(item => ({
@@ -1418,24 +1385,27 @@ const loadAlerts = async () => {
       close_reason: item.close_reason || item.closeReason || item?.data_object?.close_reason || null
     }))
 
-    // Client-side fallback for model_name filter
+    // Client-side filters
     let filtered = normalized
+    
     const modelKeyword = searchKeywords.value.find(k => k.field === 'model_name' || k.field === 'model')
     if (modelKeyword) {
       filtered = filtered.filter(a => {
         const val = a.model_name || a.model || a?.extend_properties?.model_name || a?.extend_properties?.model
-        return val ? String(val).toLowerCase() === String(modelKeyword.value).toLowerCase() : false
+        return val && String(val).toLowerCase() === String(modelKeyword.value).toLowerCase()
       })
     }
 
-    // Client-side filter for match status
-    if (matchFilter.value && matchFilter.value !== 'all') {
+    if (aiJudgeFilter.value !== 'all') {
+      filtered = filtered.filter(a => 
+        (a.verification_state || a.verificationState) === aiJudgeFilter.value
+      )
+    }
+
+    if (matchFilter.value !== 'all') {
       filtered = filtered.filter(a => {
         const matchStatus = getMatchStatus(a)
-        if (matchFilter.value === 'empty') {
-          return matchStatus === ''
-        }
-        return matchStatus === matchFilter.value
+        return matchFilter.value === 'empty' ? matchStatus === '' : matchStatus === matchFilter.value
       })
     }
 

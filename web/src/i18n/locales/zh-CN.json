@@ -119,7 +119,7 @@
       "placeholder": "后续数据占位"
     },
     "list": {
-      "title": "告警列表"
+      "title": "AI实验场主要用于提供AI研判告警的调优和准确度统计，点击告警可以开启微调面板。"
     },
     "retrievalTest": {
       "selectWorkflow": "选择工作流"
