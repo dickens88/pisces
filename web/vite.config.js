@@ -32,6 +32,18 @@ export default defineConfig(({ mode }) => {
             target: config.apiTarget,
             changeOrigin: true,
             secure: false
+          },
+          // 通过代理访问 Dify API（解决 CORS 问题）
+          '/dify-api': {
+            target: config.aiChatApi ? config.aiChatApi.replace(/\/v1\/.*$/, '').replace(/\/$/, '') : 'http://dify.eu.dearcharles.cn',
+            changeOrigin: true,
+            secure: false,
+            rewrite: (path) => path.replace(/^\/dify-api/, ''),
+            configure: (proxy, _options) => {
+              proxy.on('error', (err, _req, _res) => {
+                console.log('Dify API proxy error', err)
+              })
+            }
           }
         }
       }),
