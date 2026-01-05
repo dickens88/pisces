@@ -113,6 +113,8 @@ class AlertService:
                         query = query.filter(Alert.handle_status == val_str)
                     elif key_lower == 'severity':
                         query = query.filter(Alert.severity == val_str)
+                    elif key_lower == 'id':
+                        query = query.filter(Alert.alert_id == val_str)
 
             total = query.count()
             rows = (
