@@ -129,65 +129,186 @@
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
           <!-- 始终保留整体工作区结构（左右栏 + 中间区域），只根据状态切换中间区域内容 -->
           <div ref="graphWorkspaceRef" class="flex min-h-[600px]">
-            <!-- 左侧：告警时间线 -->
+            <!-- 左侧：告警时间线 / 任务管理 -->
             <aside
               v-if="!isLeftPaneCollapsed"
               class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
               style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
             >
-              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between bg-gray-50 dark:bg-[#111822]">
-                <div class="flex items-center gap-2">
-                  <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
-                    {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
-                  </h3>
-                  <span class="text-xs text-gray-400 dark:text-slate-500">
-                    {{ associatedAlertsTimeline.length }}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
-                  :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', 'Collapse alert list')"
-                  @click="isLeftPaneCollapsed = true"
-                >
-                  <span class="material-symbols-outlined text-base">chevron_left</span>
-                </button>
-              </div>
-              <div class="flex-1 overflow-y-auto" style="height: 0;">
-                <div
-                  v-for="item in associatedAlertsTimeline"
-                  :key="item.id"
-                  class="px-4 py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
-                >
-                  <div class="flex items-center gap-2 mb-1">
-                    <span
-                      :class="[
-                        'text-[9px] px-1.5 py-0.5 rounded',
-                        getRiskLevelClass(item.riskLevel)
-                      ]"
-                      :title="$t(`common.severity.${item.riskLevel}`)"
-                    >
-                      {{ $t(`common.severity.${item.riskLevel}`) }}
-                    </span>
-                    <span class="text-[11px] text-gray-500 dark:text-slate-400">
-                      {{ formatDateTime(item.createTime) }}
+              <!-- 标签切换头部 -->
+              <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-[#111822]">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
+                      {{ leftPaneActiveTab === 'taskManagement' 
+                        ? translateOr('incidents.detail.eventGraph.taskManagementTitle', 'Task Management')
+                        : translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
+                    </h3>
+                    <span v-if="leftPaneActiveTab === 'timeline'" class="text-xs text-gray-400 dark:text-slate-500">
+                      {{ associatedAlertsTimeline.length }}
                     </span>
                   </div>
-                  <h4 class="text-[11px] leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
-                    <a
-                      @click="openAlertDetail(item.id)"
-                      class="text-primary hover:underline cursor-pointer"
-                      :title="item.title || '-'"
-                    >
-                      {{ item.title || '-' }}
-                    </a>
-                  </h4>
+                  <button
+                    type="button"
+                    class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                    :title="translateOr('incidents.detail.eventGraph.collapseLeftPane', 'Collapse panel')"
+                    @click="isLeftPaneCollapsed = true"
+                  >
+                    <span class="material-symbols-outlined text-base">chevron_left</span>
+                  </button>
                 </div>
-                <div
-                  v-if="associatedAlertsTimeline.length === 0"
-                  class="px-4 py-6 text-center text-xs text-gray-400 dark:text-slate-500"
-                >
-                  {{ translateOr('incidents.detail.eventGraph.timelineEmpty', 'No associated alerts') }}
+                <!-- 标签切换按钮 -->
+                <div class="flex gap-1 border-b border-gray-200 dark:border-slate-700 -mx-4 px-4">
+                  <button
+                    @click="leftPaneActiveTab = 'taskManagement'"
+                    :class="[
+                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
+                      leftPaneActiveTab === 'taskManagement'
+                        ? 'text-primary border-primary'
+                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                    ]"
+                  >
+                    {{ translateOr('incidents.detail.eventGraph.taskManagement', 'Task Management') }}
+                  </button>
+                  <button
+                    @click="leftPaneActiveTab = 'timeline'"
+                    :class="[
+                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
+                      leftPaneActiveTab === 'timeline'
+                        ? 'text-primary border-primary'
+                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                    ]"
+                  >
+                    {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
+                  </button>
+                </div>
+              </div>
+              <!-- 内容区域 -->
+              <div class="flex-1 overflow-y-auto" style="height: 0;">
+                <!-- 任务管理内容 -->
+                <div v-if="leftPaneActiveTab === 'taskManagement'" class="p-4 space-y-4">
+                  <!-- 任务ID选择器 -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
+                        {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Task ID') }}
+                      </label>
+                      <button
+                        @click="loadTaskIdList"
+                        :disabled="loadingTaskIdList"
+                        class="px-3 py-1 text-xs font-medium text-primary hover:text-primary/80 border border-primary/50 hover:border-primary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {{ loadingTaskIdList 
+                          ? translateOr('incidents.detail.eventGraph.loadingTaskIdList', 'Loading...')
+                          : translateOr('incidents.detail.eventGraph.getTaskIdList', 'Get Task ID List') }}
+                      </button>
+                    </div>
+                    <div class="relative">
+                      <input
+                        v-model="selectedTaskId"
+                        type="text"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
+                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Enter task ID or select from list')"
+                        @keyup.enter="loadTaskList"
+                        @focus="showTaskIdDropdown = taskIdOptions.length > 0"
+                        @input="showTaskIdDropdown = taskIdOptions.length > 0 && selectedTaskId.length === 0"
+                      />
+                      <!-- 下拉选择列表 -->
+                      <div
+                        v-if="showTaskIdDropdown && taskIdOptions.length > 0"
+                        class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                        @mousedown.prevent
+                      >
+                        <div
+                          v-for="taskId in taskIdOptions"
+                          :key="taskId"
+                          @click="selectTaskId(taskId)"
+                          class="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
+                        >
+                          {{ taskId }}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      v-if="!showTaskIdDropdown && taskIdOptions.length > 0"
+                      class="text-xs text-gray-500 dark:text-slate-400 mt-1"
+                    >
+                      {{ translateOr('incidents.detail.eventGraph.taskIdHint', `Click input to select from ${taskIdOptions.length} task IDs`).replace('{count}', String(taskIdOptions.length)) }}
+                    </div>
+                    <button
+                      @click="loadTaskList"
+                      :disabled="loadingTaskList || !selectedTaskId"
+                      class="w-full px-4 py-2 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {{ loadingTaskList 
+                        ? translateOr('incidents.detail.eventGraph.loadingTaskList', 'Loading...')
+                        : translateOr('incidents.detail.eventGraph.loadTaskList', 'Load Task List') }}
+                    </button>
+                  </div>
+                  <!-- 任务列表 -->
+                  <div v-if="taskList.length > 0" class="space-y-2">
+                    <div
+                      v-for="(task, index) in taskList"
+                      :key="index"
+                      class="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50"
+                    >
+                      <div class="text-xs text-gray-600 dark:text-slate-400 whitespace-pre-wrap break-words">
+                        {{ typeof task === 'object' ? JSON.stringify(task, null, 2) : task }}
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 空状态 -->
+                  <div
+                    v-else-if="!loadingTaskList && taskListLoaded"
+                    class="py-6 text-center text-xs text-gray-400 dark:text-slate-500"
+                  >
+                    {{ translateOr('incidents.detail.eventGraph.taskListEmpty', 'No task data') }}
+                  </div>
+                  <!-- 错误状态 -->
+                  <div
+                    v-if="taskListError"
+                    class="p-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                  >
+                    {{ taskListError }}
+                  </div>
+                </div>
+                <!-- 时间线内容 -->
+                <div v-else class="px-4">
+                  <div
+                    v-for="item in associatedAlertsTimeline"
+                    :key="item.id"
+                    class="py-2.5 border-b border-gray-100 dark:border-slate-800/70 hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <span
+                        :class="[
+                          'text-[9px] px-1.5 py-0.5 rounded',
+                          getRiskLevelClass(item.riskLevel)
+                        ]"
+                        :title="$t(`common.severity.${item.riskLevel}`)"
+                      >
+                        {{ $t(`common.severity.${item.riskLevel}`) }}
+                      </span>
+                      <span class="text-[11px] text-gray-500 dark:text-slate-400">
+                        {{ formatDateTime(item.createTime) }}
+                      </span>
+                    </div>
+                    <h4 class="text-[11px] leading-5 font-medium text-gray-900 dark:text-slate-100 break-words whitespace-normal">
+                      <a
+                        @click="openAlertDetail(item.id)"
+                        class="text-primary hover:underline cursor-pointer"
+                        :title="item.title || '-'"
+                      >
+                        {{ item.title || '-' }}
+                      </a>
+                    </h4>
+                  </div>
+                  <div
+                    v-if="associatedAlertsTimeline.length === 0"
+                    class="py-6 text-center text-xs text-gray-400 dark:text-slate-500"
+                  >
+                    {{ translateOr('incidents.detail.eventGraph.timelineEmpty', 'No associated alerts') }}
+                  </div>
                 </div>
               </div>
             </aside>
@@ -871,6 +992,7 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident } from '@/api/incidents'
+import { getTaskList, getTaskIdList } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -2737,6 +2859,17 @@ watch([timelinePageSize, associatedAlertsTimeline], () => {
 
 // 左右侧面板收起状态（Alert story 布局）
 const isLeftPaneCollapsed = ref(false)
+// 左侧面板标签切换：默认显示任务管理
+const leftPaneActiveTab = ref('taskManagement')
+// 任务管理相关状态
+const selectedTaskId = ref('')
+const taskIdOptions = ref([]) // 任务ID选项列表
+const loadingTaskIdList = ref(false)
+const taskList = ref([])
+const loadingTaskList = ref(false)
+const taskListError = ref('')
+const taskListLoaded = ref(false)
+const showTaskIdDropdown = ref(false)
 const isRightPaneCollapsed = ref(false)
 
 const alarmCount = computed(() => {
@@ -3202,6 +3335,84 @@ const handleShare = async () => {
  */
 const handleRefresh = async () => {
   await loadIncidentDetail()
+}
+
+// 获取任务ID列表
+const loadTaskIdList = async () => {
+  loadingTaskIdList.value = true
+  try {
+    const taskIds = await getTaskIdList()
+    taskIdOptions.value = taskIds
+    if (taskIds.length > 0) {
+      const message = translateOr('incidents.detail.eventGraph.taskIdListLoaded', `Loaded ${taskIds.length} task IDs`)
+      toast.success(message.replace('{count}', String(taskIds.length)))
+    } else {
+      toast.warning(translateOr('incidents.detail.eventGraph.taskIdListEmpty', 'No task IDs found'))
+    }
+  } catch (error) {
+    console.error('Failed to load task ID list:', error)
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.taskIdListError', 'Failed to load task ID list'))
+    taskIdOptions.value = []
+  } finally {
+    loadingTaskIdList.value = false
+  }
+}
+
+// 选择任务ID
+const selectTaskId = (taskId) => {
+  selectedTaskId.value = taskId
+  showTaskIdDropdown.value = false
+  // 点击外部区域关闭下拉框
+  document.addEventListener('click', closeTaskIdDropdown, { once: true })
+}
+
+// 关闭任务ID下拉框
+const closeTaskIdDropdown = () => {
+  showTaskIdDropdown.value = false
+}
+
+// 加载任务列表
+const loadTaskList = async () => {
+  if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
+    taskListError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
+    return
+  }
+
+  loadingTaskList.value = true
+  taskListError.value = ''
+  taskListLoaded.value = false
+
+  try {
+    const result = await getTaskList({ taskId: selectedTaskId.value.trim() })
+    
+    // 处理返回结果
+    if (Array.isArray(result)) {
+      taskList.value = result
+    } else if (result.tasks && Array.isArray(result.tasks)) {
+      taskList.value = result.tasks
+    } else if (result.data && Array.isArray(result.data)) {
+      taskList.value = result.data
+    } else if (result.raw) {
+      // 如果返回的是原始文本，尝试解析
+      try {
+        const parsed = JSON.parse(result.raw)
+        taskList.value = Array.isArray(parsed) ? parsed : [parsed]
+      } catch {
+        taskList.value = [{ raw: result.raw }]
+      }
+    } else {
+      taskList.value = [result]
+    }
+    
+    taskListLoaded.value = true
+  } catch (error) {
+    console.error('Failed to load task list:', error)
+    taskListError.value = error?.message || translateOr('incidents.detail.eventGraph.taskListError', 'Failed to load task list')
+    taskList.value = []
+    taskListLoaded.value = true
+  } finally {
+    loadingTaskList.value = false
+  }
 }
 
 const handleRefreshGraphStatus = async () => {
