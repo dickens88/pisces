@@ -229,6 +229,14 @@
                             <span v-if="typeof value === 'object' && value !== null">{{ JSON.stringify(value) }}</span>
                             <span v-else>{{ value }}</span>
                           </p>
+                          <button
+                            v-if="isUrl(value)"
+                            @click="openUrlInNewTab(value)"
+                            class="shrink-0 ml-1 p-1 text-primary hover:text-primary/80 transition-colors"
+                            :title="$t('common.openInNewTab') || '在新标签页打开'"
+                          >
+                            <span class="material-symbols-outlined text-base">open_in_new</span>
+                          </button>
                         </div>
                       </div>
                     </template>
@@ -236,7 +244,17 @@
                   <!-- 如果 description 不是对象（字符串、数字、布尔值等），直接显示 -->
                   <div v-else-if="alert?.description !== null && alert?.description !== undefined" class="flex items-baseline">
                     <p class="w-40 shrink-0 font-bold text-gray-900 dark:text-[#f5f5f5]">{{ $t('alerts.detail.description') || '描述' }}:</p>
-                    <p class="font-medium text-gray-900 dark:text-[#f5f5f5] break-all">{{ alert.description }}</p>
+                    <div class="flex-1 min-w-0 flex items-center gap-1.5">
+                      <p class="font-medium text-gray-900 dark:text-[#f5f5f5] break-all">{{ alert.description }}</p>
+                      <button
+                        v-if="isUrl(alert.description)"
+                        @click="openUrlInNewTab(alert.description)"
+                        class="shrink-0 ml-1 p-1 text-primary hover:text-primary/80 transition-colors"
+                        :title="$t('common.openInNewTab') || '在新标签页打开'"
+                      >
+                        <span class="material-symbols-outlined text-base">open_in_new</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -1489,6 +1507,22 @@ const getStatusBadgeClass = (status) => {
     closed: 'bg-gray-400/10 text-gray-500 ring-gray-400/20'
   }
   return classes[status] || classes.open
+}
+
+// 检测值是否是URL（http或https开头）
+const isUrl = (value) => {
+  if (!value || typeof value !== 'string') return false
+  const trimmedValue = value.trim()
+  return trimmedValue.startsWith('http://') || trimmedValue.startsWith('https://')
+}
+
+// 在新标签页打开URL
+const openUrlInNewTab = (url) => {
+  if (!url || typeof url !== 'string') return
+  const trimmedUrl = url.trim()
+  if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+    window.open(trimmedUrl, '_blank', 'noopener,noreferrer')
+  }
 }
 
 
