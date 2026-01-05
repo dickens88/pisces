@@ -175,44 +175,6 @@
       </div>
     </div>
 
-    <!-- AI accuracy rate (moved to second row) -->
-    <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
-      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
-        <div class="flex justify-between items-center p-3 pt-2">
-          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
-          <span class="text-xs text-gray-600 dark:text-white/60">{{ dashboardTimeRangeLabel }}</span>
-        </div>
-        <div class="flex flex-col gap-1 px-3 pb-2">
-          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
-            {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
-          </span>
-          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
-            {{ aiAccuracyAverage }}%
-          </span>
-        </div>
-        <div class="relative h-80">
-          <div
-            v-if="aiAccuracyLoading"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
-          >
-            {{ $t('common.loading') }}
-          </div>
-          <div
-            v-else-if="aiAccuracyData.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
-          >
-            {{ $t('dashboard.charts.noData') }}
-          </div>
-          <div
-            v-show="!aiAccuracyLoading && aiAccuracyData.length > 0"
-            ref="aiAccuracyChartRef"
-            class="absolute inset-0"
-            style="margin: 0; padding: 0;"
-          ></div>
-        </div>
-      </div>
-    </div>
-
     <!-- AI Sidebar -->
     <AISidebar
       :visible="showAISidebar"
@@ -229,7 +191,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { useToast } from '@/composables/useToast'
-import { getAlertCountsBySource, getAlertTrend, getAiAccuracyByModel, getAlertStatistics } from '@/api/alerts'
+import { getAlertCountsBySource, getAlertTrend, getAlertStatistics } from '@/api/alerts'
 import { getIncidentTrend, getVulnerabilityTrend } from '@/api/incidents'
 
 const { t } = useI18n()
@@ -272,18 +234,6 @@ const alertTrendTotal = ref(0)
 let alertTrendChartInstance = null
 let alertTrendResizeListenerBound = false
 
-const aiAccuracyChartRef = ref(null)
-const aiAccuracyData = ref([])
-const aiAccuracyLoading = ref(false)
-let aiAccuracyChartInstance = null
-let aiAccuracyResizeListenerBound = false
-const aiAccuracyAverage = computed(() => {
-  if (!aiAccuracyData.value.length) {
-    return '0.0'
-  }
-  const sum = aiAccuracyData.value.reduce((total, item) => total + (Number(item.accuracy) || 0), 0)
-  return (sum / aiAccuracyData.value.length).toFixed(1)
-})
 const wrapAxisLabel = (label) => {
   if (!label) {
     return ''
@@ -326,12 +276,6 @@ const handleAlertTrendResize = () => {
   }
 }
 
-const handleAiAccuracyResize = () => {
-  if (aiAccuracyChartInstance) {
-    aiAccuracyChartInstance.resize()
-  }
-}
-
 const ensureAlertSourceChart = () => {
   if (!alertSourceChartInstance && alertSourceChartRef.value) {
     alertSourceChartInstance = echarts.init(alertSourceChartRef.value)
@@ -342,15 +286,6 @@ const ensureAlertSourceChart = () => {
   }
 }
 
-const ensureAiAccuracyChart = () => {
-  if (!aiAccuracyChartInstance && aiAccuracyChartRef.value) {
-    aiAccuracyChartInstance = echarts.init(aiAccuracyChartRef.value)
-    if (!aiAccuracyResizeListenerBound) {
-      window.addEventListener('resize', handleAiAccuracyResize)
-      aiAccuracyResizeListenerBound = true
-    }
-  }
-}
 
 const disposeAlertSourceChart = () => {
   if (alertSourceChartInstance) {
@@ -363,16 +298,6 @@ const disposeAlertSourceChart = () => {
   }
 }
 
-const disposeAiAccuracyChart = () => {
-  if (aiAccuracyChartInstance) {
-    aiAccuracyChartInstance.dispose()
-    aiAccuracyChartInstance = null
-  }
-  if (aiAccuracyResizeListenerBound) {
-    window.removeEventListener('resize', handleAiAccuracyResize)
-    aiAccuracyResizeListenerBound = false
-  }
-}
 
 const ensureAlertTrendChart = () => {
   if (!alertTrendChartInstance && alertTrendChartRef.value) {
@@ -625,106 +550,6 @@ const updateAlertSourceChart = () => {
   }, 0)
 }
 
-const updateAiAccuracyChart = () => {
-  ensureAiAccuracyChart()
-  if (!aiAccuracyChartInstance) {
-    return
-  }
-
-  aiAccuracyChartInstance.clear()
-
-  const categories = aiAccuracyData.value.map((item) => item.name)
-  const accuracies = aiAccuracyData.value.map((item) => item.accuracy)
-
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
-      padding: [10, 12],
-      formatter: (params) => {
-        if (!params || params.length === 0) {
-          return ''
-        }
-        const dataIndex = params[0].dataIndex
-        const dataPoint = aiAccuracyData.value[dataIndex]
-        if (!dataPoint) {
-          return `${params[0].name}: ${params[0].value}%`
-        }
-        return `
-          <div style="min-width:140px">
-            <div style="font-weight:600;margin-bottom:4px;">${dataPoint.name}</div>
-            <div>Accuracy: ${dataPoint.accuracy}%</div>
-            <div>Correct: ${dataPoint.correct}/${dataPoint.total}</div>
-          </div>
-        `
-      }
-    },
-    grid: {
-      top: 10,
-      right: 12,
-      bottom: 6,
-      left: 28,
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: categories,
-      axisLabel: {
-        color: '#cbd5f5',
-        fontSize: 11,
-        lineHeight: 11,
-        margin: 1,
-        interval: 0,
-        formatter: wrapAxisLabel
-      },
-      axisLine: {
-        lineStyle: { color: '#334155' }
-      },
-      axisTick: {
-        show: true,
-        inside: true,
-        alignWithLabel: true
-      }
-    },
-    yAxis: {
-      type: 'value',
-      max: 100,
-      axisLabel: {
-        color: '#94a3b8',
-        formatter: '{value}%'
-      },
-      splitLine: {
-        lineStyle: { color: '#1f2a37' }
-      },
-      axisLine: { show: false }
-    },
-    series: [
-      {
-        name: t('dashboard.charts.aiAccuracy'),
-        type: 'bar',
-        data: accuracies,
-        barWidth: '45%',
-        itemStyle: {
-          borderRadius: [8, 8, 0, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#34d399' },
-            { offset: 0.7, color: '#10b981' },
-            { offset: 1, color: '#059669' }
-          ])
-        }
-      }
-    ]
-  }
-
-  aiAccuracyChartInstance.setOption(option, true)
-  setTimeout(() => {
-    aiAccuracyChartInstance?.resize()
-  }, 0)
-}
 
 const updateAlertTrendChart = () => {
   ensureAlertTrendChart()
@@ -944,33 +769,6 @@ const loadAutomationClosureRate = async () => {
   }
 }
 
-const loadAiAccuracyStatistics = async () => {
-  aiAccuracyLoading.value = true
-  try {
-    const { start, end } = getDashboardTimeRange()
-    const response = await getAiAccuracyByModel(
-      start,
-      end,
-      10
-    )
-    const data = response?.data || []
-    aiAccuracyData.value = data.map((item) => ({
-      name: item.model_name || item.model || 'Unknown',
-      accuracy: Number(item.accuracy) || 0,
-      correct: item.correct || 0,
-      total: item.total || 0
-    }))
-  } catch (error) {
-    console.error('Failed to load AI accuracy statistics:', error)
-    aiAccuracyData.value = []
-    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('dashboard.loadAiAccuracyError') || '加载AI准确率统计失败，请稍后重试'
-    toast.error(errorMessage, 'ERROR')
-  } finally {
-    aiAccuracyLoading.value = false
-    await nextTick()
-    updateAiAccuracyChart()
-  }
-}
 
 /**
  * @brief 处理时间范围变化
@@ -1018,8 +816,7 @@ const loadData = async () => {
     loadAlertCount24hData(),
     loadIncidentCount30dData(),
     loadVulnerabilityCount30dData(),
-    loadAutomationClosureRate(),
-    loadAiAccuracyStatistics()
+    loadAutomationClosureRate()
   ])
 }
 
@@ -1037,7 +834,6 @@ const handleOpenAISidebar = () => {
 onMounted(() => {
   ensureAlertSourceChart()
   ensureAlertTrendChart()
-  ensureAiAccuracyChart()
   loadData()
   // 监听Header发出的打开AI侧边栏事件
   window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
@@ -1046,7 +842,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   disposeAlertSourceChart()
   disposeAlertTrendChart()
-  disposeAiAccuracyChart()
   // 移除事件监听
   window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })

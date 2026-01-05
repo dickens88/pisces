@@ -119,7 +119,7 @@
       "placeholder": "Reserved for future insight"
     },
     "list": {
-      "title": "Alert Listing"
+      "title": "AI Playground provides AI judgment alert tuning and accuracy statistics. Click on an alert to open the fine-tuning panel."
     },
     "retrievalTest": {
       "selectWorkflow": "Select Workflow"
@@ -529,7 +529,7 @@
         "conclusionPlaceholder": "Please enter investigation conclusion..."
       },
       "tabs": {
-        "alertStory": "Event Sandbox",
+        "alertStory": "Alert Story",
         "alerts": "Associated Alerts",
         "assets": "Affected Assets",
         "evidenceResponse": "Evidence & Response"
