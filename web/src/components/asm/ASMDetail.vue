@@ -233,7 +233,7 @@
                             v-if="isUrl(value)"
                             @click="openUrlInNewTab(value)"
                             class="shrink-0 ml-1 p-1 text-primary hover:text-primary/80 transition-colors"
-                            :title="$t('common.openInNewTab') || '在新标签页打开'"
+                            :title="$t('common.openInNewWindow')"
                           >
                             <span class="material-symbols-outlined text-base">open_in_new</span>
                           </button>
@@ -250,7 +250,7 @@
                         v-if="isUrl(alert.description)"
                         @click="openUrlInNewTab(alert.description)"
                         class="shrink-0 ml-1 p-1 text-primary hover:text-primary/80 transition-colors"
-                        :title="$t('common.openInNewTab') || '在新标签页打开'"
+                        :title="$t('common.openInNewWindow')"
                       >
                         <span class="material-symbols-outlined text-base">open_in_new</span>
                       </button>
