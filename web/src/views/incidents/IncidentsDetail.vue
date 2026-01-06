@@ -165,7 +165,7 @@
                       ]"
                     >
                       {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
-                      <span v-if="leftPaneActiveTab === 'timeline'" class="ml-1 text-xs text-gray-400 dark:text-slate-500">
+                      <span class="ml-1 text-xs text-gray-400 dark:text-slate-500">
                         ({{ associatedAlertsTimeline.length }})
                       </span>
                     </button>
