@@ -335,6 +335,7 @@
       "unknownSource": "未知来源",
       "aiAgent": "AI 调查",
       "alertInfo": "告警信息",
+      "description": "描述",
       "timestamp": "时间戳",
       "status": "状态",
       "ruleName": "规则名称",
@@ -393,7 +394,16 @@
       "actorLocked": "抢过来处理",
       "actorUnlocked": "我来处理",
       "actorUpdateSuccess": "操作成功",
-      "actorUpdateError": "操作失败，请稍后重试"
+      "actorUpdateError": "操作失败，请稍后重试",
+      "timelineEvents": {
+        "alertTriggered": "触发告警",
+        "closeAlert": "关闭告警",
+        "addIntelligence": "关联情报",
+        "aiAnalysis": "AI研判",
+        "findSimilarAlerts": "相似告警",
+        "addComment": "添加评论",
+        "toIncident": "关联事件"
+      }
     }
   },
   "incidents": {

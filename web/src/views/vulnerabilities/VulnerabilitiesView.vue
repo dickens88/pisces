@@ -309,6 +309,11 @@
             <UserAvatar :name="item.owner || value || ''" />
           </div>
         </template>
+        <template #cell-actor="{ value, item }">
+          <div class="flex justify-center w-full">
+            <UserAvatar :name="item.actor || value || ''" />
+          </div>
+        </template>
       </DataTable>
     </section>
 
@@ -437,7 +442,8 @@ const columns = computed(() => [
   { key: 'severity', label: t('incidents.list.severity') },
   { key: 'status', label: t('incidents.list.status') },
   { key: 'responsibleDepartment', label: t('incidents.list.responsibleDepartment') },
-  { key: 'owner', label: t('incidents.list.owner') }
+  { key: 'owner', label: t('incidents.list.owner') },
+  { key: 'actor', label: t('incidents.list.actor') }
 ])
 
 // Default column widths
@@ -447,7 +453,8 @@ const defaultWidths = {
   severity: 120,
   status: 120,
   responsibleDepartment: 150,
-  owner: 50
+  owner: 50,
+  actor: 50
 }
 
 const vulnerabilities = ref([])
@@ -964,24 +971,12 @@ const updateDepartmentChart = () => {
       textStyle: { color: '#e2e8f0' },
       padding: [10, 12]
     },
-    legend: {
-      orient: 'vertical',
-      left: 'left',
-      top: 'middle',
-      textStyle: {
-        color: isDarkMode() ? '#94a3b8' : '#374151',
-        fontSize: 11
-      },
-      itemWidth: 12,
-      itemHeight: 8,
-      itemGap: 8
-    },
     series: [
       {
         name: t('vulnerabilities.statistics.departmentDistribution') || 'Department Distribution',
         type: 'pie',
         radius: ['30%', '70%'],
-        center: ['60%', '50%'],
+        center: ['50%', '50%'],
         avoidLabelOverlap: false,
         roseType: 'area',
         itemStyle: {
