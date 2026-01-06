@@ -37,9 +37,6 @@ class CommentService:
         
         # 构建评论内容，如果指定了评论类型，在内容中包含类型信息
         comment_content = f"【@{owner}】: {comment}"
-        if comment_type and comment_type != 'comment':
-            # 将评论类型信息添加到内容中，以便外部系统也能识别
-            comment_content = f"【@{owner}】【类型:{comment_type}】: {comment}"
         
         body = {
             "type": "textMessage",
