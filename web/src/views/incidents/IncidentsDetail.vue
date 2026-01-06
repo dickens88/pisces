@@ -128,25 +128,47 @@
         <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
           <!-- 始终保留整体工作区结构（左右栏 + 中间区域），只根据状态切换中间区域内容 -->
-          <div ref="graphWorkspaceRef" class="flex min-h-[600px]">
+          <!-- 这里使用固定视口高度，保证左侧边框线贯穿整个工作区，避免出现下半部分缺失的问题 -->
+          <div
+            ref="graphWorkspaceRef"
+            class="flex min-h-[600px]"
+            style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
+          >
             <!-- 左侧：告警时间线 / 任务管理 -->
             <aside
               v-if="!isLeftPaneCollapsed"
-              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
-              style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
+              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col h-full"
             >
               <!-- 标签切换头部 -->
               <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-[#111822]">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
-                      {{ leftPaneActiveTab === 'taskManagement' 
-                        ? translateOr('incidents.detail.eventGraph.taskManagementTitle', 'Task Management')
-                        : translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
-                    </h3>
-                    <span v-if="leftPaneActiveTab === 'timeline'" class="text-xs text-gray-400 dark:text-slate-500">
-                      {{ associatedAlertsTimeline.length }}
-                    </span>
+                <!-- 标签切换按钮作为标题 -->
+                <div class="flex items-center justify-between gap-1">
+                  <div class="flex gap-1 flex-1">
+                    <button
+                      @click="leftPaneActiveTab = 'taskManagement'"
+                      :class="[
+                        'px-3 py-1.5 text-sm font-semibold transition-colors border-b-2',
+                        leftPaneActiveTab === 'taskManagement'
+                          ? 'text-primary border-primary'
+                          : 'text-gray-900 dark:text-slate-100 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                      ]"
+                    >
+                      {{ translateOr('incidents.detail.eventGraph.taskManagement', 'Task Management') }}
+                    </button>
+                    <button
+                      @click="leftPaneActiveTab = 'timeline'"
+                      :class="[
+                        'px-3 py-1.5 text-sm font-semibold transition-colors border-b-2',
+                        leftPaneActiveTab === 'timeline'
+                          ? 'text-primary border-primary'
+                          : 'text-gray-900 dark:text-slate-100 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                      ]"
+                    >
+                      {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
+                      <span v-if="leftPaneActiveTab === 'timeline'" class="ml-1 text-xs text-gray-400 dark:text-slate-500">
+                        ({{ associatedAlertsTimeline.length }})
+                      </span>
+                    </button>
                   </div>
                   <button
                     type="button"
@@ -155,31 +177,6 @@
                     @click="isLeftPaneCollapsed = true"
                   >
                     <span class="material-symbols-outlined text-base">chevron_left</span>
-                  </button>
-                </div>
-                <!-- 标签切换按钮 -->
-                <div class="flex gap-1 border-b border-gray-200 dark:border-slate-700 -mx-4 px-4">
-                  <button
-                    @click="leftPaneActiveTab = 'taskManagement'"
-                    :class="[
-                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
-                      leftPaneActiveTab === 'taskManagement'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
-                    ]"
-                  >
-                    {{ translateOr('incidents.detail.eventGraph.taskManagement', 'Task Management') }}
-                  </button>
-                  <button
-                    @click="leftPaneActiveTab = 'timeline'"
-                    :class="[
-                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
-                      leftPaneActiveTab === 'timeline'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
-                    ]"
-                  >
-                    {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
                   </button>
                 </div>
               </div>
