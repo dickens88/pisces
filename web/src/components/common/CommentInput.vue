@@ -1,7 +1,10 @@
 <template>
   <div class="comment-input-container">
     <div class="flex items-start gap-4">
-      <UserAvatar name="Current User" class="w-10 h-10 shrink-0" />
+      <UserAvatar
+        :name="props.currentUserName || $t('common.currentUser')"
+        class="w-10 h-10 shrink-0"
+      />
       <div class="flex-1">
         <!-- Input container -->
         <div 
@@ -25,7 +28,8 @@
           <textarea
             v-model="commentText"
             :class="[
-              'w-full rounded-xl bg-transparent p-2.5 pr-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
+              // 为了避免底部工具栏和右侧发送按钮遮挡文字，这里增加了底部和右侧的额外内边距
+              'w-full rounded-xl bg-transparent px-2.5 pt-2.5 pb-10 pr-12 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
               imagePreviewUrl ? 'pl-20' : '',
               prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
             ]"
@@ -126,6 +130,11 @@ const props = defineProps({
     default: false
   },
   modelValue: {
+    type: String,
+    default: ''
+  },
+  // 当前用户显示名称，用来生成左侧头像
+  currentUserName: {
     type: String,
     default: ''
   },

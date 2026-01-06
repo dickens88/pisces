@@ -104,6 +104,7 @@
         v-model="newCommentText"
         :disabled="disabled"
         :loading="loading"
+        :current-user-name="currentUserName"
         @submit="handleSubmit"
       />
     </div>
@@ -111,12 +112,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
 import UserAvatar from './UserAvatar.vue'
 import CommentInput from './CommentInput.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   // 评论列表
@@ -149,8 +151,21 @@ const props = defineProps({
 const emit = defineEmits(['submit'])
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const toast = useToast()
 const newCommentText = ref('')
+
+// 当前登录用户名称（用于输入框左侧头像）
+const currentUserName = computed(() => {
+  const user = authStore.user
+  if (!user) return ''
+  return user.username
+})
+
+onMounted(() => {
+  // 确保已获取到当前用户信息（内部有缓存，不会重复请求）
+  authStore.fetchCurrentUser().catch(() => {})
+})
 
 // 获取作者首字母
 const getInitials = (name) => {
