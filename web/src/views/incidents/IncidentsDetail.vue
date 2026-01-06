@@ -37,6 +37,19 @@
       </ol>
       <div class="flex gap-3 flex-wrap justify-end">
         <button
+          @click="handleRefresh"
+          :disabled="loadingIncident"
+          class="btn-icon"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': loadingIncident }"
+          >
+            refresh
+          </span>
+        </button>
+        <button
           @click="openEditDialog"
           class="btn-secondary"
         >
@@ -49,19 +62,6 @@
         >
           <span class="material-symbols-outlined text-base">archive</span>
           <span class="truncate">{{ $t('incidents.detail.closeIncident') }}</span>
-        </button>
-        <button
-          @click="handleRefresh"
-          :disabled="loadingIncident"
-          class="btn-icon"
-          :title="$t('common.refresh') || 'Refresh'"
-        >
-          <span
-            class="material-symbols-outlined text-base"
-            :class="{ 'animate-spin': loadingIncident }"
-          >
-            refresh
-          </span>
         </button>
         <button
           @click="handleShare"
