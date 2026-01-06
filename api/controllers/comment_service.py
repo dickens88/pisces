@@ -34,8 +34,7 @@ class CommentService:
         ws_id = workspace_id or cls.workspace_id
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
-        
-        # 构建评论内容，如果指定了评论类型，在内容中包含类型信息
+
         comment_content = f"【@{owner}】: {comment}"
         
         body = {
