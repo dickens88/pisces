@@ -248,29 +248,32 @@
                     </button>
                   </div>
                   <!-- 任务详情 -->
-                  <div v-if="taskDetailLoaded && taskDetail" class="mt-4 space-y-2">
-                    <div class="flex items-center justify-between mb-2">
-                      <div class="text-xs font-medium text-gray-700 dark:text-slate-300">
+                  <div v-if="taskDetailLoaded && taskDetail" class="-mt-4 space-y-2">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
+                      <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
                         {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
                       </div>
                       <button
                         type="button"
-                        class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                        class="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
                         :title="$t('common.edit')"
                         @click.stop="toggleTaskEdit"
                       >
-                        <span class="material-symbols-outlined text-sm">edit</span>
+                        <span class="material-symbols-outlined text-sm leading-none">edit</span>
                       </button>
                     </div>
-                    <div class="p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/50">
+                    <div>
                       <template v-if="typeof taskDetail === 'object' && taskDetail !== null">
                         <!-- 如果任务详情是数组（task_list），显示所有任务 -->
                         <template v-if="Array.isArray(taskDetail)">
-                          <div class="space-y-3">
+                          <div class="space-y-0">
                             <div
                               v-for="(task, index) in taskDetail"
                               :key="index"
-                              class="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/30"
+                              :class="[
+                                'py-3',
+                                index !== taskDetail.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                              ]"
                             >
                               <div class="space-y-2">
                                 <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
@@ -304,11 +307,14 @@
                         </template>
                         <!-- 如果任务详情包含 task_list 数组 -->
                         <template v-else-if="taskDetail.task_list && Array.isArray(taskDetail.task_list)">
-                          <div class="space-y-3">
+                          <div class="space-y-0">
                             <div
                               v-for="(task, index) in taskDetail.task_list"
                               :key="index"
-                              class="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/30"
+                              :class="[
+                                'py-3',
+                                index !== taskDetail.task_list.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                              ]"
                             >
                               <div class="space-y-2">
                                 <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
@@ -342,9 +348,9 @@
                         </template>
                         <!-- 单个任务对象 -->
                         <template v-else>
-                          <div class="space-y-3">
+                          <div class="space-y-0">
                             <!-- 任务名称 -->
-                            <div v-if="taskDetail.task_name">
+                            <div v-if="taskDetail.task_name" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.taskName', 'Task Name') }}
                               </div>
@@ -353,7 +359,7 @@
                               </div>
                             </div>
                             <!-- 阶段名称 -->
-                            <div v-if="taskDetail.stageName">
+                            <div v-if="taskDetail.stageName" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}
                               </div>
@@ -369,7 +375,7 @@
                               </span>
                             </div>
                             <!-- 员工账号 -->
-                            <div v-if="taskDetail.employeeAccount">
+                            <div v-if="taskDetail.employeeAccount" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}
                               </div>
@@ -378,7 +384,7 @@
                               </div>
                             </div>
                             <!-- 计划结束时间 -->
-                            <div v-if="taskDetail.plan_end_time">
+                            <div v-if="taskDetail.plan_end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}
                               </div>
@@ -387,7 +393,7 @@
                               </div>
                             </div>
                             <!-- 优先级 -->
-                            <div v-if="taskDetail.priority !== undefined && taskDetail.priority !== null">
+                            <div v-if="taskDetail.priority !== undefined && taskDetail.priority !== null" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}
                               </div>
@@ -396,7 +402,7 @@
                               </div>
                             </div>
                             <!-- 完成状态 -->
-                            <div v-if="taskDetail.isDone !== undefined && taskDetail.isDone !== null">
+                            <div v-if="taskDetail.isDone !== undefined && taskDetail.isDone !== null" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}
                               </div>
@@ -414,7 +420,7 @@
                               </span>
                             </div>
                             <!-- 详情链接 -->
-                            <div v-if="taskDetail.detail_url" class="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
+                            <div v-if="taskDetail.detail_url" class="py-2">
                               <a
                                 :href="taskDetail.detail_url"
                                 target="_blank"
@@ -436,6 +442,7 @@
                         </div>
                       </template>
                     </div>
+                    <div class="border-b border-gray-200 dark:border-slate-700"></div>
                   </div>
                   <!-- 任务详情错误状态 -->
                   <div
