@@ -1041,6 +1041,7 @@
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
+              :enable-comment-type="true"
               @submit="handlePostComment"
             />
           </div>
@@ -3144,7 +3145,9 @@ const formatComments = (comments) => {
       time: formatDateTime(comment.create_time),
       content: comment.content,
       create_time: comment.create_time,
-      file: comment.file || null  // 保留文件信息
+      file: comment.file || null,  // 保留文件信息
+      // 评论类型（后端可能返回 comment_type 或 type）
+      type: comment.comment_type || comment.type || 'comment'
     }
   })
 }
@@ -3250,7 +3253,7 @@ const closeAlertDetail = () => {
   selectedAlertId.value = null
 }
 
-const handlePostComment = async ({ comment, files }) => {
+const handlePostComment = async ({ comment, files, type }) => {
   if (!incident.value?.id) {
     toast.error(t('incidents.detail.comments.postError') || 'Failed to post comment: Incident ID does not exist', 'ERROR')
     return
@@ -3264,7 +3267,7 @@ const handlePostComment = async ({ comment, files }) => {
     }
     
     // 调用 API 提交评论（包含文件）
-    await postComment(incident.value.id, commentText, files || [])
+    await postComment(incident.value.id, commentText, files || [], null, type || 'comment')
     
     // 清空输入框（组件会自动清空）
     newComment.value = ''

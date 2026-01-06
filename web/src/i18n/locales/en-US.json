@@ -16,6 +16,14 @@
     "loading": "Loading...",
     "noComments": "No comments yet",
     "addComment": "Type message or paste image by ctrl+v...",
+    "commentTypes": {
+      "label": "Comment type",
+      "comment": "Comment",
+      "attackTrace": "Attack tracing",
+      "attackBlock": "Attack blocking",
+      "riskMitigation": "Risk mitigation",
+      "vulnerabilityLocate": "Vulnerability identification"
+    },
     "noData": "No data available",
     "warning": "Warning",
     "login": {

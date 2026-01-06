@@ -16,6 +16,14 @@
     "loading": "加载中...",
     "noComments": "暂无评论",
     "addComment": "请输入文本，可以按crtl+v粘贴图片...",
+    "commentTypes": {
+      "label": "评论类型",
+      "comment": "评论",
+      "attackTrace": "攻击溯源",
+      "attackBlock": "攻击拦截",
+      "riskMitigation": "风险消减",
+      "vulnerabilityLocate": "漏洞定位"
+    },
     "noData": "暂无数据",
     "warning": "警告",
     "login": {

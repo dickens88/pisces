@@ -33,7 +33,28 @@
             <p class="text-xs shrink-0 text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
           </div>
           <div class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
+            <!-- 内容 + 右侧类型标签 -->
+            <div
+              v-if="comment.type"
+              class="flex items-start justify-between gap-3"
+            >
+              <div 
+                v-html="sanitizeHtml(comment.content)"
+                class="comment-content flex-1"
+              ></div>
+              <span
+                :class="[
+                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ml-1',
+                  getCommentTypeClass(comment.type)
+                ]"
+              >
+                {{ getCommentTypeLabel(comment.type) }}
+              </span>
+            </div>
+
+            <!-- 无类型时正常显示 -->
             <div 
+              v-else
               v-html="sanitizeHtml(comment.content)"
               class="comment-content"
             ></div>
@@ -104,6 +125,7 @@
         v-model="newCommentText"
         :disabled="disabled"
         :loading="loading"
+        :enable-comment-type="enableCommentType"
         @submit="handleSubmit"
       />
     </div>
@@ -143,6 +165,11 @@ const props = defineProps({
   loading: {
     type: Boolean,
     default: false
+  },
+  // 是否启用评论类型下拉
+  enableCommentType: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -151,6 +178,48 @@ const emit = defineEmits(['submit'])
 const { t } = useI18n()
 const toast = useToast()
 const newCommentText = ref('')
+// 归一化评论类型 key（用于 label 和样式）
+const normalizeCommentType = (rawType) => {
+  if (!rawType) return 'comment'
+  const value = String(rawType).toLowerCase()
+
+  // 兼容后端不同命名
+  let key = 'comment'
+  if (value === 'comment') {
+    key = 'comment'
+  } else if (value === 'attacktrace' || value === 'attack_tracing' || value === 'attack-trace') {
+    key = 'attackTrace'
+  } else if (value === 'attackblock' || value === 'attack_block' || value === 'attack-block') {
+    key = 'attackBlock'
+  } else if (value === 'riskmitigation' || value === 'risk_mitigation' || value === 'risk-mitigation') {
+    key = 'riskMitigation'
+  } else if (value === 'vulnerabilitylocate' || value === 'vulnerability_location' || value === 'vulnerability-identification' || value === 'vulnerabilityidentification') {
+    key = 'vulnerabilityLocate'
+  }
+
+  return key
+}
+
+// 获取评论类型展示文案
+const getCommentTypeLabel = (rawType) => {
+  const key = normalizeCommentType(rawType)
+  return t(`common.commentTypes.${key}`) || key
+}
+
+// 不同类型对应不同颜色样式
+const getCommentTypeClass = (rawType) => {
+  const key = normalizeCommentType(rawType)
+
+  const map = {
+    comment: 'bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-slate-100',
+    attackTrace: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    attackBlock: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
+    riskMitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
+    vulnerabilityLocate: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
+  }
+
+  return map[key] || map.comment
+}
 
 // 获取作者首字母
 const getInitials = (name) => {
