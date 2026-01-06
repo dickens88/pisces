@@ -196,15 +196,6 @@
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
                         {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Task ID') }}
                       </label>
-                      <button
-                        @click="loadTaskIdList"
-                        :disabled="loadingTaskIdList"
-                        class="px-3 py-1 text-xs font-medium text-primary hover:text-primary/80 border border-primary/50 hover:border-primary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {{ loadingTaskIdList 
-                          ? translateOr('incidents.detail.eventGraph.loadingTaskIdList', 'Loading...')
-                          : translateOr('incidents.detail.eventGraph.getTaskIdList', 'Get Task ID List') }}
-                      </button>
                     </div>
                     <div class="relative">
                       <input
@@ -1177,7 +1168,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
 import { updateComment, deleteComment } from '@/api/comments'
-import { getTaskIdList, getTaskDetail } from '@/api/securityAgent'
+import { getTaskList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -3128,6 +3119,10 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphGeneratedAt,
       lastUpdateTime: data.last_update_time || data.update_time
     }
+    // 自动获取任务列表（后台静默调用，不显示加载提示）
+    loadTaskIdList().catch((err) => {
+      console.error('Failed to auto load task list:', err)
+    })
     // 如果后端已存储 task_id，则自动填充并尝试加载任务详情
     if (data.task_id) {
       selectedTaskId.value = data.task_id
@@ -3624,21 +3619,50 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
-// 获取任务ID列表
+// 自动获取任务列表并提取任务ID
 const loadTaskIdList = async () => {
   loadingTaskIdList.value = true
   try {
-    const taskIds = await getTaskIdList()
-    taskIdOptions.value = taskIds
-    if (taskIds.length > 0) {
-      const message = translateOr('incidents.detail.eventGraph.taskIdListLoaded', `Loaded ${taskIds.length} task IDs`)
-      toast.success(message.replace('{count}', String(taskIds.length)))
-    } else {
-      toast.warning(translateOr('incidents.detail.eventGraph.taskIdListEmpty', 'No task IDs found'))
+    // 调用getTaskList获取任务列表
+    const taskList = await getTaskList({})
+    
+    // 从任务列表中提取任务ID
+    let taskIds = []
+    if (Array.isArray(taskList)) {
+      // 如果是数组，检查元素是对象还是字符串
+      if (taskList.length > 0) {
+        if (typeof taskList[0] === 'string' || typeof taskList[0] === 'number') {
+          // 直接是ID数组
+          taskIds = taskList.map(id => String(id))
+        } else if (taskList[0].id) {
+          // 对象数组，提取id字段
+          taskIds = taskList.map(task => String(task.id))
+        } else if (taskList[0].task_id) {
+          // 对象数组，提取task_id字段
+          taskIds = taskList.map(task => String(task.task_id))
+        }
+      }
+    } else if (taskList && typeof taskList === 'object') {
+      // 如果是对象，尝试从常见字段中提取
+      if (taskList.task_ids && Array.isArray(taskList.task_ids)) {
+        taskIds = taskList.task_ids.map(id => String(id))
+      } else if (taskList.taskIds && Array.isArray(taskList.taskIds)) {
+        taskIds = taskList.taskIds.map(id => String(id))
+      } else if (taskList.tasks && Array.isArray(taskList.tasks)) {
+        taskIds = taskList.tasks.map(task => {
+          if (typeof task === 'string' || typeof task === 'number') {
+            return String(task)
+          }
+          return String(task.id || task.task_id || task)
+        })
+      }
     }
+    
+    // 去重并排序
+    taskIdOptions.value = [...new Set(taskIds)].sort()
   } catch (error) {
-    console.error('Failed to load task ID list:', error)
-    toast.error(error?.message || translateOr('incidents.detail.eventGraph.taskIdListError', 'Failed to load task ID list'))
+    console.error('Failed to load task list:', error)
+    // 静默失败，不显示错误提示，避免干扰用户体验
     taskIdOptions.value = []
   } finally {
     loadingTaskIdList.value = false
