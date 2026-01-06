@@ -112,53 +112,14 @@
             </button>
           </template>
 
-          <!-- 默认紧凑布局（告警/ASM/漏洞等） -->
+          <!-- 默认紧凑布局（告警/ASM/漏洞等），附件按钮与光标同一行 -->
           <template v-else>
-            <div class="relative">
-              <div
-                v-if="prefixIcon && !imagePreviewUrl"
-                class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
-              >
-                <span class="material-symbols-outlined text-base leading-none">
-                  {{ prefixIcon }}
-                </span>
-              </div>
-
-              <textarea
-                v-model="commentText"
-                :class="[
-                  'w-full rounded-xl bg-transparent p-2.5 pr-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
-                  imagePreviewUrl ? 'pl-20' : '',
-                  prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
-                ]"
-                :placeholder="placeholder"
-                rows="1"
-                @input="handleTextareaInput"
-                @keydown="handleKeyDown"
-                @paste="handlePaste"
-              ></textarea>
-              
-              <!-- 图片缩略图预览（显示在输入框内左上角） -->
-              <div v-if="imagePreviewUrl" class="group absolute top-2 left-2 w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md">
-                <img
-                  :src="imagePreviewUrl"
-                  alt="Preview"
-                  class="w-full h-full object-cover"
-                />
-                <button
-                  @click.stop="removeFile()"
-                  class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <span class="material-symbols-outlined text-xs">close</span>
-                </button>
-              </div>
-
-              <!-- Toolbar -->
+            <div class="flex items-start gap-3 py-1 pl-2 pr-12">
+              <!-- 左侧附件按钮 -->
               <div
                 v-if="props.enableFileUpload"
-                class="absolute bottom-2 left-3 flex items-center gap-2"
+                class="flex items-center pt-0.5 shrink-0"
               >
-                <!-- File upload button -->
                 <input
                   ref="fileInput"
                   type="file"
@@ -168,11 +129,55 @@
                 <button
                   type="button"
                   @click="triggerFileInput"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] text-gray-600 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-all duration-200 group"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] text-gray-600 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-all duration-200 group border border-transparent hover:border-primary/30"
                   :title="$t('incidents.detail.comments.attachFile') || 'Upload file'"
                 >
                   <span class="material-symbols-outlined text-lg">attach_file</span>
                 </button>
+              </div>
+
+              <!-- 文本输入（无类型时） -->
+              <div class="relative flex-1">
+                <div
+                  v-if="prefixIcon && !imagePreviewUrl"
+                  class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
+                >
+                  <span class="material-symbols-outlined text-base leading-none">
+                    {{ prefixIcon }}
+                  </span>
+                </div>
+
+                <!-- 图片缩略图预览 -->
+                <div
+                  v-if="imagePreviewUrl"
+                  class="group absolute -top-1 left-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md"
+                >
+                  <img
+                    :src="imagePreviewUrl"
+                    alt="Preview"
+                    class="w-full h-full object-cover"
+                  />
+                  <button
+                    @click.stop="removeFile()"
+                    class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <span class="material-symbols-outlined text-xs">close</span>
+                  </button>
+                </div>
+
+                <textarea
+                  v-model="commentText"
+                  :class="[
+                    'w-full rounded-xl bg-transparent px-3 py-1.5 pr-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[36px] max-h-[200px] border border-transparent',
+                    imagePreviewUrl ? 'pl-20' : '',
+                    prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
+                  ]"
+                  :placeholder="placeholder"
+                  rows="1"
+                  @input="handleTextareaInput"
+                  @keydown="handleKeyDown"
+                  @paste="handlePaste"
+                ></textarea>
               </div>
             </div>
 
