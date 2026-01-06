@@ -37,6 +37,19 @@
       </ol>
       <div class="flex gap-3 flex-wrap justify-end min-w-max">
         <button
+          @click="handleRefresh"
+          :disabled="loadingVulnerability"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
+          :title="$t('common.refresh') || 'Refresh'"
+        >
+          <span
+            class="material-symbols-outlined text-base"
+            :class="{ 'animate-spin': loadingVulnerability }"
+          >
+            refresh
+          </span>
+        </button>
+        <button
           @click="openEditDialog"
           class="flex min-w-[84px] cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-lg h-10 px-4 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors"
         >
@@ -49,19 +62,6 @@
         >
           <span class="material-symbols-outlined text-base">archive</span>
           <span class="truncate">{{ $t('vulnerabilities.detail.closeVulnerability') || '关闭' }}</span>
-        </button>
-        <button
-          @click="handleRefresh"
-          :disabled="loadingVulnerability"
-          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
-          :title="$t('common.refresh') || 'Refresh'"
-        >
-          <span
-            class="material-symbols-outlined text-base"
-            :class="{ 'animate-spin': loadingVulnerability }"
-          >
-            refresh
-          </span>
         </button>
         <button
           @click="handleShare"

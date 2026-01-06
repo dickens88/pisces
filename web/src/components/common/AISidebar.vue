@@ -268,7 +268,7 @@
         </div>
 
         <!-- Input Area -->
-        <div class="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0 security-agent-input">
+        <div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 security-agent-input">
           <CommentInput
             v-model="inputMessage"
             :disabled="isSendingSecurityAgentMessage"

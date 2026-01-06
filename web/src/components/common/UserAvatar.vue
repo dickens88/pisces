@@ -19,13 +19,13 @@ const props = defineProps({
   }
 })
 
-// Preset 5 colors (cool tones)
+// Preset 5 colors (warm tones for general users)
 const colors = [
-  '#1abc9c', // Turquoise
-  '#3498db', // Blue
-  '#9b59b6', // Purple
-  '#16a085', // Dark cyan
-  '#2980b9'  // Dark blue
+  '#e67e22', // Carrot (orange)
+  '#e74c3c', // Alizarin (red)
+  '#f39c12', // Orange
+  '#d35400', // Pumpkin (deep orange)
+  '#c0392b'  // Pomegranate (deep red)
 ]
 
 /**
@@ -43,6 +43,13 @@ const abbreviation = computed(() => {
  */
 const avatarColor = computed(() => {
   if (!props.name) return colors[0]
+
+  // Special rule: accounts containing "robot" or "SecMaster" (case-insensitive) use blue background
+  const lowerName = props.name.toLowerCase()
+  if (lowerName.includes('robot') || lowerName.includes('secmaster') || lowerName.includes('autoclosed')) {
+    return '#3498db' // consistent blue
+  }
+
   let hash = 0
   for (let i = 0; i < props.name.length; i++) {
     hash = props.name.charCodeAt(i) + ((hash << 5) - hash)

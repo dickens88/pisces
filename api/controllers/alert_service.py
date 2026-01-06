@@ -397,20 +397,49 @@ class AlertService:
         """Extract timeline from alert description."""
         events = [
             {"time": alert["create_time"], "event": "Alert Triggered"},
-            {"time": alert["close_time"], "event": "Close Alert"}
+            {"time": alert["close_time"], "event": "Close Alert", "author": alert.get("actor") or "-"},
         ]
 
         for intel in alert["intelligence"]:
-            events.append({"time": intel["create_time"], "event": "Add Intelligence"})
+            events.append({
+                "time": intel["create_time"],
+                "event": "Add Intelligence",
+                "author": intel["author"],
+                "content": intel["content"]
+            })
 
         for ai in alert["ai"]:
-            events.append({"time": ai["create_time"], "event": "AI Analysis"})
+            events.append({
+                "time": ai["create_time"],
+                "event": "AI Analysis",
+                "author": ai["author"],
+                "content": ai["content"]
+            })
 
-        for ai in alert["historic"]:
-            events.append({"time": ai["create_time"], "event": "Find Similar Alerts"})
+        for his in alert["historic"]:
+            events.append({
+                "time": his["create_time"],
+                "event": "Find Similar Alerts",
+                "author": his["author"],
+                "content": his["content"]
+            })
 
-        for ai in alert["comments"]:
-            events.append({"time": ai["create_time"], "event": "Add Comment"})
+
+        for com in alert["comments"]:
+            if "Associate alerts to incident" in com["content"] or "告警转为事件" in com["content"]:
+                events.append({
+                    "time": com["create_time"],
+                    "event": "To Incident",
+                    "author": com["author"],
+                    "content": com["content"]
+                })
+            else:
+                events.append({
+                    "time": com["create_time"],
+                    "event": "Add Comment",
+                    "author": com["author"],
+                    "content": com["content"]
+                })
 
         sorted_events = sorted(events, key=lambda x: str(x.get("time", "")))
 

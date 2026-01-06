@@ -344,6 +344,7 @@
       "unknownSource": "Unknown Source",
       "aiAgent": "AI Investigation",
       "alertInfo": "Alert Information",
+      "description": "Description",
       "timestamp": "Timestamp",
       "status": "Status",
       "ruleName": "Rule Name",
@@ -406,7 +407,16 @@
       "actorUpdateError": "Operation failed, please try again later",
       "id": "Alert ID",
       "alertSubject": "Alert Subject",
-      "alertContent": "Alert Content"
+      "alertContent": "Alert Content",
+      "timelineEvents": {
+        "alertTriggered": "Alert Triggered",
+        "closeAlert": "Close Alert",
+        "addIntelligence": "Add Intelligence",
+        "aiAnalysis": "AI Analysis",
+        "findSimilarAlerts": "Find Similar Alerts",
+        "addComment": "Add Comment",
+        "toIncident": "To Incident"
+      }
     }
   },
   "incidents": {

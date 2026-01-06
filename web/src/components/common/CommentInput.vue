@@ -1,9 +1,12 @@
 <template>
   <div class="comment-input-container">
     <div class="flex items-start gap-4">
-      <UserAvatar name="Current User" class="w-10 h-10 shrink-0" />
+      <UserAvatar
+        :name="props.currentUserName || $t('common.currentUser')"
+        class="w-10 h-10 shrink-0"
+      />
       <div class="flex-1">
-        <!-- 输入容器 -->
+        <!-- Input container -->
         <div 
           class="relative rounded-xl border-2 border-gray-200 dark:border-[#3c4a60] bg-white dark:bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
           :class="{ 
@@ -103,7 +106,7 @@
               class="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg disabled:shadow-none"
               :title="$t('common.send') || '发送'"
             >
-              <span 
+              <span
                 class="material-symbols-outlined text-base"
                 :class="{ 'animate-spin': props.loading }"
               >
@@ -188,7 +191,7 @@
               class="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg disabled:shadow-none"
               :title="$t('common.send') || '发送'"
             >
-              <span 
+              <span
                 class="material-symbols-outlined text-base"
                 :class="{ 'animate-spin': props.loading }"
               >
@@ -198,7 +201,7 @@
           </template>
         </div>
         
-        <!-- 文件列表（非图片） -->
+        <!-- Uploaded files list (只显示非图片文件) -->
         <div v-if="props.enableFileUpload && uploadedFiles.length > 0 && !imagePreviewUrl" class="mt-3 flex flex-wrap gap-2">
           <div
             v-for="(file, index) in uploadedFiles"
@@ -235,6 +238,11 @@ const props = defineProps({
     default: false
   },
   modelValue: {
+    type: String,
+    default: ''
+  },
+  // 当前用户显示名称，用来生成左侧头像
+  currentUserName: {
     type: String,
     default: ''
   },
@@ -317,7 +325,7 @@ const handlePaste = async (event) => {
   
   const items = clipboardData.items
   if (!items) return
-  
+
   const imageItems = []
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
@@ -325,7 +333,7 @@ const handlePaste = async (event) => {
       imageItems.push(item)
     }
   }
-  
+
   if (imageItems.length > 0) {
     event.preventDefault()
     
@@ -337,7 +345,7 @@ const handlePaste = async (event) => {
         type: blob.type || 'image/png',
         lastModified: Date.now()
       })
-      
+
       addFiles([file])
     }
   }
@@ -376,7 +384,7 @@ const addFiles = (files) => {
   if (!props.enableFileUpload || files.length === 0) return
   
   const file = files[0]
-  
+
   if (file.size > MAX_FILE_SIZE) {
     const errorMsg = t('common.fileSizeExceeded', { 
       fileName: file.name, 
@@ -386,9 +394,9 @@ const addFiles = (files) => {
     console.warn(`File ${file.name} is too large (max 500KB), size: ${formatFileSize(file.size)}`)
     return
   }
-  
+
   uploadedFiles.value = [file]
-  
+
   if (file.type.startsWith('image/')) {
     if (imagePreviewUrl.value) {
       URL.revokeObjectURL(imagePreviewUrl.value)
@@ -448,7 +456,7 @@ const handleSubmit = () => {
     files: [...uploadedFiles.value],
     type: commentType.value
   })
-  
+
   commentText.value = ''
   commentType.value = 'comment'
   if (imagePreviewUrl.value) {

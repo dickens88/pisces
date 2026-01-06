@@ -58,7 +58,7 @@
               v-if="comment.type"
               class="flex items-start justify-between gap-3"
             >
-              <div 
+              <div
                 v-html="sanitizeHtml(comment.content)"
                 class="comment-content flex-1"
               ></div>
@@ -73,7 +73,7 @@
             </div>
 
             <!-- 无类型时正常显示 -->
-            <div 
+            <div
               v-else
               v-html="sanitizeHtml(comment.content)"
               class="comment-content"
@@ -145,6 +145,7 @@
         v-model="newCommentText"
         :disabled="disabled"
         :loading="loading"
+        :current-user-name="currentUserName"
         :enable-comment-type="enableCommentType"
         @submit="handleSubmit"
       />
@@ -213,13 +214,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
 import UserAvatar from './UserAvatar.vue'
 import CommentInput from './CommentInput.vue'
-import { updateComment, deleteComment } from '@/api/comments'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   // 评论列表
@@ -257,6 +258,7 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'update', 'delete', 'remove'])
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const toast = useToast()
 const newCommentText = ref('')
 
@@ -323,6 +325,18 @@ const getCommentTypeClass = (rawType) => {
 
   return map[key] || map.comment
 }
+
+// 当前登录用户名称（用于输入框左侧头像）
+const currentUserName = computed(() => {
+  const user = authStore.user
+  if (!user) return ''
+  return user.username
+})
+
+onMounted(() => {
+  // 确保已获取到当前用户信息（内部有缓存，不会重复请求）
+  authStore.fetchCurrentUser().catch(() => {})
+})
 
 // 获取作者首字母
 const getInitials = (name) => {

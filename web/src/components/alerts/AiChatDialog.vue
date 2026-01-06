@@ -189,8 +189,8 @@
               class="w-full bg-transparent text-white placeholder:text-text-light/60 focus:outline-none resize-none"
               :class="[
                 compact 
-                  ? 'rounded-lg p-3 pr-24 text-xs min-h-[80px]' 
-                  : 'rounded-xl p-4 pr-32 text-sm min-h-[100px]',
+                  ? 'rounded-lg px-3 pt-3 pb-10 pr-24 text-xs min-h-[80px]' 
+                  : 'rounded-xl px-4 pt-4 pb-12 pr-32 text-sm min-h-[100px]',
                 compact ? 'rows-2' : 'rows-3'
               ]"
               :placeholder="$t('alerts.detail.aiAgentPlaceholder') || 'Ask AI about this alert...'"
