@@ -17,36 +17,6 @@
           @dragover.prevent="handleDragOver"
           @dragleave.prevent="handleDragLeave"
         >
-          <div
-            v-if="prefixIcon && !imagePreviewUrl"
-            class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
-          >
-            <span class="material-symbols-outlined text-base leading-none">
-              {{ prefixIcon }}
-            </span>
-          </div>
-          <textarea
-            v-model="commentText"
-            :class="[
-              // 为了避免底部工具栏和右侧发送按钮遮挡文字，这里增加了底部和右侧的额外内边距
-              'w-full rounded-xl bg-transparent px-2.5 pt-2.5 pb-10 pr-12 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px]',
-              imagePreviewUrl ? 'pl-20' : '',
-              prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
-            ]"
-            :placeholder="placeholder"
-            rows="1"
-            @input="handleTextareaInput"
-            @keydown="handleKeyDown"
-            @paste="handlePaste"
-          ></textarea>
-          
-          <!-- 图片缩略图预览（显示在输入框内左上角） -->
-          <div v-if="imagePreviewUrl" class="group absolute top-2 left-2 w-12 h-12 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md">
-            <img
-              :src="imagePreviewUrl"
-              alt="Preview"
-              class="w-full h-full object-cover"
-            />
           <!-- 启用评论类型时的布局（事件管理使用） -->
           <template v-if="props.enableCommentType">
             <div class="flex items-start gap-3 py-1 pl-2 pr-12">
