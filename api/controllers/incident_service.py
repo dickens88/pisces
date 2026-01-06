@@ -371,9 +371,14 @@ class IncidentService:
                 
                 # Get comment_type from local database
                 db_comment = CommentService.get_comment_by_comment_id(comment_id)
-                if db_comment and db_comment.comment_type:
+                if db_comment:
                     row["comment_type"] = db_comment.comment_type
                     row["type"] = db_comment.comment_type  # 兼容前端可能使用的 type 字段
+                    # 标记评论是否存在于数据库中
+                    row["exists_in_db"] = True
+                else:
+                    # 评论不在数据库中，标记为不存在
+                    row["exists_in_db"] = False
             
             result.append(row)
         return result

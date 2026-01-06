@@ -33,3 +33,30 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
   })
 }
 
+/**
+ * @brief 更新评论
+ * @param {string|number} eventId - 事件ID或告警ID
+ * @param {string} commentId - 评论ID
+ * @param {string} comment - 评论内容
+ * @param {string} commentType - 评论类型（可选）
+ * @returns {Promise} 返回更新结果
+ */
+export const updateComment = (eventId, commentId, comment, commentType = null) => {
+  const url = `/comments/${eventId}/${commentId}`
+  return service.put(url, {
+    comment: comment,
+    ...(commentType && { comment_type: commentType })
+  })
+}
+
+/**
+ * @brief 删除评论
+ * @param {string|number} eventId - 事件ID或告警ID
+ * @param {string} commentId - 评论ID
+ * @returns {Promise} 返回删除结果
+ */
+export const deleteComment = (eventId, commentId) => {
+  const url = `/comments/${eventId}/${commentId}`
+  return service.delete(url)
+}
+

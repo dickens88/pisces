@@ -8,7 +8,7 @@
       <div
         v-for="comment in comments"
         :key="comment.id"
-        class="flex items-start gap-4"
+        class="flex items-start gap-4 group"
       >
         <!-- 头像 -->
         <UserAvatar 
@@ -30,7 +30,27 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between">
             <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
-            <p class="text-xs shrink-0 text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs shrink-0 text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
+              <!-- 编辑和删除按钮 -->
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  v-if="existsInDatabase(comment)"
+                  @click="handleEditComment(comment)"
+                  class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  :title="$t('incidents.detail.comments.editComment')"
+                >
+                  <span class="material-symbols-outlined text-sm">edit</span>
+                </button>
+                <button
+                  @click="handleDeleteComment(comment)"
+                  class="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                  :title="existsInDatabase(comment) ? $t('incidents.detail.comments.deleteComment') : $t('incidents.detail.comments.removeComment')"
+                >
+                  <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
             <!-- 内容 + 右侧类型标签 -->
@@ -129,16 +149,77 @@
         @submit="handleSubmit"
       />
     </div>
+
+    <!-- 编辑评论对话框 -->
+    <div
+      v-if="editingComment"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelEdit"
+    >
+      <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          {{ $t('incidents.detail.comments.editComment') }}
+        </h3>
+        <div class="space-y-4">
+          <!-- 评论类型选择 -->
+          <div v-if="enableCommentType">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              {{ $t('common.commentTypes.label') }}
+            </label>
+            <select
+              v-model="editCommentType"
+              class="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-gray-800 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
+            >
+              <option
+                v-for="option in commentTypeOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+          <!-- 评论内容输入 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+              {{ $t('incidents.detail.comments.addComment') }}
+            </label>
+            <textarea
+              v-model="editCommentText"
+              rows="6"
+              class="w-full rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/60 focus:border-primary/60 resize-none"
+              :placeholder="$t('incidents.detail.comments.addComment')"
+            ></textarea>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="cancelEdit"
+            class="px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="saveEdit"
+            :disabled="!editCommentText.trim() || savingEdit"
+            class="px-4 py-2 rounded-lg bg-primary text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {{ savingEdit ? $t('common.loading') : $t('common.save') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
 import UserAvatar from './UserAvatar.vue'
 import CommentInput from './CommentInput.vue'
+import { updateComment, deleteComment } from '@/api/comments'
 
 const props = defineProps({
   // 评论列表
@@ -173,11 +254,33 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['submit'])
+const emit = defineEmits(['submit', 'update', 'delete', 'remove'])
 
 const { t } = useI18n()
 const toast = useToast()
 const newCommentText = ref('')
+
+// 编辑相关状态
+const editingComment = ref(null)
+const editCommentText = ref('')
+const editCommentType = ref('comment')
+const savingEdit = ref(false)
+
+// 评论类型选项
+const commentTypeOptions = computed(() => [
+  { value: 'comment', label: t('common.commentTypes.comment') },
+  { value: 'attackTracing', label: t('common.commentTypes.attackTracing') },
+  { value: 'attackBlocking', label: t('common.commentTypes.attackBlocking') },
+  { value: 'riskMitigation', label: t('common.commentTypes.riskMitigation') },
+  { value: 'vulnerabilityIdentification', label: t('common.commentTypes.vulnerabilityIdentification') }
+])
+
+// 判断评论是否存在于数据库中
+const existsInDatabase = (comment) => {
+  // 如果明确标记为不存在，则返回false
+  // 如果没有标记或标记为存在，则返回true
+  return comment.exists_in_db !== false
+}
 // 归一化评论类型 key（用于 label 和样式）
 const normalizeCommentType = (rawType) => {
   if (!rawType) return 'comment'
@@ -323,6 +426,73 @@ const handleDownloadFile = async (url, fileType, fileName) => {
 const handleSubmit = (data) => {
   emit('submit', data)
   newCommentText.value = ''
+}
+
+// 处理编辑评论
+const handleEditComment = (comment) => {
+  editingComment.value = comment
+  editCommentText.value = comment.content || ''
+  editCommentType.value = comment.type || comment.comment_type || 'comment'
+}
+
+// 取消编辑
+const cancelEdit = () => {
+  editingComment.value = null
+  editCommentText.value = ''
+  editCommentType.value = 'comment'
+}
+
+// 保存编辑
+const saveEdit = async () => {
+  if (!editingComment.value || !editCommentText.value.trim()) {
+    return
+  }
+
+  savingEdit.value = true
+  try {
+    // 需要从父组件获取 eventId，这里先通过 emit 传递
+    emit('update', {
+      commentId: editingComment.value.id || editingComment.value.comment_id,
+      comment: editCommentText.value.trim(),
+      commentType: editCommentType.value
+    })
+    cancelEdit()
+  } catch (error) {
+    console.error('Failed to update comment:', error)
+    toast.error(t('incidents.detail.comments.updateError'), 'ERROR')
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+// 处理删除评论
+const handleDeleteComment = async (comment) => {
+  // 如果评论不存在于数据库中，直接从前端移除
+  if (!existsInDatabase(comment)) {
+    if (!confirm(t('incidents.detail.comments.confirmRemoveMessage') || '确定要从列表中移除这条评论吗？')) {
+      return
+    }
+    // 通过 emit 传递移除事件（不调用后端API）
+    emit('remove', {
+      commentId: comment.id || comment.comment_id
+    })
+    return
+  }
+
+  // 评论存在于数据库中，需要调用后端API删除
+  if (!confirm(t('incidents.detail.comments.confirmDeleteMessage'))) {
+    return
+  }
+
+  try {
+    // 通过 emit 传递删除事件，由父组件处理
+    emit('delete', {
+      commentId: comment.id || comment.comment_id
+    })
+  } catch (error) {
+    console.error('Failed to delete comment:', error)
+    toast.error(t('incidents.detail.comments.deleteError'), 'ERROR')
+  }
 }
 
 // 暴露清空方法

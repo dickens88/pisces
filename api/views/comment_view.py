@@ -218,50 +218,6 @@ class CommentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
-    @auth_required
-    def put(self, username=None, event_id=None, comment_id=None):
-        """更新评论"""
-        try:
-            if not comment_id or not event_id:
-                return {"error_message": "event_id and comment_id are required"}, 400
-            
-            data = json.loads(request.data)
-            comment = data.get('comment')
-            comment_type = data.get('comment_type')
-            
-            # 更新评论（仅更新本地数据库）
-            updated_comment = CommentService.update_comment(
-                comment_id=comment_id,
-                comment=comment,
-                comment_type=comment_type
-            )
-            
-            if not updated_comment:
-                return {"error_message": "Comment not found"}, 404
-            
-            return {"data": updated_comment.to_dict()}, 200
-        except Exception as ex:
-            logger.exception(ex)
-            return {"error_message": str(ex)}, 500
-
-    @auth_required
-    def delete(self, username=None, event_id=None, comment_id=None):
-        """删除评论"""
-        try:
-            if not comment_id or not event_id:
-                return {"error_message": "event_id and comment_id are required"}, 400
-            
-            # 删除评论（仅删除本地数据库记录）
-            deleted = CommentService.delete_comment(comment_id=comment_id)
-            
-            if not deleted:
-                return {"error_message": "Comment not found"}, 404
-            
-            return {"message": "Comment deleted successfully"}, 200
-        except Exception as ex:
-            logger.exception(ex)
-            return {"error_message": str(ex)}, 500
-
 
 class CommentDownloadView(Resource):
     """For attachment download"""

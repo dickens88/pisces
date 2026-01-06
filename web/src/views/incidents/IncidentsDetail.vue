@@ -1063,6 +1063,9 @@
               :comments="incident?.comments || []"
               :enable-comment-type="true"
               @submit="handlePostComment"
+              @update="handleUpdateComment"
+              @delete="handleDeleteComment"
+              @remove="handleRemoveComment"
             />
           </div>
         </div>
@@ -1173,6 +1176,7 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
+import { updateComment, deleteComment } from '@/api/comments'
 import { getTaskIdList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
@@ -3169,16 +3173,20 @@ const formatComments = (comments) => {
     const avatarColor = colors[Math.abs(hash % colors.length)]
     
     return {
-      id: comment.id || index,
+      id: comment.id || comment.comment_id || index,
+      comment_id: comment.comment_id || comment.id || index,
       author: author,
       authorInitials: authorInitials,
       avatarColor: avatarColor,
       time: formatDateTime(comment.create_time),
-      content: comment.content,
+      content: comment.content || comment.message,
       create_time: comment.create_time,
       file: comment.file || null,  // 保留文件信息
       // 评论类型（后端可能返回 comment_type 或 type）
-      type: comment.comment_type || comment.type || 'comment'
+      type: comment.comment_type || comment.type || 'comment',
+      comment_type: comment.comment_type || comment.type || 'comment',
+      // 标记评论是否存在于数据库中
+      exists_in_db: comment.exists_in_db !== false  // 默认为true，如果明确标记为false则为false
     }
   })
 }
@@ -3298,6 +3306,7 @@ const handlePostComment = async ({ comment, files, type }) => {
     }
     
     // 调用 API 提交评论（包含文件）
+    // 只有在成功后才刷新和清空，如果失败则不刷新，避免显示不存在的评论
     await postComment(incident.value.id, commentText, files || [], null, type || 'comment')
     
     // 清空输入框（组件会自动清空）
@@ -3310,9 +3319,66 @@ const handlePostComment = async ({ comment, files, type }) => {
     toast.success(t('incidents.detail.comments.postSuccess') || 'Comment posted successfully', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
-    const errorMessage = error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || 'Failed to post comment, please try again later'
+    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('incidents.detail.comments.postError') || 'Failed to post comment, please try again later'
+    toast.error(errorMessage, 'ERROR')
+    // 不刷新页面，避免显示后端创建失败的评论
+  }
+}
+
+const handleUpdateComment = async ({ commentId, comment, commentType }) => {
+  if (!incident.value?.id) {
+    toast.error(t('incidents.detail.comments.updateError') || 'Failed to update comment: Incident ID does not exist', 'ERROR')
+    return
+  }
+  
+  try {
+    await updateComment(incident.value.id, commentId, comment, commentType)
+    
+    // 重新加载事件详情以获取最新评论
+    await loadIncidentDetail()
+    
+    // 显示成功提示
+    toast.success(t('incidents.detail.comments.updateSuccess') || 'Comment updated successfully', 'SUCCESS')
+  } catch (error) {
+    console.error('Failed to update comment:', error)
+    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('incidents.detail.comments.updateError') || 'Failed to update comment, please try again later'
     toast.error(errorMessage, 'ERROR')
   }
+}
+
+const handleDeleteComment = async ({ commentId }) => {
+  if (!incident.value?.id) {
+    toast.error(t('incidents.detail.comments.deleteError') || 'Failed to delete comment: Incident ID does not exist', 'ERROR')
+    return
+  }
+  
+  try {
+    await deleteComment(incident.value.id, commentId)
+    
+    // 重新加载事件详情以获取最新评论
+    await loadIncidentDetail()
+    
+    // 显示成功提示
+    toast.success(t('incidents.detail.comments.deleteSuccess') || 'Comment deleted successfully', 'SUCCESS')
+  } catch (error) {
+    console.error('Failed to delete comment:', error)
+    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('incidents.detail.comments.deleteError') || 'Failed to delete comment, please try again later'
+    toast.error(errorMessage, 'ERROR')
+  }
+}
+
+// 处理移除不存在于数据库的评论（仅从前端移除，不调用后端API）
+const handleRemoveComment = ({ commentId }) => {
+  if (!incident.value?.comments) {
+    return
+  }
+  
+  // 从前端评论列表中移除该评论
+  incident.value.comments = incident.value.comments.filter(
+    comment => (comment.id || comment.comment_id) !== commentId
+  )
+  
+  toast.success(t('incidents.detail.comments.removeSuccess') || '评论已从列表中移除', 'SUCCESS')
 }
 
 const sanitizeHtml = (html) => {

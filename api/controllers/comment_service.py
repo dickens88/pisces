@@ -116,34 +116,3 @@ class CommentService:
         except Exception as ex:
             logger.warning(f"Failed to get comment file info for comment_id={comment_id}: {ex}")
             return {}
-
-    @classmethod
-    def update_comment(cls, comment_id, comment=None, comment_type=None, workspace_id=None):
-        """更新评论（仅更新本地数据库，外部系统不支持更新）"""
-        try:
-            db_comment = Comment.get_by_comment_id(comment_id)
-            if not db_comment:
-                return None
-            
-            update_data = {}
-            if comment is not None:
-                update_data['message'] = comment
-            if comment_type is not None:
-                update_data['comment_type'] = comment_type
-            
-            if update_data:
-                Comment.update_comment(comment_id, **update_data)
-                return Comment.get_by_comment_id(comment_id)
-            return db_comment
-        except Exception as ex:
-            logger.exception(f"Failed to update comment {comment_id}: {ex}")
-            raise
-
-    @classmethod
-    def delete_comment(cls, comment_id, workspace_id=None):
-        """删除评论（仅删除本地数据库记录，外部系统不支持删除）"""
-        try:
-            return Comment.delete_comment(comment_id)
-        except Exception as ex:
-            logger.exception(f"Failed to delete comment {comment_id}: {ex}")
-            raise
