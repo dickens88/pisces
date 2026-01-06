@@ -283,10 +283,10 @@ const commentType = ref('comment')
 
 const commentTypeOptions = computed(() => [
   { value: 'comment', label: t('common.commentTypes.comment') },
-  { value: 'attackTrace', label: t('common.commentTypes.attackTrace') },
-  { value: 'attackBlock', label: t('common.commentTypes.attackBlock') },
+  { value: 'attackTracing', label: t('common.commentTypes.attackTracing') },
+  { value: 'attackBlocking', label: t('common.commentTypes.attackBlocking') },
   { value: 'riskMitigation', label: t('common.commentTypes.riskMitigation') },
-  { value: 'vulnerabilityLocate', label: t('common.commentTypes.vulnerabilityLocate') }
+  { value: 'vulnerabilityIdentification', label: t('common.commentTypes.vulnerabilityIdentification') }
 ])
 
 const canSubmit = computed(() => {

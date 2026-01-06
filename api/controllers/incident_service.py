@@ -362,12 +362,18 @@ class IncidentService:
             owner = CommentService.extract_owner_from_content(row["content"])
             row["author"] = owner if owner else row["author"]
             
-            # Query file information by comment_id associated with id
+            # Query file information and comment_type by comment_id associated with id
             if 'id' in item:
                 comment_id = str(item['id'])
                 file_info = CommentService.get_comment_file_info(comment_id)
                 if file_info:
                     row["file"] = file_info
+                
+                # Get comment_type from local database
+                db_comment = CommentService.get_comment_by_comment_id(comment_id)
+                if db_comment and db_comment.comment_type:
+                    row["comment_type"] = db_comment.comment_type
+                    row["type"] = db_comment.comment_type  # 兼容前端可能使用的 type 字段
             
             result.append(row)
         return result

@@ -183,18 +183,18 @@ const normalizeCommentType = (rawType) => {
   if (!rawType) return 'comment'
   const value = String(rawType).toLowerCase()
 
-  // 兼容后端不同命名
+  // 支持标准类型值
   let key = 'comment'
   if (value === 'comment') {
     key = 'comment'
-  } else if (value === 'attacktrace' || value === 'attack_tracing' || value === 'attack-trace') {
-    key = 'attackTrace'
-  } else if (value === 'attackblock' || value === 'attack_block' || value === 'attack-block') {
-    key = 'attackBlock'
+  } else if (value === 'attacktracing' || value === 'attack_tracing' || value === 'attack-tracing') {
+    key = 'attackTracing'
+  } else if (value === 'attackblocking' || value === 'attack_blocking' || value === 'attack-blocking') {
+    key = 'attackBlocking'
   } else if (value === 'riskmitigation' || value === 'risk_mitigation' || value === 'risk-mitigation') {
     key = 'riskMitigation'
-  } else if (value === 'vulnerabilitylocate' || value === 'vulnerability_location' || value === 'vulnerability-identification' || value === 'vulnerabilityidentification') {
-    key = 'vulnerabilityLocate'
+  } else if (value === 'vulnerabilityidentification' || value === 'vulnerability_identification' || value === 'vulnerability-identification') {
+    key = 'vulnerabilityIdentification'
   }
 
   return key
@@ -212,10 +212,10 @@ const getCommentTypeClass = (rawType) => {
 
   const map = {
     comment: 'bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-slate-100',
-    attackTrace: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
-    attackBlock: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
+    attackTracing: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    attackBlocking: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
     riskMitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
-    vulnerabilityLocate: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
+    vulnerabilityIdentification: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
   }
 
   return map[key] || map.comment

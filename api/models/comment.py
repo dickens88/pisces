@@ -16,6 +16,7 @@ class Comment(Base):
     owner = Column(String(255))
     create_time = Column(String(40))
     message = Column(Text())
+    comment_type = Column(String(50), default='comment')
     file_type = Column(String(100))
     file_name = Column(String(500))
     file_obj = Column(LargeBinary())
@@ -29,6 +30,7 @@ class Comment(Base):
             "owner": self.owner,
             "create_time": self.create_time,
             "message": self.message,
+            "comment_type": self.comment_type or 'comment',
             "file_type": self.file_type,
             "file_name": self.file_name,
             "has_file": self.file_obj is not None,
@@ -49,7 +51,7 @@ class Comment(Base):
             session.close()
 
     @classmethod
-    def create_comment(cls, event_id, comment_id, owner, message, file_type=None, file_name=None, file_obj=None):
+    def create_comment(cls, event_id, comment_id, owner, message, file_type=None, file_name=None, file_obj=None, comment_type='comment'):
         """创建评论记录"""
         session = Session()
         try:
@@ -62,6 +64,7 @@ class Comment(Base):
                 comment_id=comment_id,
                 owner=owner,
                 message=message,
+                comment_type=comment_type or 'comment',
                 file_type=file_type,
                 file_name=file_name,
                 file_obj=file_obj,
@@ -98,10 +101,13 @@ class Comment(Base):
             
             existing_comment = session.query(cls).filter_by(comment_id=comment_id).first()
             
+            comment_type = comment_data.get("comment_type") or comment_data.get("type") or 'comment'
+            
             if existing_comment:
                 existing_comment.event_id = event_id
                 existing_comment.owner = owner
                 existing_comment.message = content
+                existing_comment.comment_type = comment_type
                 existing_comment.create_time = create_time
                 existing_comment.last_update_time = datetime.now()
                 session.commit()
@@ -112,6 +118,7 @@ class Comment(Base):
                 comment_id=comment_id,
                 owner=owner,
                 message=content,
+                comment_type=comment_type,
                 create_time=create_time,
                 last_update_time=datetime.now()
             )

@@ -19,10 +19,10 @@
     "commentTypes": {
       "label": "Comment type",
       "comment": "Comment",
-      "attackTrace": "Attack tracing",
-      "attackBlock": "Attack blocking",
+      "attackTracing": "Attack tracing",
+      "attackBlocking": "Attack blocking",
       "riskMitigation": "Risk mitigation",
-      "vulnerabilityLocate": "Vulnerability identification"
+      "vulnerabilityIdentification": "Vulnerability identification"
     },
     "noData": "No data available",
     "warning": "Warning",

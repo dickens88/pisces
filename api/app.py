@@ -86,7 +86,13 @@ api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabiliti
 
 api.add_resource(incident_view.AlertRelations, '/alerts/<alert_id>/relations')
 
-api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
+# Comment routes: support CRUD operations
+# POST /comments - create comment
+# GET /comments/<event_id> - get comments by event_id
+# GET /comments/<event_id>/<comment_id> - get single comment
+# PUT /comments/<event_id>/<comment_id> - update comment
+# DELETE /comments/<event_id>/<comment_id> - delete comment
+api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>', '/comments/<event_id>/<comment_id>')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
 api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')
