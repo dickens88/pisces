@@ -128,25 +128,47 @@
         <!-- 外层容器沿用 Alerts 模块的卡片风格，但内部线条尽量柔和 -->
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl overflow-hidden">
           <!-- 始终保留整体工作区结构（左右栏 + 中间区域），只根据状态切换中间区域内容 -->
-          <div ref="graphWorkspaceRef" class="flex min-h-[600px]">
+          <!-- 这里使用固定视口高度，保证左侧边框线贯穿整个工作区，避免出现下半部分缺失的问题 -->
+          <div
+            ref="graphWorkspaceRef"
+            class="flex min-h-[600px]"
+            style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
+          >
             <!-- 左侧：告警时间线 / 任务管理 -->
             <aside
               v-if="!isLeftPaneCollapsed"
-              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col"
-              style="height: calc(100vh - 200px); max-height: calc(100vh - 200px);"
+              class="w-80 flex-none border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111822] flex flex-col h-full"
             >
               <!-- 标签切换头部 -->
               <div class="px-4 py-3 border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-[#111822]">
-                <div class="flex items-center justify-between mb-2">
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">
-                      {{ leftPaneActiveTab === 'taskManagement' 
-                        ? translateOr('incidents.detail.eventGraph.taskManagementTitle', 'Task Management')
-                        : translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert timeline') }}
-                    </h3>
-                    <span v-if="leftPaneActiveTab === 'timeline'" class="text-xs text-gray-400 dark:text-slate-500">
-                      {{ associatedAlertsTimeline.length }}
-                    </span>
+                <!-- 标签切换按钮作为标题 -->
+                <div class="flex items-center justify-between gap-1">
+                  <div class="flex gap-1 flex-1">
+                    <button
+                      @click="leftPaneActiveTab = 'taskManagement'"
+                      :class="[
+                        'px-3 py-1.5 text-sm font-semibold transition-colors border-b-2',
+                        leftPaneActiveTab === 'taskManagement'
+                          ? 'text-primary border-primary'
+                          : 'text-gray-900 dark:text-slate-100 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                      ]"
+                    >
+                      {{ translateOr('incidents.detail.eventGraph.taskManagement', 'Task Management') }}
+                    </button>
+                    <button
+                      @click="leftPaneActiveTab = 'timeline'"
+                      :class="[
+                        'px-3 py-1.5 text-sm font-semibold transition-colors border-b-2',
+                        leftPaneActiveTab === 'timeline'
+                          ? 'text-primary border-primary'
+                          : 'text-gray-900 dark:text-slate-100 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
+                      ]"
+                    >
+                      {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
+                      <span v-if="leftPaneActiveTab === 'timeline'" class="ml-1 text-xs text-gray-400 dark:text-slate-500">
+                        ({{ associatedAlertsTimeline.length }})
+                      </span>
+                    </button>
                   </div>
                   <button
                     type="button"
@@ -157,38 +179,19 @@
                     <span class="material-symbols-outlined text-base">chevron_left</span>
                   </button>
                 </div>
-                <!-- 标签切换按钮 -->
-                <div class="flex gap-1 border-b border-gray-200 dark:border-slate-700 -mx-4 px-4">
-                  <button
-                    @click="leftPaneActiveTab = 'taskManagement'"
-                    :class="[
-                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
-                      leftPaneActiveTab === 'taskManagement'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
-                    ]"
-                  >
-                    {{ translateOr('incidents.detail.eventGraph.taskManagement', 'Task Management') }}
-                  </button>
-                  <button
-                    @click="leftPaneActiveTab = 'timeline'"
-                    :class="[
-                      'px-3 py-1.5 text-xs font-medium transition-colors border-b-2',
-                      leftPaneActiveTab === 'timeline'
-                        ? 'text-primary border-primary'
-                        : 'text-gray-500 dark:text-slate-400 border-transparent hover:text-gray-700 dark:hover:text-slate-200'
-                    ]"
-                  >
-                    {{ translateOr('incidents.detail.eventGraph.timelineTitle', 'Alert Timeline') }}
-                  </button>
-                </div>
               </div>
               <!-- 内容区域 -->
               <div class="flex-1 overflow-y-auto" style="height: 0;">
                 <!-- 任务管理内容 -->
                 <div v-if="leftPaneActiveTab === 'taskManagement'" class="p-4 space-y-4">
-                  <!-- 任务ID选择器 -->
-                  <div class="space-y-2">
+                  <!-- 任务ID选择器：
+                       - 初次进入 / 未加载过详情时始终可见
+                       - 点击铅笔进入编辑时可见
+                       - 只有在已加载出任务详情且未处于编辑状态时才收起 -->
+                  <div
+                    v-if="isEditingTaskId || !taskDetailLoaded || !selectedTaskId || loadingTaskDetail"
+                    class="space-y-2"
+                  >
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
                         {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Task ID') }}
@@ -209,7 +212,6 @@
                         type="text"
                         class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
                         :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Enter task ID or select from list')"
-                        @keyup.enter="loadTaskList"
                         @focus="showTaskIdDropdown = taskIdOptions.length > 0"
                         @input="showTaskIdDropdown = taskIdOptions.length > 0 && selectedTaskId.length === 0"
                       />
@@ -236,40 +238,218 @@
                       {{ translateOr('incidents.detail.eventGraph.taskIdHint', `Click input to select from ${taskIdOptions.length} task IDs`).replace('{count}', String(taskIdOptions.length)) }}
                     </div>
                     <button
-                      @click="loadTaskList"
-                      :disabled="loadingTaskList || !selectedTaskId"
-                      class="w-full px-4 py-2 text-xs font-medium text-white bg-primary hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="loadTaskDetail"
+                      :disabled="loadingTaskDetail || !selectedTaskId"
+                      class="w-full px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {{ loadingTaskList 
-                        ? translateOr('incidents.detail.eventGraph.loadingTaskList', 'Loading...')
-                        : translateOr('incidents.detail.eventGraph.loadTaskList', 'Load Task List') }}
+                      {{ loadingTaskDetail 
+                        ? translateOr('incidents.detail.eventGraph.loadingTaskDetail', 'Loading...')
+                        : translateOr('incidents.detail.eventGraph.loadTaskDetail', 'Load Task Detail') }}
                     </button>
                   </div>
-                  <!-- 任务列表 -->
-                  <div v-if="taskList.length > 0" class="space-y-2">
-                    <div
-                      v-for="(task, index) in taskList"
-                      :key="index"
-                      class="p-3 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50"
-                    >
-                      <div class="text-xs text-gray-600 dark:text-slate-400 whitespace-pre-wrap break-words">
-                        {{ typeof task === 'object' ? JSON.stringify(task, null, 2) : task }}
+                  <!-- 任务详情 -->
+                  <div v-if="taskDetailLoaded && taskDetail" class="-mt-4 space-y-2">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
+                      <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
+                        {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
                       </div>
+                      <button
+                        type="button"
+                        class="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                        :title="$t('common.edit')"
+                        @click.stop="toggleTaskEdit"
+                      >
+                        <span class="material-symbols-outlined text-sm leading-none">edit</span>
+                      </button>
                     </div>
+                    <div>
+                      <template v-if="typeof taskDetail === 'object' && taskDetail !== null">
+                        <!-- 如果任务详情是数组（task_list），显示所有任务 -->
+                        <template v-if="Array.isArray(taskDetail)">
+                          <div class="space-y-0">
+                            <div
+                              v-for="(task, index) in taskDetail"
+                              :key="index"
+                              :class="[
+                                'py-3',
+                                index !== taskDetail.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                              ]"
+                            >
+                              <div class="space-y-2">
+                                <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                                <div v-if="task.stageName" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                  <span 
+                                    :class="[
+                                      'inline-block px-2 py-0.5 rounded text-xs',
+                                      task.stageName === '待处理' || task.stageName === 'Pending' 
+                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                    ]"
+                                  >
+                                    {{ task.stageName }}
+                                  </span>
+                                </div>
+                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                </div>
+                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                </div>
+                                <div v-if="task.detail_url" class="mt-2">
+                                  <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                    {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <!-- 如果任务详情包含 task_list 数组 -->
+                        <template v-else-if="taskDetail.task_list && Array.isArray(taskDetail.task_list)">
+                          <div class="space-y-0">
+                            <div
+                              v-for="(task, index) in taskDetail.task_list"
+                              :key="index"
+                              :class="[
+                                'py-3',
+                                index !== taskDetail.task_list.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                              ]"
+                            >
+                              <div class="space-y-2">
+                                <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                                <div v-if="task.stageName" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                  <span 
+                                    :class="[
+                                      'inline-block px-2 py-0.5 rounded text-xs',
+                                      task.stageName === '待处理' || task.stageName === 'Pending' 
+                                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                    ]"
+                                  >
+                                    {{ task.stageName }}
+                                  </span>
+                                </div>
+                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                </div>
+                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                </div>
+                                <div v-if="task.detail_url" class="mt-2">
+                                  <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                    {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <!-- 单个任务对象 -->
+                        <template v-else>
+                          <div class="space-y-0">
+                            <!-- 任务名称 -->
+                            <div v-if="taskDetail.task_name" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.taskName', 'Task Name') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300 font-medium">
+                                {{ taskDetail.task_name }}
+                              </div>
+                            </div>
+                            <!-- 阶段名称 -->
+                            <div v-if="taskDetail.stageName" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}
+                              </div>
+                              <span 
+                                :class="[
+                                  'inline-block px-2 py-0.5 rounded text-xs',
+                                  taskDetail.stageName === '待处理' || taskDetail.stageName === 'Pending' 
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                ]"
+                              >
+                                {{ taskDetail.stageName }}
+                              </span>
+                            </div>
+                            <!-- 员工账号 -->
+                            <div v-if="taskDetail.employeeAccount" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ taskDetail.employeeAccount }}
+                              </div>
+                            </div>
+                            <!-- 计划结束时间 -->
+                            <div v-if="taskDetail.plan_end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ formatTaskDateTime(taskDetail.plan_end_time) }}
+                              </div>
+                            </div>
+                            <!-- 优先级 -->
+                            <div v-if="taskDetail.priority !== undefined && taskDetail.priority !== null" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ getPriorityLabel(taskDetail.priority) }}
+                              </div>
+                            </div>
+                            <!-- 完成状态 -->
+                            <div v-if="taskDetail.isDone !== undefined && taskDetail.isDone !== null" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}
+                              </div>
+                              <span 
+                                :class="[
+                                  'inline-block px-2 py-0.5 rounded text-xs',
+                                  taskDetail.isDone === 'true' || taskDetail.isDone === true
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                    : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                ]"
+                              >
+                                {{ taskDetail.isDone === 'true' || taskDetail.isDone === true 
+                                  ? translateOr('incidents.detail.eventGraph.completed', 'Completed')
+                                  : translateOr('incidents.detail.eventGraph.inProgress', 'In Progress') }}
+                              </span>
+                            </div>
+                            <!-- 详情链接 -->
+                            <div v-if="taskDetail.detail_url" class="py-2">
+                              <a
+                                :href="taskDetail.detail_url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                              >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                              </a>
+                            </div>
+                          </div>
+                        </template>
+                      </template>
+                      <template v-else>
+                        <div class="text-xs text-gray-600 dark:text-slate-400 whitespace-pre-wrap break-words">
+                          {{ taskDetail }}
+                        </div>
+                      </template>
+                    </div>
+                    <div class="border-b border-gray-200 dark:border-slate-700"></div>
                   </div>
-                  <!-- 空状态 -->
+                  <!-- 任务详情错误状态 -->
                   <div
-                    v-else-if="!loadingTaskList && taskListLoaded"
-                    class="py-6 text-center text-xs text-gray-400 dark:text-slate-500"
+                    v-if="taskDetailError"
+                    class="mt-4 p-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg"
                   >
-                    {{ translateOr('incidents.detail.eventGraph.taskListEmpty', 'No task data') }}
-                  </div>
-                  <!-- 错误状态 -->
-                  <div
-                    v-if="taskListError"
-                    class="p-3 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg"
-                  >
-                    {{ taskListError }}
+                    {{ taskDetailError }}
                   </div>
                 </div>
                 <!-- 时间线内容 -->
@@ -881,6 +1061,7 @@
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
+              :enable-comment-type="true"
               @submit="handlePostComment"
             />
           </div>
@@ -991,8 +1172,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident } from '@/api/incidents'
-import { getTaskList, getTaskIdList } from '@/api/securityAgent'
+import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
+import { getTaskIdList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -2865,11 +3046,12 @@ const leftPaneActiveTab = ref('taskManagement')
 const selectedTaskId = ref('')
 const taskIdOptions = ref([]) // 任务ID选项列表
 const loadingTaskIdList = ref(false)
-const taskList = ref([])
-const loadingTaskList = ref(false)
-const taskListError = ref('')
-const taskListLoaded = ref(false)
+const taskDetail = ref(null)
+const loadingTaskDetail = ref(false)
+const taskDetailError = ref('')
+const taskDetailLoaded = ref(false)
 const showTaskIdDropdown = ref(false)
+const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 
 const alarmCount = computed(() => {
@@ -2942,6 +3124,16 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphGeneratedAt,
       lastUpdateTime: data.last_update_time || data.update_time
     }
+    // 如果后端已存储 task_id，则自动填充并尝试加载任务详情
+    if (data.task_id) {
+      selectedTaskId.value = data.task_id
+      // 初次进入时默认不展开编辑区域
+      isEditingTaskId.value = false
+      // 异步加载任务详情（失败时只在控制台打印）
+      loadTaskDetail().catch((err) => {
+        console.error('Failed to auto load task detail:', err)
+      })
+    }
     loadGraphData(graphPayload)
   } catch (error) {
     console.error('Failed to load incident detail:', error)
@@ -2984,7 +3176,9 @@ const formatComments = (comments) => {
       time: formatDateTime(comment.create_time),
       content: comment.content,
       create_time: comment.create_time,
-      file: comment.file || null  // 保留文件信息
+      file: comment.file || null,  // 保留文件信息
+      // 评论类型（后端可能返回 comment_type 或 type）
+      type: comment.comment_type || comment.type || 'comment'
     }
   })
 }
@@ -3090,7 +3284,7 @@ const closeAlertDetail = () => {
   selectedAlertId.value = null
 }
 
-const handlePostComment = async ({ comment, files }) => {
+const handlePostComment = async ({ comment, files, type }) => {
   if (!incident.value?.id) {
     toast.error(t('incidents.detail.comments.postError') || 'Failed to post comment: Incident ID does not exist', 'ERROR')
     return
@@ -3104,7 +3298,7 @@ const handlePostComment = async ({ comment, files }) => {
     }
     
     // 调用 API 提交评论（包含文件）
-    await postComment(incident.value.id, commentText, files || [])
+    await postComment(incident.value.id, commentText, files || [], null, type || 'comment')
     
     // 清空输入框（组件会自动清空）
     newComment.value = ''
@@ -3152,6 +3346,33 @@ const formatLastModified = (dateString) => {
   } else {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
+}
+
+// 格式化任务日期时间
+const formatTaskDateTime = (dateTimeString) => {
+  if (!dateTimeString) return ''
+  // 尝试解析日期时间字符串，支持 "2026-01-31 03:11:19" 格式
+  try {
+    const date = parseToDate(dateTimeString)
+    if (date) {
+      return formatDateTime(date)
+    }
+  } catch (e) {
+    // 如果解析失败，返回原始字符串
+  }
+  return dateTimeString
+}
+
+// 获取优先级标签
+const getPriorityLabel = (priority) => {
+  if (priority === undefined || priority === null) return ''
+  const priorityMap = {
+    0: translateOr('incidents.detail.eventGraph.priorityLow', 'Low'),
+    1: translateOr('incidents.detail.eventGraph.priorityMedium', 'Medium'),
+    2: translateOr('incidents.detail.eventGraph.priorityHigh', 'High'),
+    3: translateOr('incidents.detail.eventGraph.priorityUrgent', 'Urgent')
+  }
+  return priorityMap[priority] || String(priority)
 }
 
 const getAlertSeverityDotClass = (severity) => {
@@ -3371,47 +3592,46 @@ const closeTaskIdDropdown = () => {
   showTaskIdDropdown.value = false
 }
 
-// 加载任务列表
-const loadTaskList = async () => {
+// 将当前任务 ID 写入本地数据库（与事件绑定）
+const saveTaskIdForIncident = async (taskId) => {
+  if (!incident.value?.id) {
+    return
+  }
+  try {
+    await updateIncidentTask(incident.value.id, { task_id: taskId || null })
+  } catch (error) {
+    console.error('Failed to save task id for incident:', error)
+  }
+}
+
+// 加载任务详情，并在成功后同步保存 task_id 到本地数据库
+const loadTaskDetail = async () => {
   if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
-    taskListError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
+    taskDetailError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
     return
   }
 
-  loadingTaskList.value = true
-  taskListError.value = ''
-  taskListLoaded.value = false
+  loadingTaskDetail.value = true
+  taskDetailError.value = ''
+  taskDetailLoaded.value = false
+  taskDetail.value = null
 
   try {
-    const result = await getTaskList({ taskId: selectedTaskId.value.trim() })
+    const result = await getTaskDetail({ taskId: selectedTaskId.value.trim() })
     
     // 处理返回结果
-    if (Array.isArray(result)) {
-      taskList.value = result
-    } else if (result.tasks && Array.isArray(result.tasks)) {
-      taskList.value = result.tasks
-    } else if (result.data && Array.isArray(result.data)) {
-      taskList.value = result.data
-    } else if (result.raw) {
-      // 如果返回的是原始文本，尝试解析
-      try {
-        const parsed = JSON.parse(result.raw)
-        taskList.value = Array.isArray(parsed) ? parsed : [parsed]
-      } catch {
-        taskList.value = [{ raw: result.raw }]
-      }
-    } else {
-      taskList.value = [result]
-    }
-    
-    taskListLoaded.value = true
+    taskDetail.value = result
+    taskDetailLoaded.value = true
+
+    // 同步保存当前任务 ID 到本地数据库
+    await saveTaskIdForIncident(selectedTaskId.value.trim())
   } catch (error) {
-    console.error('Failed to load task list:', error)
-    taskListError.value = error?.message || translateOr('incidents.detail.eventGraph.taskListError', 'Failed to load task list')
-    taskList.value = []
-    taskListLoaded.value = true
+    console.error('Failed to load task detail:', error)
+    taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.taskDetailError', 'Failed to load task detail')
+    taskDetail.value = null
+    taskDetailLoaded.value = true
   } finally {
-    loadingTaskList.value = false
+    loadingTaskDetail.value = false
   }
 }
 
@@ -3462,6 +3682,10 @@ const handleRegenerateGraph = async () => {
   } finally {
     isRegeneratingGraph.value = false
   }
+}
+
+const toggleTaskEdit = () => {
+  isEditingTaskId.value = !isEditingTaskId.value
 }
 
 const openCloseDialog = () => {

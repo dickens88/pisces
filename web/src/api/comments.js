@@ -6,9 +6,10 @@ import service from './axios.js'
  * @param {string} comment - 评论内容
  * @param {File[]} files - 可选的文件列表
  * @param {string} workspace - 工作空间（可选，如 'asm'）
+ * @param {string} commentType - 评论类型（可选）
  * @returns {Promise} 返回提交结果
  */
-export const postComment = (eventId, comment, files = [], workspace = null) => {
+export const postComment = (eventId, comment, files = [], workspace = null, commentType = 'comment') => {
   const url = workspace ? `/comments?workspace=${encodeURIComponent(workspace)}` : '/comments'
   
   if (files && files.length > 0) {
@@ -16,6 +17,7 @@ export const postComment = (eventId, comment, files = [], workspace = null) => {
     formData.append('event_id', eventId)
     formData.append('comment', comment || '')
     if (workspace) formData.append('workspace', workspace)
+    if (commentType) formData.append('comment_type', commentType)
     formData.append('file', files[0])
     
     return service.post(url, formData, {
@@ -26,7 +28,8 @@ export const postComment = (eventId, comment, files = [], workspace = null) => {
   return service.post(url, {
     event_id: eventId,
     comment: comment,
-    ...(workspace && { workspace })
+    ...(workspace && { workspace }),
+    ...(commentType && { comment_type: commentType })
   })
 }
 

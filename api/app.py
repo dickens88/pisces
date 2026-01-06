@@ -17,8 +17,15 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 api = Api(app)
 
-# enable CORS
-CORS(app, resources={r'/*': {'origins': '*'}})
+# enable CORS with explicit configuration for all routes
+CORS(app, resources={
+    r'/*': {
+        'origins': '*',
+        'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        'allow_headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
+        'supports_credentials': False
+    }
+})
 
 app.config['JWT_SECRET_KEY'] = config.get('application.auth.jwt_secret')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
@@ -36,6 +43,8 @@ def check_if_token_in_blacklist(jwt_header, decrypted_token):
 
 @app.after_request
 def after_request(response):
+    # Ensure CORS headers are preserved (CORS middleware should handle this, but we make sure)
+    # Don't override CORS headers that flask-cors already set
     client_ip = request.headers.get("X-Real-IP", request.remote_addr)
     try:
         if config.get("application.auth.method", "jwt") == "jwt":
@@ -68,15 +77,22 @@ api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
 api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
 
+# Register more specific routes first to avoid route matching conflicts
+api.add_resource(incident_view.IncidentTask, '/incidents/<incident_id>/task')
+api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
+api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
 api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident_id>')
 api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabilities/<incident_id>', endpoint='vulnerabilityview')
 
-api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
 api.add_resource(incident_view.AlertRelations, '/alerts/<alert_id>/relations')
 
-api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
-
-api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>')
+# Comment routes: support CRUD operations
+# POST /comments - create comment
+# GET /comments/<event_id> - get comments by event_id
+# GET /comments/<event_id>/<comment_id> - get single comment
+# PUT /comments/<event_id>/<comment_id> - update comment
+# DELETE /comments/<event_id>/<comment_id> - delete comment
+api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>', '/comments/<event_id>/<comment_id>')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
 api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')

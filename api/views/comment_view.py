@@ -155,8 +155,22 @@ class CommentView(Resource):
                 _, sanitized_filename, _ = self._validate_filename(file.filename)
                 file_name = sanitized_filename
             
+            # Get comment_type from request
+            comment_type = None
+            if 'file' in request.files:
+                comment_type = request.form.get('comment_type', 'comment')
+            else:
+                data = json.loads(request.data)
+                comment_type = data.get('comment_type', 'comment')
+            
             # Step 1: Create comment via external API
-            result = CommentService.create_comment(event_id=event_id, comment=comment, owner=username, workspace_id=workspace_id)
+            result = CommentService.create_comment(
+                event_id=event_id, 
+                comment=comment, 
+                owner=username, 
+                workspace_id=workspace_id,
+                comment_type=comment_type
+            )
             
             # Step 2: Extract comment_id from response
             comment_id = self._extract_comment_id(result)
@@ -165,17 +179,17 @@ class CommentView(Resource):
                 comment_id = str(uuid.uuid4())
                 logger.warning(f"External API did not return comment_id, using generated UUID: {comment_id}")
             
-            # Step 3: Save to local database only if file is uploaded
-            if file_data:
-                Comment.create_comment(
-                    event_id=event_id,
-                    comment_id=comment_id,
-                    owner=username,
-                    message=comment,
-                    file_type=file_type,
-                    file_name=file_name,
-                    file_obj=file_data
-                )
+            # Step 3: Save to local database (always save to store comment_type and file if present)
+            Comment.create_comment(
+                event_id=event_id,
+                comment_id=comment_id,
+                owner=username,
+                message=comment,
+                comment_type=comment_type or 'comment',
+                file_type=file_type,
+                file_name=file_name,
+                file_obj=file_data
+            )
             
             return {"data": result}, 201
             
@@ -192,8 +206,58 @@ class CommentView(Resource):
                 # 获取事件的所有评论
                 data = CommentService.retrieve_comments(event_id=event_id, workspace_id=workspace_id)
                 return {"data": data}, 200
+            elif comment_id:
+                # 获取单个评论详情
+                db_comment = CommentService.get_comment_by_comment_id(comment_id)
+                if not db_comment:
+                    return {"error_message": "Comment not found"}, 404
+                return {"data": db_comment.to_dict()}, 200
             else:
-                return {"error_message": "event_id is required"}, 400
+                return {"error_message": "event_id or comment_id is required"}, 400
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+    @auth_required
+    def put(self, username=None, event_id=None, comment_id=None):
+        """更新评论"""
+        try:
+            if not comment_id or not event_id:
+                return {"error_message": "event_id and comment_id are required"}, 400
+            
+            data = json.loads(request.data)
+            comment = data.get('comment')
+            comment_type = data.get('comment_type')
+            
+            # 更新评论（仅更新本地数据库）
+            updated_comment = CommentService.update_comment(
+                comment_id=comment_id,
+                comment=comment,
+                comment_type=comment_type
+            )
+            
+            if not updated_comment:
+                return {"error_message": "Comment not found"}, 404
+            
+            return {"data": updated_comment.to_dict()}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+    @auth_required
+    def delete(self, username=None, event_id=None, comment_id=None):
+        """删除评论"""
+        try:
+            if not comment_id or not event_id:
+                return {"error_message": "event_id and comment_id are required"}, 400
+            
+            # 删除评论（仅删除本地数据库记录）
+            deleted = CommentService.delete_comment(comment_id=comment_id)
+            
+            if not deleted:
+                return {"error_message": "Comment not found"}, 404
+            
+            return {"message": "Comment deleted successfully"}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

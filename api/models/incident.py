@@ -42,6 +42,7 @@ class Incident(Base):
     alert_list = Column(Text())
     graph_data = Column(LONGTEXT())
     graph_summary = Column(Text())
+    task_id = Column(Text())
 
     def to_dict(self):
         extend_properties = parse_json_field(self.extend_properties)
@@ -72,7 +73,8 @@ class Incident(Base):
             "extend_properties": extend_properties,
             "alert_list": alert_list,
             "graph_data": graph_data,
-            "graph_summary": self.graph_summary
+            "graph_summary": self.graph_summary,
+            "task_id": self.task_id,
         }
 
     @classmethod
@@ -309,5 +311,27 @@ class Incident(Base):
             is_auto_closed=str(payload.get("is_auto_closed")) if payload.get("is_auto_closed") is not None else None,
             extend_properties=extend_properties,
             alert_list=alert_list,
+            task_id=payload.get("task_id"),
         )
+
+    @classmethod
+    def update_task_id(cls, incident_id: str, task_id: str | None):
+        """Update or set task_id for an incident in local DB."""
+        session = Session()
+        try:
+            incident = session.query(cls).filter_by(incident_id=incident_id).first()
+            if not incident:
+                incident = cls(incident_id=incident_id, task_id=task_id)
+                session.add(incident)
+            else:
+                incident.task_id = task_id
+            session.commit()
+            session.refresh(incident)
+            return incident.to_dict()
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
 

@@ -417,4 +417,200 @@ export const getTaskIdList = async () => {
   return [...new Set(taskIds)].sort()
 }
 
+/**
+ * 调用dify workflow获取任务详情
+ * @param {Object} params
+ * @param {string|number} params.taskId - 任务ID（必需）
+ * @returns {Promise<any>} 任务详情数据
+ */
+export const getTaskDetail = async ({ taskId }) => {
+  if (!taskId) {
+    throw new Error('Task ID is required')
+  }
+
+  const baseEndpoint = config.aiChatApi
+  if (!baseEndpoint) {
+    throw new Error('AI chat API endpoint is not configured (VITE_AI_CHAT_API)')
+  }
+
+  const authStore = useAuthStore()
+  const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
+
+  // 构建workflow API endpoint: /v1/workflows/run
+  // 从baseEndpoint中提取基础URL（去掉可能的路径）
+  let baseUrl = baseEndpoint
+  // 移除可能的路径部分（如 /v1/chat-messages, /v1/apps/xxx/chat-messages 等）
+  baseUrl = baseUrl.replace(/\/v1\/.*$/, '').replace(/\/$/, '')
+  
+  // 判断是否使用代理（开发环境）
+  const isDev = import.meta.env.DEV
+  let endpoint
+  if (isDev) {
+    // 开发环境使用 Vite 代理（解决 CORS 问题）
+    // 代理会将 /dify-api 转发到 VITE_AI_CHAT_API 配置的服务器
+    endpoint = `/dify-api/v1/workflows/run`
+  } else {
+    // 生产环境直接调用
+    endpoint = `${baseUrl}/v1/workflows/run`
+  }
+
+  const headers = {}
+  const inputs = {
+    action: 'get task detail',
+    task_id: String(taskId).trim()
+  }
+
+  // 使用workflow API格式
+  // 根据Dify文档：POST /v1/workflows/run
+  // Body: { "inputs": {}, "response_mode": "streaming"|"blocking", "user": "user_id" }
+  // workflow 通过 api_key 区分
+  const requestBody = {
+    inputs,
+    response_mode: 'blocking', // 使用阻塞模式，等待完整响应
+    user: resolvedUserName
+  }
+
+  const body = JSON.stringify(requestBody)
+  headers['Content-Type'] = 'application/json'
+
+  // 检查API key是否配置
+  if (!config.aiChatKey) {
+    throw new Error('AI chat API key is not configured (VITE_AI_CHAT_KEY). Please set it in your environment variables.')
+  }
+  
+  headers.Authorization = `Bearer ${config.aiChatKey}`
+
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body,
+      // 添加 CORS 相关配置
+      mode: 'cors',
+      credentials: 'omit'
+    })
+  } catch (fetchError) {
+    // 处理网络错误（包括 CORS 错误）
+    console.error('Fetch error details:', {
+      endpoint,
+      error: fetchError,
+      message: fetchError.message,
+      stack: fetchError.stack
+    })
+    
+    // 提供更友好的错误信息
+    let errorMessage = '网络请求失败'
+    if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')) {
+      errorMessage = `无法连接到 Dify API 服务器。可能的原因：
+1. CORS 跨域问题：请检查服务器是否允许跨域请求
+2. 网络连接问题：请检查网络连接和服务器地址
+3. SSL 证书问题：请检查 HTTPS 配置
+4. 服务器未响应：请确认服务器地址 ${baseUrl} 是否正确
+
+当前请求的 endpoint: ${endpoint}
+请检查浏览器控制台的 Network 标签页查看详细错误信息。`
+    } else {
+      errorMessage = fetchError.message || '网络请求失败'
+    }
+    
+    throw new Error(errorMessage)
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    let errorData
+    try {
+      errorData = JSON.parse(errorText)
+    } catch {
+      errorData = { message: errorText }
+    }
+    
+    // 处理各种错误情况
+    if (errorData.code === 'not_found' || response.status === 404) {
+      throw new Error(
+        `Workflow 未找到。` +
+        `请确认 API Key 是否正确，或检查该 Workflow 是否已被删除。` +
+        `\n当前使用的 endpoint: ${endpoint}`
+      )
+    }
+    
+    if (errorData.code === 'not_workflow_app' || errorText.includes('not_workflow_app')) {
+      throw new Error(
+        `应用模式不匹配：当前 API Key 对应的应用不是 workflow 模式。` +
+        `请确认应用类型，或检查 API endpoint 是否正确。` +
+        `\n当前使用的 endpoint: ${endpoint}`
+      )
+    }
+    
+    if (errorData.code === 'unauthorized' || response.status === 401) {
+      throw new Error(
+        `认证失败：API Key 无效或已过期。` +
+        `请检查 VITE_AI_CHAT_KEY 环境变量配置是否正确。`
+      )
+    }
+    
+    throw new Error(
+      errorData.message || 
+      errorText || 
+      `API 请求失败 (状态码: ${response.status})` +
+      `\nEndpoint: ${endpoint}`
+    )
+  }
+
+  const data = await response.json().catch(async () => {
+    // 如果不是JSON，尝试解析文本
+    const text = await response.text().catch(() => '')
+    return { answer: text, data: null }
+  })
+
+  // 解析返回的数据，提取任务详情
+  // Dify workflow API 返回格式: { data: { outputs: { task_detail: {...} } } }
+  // 或者: { outputs: { task_detail: {...} } }
+  // 或者: { data: { outputs: { task: {...} } } }
+  
+  // 优先从 data.outputs 中提取
+  if (data.data && data.data.outputs) {
+    const outputs = data.data.outputs
+    if (outputs.task_detail) {
+      return outputs.task_detail
+    }
+    if (outputs.task) {
+      return outputs.task
+    }
+    if (outputs.data) {
+      return outputs.data
+    }
+    // 返回整个 outputs
+    return outputs
+  }
+  
+  // 兼容直接返回 outputs 的情况
+  if (data.outputs) {
+    if (data.outputs.task_detail) {
+      return data.outputs.task_detail
+    }
+    if (data.outputs.task) {
+      return data.outputs.task
+    }
+    return data.outputs
+  }
+
+  // 兼容其他可能的返回格式
+  if (data.data) {
+    return data.data
+  }
+
+  if (data.answer) {
+    try {
+      const parsed = JSON.parse(data.answer)
+      return parsed
+    } catch {
+      return { raw: data.answer }
+    }
+  }
+
+  return data || {}
+}
+
 
