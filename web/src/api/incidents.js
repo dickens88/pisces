@@ -52,6 +52,11 @@ export const regenerateIncidentGraph = (incidentId) => {
   return service.post(`/incidents/${incidentId}/graph`)
 }
 
+// Get / update task id bound to an incident (stored only in local DB)
+export const updateIncidentTask = (incidentId, data) => {
+  return service.put(`/incidents/${incidentId}/task`, data)
+}
+
 /**
  * @brief 批量删除事件
  * @param {Array<string>} incidentIds - 事件ID数组

@@ -6,6 +6,7 @@ from flask_restful import Resource
 from controllers.alert_service import AlertService
 from controllers.comment_service import CommentService
 from controllers.incident_service import IncidentService
+from models.incident import Incident
 from utils.auth_util import auth_required
 from utils.logger_init import logger
 from utils.common_utils import get_workspace_id
@@ -209,6 +210,33 @@ class IncidentGraphView(Resource):
                 return {"message": "Graph regeneration started"}, 202
             else:
                 return {"message": "Graph generation already in progress"}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+
+class IncidentTask(Resource):
+
+    @auth_required
+    def get(self, username=None, incident_id=None):
+        """Get stored task_id for an incident from local DB."""
+        try:
+            record = Incident.get_by_incident_id(incident_id)
+            task_id = record.task_id if record else None
+            return {"data": {"task_id": task_id}}, 200
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
+    @auth_required
+    def put(self, username=None, incident_id=None):
+        """Update stored task_id for an incident in local DB."""
+        try:
+            data = json.loads(request.data or "{}")
+            task_id = data.get("task_id")
+            result = Incident.update_task_id(incident_id, task_id)
+            logger.info(f"[Incident] Updated task_id for incident {incident_id} to {task_id!r}.[{username}]")
+            return {"data": result}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

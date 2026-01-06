@@ -184,8 +184,14 @@
               <div class="flex-1 overflow-y-auto" style="height: 0;">
                 <!-- 任务管理内容 -->
                 <div v-if="leftPaneActiveTab === 'taskManagement'" class="p-4 space-y-4">
-                  <!-- 任务ID选择器 -->
-                  <div class="space-y-2">
+                  <!-- 任务ID选择器：
+                       - 初次进入 / 未加载过详情时始终可见
+                       - 点击铅笔进入编辑时可见
+                       - 只有在已加载出任务详情且未处于编辑状态时才收起 -->
+                  <div
+                    v-if="isEditingTaskId || !taskDetailLoaded || !selectedTaskId || loadingTaskDetail"
+                    class="space-y-2"
+                  >
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
                         {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Task ID') }}
@@ -243,8 +249,18 @@
                   </div>
                   <!-- 任务详情 -->
                   <div v-if="taskDetailLoaded && taskDetail" class="mt-4 space-y-2">
-                    <div class="text-xs font-medium text-gray-700 dark:text-slate-300 mb-2">
-                      {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="text-xs font-medium text-gray-700 dark:text-slate-300">
+                        {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
+                      </div>
+                      <button
+                        type="button"
+                        class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                        :title="$t('common.edit')"
+                        @click.stop="toggleTaskEdit"
+                      >
+                        <span class="material-symbols-outlined text-sm">edit</span>
+                      </button>
                     </div>
                     <div class="p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800/50">
                       <template v-if="typeof taskDetail === 'object' && taskDetail !== null">
@@ -1149,7 +1165,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident } from '@/api/incidents'
+import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
 import { getTaskIdList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
@@ -3028,6 +3044,7 @@ const loadingTaskDetail = ref(false)
 const taskDetailError = ref('')
 const taskDetailLoaded = ref(false)
 const showTaskIdDropdown = ref(false)
+const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 
 const alarmCount = computed(() => {
@@ -3099,6 +3116,16 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphStatus: data.graph_status || (graphPayload.nodes.length ? 'ready' : 'missing'),
       graphGeneratedAt,
       lastUpdateTime: data.last_update_time || data.update_time
+    }
+    // 如果后端已存储 task_id，则自动填充并尝试加载任务详情
+    if (data.task_id) {
+      selectedTaskId.value = data.task_id
+      // 初次进入时默认不展开编辑区域
+      isEditingTaskId.value = false
+      // 异步加载任务详情（失败时只在控制台打印）
+      loadTaskDetail().catch((err) => {
+        console.error('Failed to auto load task detail:', err)
+      })
     }
     loadGraphData(graphPayload)
   } catch (error) {
@@ -3558,7 +3585,19 @@ const closeTaskIdDropdown = () => {
   showTaskIdDropdown.value = false
 }
 
-// 加载任务详情
+// 将当前任务 ID 写入本地数据库（与事件绑定）
+const saveTaskIdForIncident = async (taskId) => {
+  if (!incident.value?.id) {
+    return
+  }
+  try {
+    await updateIncidentTask(incident.value.id, { task_id: taskId || null })
+  } catch (error) {
+    console.error('Failed to save task id for incident:', error)
+  }
+}
+
+// 加载任务详情，并在成功后同步保存 task_id 到本地数据库
 const loadTaskDetail = async () => {
   if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
     taskDetailError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
@@ -3576,6 +3615,9 @@ const loadTaskDetail = async () => {
     // 处理返回结果
     taskDetail.value = result
     taskDetailLoaded.value = true
+
+    // 同步保存当前任务 ID 到本地数据库
+    await saveTaskIdForIncident(selectedTaskId.value.trim())
   } catch (error) {
     console.error('Failed to load task detail:', error)
     taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.taskDetailError', 'Failed to load task detail')
@@ -3633,6 +3675,10 @@ const handleRegenerateGraph = async () => {
   } finally {
     isRegeneratingGraph.value = false
   }
+}
+
+const toggleTaskEdit = () => {
+  isEditingTaskId.value = !isEditingTaskId.value
 }
 
 const openCloseDialog = () => {
