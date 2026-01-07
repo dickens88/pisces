@@ -428,7 +428,9 @@
         "findSimilarAlerts": "相似告警",
         "addComment": "添加评论",
         "toIncident": "关联事件"
-      }
+      },
+      "expandContent": "阅读全部",
+      "collapseContent": "收起"
     }
   },
   "incidents": {
