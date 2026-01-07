@@ -295,7 +295,7 @@
         "past7Days": "Past 7 Days",
         "autoClosed": "Auto Closed",
         "totalAlerts": "Total Closed",
-        "aiJudgmentPerformance": "AI Judgment Performance",
+        "aiJudgmentPerformance": "Alert Smart Indicators",
         "aiJudgmentCoverageRate": "AI Coverage",
         "aiJudgmentAccuracyRate": "AI Accuracy",
         "manualClosed": "Manual Closed",

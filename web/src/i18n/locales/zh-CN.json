@@ -294,7 +294,7 @@
         "past7Days": "过去7天",
         "autoClosed": "自动关闭",
         "totalAlerts": "总关闭数",
-        "aiJudgmentPerformance": "AI研判指标",
+        "aiJudgmentPerformance": "告警智能化指标",
         "aiJudgmentCoverageRate": "AI研判覆盖率",
         "aiJudgmentAccuracyRate": "AI研判准确率",
         "manualClosed": "手动关闭",
