@@ -154,7 +154,15 @@
       "resolved": "Resolved",
       "repeated": "Repeated",
       "other": "Other"
-    }
+    },
+    "aiJudgment": "AI Judgment",
+    "humanJudgment": "Human Judgment",
+    "verdict": "Verdict",
+    "analyst": "Analyst",
+    "aiReasoning": "AI Reasoning",
+    "humanReasoning": "Human Reasoning",
+    "editHumanVerdict": "Edit Human Verdict",
+    "modelName": "Model Name"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -282,7 +290,7 @@
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",
         "alertTrend": "Alert Trend",
-        "automationClosureRate": "Aut Closure",
+        "automationClosureRate": "Auto Closure",
         "alertStatusBySeverity": "Alert Status by Severity",
         "past7Days": "Past 7 Days",
         "autoClosed": "Auto Closed",

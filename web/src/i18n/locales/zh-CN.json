@@ -154,7 +154,15 @@
       "resolved": "已解决",
       "repeated": "重复",
       "other": "其他"
-    }
+    },
+    "aiJudgment": "AI研判",
+    "humanJudgment": "人工判定",
+    "verdict": "判定",
+    "analyst": "分析师",
+    "aiReasoning": "AI推理",
+    "humanReasoning": "人工推理",
+    "editHumanVerdict": "修改人工判定",
+    "modelName": "模型名称"
   },
   "dashboard": {
     "title": "态势感知",
