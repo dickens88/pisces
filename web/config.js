@@ -10,6 +10,8 @@ export function getAppConfig(env = {}, isProd = false) {
     apiTarget: env.VITE_API_TARGET || (isProd ? 'http://pisces.eu.dearcharles.cn:8080' : 'http://localhost:8080'),
     aiChatApi: env.VITE_AI_CHAT_API || '',
     aiChatKey: env.VITE_AI_CHAT_KEY || '',
+    wetaskAgentApi: env.VITE_WETASK_AGENT_API || '',
+    wetaskAgentKey: env.VITE_WETASK_AGENT_KEY || '',
     enabledMenuRoutes: env.VITE_ENABLED_MENU_ROUTES 
       ? env.VITE_ENABLED_MENU_ROUTES.split(',').map(route => route.trim()).filter(route => route)
       : null // null 表示显示所有菜单
