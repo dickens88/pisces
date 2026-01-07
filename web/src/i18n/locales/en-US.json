@@ -644,6 +644,7 @@
         "taskManagementTitle": "WR Task Management",
         "selectTaskId": "Select Task ID",
         "taskIdPlaceholder": "Enter task ID or select from list",
+        "getGroupIdList": "Get Group ID List",
         "getTaskIdList": "Get Task ID List",
         "loadingTaskIdList": "Loading...",
         "taskIdListLoaded": "Loaded {count} task IDs",
