@@ -433,7 +433,9 @@
         "findSimilarAlerts": "Find Similar Alerts",
         "addComment": "Add Comment",
         "toIncident": "To Incident"
-      }
+      },
+      "expandContent": "Read More",
+      "collapseContent": "Collapse"
     }
   },
   "incidents": {
