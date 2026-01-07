@@ -247,6 +247,36 @@ export const getAlertStatistics = (startDate, endDate) => {
   return service.get('/stats/alerts', { params })
 }
 
+/**
+ * @brief 获取AI研判覆盖率统计
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} AI研判覆盖率统计数据
+ */
+export const getAIJudgmentCoverageRate = (startDate, endDate) => {
+  const params = {
+    chart: 'ai-judgment-coverage-rate'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
+}
+
+/**
+ * @brief 获取AI研判准确率统计
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} AI研判准确率统计数据
+ */
+export const getAIJudgmentAccuracyRate = (startDate, endDate) => {
+  const params = {
+    chart: 'ai-judgment-accuracy-rate'
+  }
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+  return service.get('/stats/alerts', { params })
+}
+
 const setDateParam = (params, key, value) => {
   const formatted = formatDateTimeWithOffset(value)
   if (formatted) {

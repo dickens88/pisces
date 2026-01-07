@@ -98,53 +98,121 @@
         </div>
       </div>
 
+      <!-- AI Judgment Performance Card -->
       <div class="flex flex-col gap-2 rounded-xl border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#111822] p-6">
         <p class="text-gray-900 dark:text-white text-base font-medium leading-normal">
-          {{ $t('alerts.list.statistics.automationClosureRate') }}
-        </p>
-        <p class="text-gray-900 dark:text-white tracking-light text-[32px] font-bold leading-tight truncate">
-          {{ statistics.automationRate || '0' }}%
+          {{ $t('alerts.list.statistics.aiJudgmentPerformance') || 'AI研判指标' }}
         </p>
         <p class="text-gray-600 dark:text-gray-400 text-sm font-normal leading-normal">
           {{ alertsTimeRangeLabel }}
         </p>
-        <div class="relative h-40 w-full">
-          <div
-            v-if="automationRateLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {{ $t('common.loading') }}
-          </div>
-          <div
-            v-else-if="!statistics.totalClosed && !statistics.autoClosed"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
-          >
-            {{ $t('common.noData') }}
-          </div>
-          <div
-            v-show="!automationRateLoading && (statistics.totalClosed || statistics.autoClosed)"
-            class="absolute inset-0 flex flex-col justify-between py-3"
-          >
-            <!-- Progress bar -->
-            <div class="relative h-6 w-full bg-gray-200 dark:bg-[#233348] rounded-full mt-4">
+        
+        <div class="grid grid-cols-2 gap-4 mt-2">
+          <!-- Automation Closure Rate (Top Left) -->
+          <div class="flex items-center gap-4">
+            <div class="relative w-24 h-24 flex-shrink-0">
               <div
-                class="bg-primary h-6 rounded-full transition-all"
-                :style="{ width: (statistics.automationRate || 0) + '%' }"
+                v-if="automationRateLoading"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.loading') }}
+              </div>
+              <div
+                v-else-if="!statistics.totalClosed && !statistics.autoClosed"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.noData') }}
+              </div>
+              <div
+                v-show="!automationRateLoading && (statistics.totalClosed || statistics.autoClosed)"
+                ref="automationRateChartRef"
+                class="absolute inset-0"
+                style="margin: 0; padding: 0;"
               ></div>
-              <div class="absolute inset-0 flex items-center justify-center">
-                <span class="text-gray-900 dark:text-white text-sm font-medium">{{ statistics.automationRate || '0' }}%</span>
-              </div>
             </div>
-            <!-- Two metrics -->
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <p class="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.autoClosed') }}</p>
-                <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ (statistics.autoClosed || 0).toLocaleString() }}</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
+                {{ $t('alerts.list.statistics.automationClosureRate') }}
+              </p>
+              <p class="text-gray-900 dark:text-white text-3xl font-bold leading-tight">
+                {{ statistics.automationRate}}%
+              </p>
+              <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                {{ statistics.autoClosed || 0 }}/{{ statistics.totalClosed || 0 }} {{ $t('alerts.list.statistics.closedAlerts') || '告警' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Empty space (Top Right) -->
+          <div></div>
+
+          <!-- AI Judgment Coverage Rate (Bottom Left) -->
+          <div class="flex items-center gap-4">
+            <div class="relative w-24 h-24 flex-shrink-0">
+              <div
+                v-if="coverageRateLoading"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.loading') }}
               </div>
-              <div class="text-right">
-                <p class="text-gray-600 dark:text-gray-400 text-xs font-medium mb-1">{{ $t('alerts.list.statistics.totalAlerts') }}</p>
-                <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ (statistics.totalClosed || 0).toLocaleString() }}</p>
+              <div
+                v-else-if="!coverageStats.totalAlerts && !coverageStats.coveredAlerts"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.noData') }}
               </div>
+              <div
+                v-show="!coverageRateLoading && (coverageStats.totalAlerts || coverageStats.coveredAlerts)"
+                ref="coverageRateChartRef"
+                class="absolute inset-0"
+                style="margin: 0; padding: 0;"
+              ></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
+                {{ $t('alerts.list.statistics.aiJudgmentCoverageRate') || 'AI研判覆盖率' }}
+              </p>
+              <p class="text-gray-900 dark:text-white text-3xl font-bold leading-tight">
+                {{ coverageStats.coverageRate }}%
+              </p>
+              <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                {{ coverageStats.coveredAlerts || 0 }}/{{ coverageStats.totalAlerts || 0 }} {{ $t('alerts.list.statistics.closedAlerts') || '研判' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- AI Judgment Accuracy Rate (Bottom Right) -->
+          <div class="flex items-center gap-4">
+            <div class="relative w-24 h-24 flex-shrink-0">
+              <div
+                v-if="accuracyRateLoading"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.loading') }}
+              </div>
+              <div
+                v-else-if="!accuracyStats.totalJudgments && !accuracyStats.correctJudgments"
+                class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+              >
+                {{ $t('common.noData') }}
+              </div>
+              <div
+                v-show="!accuracyRateLoading && (accuracyStats.totalJudgments || accuracyStats.correctJudgments)"
+                ref="accuracyRateChartRef"
+                class="absolute inset-0"
+                style="margin: 0; padding: 0;"
+              ></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">
+                {{ $t('alerts.list.statistics.aiJudgmentAccuracyRate') || 'AI研判准确率' }}
+              </p>
+              <p class="text-gray-900 dark:text-white text-3xl font-bold leading-tight">
+                {{ accuracyStats.accuracyRate }}%
+              </p>
+              <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                {{ accuracyStats.correctJudgments || 0 }}/{{ accuracyStats.totalJudgments || 0 }} {{ $t('alerts.list.statistics.closedAlerts') || '研判' }}
+              </p>
             </div>
           </div>
         </div>
@@ -780,7 +848,7 @@ import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
-import { getAlerts, getAlertStatistics, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertStatusBySeverity, closeAlert, deleteAlerts } from '@/api/alerts'
+import { getAlerts, getAlertStatistics, getAIJudgmentCoverageRate, getAIJudgmentAccuracyRate, batchCloseAlerts, batchCloseAlertsByPut, getAlertCountsBySource, getAlertStatusBySeverity, closeAlert, deleteAlerts } from '@/api/alerts'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
 import CreateAlertDialog from '@/components/alerts/CreateAlertDialog.vue'
@@ -1005,7 +1073,138 @@ const alertTypeChartTotal = ref(0)
 let alertTypeChartInstance = null
 let alertTypeChartResizeBound = false
 
+// Pie chart management helper
+const createPieChartManager = (chartRef) => {
+  let instance = null
+  let resizeHandler = null
+  
+  const ensure = () => {
+    if (!showCharts.value) return
+    if (!instance && chartRef.value) {
+      instance = echarts.init(chartRef.value)
+      if (!resizeHandler) {
+        resizeHandler = () => instance?.resize()
+        window.addEventListener('resize', resizeHandler)
+      }
+    }
+  }
+  
+  const dispose = () => {
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler)
+      resizeHandler = null
+    }
+    if (instance) {
+      instance.dispose()
+      instance = null
+    }
+  }
+  
+  const update = (config) => {
+    if (!showCharts.value || !instance) return
+    const { total, value, rate, primaryColor, secondaryColor, labels } = config
+    if (total === 0) {
+      instance.clear()
+      return
+    }
+    
+    const isDarkMode = document.documentElement.classList.contains('dark')
+    const option = {
+      backgroundColor: 'transparent',
+      tooltip: {
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)',
+        backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+        borderWidth: 0,
+        textStyle: { color: isDarkMode ? '#e2e8f0' : '#374151' }
+      },
+      series: [{
+        type: 'pie',
+        radius: ['45%', '75%'],
+        center: ['50%', '50%'],
+        itemStyle: {
+          borderRadius: 0,
+          borderColor: isDarkMode ? '#111822' : '#ffffff',
+          borderWidth: 0
+        },
+        label: {
+          show: true,
+          position: 'center',
+          formatter: () => `${rate}%`,
+          fontSize: 14,
+          fontWeight: 'bold',
+          color: isDarkMode ? '#ffffff' : '#1f2937'
+        },
+        labelLine: { show: false },
+        emphasis: { disabled: true },
+        data: [
+          { value, name: labels[0], itemStyle: { color: primaryColor } },
+          { value: total - value, name: labels[1], itemStyle: { color: secondaryColor || (isDarkMode ? '#1e293b' : '#e5e7eb') } }
+        ]
+      }]
+    }
+    instance.setOption(option, true)
+    nextTick(() => instance?.resize())
+  }
+  
+  return { ensure, dispose, update, getInstance: () => instance }
+}
+
 const automationRateLoading = ref(false)
+const automationRateChartRef = ref(null)
+const automationRateChart = createPieChartManager(automationRateChartRef)
+
+const coverageRateLoading = ref(false)
+const coverageStats = ref({ totalAlerts: 0, coveredAlerts: 0, coverageRate: 0 })
+const coverageRateChartRef = ref(null)
+const coverageRateChart = createPieChartManager(coverageRateChartRef)
+
+const accuracyRateLoading = ref(false)
+const accuracyStats = ref({ totalJudgments: 0, correctJudgments: 0, accuracyRate: 0 })
+const accuracyRateChartRef = ref(null)
+const accuracyRateChart = createPieChartManager(accuracyRateChartRef)
+
+const updateAutomationRateChart = () => {
+  automationRateChart.ensure()
+  automationRateChart.update({
+    total: statistics.value.totalClosed || 0,
+    value: statistics.value.autoClosed || 0,
+    rate: statistics.value.automationRate || 0,
+    primaryColor: '#3b82f6',
+    labels: [
+      t('alerts.list.statistics.autoClosed') || '自动关闭',
+      t('alerts.list.statistics.manualClosed') || '手动关闭'
+    ]
+  })
+}
+
+const updateCoverageRateChart = () => {
+  coverageRateChart.ensure()
+  coverageRateChart.update({
+    total: coverageStats.value.totalAlerts || 0,
+    value: coverageStats.value.coveredAlerts || 0,
+    rate: coverageStats.value.coverageRate || 0,
+    primaryColor: '#a855f7',
+    labels: [
+      t('alerts.list.statistics.covered') || '已覆盖',
+      t('alerts.list.statistics.uncovered') || '未覆盖'
+    ]
+  })
+}
+
+const updateAccuracyRateChart = () => {
+  accuracyRateChart.ensure()
+  accuracyRateChart.update({
+    total: accuracyStats.value.totalJudgments || 0,
+    value: accuracyStats.value.correctJudgments || 0,
+    rate: accuracyStats.value.accuracyRate || 0,
+    primaryColor: '#3b82f6',
+    labels: [
+      t('alerts.list.statistics.correct') || '正确',
+      t('alerts.list.statistics.incorrect') || '错误'
+    ]
+  })
+}
 
 const alertStatusChartRef = ref(null)
 const alertStatusChartLoading = ref(false)
@@ -1605,6 +1804,8 @@ const loadAllData = async (reloadFromFirstPage = false) => {
   if (showCharts.value) {
     tasks.push(
       loadStatistics(),
+      loadCoverageRate(),
+      loadAccuracyRate(),
       loadAlertTypeDistribution(),
       loadAlertStatusBySeverity()
     )
@@ -1625,6 +1826,7 @@ const handleRefresh = async () => {
     isRefreshing.value = false
   }
 }
+
 
 const loadStatistics = async () => {
   if (!showCharts.value) {
@@ -1658,6 +1860,74 @@ const loadStatistics = async () => {
     toast.error(errorMessage, 'ERROR')
   } finally {
     automationRateLoading.value = false
+    await nextTick()
+    updateAutomationRateChart()
+  }
+}
+
+const loadCoverageRate = async () => {
+  if (!showCharts.value) {
+    return
+  }
+  coverageRateLoading.value = true
+  try {
+    const range = computeSelectedRange()
+    const response = await getAIJudgmentCoverageRate(
+      range.start,
+      range.end
+    )
+    if (response && response.data) {
+      if (response.data.total_alerts !== undefined) {
+        coverageStats.value.totalAlerts = response.data.total_alerts
+      }
+      if (response.data.covered_alerts !== undefined) {
+        coverageStats.value.coveredAlerts = response.data.covered_alerts
+      }
+      if (response.data.coverage_rate !== undefined) {
+        coverageStats.value.coverageRate = response.data.coverage_rate
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load coverage rate:', error)
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadCoverageRateError') || '加载AI研判覆盖率失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    coverageRateLoading.value = false
+    await nextTick()
+    updateCoverageRateChart()
+  }
+}
+
+const loadAccuracyRate = async () => {
+  if (!showCharts.value) {
+    return
+  }
+  accuracyRateLoading.value = true
+  try {
+    const range = computeSelectedRange()
+    const response = await getAIJudgmentAccuracyRate(
+      range.start,
+      range.end
+    )
+    if (response && response.data) {
+      if (response.data.total_judgments !== undefined) {
+        accuracyStats.value.totalJudgments = response.data.total_judgments
+      }
+      if (response.data.correct_judgments !== undefined) {
+        accuracyStats.value.correctJudgments = response.data.correct_judgments
+      }
+      if (response.data.accuracy_rate !== undefined) {
+        accuracyStats.value.accuracyRate = response.data.accuracy_rate
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load accuracy rate:', error)
+    const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.loadAccuracyRateError') || '加载AI研判准确率失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
+  } finally {
+    accuracyRateLoading.value = false
+    await nextTick()
+    updateAccuracyRateChart()
   }
 }
 
@@ -1898,14 +2168,22 @@ const handleToggleChartsVisibility = async () => {
   if (next) {
     ensureAlertTypeChart()
     ensureAlertStatusChart()
+    automationRateChart.ensure()
+    coverageRateChart.ensure()
+    accuracyRateChart.ensure()
     await Promise.all([
       loadStatistics(),
+      loadCoverageRate(),
+      loadAccuracyRate(),
       loadAlertTypeDistribution(),
       loadAlertStatusBySeverity()
     ])
   } else {
     disposeAlertTypeChart()
     disposeAlertStatusChart()
+    automationRateChart.dispose()
+    coverageRateChart.dispose()
+    accuracyRateChart.dispose()
   }
 }
 
@@ -2203,12 +2481,13 @@ onMounted(async () => {
   if (showCharts.value) {
     ensureAlertTypeChart()
     ensureAlertStatusChart()
+    automationRateChart.ensure()
+    coverageRateChart.ensure()
+    accuracyRateChart.ensure()
   }
   await loadAllData(false)
   document.addEventListener('click', handleClickOutside)
   refreshRecentCloseComments()
-  
-  // 监听Header发出的打开AI侧边栏事件
   window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
 })
 
@@ -2216,6 +2495,9 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   disposeAlertTypeChart()
   disposeAlertStatusChart()
+  automationRateChart.dispose()
+  coverageRateChart.dispose()
+  accuracyRateChart.dispose()
   hideRecentCloseCommentsDropdown()
   window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
 })

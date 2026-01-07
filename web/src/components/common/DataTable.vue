@@ -1,8 +1,8 @@
 <template>
   <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden">
     <!-- Table -->
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300" style="table-layout: fixed;">
+    <div class="overflow-hidden" :data-storage-key="storageKey">
+      <table ref="tableRef" class="w-full text-sm text-left text-gray-700 dark:text-gray-300" style="table-layout: fixed; width: 100%;">
         <thead class="text-xs text-gray-900 dark:text-white uppercase bg-gray-50 dark:bg-[#1e293b]">
           <tr>
             <!-- Checkbox column -->
@@ -37,7 +37,7 @@
               <!-- Column resize handle -->
               <div
                 v-if="resizable && index < columns.length - 1"
-                @mousedown="startResize(column.key, $event)"
+                @mousedown="(e) => startResize(column.key, e, columns, selectable)"
                 class="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 transition-colors z-10"
                 style="touch-action: none;"
               ></div>
@@ -170,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useResizableColumns } from '@/composables/useResizableColumns'
 
@@ -269,10 +269,36 @@ const { t } = useI18n()
 const emptyMessage = computed(() => props.emptyText || t('common.noData'))
 
 // Use resizable columns composable
-const { getColumnWidth, startResize } = useResizableColumns(
+const { getColumnWidth, startResize, constrainWidths, setTableElement } = useResizableColumns(
   props.storageKey,
   props.defaultWidths
 )
+
+// Table element ref
+const tableRef = ref(null)
+
+// Constrain column widths
+const applyConstraints = () => {
+  if (tableRef.value) {
+    setTableElement(tableRef.value)
+    constrainWidths(props.columns, props.selectable)
+  }
+}
+
+// Constrain on mount and when columns change
+watch(() => props.columns, () => nextTick(applyConstraints), { immediate: true })
+
+// Handle window resize
+const handleResize = () => nextTick(applyConstraints)
+
+onMounted(() => {
+  nextTick(applyConstraints)
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 
 // Word wrap state (default auto wrap)
 const getInitialWordWrap = () => {
@@ -461,7 +487,8 @@ defineExpose({
     emit('select-all', selectedItems.value)
   },
   toggleWordWrap,
-  wordWrap
+  wordWrap,
+  constrainColumns: () => nextTick(applyConstraints)
 })
 </script>
 

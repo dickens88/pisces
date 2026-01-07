@@ -255,15 +255,19 @@
             <div class="flex items-center justify-center">
               <span
                 v-if="getMatchStatus(item) === 'match'"
-                class="text-sm font-medium text-green-600 dark:text-green-400"
+                class="material-symbols-outlined text-green-600 dark:text-green-400"
+                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                :title="$t('aiPlayground.matchStatus.match')"
               >
-                {{ $t('aiPlayground.matchStatus.match') }}
+                check_circle
               </span>
               <span
                 v-else-if="getMatchStatus(item) === 'mismatch'"
-                class="text-sm font-medium text-red-600 dark:text-red-400"
+                class="material-symbols-outlined text-red-600 dark:text-red-400"
+                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                :title="$t('aiPlayground.matchStatus.mismatch')"
               >
-                {{ $t('aiPlayground.matchStatus.mismatch') }}
+                cancel
               </span>
               <span
                 v-else
@@ -279,7 +283,7 @@
       <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl min-h-[300px] flex flex-col">
         <!-- Header with title and close button -->
         <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867]">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">
             {{ $t('alerts.detail.title') }} #{{ alertId }}
           </h2>
           <button
@@ -296,10 +300,16 @@
           <div class="grid grid-cols-2 gap-4 mb-6">
           <!-- AI Judgment -->
           <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">AI Judgment</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-base">smart_toy</span>
+              {{ $t('aiPlayground.aiJudgment') }}
+            </h3>
             <div class="space-y-2">
               <div>
-                <span class="text-sm text-gray-600 dark:text-gray-400">Verdict: </span>
+                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sm">gavel</span>
+                  {{ $t('aiPlayground.verdict') }}: 
+                </span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ getAiVerdictText(selectedAlert) }}
                 </span>
@@ -309,16 +319,25 @@
           
           <!-- Human Judgment -->
           <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Human Judgment</h3>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-base">person</span>
+              {{ $t('aiPlayground.humanJudgment') }}
+            </h3>
             <div class="space-y-2">
               <div>
-                <span class="text-sm text-gray-600 dark:text-gray-400">Verdict: </span>
+                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sm">gavel</span>
+                  {{ $t('aiPlayground.verdict') }}: 
+                </span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ getHumanVerdictText(selectedAlert) }}
                 </span>
               </div>
               <div>
-                <span class="text-sm text-gray-600 dark:text-gray-400">Analyst: </span>
+                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sm">badge</span>
+                  {{ $t('aiPlayground.analyst') }}: 
+                </span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white">
                   {{ selectedAlert?.actor || selectedAlert?.creator || '-' }}
                 </span>
@@ -331,7 +350,10 @@
         <div class="space-y-4 mb-6">
           <!-- AI Reasoning -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">AI Reasoning</h3>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-base">psychology</span>
+              {{ $t('aiPlayground.aiReasoning') }}
+            </h3>
             <div v-if="selectedAlertLoading" class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
               <span class="material-symbols-outlined animate-spin text-base">refresh</span>
               {{ $t('common.loading') }}
@@ -354,7 +376,10 @@
 
           <!-- Human Reasoning -->
           <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Human Reasoning</h3>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+              <span class="material-symbols-outlined text-base">edit_note</span>
+              {{ $t('aiPlayground.humanReasoning') }}
+            </h3>
             <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[80px]">
               {{ humanConclusionValue || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
             </div>
@@ -363,7 +388,10 @@
 
         <!-- Edit Human Verdict Section -->
         <div class="border-t border-gray-200 dark:border-[#324867] pt-6">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Edit Human Verdict</h3>
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <span class="material-symbols-outlined text-base">edit</span>
+            {{ $t('aiPlayground.editHumanVerdict') }}
+          </h3>
           <div class="relative mb-4">
             <select
               v-model="humanVerdictValue"
@@ -768,7 +796,8 @@ const defaultWidths = {
 
 const searchFields = computed(() => [
   { value: 'id', label: t('alerts.list.alertId'), icon: 'tag' },
-  { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' }
+  { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
+  { value: 'model_name', label: t('aiPlayground.modelName'), icon: 'smart_toy' }
 ])
 
 const getFieldLabel = (field) => {
@@ -1451,6 +1480,18 @@ watch(showRetrievalOverlay, (isOpen) => {
   } else {
     document.body.style.overflow = ''
   }
+})
+
+// Watch selectedAlert to constrain table columns when detail panel opens/closes
+watch(selectedAlert, () => {
+  // Wait for layout to update, then constrain columns
+  nextTick(() => {
+    setTimeout(() => {
+      if (dataTableRef.value?.constrainColumns) {
+        dataTableRef.value.constrainColumns()
+      }
+    }, 100)
+  })
 })
 
 onMounted(() => {

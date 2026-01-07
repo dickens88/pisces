@@ -47,6 +47,36 @@ class AlertCountBySourceView(Resource):
                     "data": data,
                     "description": "Trend of alerts automatically closed by automation in the selected time range.",
                 }, 200
+            elif chart_name_normalized == "ai-judgment-coverage-rate":
+                # For ai-judgment-coverage-rate chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for ai-judgment-coverage-rate chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_ai_judgment_coverage_rate(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "AI judgment coverage rate in the selected time range.",
+                }, 200
+            elif chart_name_normalized == "ai-judgment-accuracy-rate":
+                # For ai-judgment-accuracy-rate chart, end_date is required
+                if not end_date_str:
+                    return {"error_message": "end_date is required for ai-judgment-accuracy-rate chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                data = StatisticsService.get_ai_judgment_accuracy_rate(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "AI judgment accuracy rate in the selected time range.",
+                }, 200
             elif chart_name_normalized == "data-source-count":
                 # end_date is optional for data-source-count chart
                 end_date = None

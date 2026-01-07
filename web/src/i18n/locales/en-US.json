@@ -154,7 +154,15 @@
       "resolved": "Resolved",
       "repeated": "Repeated",
       "other": "Other"
-    }
+    },
+    "aiJudgment": "AI Judgment",
+    "humanJudgment": "Human Judgment",
+    "verdict": "Verdict",
+    "analyst": "Analyst",
+    "aiReasoning": "AI Reasoning",
+    "humanReasoning": "Human Reasoning",
+    "editHumanVerdict": "Edit Human Verdict",
+    "modelName": "Model Name"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -282,11 +290,20 @@
       "statistics": {
         "alertTypeStats": "Alert Type Statistics",
         "alertTrend": "Alert Trend",
-        "automationClosureRate": "Automation Closure Rate",
+        "automationClosureRate": "Auto Closure",
         "alertStatusBySeverity": "Alert Status by Severity",
         "past7Days": "Past 7 Days",
         "autoClosed": "Auto Closed",
-        "totalAlerts": "Total Closed"
+        "totalAlerts": "Total Closed",
+        "aiJudgmentPerformance": "AI Judgment Performance",
+        "aiJudgmentCoverageRate": "AI Coverage",
+        "aiJudgmentAccuracyRate": "AI Accuracy",
+        "manualClosed": "Manual Closed",
+        "closedAlerts": "Alerts",
+        "covered": "Covered",
+        "uncovered": "Uncovered",
+        "correct": "Correct",
+        "incorrect": "Incorrect"
       },
       "showCharts": "Show Charts",
       "hideCharts": "Hide Charts",
