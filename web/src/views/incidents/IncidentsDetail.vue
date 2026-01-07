@@ -202,23 +202,23 @@
                         v-model="selectedTaskId"
                         type="text"
                         class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
-                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Enter task ID or select from list')"
+                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Enter group ID or select from list')"
                         @focus="showTaskIdDropdown = taskIdOptions.length > 0"
-                        @input="showTaskIdDropdown = taskIdOptions.length > 0 && selectedTaskId.length === 0"
+                        @input="showTaskIdDropdown = taskIdOptions.length > 0"
                       />
                       <!-- 下拉选择列表 -->
                       <div
-                        v-if="showTaskIdDropdown && taskIdOptions.length > 0"
+                        v-if="showTaskIdDropdown && filteredTaskIdOptions.length > 0"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         @mousedown.prevent
                       >
                         <div
-                          v-for="taskId in taskIdOptions"
-                          :key="taskId"
-                          @click="selectTaskId(taskId)"
+                          v-for="option in filteredTaskIdOptions"
+                          :key="option.value"
+                          @click="selectTaskId(option.value)"
                           class="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
                         >
-                          {{ taskId }}
+                          {{ option.label }}
                         </div>
                       </div>
                     </div>
@@ -1168,7 +1168,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
 import { updateComment, deleteComment } from '@/api/comments'
-import { getTaskList, getTaskDetail } from '@/api/securityAgent'
+import { getGroupList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -3049,6 +3049,18 @@ const showTaskIdDropdown = ref(false)
 const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 
+// 过滤后的任务ID选项（根据输入内容过滤）
+const filteredTaskIdOptions = computed(() => {
+  if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
+    return taskIdOptions.value
+  }
+  const searchText = selectedTaskId.value.toLowerCase().trim()
+  return taskIdOptions.value.filter(option => 
+    option.label.toLowerCase().includes(searchText) || 
+    option.value.toLowerCase().includes(searchText)
+  )
+})
+
 const alarmCount = computed(() => {
   return incident.value?.alarmCount ?? incident.value?.associatedAlerts?.length ?? 0
 })
@@ -3619,50 +3631,31 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
-// 自动获取任务列表并提取任务ID
+// 自动获取组列表并格式化显示
 const loadTaskIdList = async () => {
   loadingTaskIdList.value = true
   try {
-    // 调用getTaskList获取任务列表
-    const taskList = await getTaskList({})
+    const groupList = await getGroupList()
     
-    // 从任务列表中提取任务ID
-    let taskIds = []
-    if (Array.isArray(taskList)) {
-      // 如果是数组，检查元素是对象还是字符串
-      if (taskList.length > 0) {
-        if (typeof taskList[0] === 'string' || typeof taskList[0] === 'number') {
-          // 直接是ID数组
-          taskIds = taskList.map(id => String(id))
-        } else if (taskList[0].id) {
-          // 对象数组，提取id字段
-          taskIds = taskList.map(task => String(task.id))
-        } else if (taskList[0].task_id) {
-          // 对象数组，提取task_id字段
-          taskIds = taskList.map(task => String(task.task_id))
-        }
-      }
-    } else if (taskList && typeof taskList === 'object') {
-      // 如果是对象，尝试从常见字段中提取
-      if (taskList.task_ids && Array.isArray(taskList.task_ids)) {
-        taskIds = taskList.task_ids.map(id => String(id))
-      } else if (taskList.taskIds && Array.isArray(taskList.taskIds)) {
-        taskIds = taskList.taskIds.map(id => String(id))
-      } else if (taskList.tasks && Array.isArray(taskList.tasks)) {
-        taskIds = taskList.tasks.map(task => {
-          if (typeof task === 'string' || typeof task === 'number') {
-            return String(task)
-          }
-          return String(task.id || task.task_id || task)
-        })
-      }
+    if (!Array.isArray(groupList)) {
+      taskIdOptions.value = []
+      return
     }
     
-    // 去重并排序
-    taskIdOptions.value = [...new Set(taskIds)].sort()
+    // 存储格式化的选项：{ label: "groupname(groupid)", value: "groupid" }
+    taskIdOptions.value = groupList
+      .map(item => {
+        if (typeof item === 'string' || typeof item === 'number') {
+          return { label: String(item), value: String(item) }
+        }
+        const groupId = String(item.group_id || item.id || item.task_id || item)
+        const groupName = item.group_name || item.name || ''
+        const label = groupName ? `${groupName}(${groupId})` : groupId
+        return { label, value: groupId }
+      })
+      .filter(item => item.value)
   } catch (error) {
-    console.error('Failed to load task list:', error)
-    // 静默失败，不显示错误提示，避免干扰用户体验
+    console.error('Failed to load group list:', error)
     taskIdOptions.value = []
   } finally {
     loadingTaskIdList.value = false
@@ -3707,7 +3700,7 @@ const loadTaskDetail = async () => {
   taskDetail.value = null
 
   try {
-    const result = await getTaskDetail({ taskId: selectedTaskId.value.trim() })
+    const result = await getTaskDetail({ groupId: selectedTaskId.value.trim() })
     
     // 处理返回结果
     taskDetail.value = result
