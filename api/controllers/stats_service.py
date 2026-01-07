@@ -790,3 +790,90 @@ class StatisticsService:
                 'auto_closed': auto_closed,
                 'automation_rate': automation_rate
             }
+
+    @classmethod
+    def get_ai_judgment_coverage_rate(cls, start_date, end_date):
+        """
+        Get AI judgment coverage rate statistics between start_date and end_date.
+        Returns:
+            dict with keys:
+                - total_alerts: total number of alerts
+                - covered_alerts: number of alerts with verification_state != 'Unknown'
+                - coverage_rate: coverage rate percentage (covered_alerts / total_alerts * 100)
+        """
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        with Session() as session:
+            # Count total alerts within date range
+            query_total = session.query(func.count(Alert.id)).filter(
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str
+            )
+            total_alerts = query_total.scalar() or 0
+            
+            # Count covered alerts (verification_state != 'Unknown')
+            query_covered = session.query(func.count(Alert.id)).filter(
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str,
+                Alert.verification_state != 'Unknown',
+                Alert.verification_state.isnot(None)
+            )
+            covered_alerts = query_covered.scalar() or 0
+            
+            # Calculate coverage rate
+            coverage_rate = 0.0
+            if total_alerts > 0:
+                coverage_rate = round((covered_alerts / total_alerts) * 100, 1)
+            
+            return {
+                'total_alerts': total_alerts,
+                'covered_alerts': covered_alerts,
+                'coverage_rate': coverage_rate
+            }
+
+    @classmethod
+    def get_ai_judgment_accuracy_rate(cls, start_date, end_date):
+        """
+        Get AI judgment accuracy rate statistics between start_date and end_date.
+        Returns:
+            dict with keys:
+                - total_judgments: total number of judgments (verification_state != 'Unknown')
+                - correct_judgments: number of correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = True)
+                - accuracy_rate: accuracy rate percentage (correct_judgments / total_judgments * 100)
+        """
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        with Session() as session:
+            # Count total judgments (verification_state != 'Unknown')
+            query_total = session.query(func.count(Alert.id)).filter(
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str,
+                Alert.verification_state != 'Unknown',
+                Alert.verification_state.isnot(None)
+            )
+            total_judgments = query_total.scalar() or 0
+            
+            # Count correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = True)
+            query_correct = session.query(func.count(Alert.id)).filter(
+                Alert.create_time >= start_date_str,
+                Alert.create_time <= end_date_str,
+                Alert.verification_state != 'Unknown',
+                Alert.verification_state.isnot(None),
+                Alert.is_ai_decision_correct == True
+            )
+            correct_judgments = query_correct.scalar() or 0
+            
+            # Calculate accuracy rate
+            accuracy_rate = 0.0
+            if total_judgments > 0:
+                accuracy_rate = round((correct_judgments / total_judgments) * 100, 1)
+            
+            return {
+                'total_judgments': total_judgments,
+                'correct_judgments': correct_judgments,
+                'accuracy_rate': accuracy_rate
+            }

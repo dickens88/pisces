@@ -285,7 +285,16 @@
         "alertStatusBySeverity": "告警状态与风险等级分布",
         "past7Days": "过去7天",
         "autoClosed": "自动关闭",
-        "totalAlerts": "总关闭数"
+        "totalAlerts": "总关闭数",
+        "aiJudgmentPerformance": "AI研判指标",
+        "aiJudgmentCoverageRate": "AI研判覆盖率",
+        "aiJudgmentAccuracyRate": "AI研判准确率",
+        "manualClosed": "手动关闭",
+        "closedAlerts": "告警",
+        "covered": "已覆盖",
+        "uncovered": "未覆盖",
+        "correct": "正确",
+        "incorrect": "错误"
       },
       "showCharts": "显示图表",
       "hideCharts": "隐藏图表",
