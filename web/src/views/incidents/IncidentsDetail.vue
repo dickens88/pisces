@@ -194,26 +194,27 @@
                   >
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
-                        {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Task ID') }}
+                        {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Group ID') }}
                       </label>
                     </div>
-                    <div class="relative">
+                    <div class="relative" ref="taskIdDropdownRef">
                       <input
-                        v-model="selectedTaskId"
+                        :value="selectedTaskName"
                         type="text"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60"
-                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Enter group ID or select from list')"
+                        readonly
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60 cursor-pointer"
+                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Please select from dropdown')"
                         @focus="showTaskIdDropdown = taskIdOptions.length > 0"
-                        @input="showTaskIdDropdown = taskIdOptions.length > 0"
+                        @click="showTaskIdDropdown = taskIdOptions.length > 0"
                       />
                       <!-- 下拉选择列表 -->
                       <div
-                        v-if="showTaskIdDropdown && filteredTaskIdOptions.length > 0"
+                        v-if="showTaskIdDropdown && taskIdOptions.length > 0"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         @mousedown.prevent
                       >
                         <div
-                          v-for="option in filteredTaskIdOptions"
+                          v-for="option in taskIdOptions"
                           :key="option.value"
                           @click="selectTaskId(option.value)"
                           class="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
@@ -2757,6 +2758,8 @@ onBeforeUnmount(() => {
   }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
+    // 移除点击外部区域关闭下拉框的事件监听
+    document.removeEventListener('click', closeTaskIdDropdown)
   }
   window.removeEventListener('open-ai-sidebar', handleOpenAISidebar)
   destroyD3Graph()
@@ -3039,7 +3042,7 @@ const isLeftPaneCollapsed = ref(false)
 const leftPaneActiveTab = ref('taskManagement')
 // 任务管理相关状态
 const selectedTaskId = ref('')
-const taskIdOptions = ref([]) // 任务ID选项列表
+const taskIdOptions = ref([]) // 任务ID选项列表，格式：{ label: "groupname", value: "groupid" }
 const loadingTaskIdList = ref(false)
 const taskDetail = ref(null)
 const loadingTaskDetail = ref(false)
@@ -3048,17 +3051,15 @@ const taskDetailLoaded = ref(false)
 const showTaskIdDropdown = ref(false)
 const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
+const taskIdDropdownRef = ref(null)
 
-// 过滤后的任务ID选项（根据输入内容过滤）
-const filteredTaskIdOptions = computed(() => {
-  if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
-    return taskIdOptions.value
+// 根据选中的 taskId 获取对应的 groupname 用于显示
+const selectedTaskName = computed(() => {
+  if (!selectedTaskId.value || !taskIdOptions.value.length) {
+    return ''
   }
-  const searchText = selectedTaskId.value.toLowerCase().trim()
-  return taskIdOptions.value.filter(option => 
-    option.label.toLowerCase().includes(searchText) || 
-    option.value.toLowerCase().includes(searchText)
-  )
+  const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
+  return selectedOption ? selectedOption.label : ''
 })
 
 const alarmCount = computed(() => {
@@ -3642,7 +3643,7 @@ const loadTaskIdList = async () => {
       return
     }
     
-    // 存储格式化的选项：{ label: "groupname(groupid)", value: "groupid" }
+    // 存储格式化的选项：{ label: "groupname", value: "groupid" }，只显示 groupname
     taskIdOptions.value = groupList
       .map(item => {
         if (typeof item === 'string' || typeof item === 'number') {
@@ -3650,7 +3651,8 @@ const loadTaskIdList = async () => {
         }
         const groupId = String(item.group_id || item.id || item.task_id || item)
         const groupName = item.group_name || item.name || ''
-        const label = groupName ? `${groupName}(${groupId})` : groupId
+        // 只显示 groupname，如果没有 groupname 则显示 groupId 作为后备
+        const label = groupName || groupId
         return { label, value: groupId }
       })
       .filter(item => item.value)
@@ -3666,12 +3668,14 @@ const loadTaskIdList = async () => {
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
   showTaskIdDropdown.value = false
-  // 点击外部区域关闭下拉框
-  document.addEventListener('click', closeTaskIdDropdown, { once: true })
 }
 
 // 关闭任务ID下拉框
-const closeTaskIdDropdown = () => {
+const closeTaskIdDropdown = (event) => {
+  // 如果点击的是下拉框内部，不关闭
+  if (taskIdDropdownRef.value && taskIdDropdownRef.value.contains(event.target)) {
+    return
+  }
   showTaskIdDropdown.value = false
 }
 
@@ -3930,6 +3934,8 @@ onMounted(() => {
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.addEventListener(eventName, syncGraphFullscreenState))
     syncGraphFullscreenState()
+    // 添加点击外部区域关闭下拉框的事件监听
+    document.addEventListener('click', closeTaskIdDropdown)
   }
   // 监听Header发出的打开AI侧边栏事件
   window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
