@@ -633,7 +633,7 @@
         "taskManagement": "WR任务管理",
         "taskManagementTitle": "WR任务管理",
         "selectTaskId": "选择GroupID",
-        "taskIdPlaceholder": "请输入GroupID或从列表选择",
+        "taskIdPlaceholder": "请从下拉框选择",
         "getGroupIdList": "获取组ID列表",
         "getTaskIdList": "获取任务ID列表",
         "loadingTaskIdList": "加载中...",

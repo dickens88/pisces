@@ -182,7 +182,8 @@ export const getGroupList = async () => {
   const authStore = useAuthStore()
   const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
 
-  let baseUrl = baseEndpoint.replace(/\/v1\/.*$/, '').replace(/\/$/, '')
+  // 移除 baseEndpoint 中可能存在的 /v1 或 /v1/ 及其后续路径
+  let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
   const isDev = import.meta.env.DEV
   const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
 
@@ -274,7 +275,8 @@ export const getTaskDetail = async ({ groupId }) => {
   const authStore = useAuthStore()
   const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
 
-  let baseUrl = baseEndpoint.replace(/\/v1\/.*$/, '').replace(/\/$/, '')
+  // 移除 baseEndpoint 中可能存在的 /v1 或 /v1/ 及其后续路径
+  let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
   const isDev = import.meta.env.DEV
   const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
 
