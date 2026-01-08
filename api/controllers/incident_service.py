@@ -179,7 +179,18 @@ class IncidentService:
                 # Note: upsert_incident updates many fields but doesn't update task_id,
                 # so we need to explicitly preserve it
                 local_record = Incident.get_by_incident_id(incident_id)
-                stored_task_id = local_record.task_id if local_record else None
+                stored_task_id_raw = local_record.task_id if local_record else None
+                
+                # Parse stored_task_id if it's a JSON string
+                stored_task_id = stored_task_id_raw
+                if stored_task_id_raw:
+                    try:
+                        parsed = json.loads(stored_task_id_raw)
+                        if isinstance(parsed, list):
+                            stored_task_id = parsed
+                    except (json.JSONDecodeError, TypeError):
+                        # Not JSON format, keep as is (single string)
+                        pass
                 
                 # Sync incident snapshot from upstream to local DB
                 # This updates most fields but preserves task_id (since it's not in the update list)

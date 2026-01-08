@@ -184,30 +184,46 @@
               <div class="flex-1 overflow-y-auto" style="height: 0;">
                 <!-- 任务管理内容 -->
                 <div v-if="leftPaneActiveTab === 'taskManagement'" class="p-4 space-y-4">
-                  <!-- 任务ID选择器：
+                  <!-- Warroom选择器：
                        - 初次进入 / 未加载过详情时始终可见
                        - 点击铅笔进入编辑时可见
                        - 只有在已加载出任务详情且未处于编辑状态时才收起 -->
                   <div
-                    v-if="isEditingTaskId || !taskDetailLoaded || !selectedTaskId || loadingTaskDetail"
+                    v-if="isEditingTaskId || !taskDetailLoaded || selectedWarroomIds.length === 0 || loadingTaskDetail"
                     class="space-y-2"
                   >
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
-                        {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Group ID') }}
+                        {{ translateOr('incidents.detail.eventGraph.selectWarroom', '选择Warroom') }}
                       </label>
                     </div>
                     <div class="relative" ref="taskIdDropdownRef">
-                      <input
-                        :value="selectedTaskName"
-                        type="text"
-                        readonly
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60 cursor-pointer"
-                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Please select from dropdown')"
-                        @focus="showTaskIdDropdown = taskIdOptions.length > 0"
+                      <div
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 cursor-pointer min-h-[2.5rem] flex items-center flex-wrap gap-1"
                         @click="showTaskIdDropdown = taskIdOptions.length > 0"
-                      />
-                      <!-- 下拉选择列表 -->
+                      >
+                        <template v-if="selectedWarroomIds.length === 0">
+                          <span class="text-gray-400 dark:text-slate-500">
+                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
+                          </span>
+                        </template>
+                        <template v-else>
+                          <span
+                            v-for="warroomId in selectedWarroomIds"
+                            :key="warroomId"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs"
+                          >
+                            {{ getWarroomName(warroomId) }}
+                            <button
+                              @click.stop="removeWarroom(warroomId)"
+                              class="hover:text-blue-600 dark:hover:text-blue-200"
+                            >
+                              <span class="material-symbols-outlined text-xs">close</span>
+                            </button>
+                          </span>
+                        </template>
+                      </div>
+                      <!-- 下拉选择列表（多选） -->
                       <div
                         v-if="showTaskIdDropdown && taskIdOptions.length > 0"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
@@ -216,31 +232,151 @@
                         <div
                           v-for="option in taskIdOptions"
                           :key="option.value"
-                          @click="selectTaskId(option.value)"
-                          class="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
+                          @click.stop="toggleWarroomSelection(option.value)"
+                          :class="[
+                            'px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2',
+                            isWarroomSelected(option.value) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                          ]"
                         >
+                          <span class="material-symbols-outlined text-sm" v-if="isWarroomSelected(option.value)">
+                            check_circle
+                          </span>
+                          <span class="material-symbols-outlined text-sm text-transparent" v-else>
+                            circle
+                          </span>
                           {{ option.label }}
                         </div>
                       </div>
                     </div>
-                    <div
-                      v-if="!showTaskIdDropdown && taskIdOptions.length > 0"
-                      class="text-xs text-gray-500 dark:text-slate-400 mt-1"
-                    >
-                      {{ translateOr('incidents.detail.eventGraph.taskIdHint', `Click input to select from ${taskIdOptions.length} task IDs`).replace('{count}', String(taskIdOptions.length)) }}
-                    </div>
                     <button
-                      @click="loadTaskDetail"
-                      :disabled="loadingTaskDetail || !selectedTaskId"
+                      @click="bindWarrooms"
+                      :disabled="loadingTaskDetail || selectedWarroomIds.length === 0"
                       class="w-full px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {{ loadingTaskDetail 
-                        ? translateOr('incidents.detail.eventGraph.loadingTaskDetail', 'Loading...')
-                        : translateOr('incidents.detail.eventGraph.loadTaskDetail', 'Load Task Detail') }}
+                        ? translateOr('incidents.detail.eventGraph.bindingWarroom', '绑定中...')
+                        : translateOr('incidents.detail.eventGraph.bindWarroom', '绑定Warroom') }}
                     </button>
                   </div>
-                  <!-- 任务详情 -->
-                  <div v-if="taskDetailLoaded && taskDetail" class="-mt-4 space-y-2">
+                  <!-- 任务详情（分组显示） -->
+                  <div v-if="taskDetailLoaded && groupedTaskDetails && Object.keys(groupedTaskDetails).length > 0 && selectedWarroomIds.length > 0" class="-mt-4 space-y-4">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
+                      <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
+                        {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
+                      </div>
+                      <button
+                        type="button"
+                        class="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                        :title="$t('common.edit')"
+                        @click.stop="toggleTaskEdit"
+                      >
+                        <span class="material-symbols-outlined text-sm leading-none">edit</span>
+                      </button>
+                    </div>
+                    <!-- 按warroom分组显示任务详情 -->
+                    <div v-for="(warroomDetail, warroomId) in groupedTaskDetails" :key="warroomId" class="border border-gray-300 dark:border-slate-600 rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-slate-800/50">
+                      <!-- Warroom标题和解绑按钮 -->
+                      <div class="flex items-center justify-between pb-2 border-b border-gray-300 dark:border-slate-600">
+                        <div class="text-xs font-semibold text-gray-900 dark:text-slate-100">
+                          {{ getWarroomName(warroomId) }}
+                        </div>
+                        <button
+                          type="button"
+                          @click="unbindWarroom(warroomId)"
+                          class="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          :title="translateOr('incidents.detail.eventGraph.unbindWarroom', '解绑')"
+                        >
+                          {{ translateOr('incidents.detail.eventGraph.unbind', '解绑') }}
+                        </button>
+                      </div>
+                      <!-- 该warroom的任务列表 -->
+                      <div class="space-y-0">
+                        <template v-if="Array.isArray(warroomDetail)">
+                          <div
+                            v-for="(task, index) in warroomDetail"
+                            :key="index"
+                            :class="[
+                              'py-3',
+                              index !== warroomDetail.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                            ]"
+                          >
+                            <div class="space-y-2">
+                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.stageName" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                <span 
+                                  :class="[
+                                    'inline-block px-2 py-0.5 rounded text-xs',
+                                    task.stageName === '待处理' || task.stageName === 'Pending' 
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                  ]"
+                                >
+                                  {{ task.stageName }}
+                                </span>
+                              </div>
+                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              </div>
+                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              </div>
+                              <div v-if="task.detail_url" class="mt-2">
+                                <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                  {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list)">
+                          <div
+                            v-for="(task, index) in warroomDetail.task_list"
+                            :key="index"
+                            :class="[
+                              'py-3',
+                              index !== warroomDetail.task_list.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                            ]"
+                          >
+                            <div class="space-y-2">
+                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.stageName" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                <span 
+                                  :class="[
+                                    'inline-block px-2 py-0.5 rounded text-xs',
+                                    task.stageName === '待处理' || task.stageName === 'Pending' 
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                  ]"
+                                >
+                                  {{ task.stageName }}
+                                </span>
+                              </div>
+                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              </div>
+                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              </div>
+                              <div v-if="task.detail_url" class="mt-2">
+                                <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                  {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="py-3 text-xs text-gray-500 dark:text-slate-400">
+                            {{ translateOr('incidents.detail.eventGraph.noTaskData', '暂无任务数据') }}
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 向后兼容：单个任务详情显示（当使用旧格式时） -->
+                  <div v-else-if="taskDetailLoaded && taskDetail && selectedTaskId && (!groupedTaskDetails || Object.keys(groupedTaskDetails).length === 0) && selectedWarroomIds.length === 0" class="-mt-4 space-y-2">
                     <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
                       <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
                         {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
@@ -434,7 +570,6 @@
                         </div>
                       </template>
                     </div>
-                    <div class="border-b border-gray-200 dark:border-slate-700"></div>
                   </div>
                   <!-- 任务详情错误状态 -->
                   <div
@@ -3041,10 +3176,12 @@ const isLeftPaneCollapsed = ref(false)
 // 左侧面板标签切换：默认显示任务管理
 const leftPaneActiveTab = ref('taskManagement')
 // 任务管理相关状态
-const selectedTaskId = ref('')
+const selectedTaskId = ref('') // 保留用于向后兼容
+const selectedWarroomIds = ref([]) // 选中的warroom ID数组
 const taskIdOptions = ref([]) // 任务ID选项列表，格式：{ label: "groupname", value: "groupid" }
 const loadingTaskIdList = ref(false)
-const taskDetail = ref(null)
+const taskDetail = ref(null) // 保留用于向后兼容
+const groupedTaskDetails = ref({}) // 按warroom ID分组存储的任务详情 { warroomId: taskDetail }
 const loadingTaskDetail = ref(false)
 const taskDetailError = ref('')
 const taskDetailLoaded = ref(false)
@@ -3053,7 +3190,7 @@ const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 const taskIdDropdownRef = ref(null)
 
-// 根据选中的 taskId 获取对应的 groupname 用于显示
+// 根据选中的 taskId 获取对应的 groupname 用于显示（向后兼容）
 const selectedTaskName = computed(() => {
   if (!selectedTaskId.value || !taskIdOptions.value.length) {
     return ''
@@ -3061,6 +3198,40 @@ const selectedTaskName = computed(() => {
   const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
 })
+
+// 获取warroom名称
+const getWarroomName = (warroomId) => {
+  if (!warroomId || !taskIdOptions.value.length) {
+    return warroomId || ''
+  }
+  const option = taskIdOptions.value.find(opt => opt.value === String(warroomId))
+  return option ? option.label : warroomId
+}
+
+// 检查warroom是否已选中
+const isWarroomSelected = (warroomId) => {
+  return selectedWarroomIds.value.includes(String(warroomId))
+}
+
+// 切换warroom选择状态
+const toggleWarroomSelection = (warroomId) => {
+  const id = String(warroomId)
+  const index = selectedWarroomIds.value.indexOf(id)
+  if (index > -1) {
+    selectedWarroomIds.value.splice(index, 1)
+  } else {
+    selectedWarroomIds.value.push(id)
+  }
+}
+
+// 移除warroom（从选中列表中移除）
+const removeWarroom = (warroomId) => {
+  const id = String(warroomId)
+  const index = selectedWarroomIds.value.indexOf(id)
+  if (index > -1) {
+    selectedWarroomIds.value.splice(index, 1)
+  }
+}
 
 const alarmCount = computed(() => {
   return incident.value?.alarmCount ?? incident.value?.associatedAlerts?.length ?? 0
@@ -3136,15 +3307,31 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
     loadTaskIdList().catch((err) => {
       console.error('Failed to auto load task list:', err)
     })
-    // 如果后端已存储 task_id，则自动填充并尝试加载任务详情
+    // 如果后端已存储 task_id 或 warroom_ids，则自动填充并尝试加载任务详情
     if (data.task_id) {
-      selectedTaskId.value = data.task_id
-      // 初次进入时默认不展开编辑区域
-      isEditingTaskId.value = false
-      // 异步加载任务详情（失败时只在控制台打印）
-      loadTaskDetail().catch((err) => {
-        console.error('Failed to auto load task detail:', err)
-      })
+      // 兼容旧格式：单个task_id
+      if (typeof data.task_id === 'string') {
+        selectedTaskId.value = data.task_id
+        selectedWarroomIds.value = [data.task_id]
+        // 初次进入时默认不展开编辑区域
+        isEditingTaskId.value = false
+        // 异步加载任务详情（失败时只在控制台打印）
+        loadTaskDetail().catch((err) => {
+          console.error('Failed to auto load task detail:', err)
+        })
+      } else if (Array.isArray(data.task_id) && data.task_id.length > 0) {
+        // 新格式：多个warroom IDs
+        selectedWarroomIds.value = data.task_id.map(id => String(id))
+        // 初次进入时默认不展开编辑区域
+        isEditingTaskId.value = false
+        // 自动加载所有warroom的任务详情（不保存到数据库，因为已经保存过了）
+        // 使用 nextTick 确保 DOM 更新后再加载
+        nextTick(() => {
+          loadWarroomDetailsOnly().catch((err) => {
+            console.error('Failed to auto load warroom task details:', err)
+          })
+        })
+      }
     }
     loadGraphData(graphPayload)
   } catch (error) {
@@ -3664,7 +3851,7 @@ const loadTaskIdList = async () => {
   }
 }
 
-// 选择任务ID
+// 选择任务ID（向后兼容）
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
   showTaskIdDropdown.value = false
@@ -3679,7 +3866,22 @@ const closeTaskIdDropdown = (event) => {
   showTaskIdDropdown.value = false
 }
 
-// 将当前任务 ID 写入本地数据库（与事件绑定）
+// 将当前warroom IDs写入本地数据库（与事件绑定）
+const saveWarroomIdsForIncident = async (warroomIds) => {
+  if (!incident.value?.id) {
+    return
+  }
+  try {
+    // 支持传入数组或单个值
+    const ids = Array.isArray(warroomIds) ? warroomIds : (warroomIds ? [warroomIds] : [])
+    await updateIncidentTask(incident.value.id, { warroom_ids: ids.length > 0 ? ids : null })
+  } catch (error) {
+    console.error('Failed to save warroom ids for incident:', error)
+    throw error
+  }
+}
+
+// 将当前任务 ID 写入本地数据库（与事件绑定）- 向后兼容函数
 const saveTaskIdForIncident = async (taskId) => {
   if (!incident.value?.id) {
     return
@@ -3691,7 +3893,109 @@ const saveTaskIdForIncident = async (taskId) => {
   }
 }
 
-// 加载任务详情，并在成功后同步保存 task_id 到本地数据库
+// 仅加载warroom任务详情（不保存到数据库，用于页面加载时恢复）
+const loadWarroomDetailsOnly = async () => {
+  if (selectedWarroomIds.value.length === 0) {
+    return
+  }
+
+  loadingTaskDetail.value = true
+  taskDetailError.value = ''
+  taskDetailLoaded.value = false
+
+  try {
+    // 并行获取所有warroom的任务详情
+    const taskDetailPromises = selectedWarroomIds.value.map(async (warroomId) => {
+      try {
+        const result = await getTaskDetail({ groupId: String(warroomId).trim() })
+        return { warroomId, taskDetail: result }
+      } catch (error) {
+        console.error(`Failed to load task detail for warroom ${warroomId}:`, error)
+        return { warroomId, taskDetail: null, error: error?.message }
+      }
+    })
+
+    const results = await Promise.all(taskDetailPromises)
+    
+    // 按warroom ID分组存储任务详情
+    const grouped = {}
+    results.forEach(({ warroomId, taskDetail, error }) => {
+      if (error) {
+        grouped[warroomId] = { error }
+      } else {
+        grouped[warroomId] = taskDetail
+      }
+    })
+
+    groupedTaskDetails.value = grouped
+    taskDetailLoaded.value = true
+  } catch (error) {
+    console.error('Failed to load warroom task details:', error)
+    taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.bindWarroomError', '加载Warroom任务详情失败')
+    taskDetailLoaded.value = true
+  } finally {
+    loadingTaskDetail.value = false
+  }
+}
+
+// 绑定warroom：保存到数据库并加载任务详情
+const bindWarrooms = async () => {
+  if (selectedWarroomIds.value.length === 0) {
+    taskDetailError.value = translateOr('incidents.detail.eventGraph.warroomRequired', '请至少选择一个Warroom')
+    return
+  }
+
+  loadingTaskDetail.value = true
+  taskDetailError.value = ''
+  taskDetailLoaded.value = false
+
+  try {
+    // 1. 先保存到数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 2. 加载任务详情
+    await loadWarroomDetailsOnly()
+
+    // 关闭下拉框
+    showTaskIdDropdown.value = false
+  } catch (error) {
+    console.error('Failed to bind warrooms:', error)
+    taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.bindWarroomError', '绑定Warroom失败')
+    taskDetailLoaded.value = true
+  } finally {
+    loadingTaskDetail.value = false
+  }
+}
+
+// 解绑warroom：从数据库和本地状态中移除
+const unbindWarroom = async (warroomId) => {
+  if (!incident.value?.id) {
+    return
+  }
+
+  try {
+    // 1. 从选中列表中移除
+    removeWarroom(warroomId)
+
+    // 2. 从分组任务详情中移除
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[warroomId]
+    groupedTaskDetails.value = newGrouped
+
+    // 3. 更新数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 如果所有warroom都解绑了，重置状态
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+  } catch (error) {
+    console.error('Failed to unbind warroom:', error)
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
+  }
+}
+
+// 加载任务详情（向后兼容，保留原有逻辑）
 const loadTaskDetail = async () => {
   if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
     taskDetailError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
