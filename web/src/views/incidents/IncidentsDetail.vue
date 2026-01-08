@@ -1289,49 +1289,87 @@
           <!-- 三个统计卡片 -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <!-- 影响服务卡片 -->
-            <button class="text-left bg-blue-50 dark:bg-blue-900/20 border border-primary rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer">
+            <button 
+              @click="activeCardTab = 'impactedServices'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'impactedServices'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
               <div class="flex items-start gap-4">
                 <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
                   <span class="material-symbols-outlined text-2xl">warning</span>
                 </div>
                 <div>
-                  <h3 class="font-bold text-lg text-primary dark:text-blue-400">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'impactedServices' 
+                      ? 'text-primary dark:text-blue-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
                     {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.notExported') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.unconfirmed') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.confirmed') }} 1
                   </p>
                 </div>
               </div>
-              <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
+              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
             </button>
 
             <!-- 进展同步卡片 -->
-            <button class="text-left bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg p-5 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark transition-all focus:outline-none cursor-pointer">
+            <button 
+              @click="activeCardTab = 'progressSync'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'progressSync'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-500'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
               <div class="flex items-start gap-4">
                 <div class="p-3 bg-emerald-100 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400 flex-shrink-0">
                   <span class="material-symbols-outlined text-2xl">sync</span>
                 </div>
                 <div>
-                  <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'progressSync' 
+                      ? 'text-emerald-700 dark:text-emerald-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} 5 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.status') }}: {{ $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
                   </p>
                 </div>
               </div>
+              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-emerald-900/20 border-r border-b border-emerald-500 transform rotate-45"></div>
             </button>
 
             <!-- 事件简报卡片 -->
-            <button class="text-left bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg p-5 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark transition-all focus:outline-none cursor-pointer">
+            <button 
+              @click="activeCardTab = 'incidentBrief'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'incidentBrief'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-500'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
               <div class="flex items-start gap-4">
                 <div class="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400 flex-shrink-0">
                   <span class="material-symbols-outlined text-2xl">article</span>
                 </div>
                 <div>
-                  <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'incidentBrief' 
+                      ? 'text-indigo-700 dark:text-indigo-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.brief') }} 2 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.announcement') }} 3 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.bulletin') }} 0
                   </p>
                 </div>
               </div>
+              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-indigo-900/20 border-r border-b border-indigo-500 transform rotate-45"></div>
             </button>
           </div>
 
@@ -1340,45 +1378,177 @@
             <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.services.updateTime') }}: {{ formatDateTime(incident?.updateTime) }}</span>
           </div>
 
-          <!-- 操作按钮 -->
-          <div class="flex gap-2 mb-4">
-            <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
-              {{ $t('incidents.detail.evidenceResponse.services.add') }}
-            </button>
-            <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
-              {{ $t('incidents.detail.evidenceResponse.services.batchAdd') }}
-            </button>
-          </div>
-
-          <!-- 受影响服务表格 -->
-          <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm text-left">
-                <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
-                  <tr>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
-                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
-                  <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
-                    <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                  </tr>
-                </tbody>
-              </table>
+          <!-- 影响服务内容 -->
+          <template v-if="activeCardTab === 'impactedServices'">
+            <!-- 操作按钮 -->
+            <div class="flex gap-2 mb-4">
+              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+                {{ $t('incidents.detail.evidenceResponse.services.add') }}
+              </button>
+              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+                {{ $t('incidents.detail.evidenceResponse.services.batchAdd') }}
+              </button>
             </div>
-          </div>
+
+            <!-- 受影响服务表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                      <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+
+          <!-- 进展同步内容 -->
+          <template v-if="activeCardTab === 'progressSync'">
+            <!-- 功能键 -->
+            <div class="flex gap-2 mb-4 flex-wrap">
+              <button 
+                @click="progressSyncFilterType = 'myCreated'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'myCreated'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.myCreated', '我创建的指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'myPending'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'myPending'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.myPending', '待我处理的指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'all'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'all'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'other'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'other'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.other', '其他进展') }}
+              </button>
+              <button class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.createInstruction', '创建指令') }}
+              </button>
+            </div>
+
+            <!-- 进展同步表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.stageName', '阶段') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.planEndTime', '计划结束时间') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <template v-if="filteredProgressSyncTasks.length > 0">
+                      <tr 
+                        v-for="(task, index) in filteredProgressSyncTasks" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ task.task_name || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs',
+                              task.stageName === '待处理' || task.stageName === 'Pending'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            ]">
+                            {{ task.stageName || '--' }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.employeeAccount || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.plan_end_time ? formatTaskDateTime(task.plan_end_time) : '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          <span v-if="task.priority" :class="[
+                            'inline-block px-2 py-0.5 rounded text-xs',
+                            task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                            task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                          ]">
+                            {{ task.priority }}
+                          </span>
+                          <span v-else>--</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          <span :class="[
+                            'inline-block px-2 py-0.5 rounded text-xs',
+                            task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          ]">
+                            {{ task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed' 
+                              ? $t('incidents.detail.eventGraph.completed') 
+                              : $t('incidents.detail.eventGraph.inProgress') }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('common.noData') }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+
+          <!-- 事件简报内容 -->
+          <template v-if="activeCardTab === 'incidentBrief'">
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6 p-6">
+              <p class="text-slate-500 dark:text-slate-400 text-center">{{ $t('common.noData') }}</p>
+            </div>
+          </template>
 
           <!-- 评论区域（保留原有功能） -->
           <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col mt-6">
@@ -3373,6 +3543,10 @@ watch([timelinePageSize, associatedAlertsTimeline], () => {
 const isLeftPaneCollapsed = ref(false)
 // 左侧面板标签切换：默认显示任务管理
 const leftPaneActiveTab = ref('taskManagement')
+// 证据与响应卡片切换：默认显示影响服务
+const activeCardTab = ref('impactedServices')
+// 进展同步指令筛选类型
+const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
 // 任务管理相关状态
 const selectedTaskId = ref('') // 保留用于向后兼容
 const selectedWarroomIds = ref([]) // 选中的warroom ID数组
@@ -3395,6 +3569,80 @@ const selectedTaskName = computed(() => {
   }
   const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
+})
+
+// 从 groupedTaskDetails 中提取所有任务项，用于进展同步表格
+const allProgressSyncTasks = computed(() => {
+  const tasks = []
+  if (!groupedTaskDetails.value || Object.keys(groupedTaskDetails.value).length === 0) {
+    return tasks
+  }
+  
+  // 遍历所有 warroom
+  Object.keys(groupedTaskDetails.value).forEach(warroomId => {
+    const warroomDetail = groupedTaskDetails.value[warroomId]
+    const warroomName = getWarroomName(warroomId)
+    
+    // 处理数组格式的任务列表
+    if (Array.isArray(warroomDetail)) {
+      warroomDetail.forEach(task => {
+        tasks.push({
+          ...task,
+          warroomId: warroomId,
+          warroomName: warroomName
+        })
+      })
+    } 
+    // 处理对象格式，包含 task_list 数组
+    else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+      warroomDetail.task_list.forEach(task => {
+        tasks.push({
+          ...task,
+          warroomId: warroomId,
+          warroomName: warroomName
+        })
+      })
+    }
+  })
+  
+  return tasks
+})
+
+// 根据筛选类型过滤任务
+const filteredProgressSyncTasks = computed(() => {
+  const tasks = allProgressSyncTasks.value
+  if (!tasks.length) return []
+  
+  // 获取当前用户信息
+  const currentUser = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
+  
+  switch (progressSyncFilterType.value) {
+    case 'myCreated':
+      // 我创建的指令：根据创建者字段筛选（需要根据实际数据结构调整）
+      return tasks.filter(task => {
+        const creator = task.creator || task.create_by || task.created_by
+        return creator === currentUser
+      })
+    case 'myPending':
+      // 待我处理的指令：状态为待处理且责任人为当前用户
+      return tasks.filter(task => {
+        const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
+        const owner = task.employeeAccount || task.owner || task.assignee
+        const isMyTask = owner === currentUser
+        return isPending && isMyTask
+      })
+    case 'all':
+      // 全部指令
+      return tasks
+    case 'other':
+      // 其他进展：排除指令类型的任务（需要根据实际数据结构调整）
+      return tasks.filter(task => {
+        const taskType = task.type || task.task_type || ''
+        return taskType !== 'instruction' && taskType !== '指令'
+      })
+    default:
+      return tasks
+  }
 })
 
 // 获取warroom名称

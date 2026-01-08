@@ -596,7 +596,23 @@
             "instructions": "指令",
             "progress": "进展",
             "status": "状态",
-            "inProgress": "进行中"
+            "inProgress": "进行中",
+            "filters": {
+              "myCreated": "我创建的指令",
+              "myPending": "待我处理的指令",
+              "all": "全部指令",
+              "other": "其他进展"
+            },
+            "createInstruction": "创建指令",
+            "columns": {
+              "taskName": "任务名称",
+              "stageName": "阶段",
+              "owner": "责任人",
+              "planEndTime": "计划结束时间",
+              "priority": "优先级",
+              "status": "状态",
+              "warroom": "Warroom"
+            }
           },
           "incidentBrief": {
             "title": "事件简报",

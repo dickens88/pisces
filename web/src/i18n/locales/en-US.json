@@ -601,7 +601,23 @@
             "instructions": "Instructions",
             "progress": "Progress",
             "status": "Status",
-            "inProgress": "In Progress"
+            "inProgress": "In Progress",
+            "filters": {
+              "myCreated": "My Created Instructions",
+              "myPending": "My Pending Instructions",
+              "all": "All Instructions",
+              "other": "Other Progress"
+            },
+            "createInstruction": "Create Instruction",
+            "columns": {
+              "taskName": "Task Name",
+              "stageName": "Stage",
+              "owner": "Owner",
+              "planEndTime": "Plan End Time",
+              "priority": "Priority",
+              "status": "Status",
+              "warroom": "Warroom"
+            }
           },
           "incidentBrief": {
             "title": "Incident Brief",
