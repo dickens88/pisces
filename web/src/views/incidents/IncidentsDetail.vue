@@ -1183,46 +1183,49 @@
       </div>
 
       <!-- Evidence & Response 标签页：响应流程 -->
-      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col">
-        <!-- 顶部Header -->
-        <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm mb-6 rounded-t-xl">
-          <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">analytics</span>
-            {{ $t('incidents.detail.evidenceResponse.title') }}
-          </h1>
-          <div class="flex items-center gap-3">
-            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-              {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
-            </button>
-            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-              {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
-            </button>
-            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-              {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
-            </button>
-            <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-              {{ $t('incidents.detail.evidenceResponse.rlReview') }}
-            </button>
-            <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-              {{ $t('incidents.detail.evidenceResponse.gocReview') }}
-            </button>
-            <div class="relative group">
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
-                {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col">
+          <!-- 顶部Header -->
+          <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">analytics</span>
+              {{ $t('incidents.detail.evidenceResponse.title') }}
+            </h1>
+            <div class="flex items-center gap-3">
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
               </button>
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+                {{ $t('incidents.detail.evidenceResponse.rlReview') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+                {{ $t('incidents.detail.evidenceResponse.gocReview') }}
+              </button>
+              <div class="relative group">
+                <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
+                  {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
+                  <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                </button>
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <main class="flex-1 p-6 overflow-y-auto">
-          <!-- 响应流程步骤条 -->
-          <div class="mb-8 overflow-x-auto pb-4">
+          <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
+          <!-- 响应流程区域 -->
+          <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
+            <!-- 响应流程步骤条 -->
+            <div class="mb-8 overflow-x-auto pb-4">
             <div class="flex items-center justify-between min-w-[1000px] relative px-4">
               <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-border-dark -z-10 transform -translate-y-1/2"></div>
               
               <!-- Step 1: Detection -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-primary font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">1</span>
                   <span class="text-xs text-slate-500 dark:text-slate-400">09:01</span>
@@ -1231,7 +1234,7 @@
               </div>
 
               <!-- Step 2: Response -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-primary font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">2</span>
                   <span class="text-xs text-slate-500 dark:text-slate-400">09:23</span>
@@ -1240,7 +1243,7 @@
               </div>
 
               <!-- Step 3: Mitigation -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-primary font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">3</span>
                   <span class="text-xs text-slate-500 dark:text-slate-400">09:41</span>
@@ -1249,7 +1252,7 @@
               </div>
 
               <!-- Step 4: Reporting -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">4</span>
                 </div>
@@ -1257,7 +1260,7 @@
               </div>
 
               <!-- Step 5: Recovery -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">5</span>
                 </div>
@@ -1265,7 +1268,7 @@
               </div>
 
               <!-- Step 6: Remediation -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">6</span>
                 </div>
@@ -1273,7 +1276,7 @@
               </div>
 
               <!-- Step 7: Lessons learned -->
-              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
                 <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
                   <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">7</span>
                 </div>
@@ -1623,21 +1626,30 @@
               </div>
             </div>
           </template>
-
-          <!-- 评论区域（保留原有功能） -->
-          <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col mt-6">
-            <div class="p-6 pt-4 overflow-x-hidden">
-              <CommentSection
-                :comments="incident?.comments || []"
-                :enable-comment-type="true"
-                @submit="handlePostComment"
-                @update="handleUpdateComment"
-                @delete="handleDeleteComment"
-                @remove="handleRemoveComment"
-              />
-            </div>
           </div>
-        </main>
+
+          </main>
+        </div>
+
+        <!-- 评论区域（保留原有功能），独立容器 -->
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl shadow-sm">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-[#324867]/70">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">comment</span>
+              {{ $t('incidents.detail.comments.title') }}
+            </h2>
+          </div>
+          <div class="p-6 pt-4 overflow-x-hidden">
+            <CommentSection
+              :comments="incident?.comments || []"
+              :enable-comment-type="true"
+              @submit="handlePostComment"
+              @update="handleUpdateComment"
+              @delete="handleDeleteComment"
+              @remove="handleRemoveComment"
+            />
+          </div>
+        </div>
       </div>
 
     </div>
