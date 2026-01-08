@@ -1,7 +1,7 @@
 from urllib.parse import urlparse
 
 import requests
-from tenacity import retry, stop_after_attempt, wait_random
+from tenacity import retry, stop_after_attempt, wait_random, retry_if_exception_type
 
 from utils.apig_sdk import signer
 from utils.app_config import config
@@ -16,10 +16,10 @@ def _sign(method, uri, headers, AK, SK, body=None):
     sig.Key = AK
     sig.Secret = SK
 
-    r = signer.HttpRequest(method, uri)
-    r.headers = headers
     if body:
-        r.body = body
+        r = signer.HttpRequest(method, uri, headers=headers, body=body)
+    else:
+        r = signer.HttpRequest(method, uri, headers=headers)
     sig.Sign(r)
     return r
 
@@ -130,7 +130,7 @@ def _wrap_http_auth_headers(method, url, headers, body=None):
     return url, headers
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_random(2, 5), reraise=True)
+@retry(stop=stop_after_attempt(3), wait=wait_random(2, 5), retry=retry_if_exception_type(requests.exceptions.Timeout), reraise=True)
 def request_with_auth(method, url, headers, data=None):
     """
     request url with auth headers
