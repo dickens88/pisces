@@ -1182,20 +1182,218 @@
         </div>
       </div>
 
-      <!-- Evidence & Response 标签页：评论 / 证据 -->
-      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col">
-          <div class="p-6 pt-4 overflow-x-hidden">
-            <CommentSection
-              :comments="incident?.comments || []"
-              :enable-comment-type="true"
-              @submit="handlePostComment"
-              @update="handleUpdateComment"
-              @delete="handleDeleteComment"
-              @remove="handleRemoveComment"
-            />
+      <!-- Evidence & Response 标签页：响应流程 -->
+      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col">
+        <!-- 顶部Header -->
+        <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm mb-6 rounded-t-xl">
+          <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">analytics</span>
+            {{ $t('incidents.detail.evidenceResponse.title') }}
+          </h1>
+          <div class="flex items-center gap-3">
+            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+              {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
+            </button>
+            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+              {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
+            </button>
+            <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+              {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
+            </button>
+            <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+              {{ $t('incidents.detail.evidenceResponse.rlReview') }}
+            </button>
+            <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+              {{ $t('incidents.detail.evidenceResponse.gocReview') }}
+            </button>
+            <div class="relative group">
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
+                {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
+                <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
+
+        <main class="flex-1 p-6 overflow-y-auto">
+          <!-- 响应流程步骤条 -->
+          <div class="mb-8 overflow-x-auto pb-4">
+            <div class="flex items-center justify-between min-w-[1000px] relative px-4">
+              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-border-dark -z-10 transform -translate-y-1/2"></div>
+              
+              <!-- Step 1: Detection -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">1</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:01</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.detection') }}</span>
+              </div>
+
+              <!-- Step 2: Response -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">2</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:23</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.response') }}</span>
+              </div>
+
+              <!-- Step 3: Mitigation -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">3</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:41</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.mitigation') }}</span>
+              </div>
+
+              <!-- Step 4: Reporting -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">4</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.reporting') }}</span>
+              </div>
+
+              <!-- Step 5: Recovery -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">5</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.recovery') }}</span>
+              </div>
+
+              <!-- Step 6: Remediation -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">6</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.remediation') }}</span>
+              </div>
+
+              <!-- Step 7: Lessons learned -->
+              <div class="flex flex-col items-center gap-2 bg-background-light dark:bg-background-dark px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">7</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.lessonsLearned') }}</span>
+              </div>
+            </div>
+            <!-- 进度条 -->
+            <div class="mt-4 w-full h-2 bg-gray-200 dark:bg-border-dark rounded-full overflow-hidden">
+              <div class="h-full bg-primary w-[40%] rounded-full"></div>
+            </div>
+          </div>
+
+          <!-- 三个统计卡片 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- 影响服务卡片 -->
+            <button class="text-left bg-blue-50 dark:bg-blue-900/20 border border-primary rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-lg text-primary dark:text-blue-400">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.notExported') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.unconfirmed') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.confirmed') }} 1
+                  </p>
+                </div>
+              </div>
+              <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
+            </button>
+
+            <!-- 进展同步卡片 -->
+            <button class="text-left bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg p-5 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark transition-all focus:outline-none cursor-pointer">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">sync</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} 5 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.status') }}: {{ $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            <!-- 事件简报卡片 -->
+            <button class="text-left bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg p-5 hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark transition-all focus:outline-none cursor-pointer">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">article</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-lg text-slate-900 dark:text-white">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.brief') }} 2 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.announcement') }} 3 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.bulletin') }} 0
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <!-- 更新时间 -->
+          <div class="flex items-center justify-end mb-4">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.services.updateTime') }}: {{ formatDateTime(incident?.updateTime) }}</span>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex gap-2 mb-4">
+            <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+              {{ $t('incidents.detail.evidenceResponse.services.add') }}
+            </button>
+            <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+              {{ $t('incidents.detail.evidenceResponse.services.batchAdd') }}
+            </button>
+          </div>
+
+          <!-- 受影响服务表格 -->
+          <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                  <tr>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
+                    <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                  <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                    <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 评论区域（保留原有功能） -->
+          <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col mt-6">
+            <div class="p-6 pt-4 overflow-x-hidden">
+              <CommentSection
+                :comments="incident?.comments || []"
+                :enable-comment-type="true"
+                @submit="handlePostComment"
+                @update="handleUpdateComment"
+                @delete="handleDeleteComment"
+                @remove="handleRemoveComment"
+              />
+            </div>
+          </div>
+        </main>
       </div>
 
     </div>

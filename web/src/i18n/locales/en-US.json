@@ -572,6 +572,93 @@
         "assets": "Affected Assets",
         "evidenceResponse": "Evidence & Response"
       },
+      "evidenceResponse": {
+        "title": "Response Process",
+        "welinkGroup": "Welink Group",
+        "emergencyReport": "Emergency Report",
+        "maturityAssessment": "Maturity Assessment",
+        "rlReview": "RL Review",
+        "gocReview": "GOC Review",
+        "updateStatus": "Update Status",
+        "steps": {
+          "detection": "Detection",
+          "response": "Response",
+          "mitigation": "Mitigation",
+          "reporting": "Reporting",
+          "recovery": "Recovery",
+          "remediation": "Remediation",
+          "lessonsLearned": "Lessons learned"
+        },
+        "cards": {
+          "impactedServices": {
+            "title": "Impacted Services",
+            "notExported": "Not Exported",
+            "unconfirmed": "Unconfirmed",
+            "confirmed": "Confirmed"
+          },
+          "progressSync": {
+            "title": "Progress Sync",
+            "instructions": "Instructions",
+            "progress": "Progress",
+            "status": "Status",
+            "inProgress": "In Progress"
+          },
+          "incidentBrief": {
+            "title": "Incident Brief",
+            "brief": "Brief",
+            "announcement": "Announcement",
+            "bulletin": "Bulletin"
+          }
+        },
+        "services": {
+          "preliminaryJudgment": "Preliminary Judgment - Total",
+          "servicesAffected": "services affected",
+          "servicesNotExported": "services impact not exported",
+          "updateTime": "Update Time",
+          "add": "Add",
+          "batchAdd": "Batch Add",
+          "columns": {
+            "service": "Service",
+            "measure": "Measure",
+            "sla": "SLA",
+            "plannedCompletionTime": "Planned Completion Time",
+            "owner": "Owner",
+            "progress": "Progress",
+            "remark": "Remark"
+          },
+          "impactStatus": {
+            "exported": "Exported",
+            "download": "Download",
+            "query": "Query",
+            "import": "Import",
+            "analysisComplete": "Analysis Complete"
+          },
+          "actions": {
+            "review": "Review",
+            "edit": "Edit",
+            "delete": "Delete"
+          },
+          "detail": {
+            "addInstanceId": "Add Instance ID",
+            "tabs": {
+              "changeInfo": "Change Info",
+              "alertInfo": "Alert Info",
+              "affectedCustomers": "Affected Customers"
+            },
+            "syncWelink": "Sync Welink",
+            "defaultQuery": "Default query ABC-level changes 24 hours before warroom startup",
+            "columns": {
+              "title": "Title",
+              "level": "Level",
+              "changeService": "Change Service",
+              "changeExecutor": "Change Executor",
+              "createTime": "Create Time",
+              "changeTimeWindow": "Change Time Window"
+            },
+            "noData": "No Data"
+          }
+        }
+      },
       "eventGraph": {
         "title": "Event Graph Intelligence",
         "summaryTitle": "Event Summary",
