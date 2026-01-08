@@ -1545,8 +1545,82 @@
 
           <!-- 事件简报内容 -->
           <template v-if="activeCardTab === 'incidentBrief'">
-            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6 p-6">
-              <p class="text-slate-500 dark:text-slate-400 text-center">{{ $t('common.noData') }}</p>
+            <!-- 操作按钮 -->
+            <div class="flex gap-2 mb-4">
+              <button 
+                @click="showAddNotificationDialog = true"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+              </button>
+            </div>
+
+            <!-- 事件通报/简报表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationType') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark') }}</th>
+                      <th class="px-4 py-3 w-24">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <template v-if="incidentNotifications.length > 0">
+                      <tr 
+                        v-for="(notification, index) in incidentNotifications" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ notification.event || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs',
+                              notification.type === 'firstNotification' 
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : notification.type === 'closeNotification'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : notification.type === 'networkProtectionDaily'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            ]">
+                            {{ getNotificationTypeLabel(notification.type) }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.owner || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.progress || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.nextPlan || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.remark || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <button 
+                              @click="editNotification(index)"
+                              class="text-primary hover:text-primary-hover transition-colors"
+                              :title="$t('common.edit')">
+                              <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button 
+                              @click="deleteNotification(index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')">
+                              <span class="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.noData') }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </template>
 
@@ -1661,6 +1735,129 @@
       :alert-id="route.params.id"
       @close="showAISidebar = false"
     />
+
+    <!-- 新增/编辑通报对话框 -->
+    <div
+      v-if="showAddNotificationDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelNotification"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ editingNotificationIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+          </h2>
+          <button
+            @click="cancelNotification"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveNotification" class="space-y-4">
+          <!-- 通报事件 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="notificationForm.event"
+              type="text"
+              required
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent')"
+            />
+          </div>
+
+          <!-- 通报类型 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationType') }}
+            </label>
+            <select
+              v-model="notificationForm.type"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="firstNotification">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.firstNotification') }}</option>
+              <option value="closeNotification">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.closeNotification') }}</option>
+              <option value="networkProtectionDaily">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.networkProtectionDaily') }}</option>
+              <option value="other">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.other') }}</option>
+            </select>
+          </div>
+
+          <!-- 责任人 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner') }}
+            </label>
+            <input
+              v-model="notificationForm.owner"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner')"
+            />
+          </div>
+
+          <!-- 进展 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress') }}
+            </label>
+            <textarea
+              v-model="notificationForm.progress"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress')"
+            ></textarea>
+          </div>
+
+          <!-- 下一步计划 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan') }}
+            </label>
+            <textarea
+              v-model="notificationForm.nextPlan"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan')"
+            ></textarea>
+          </div>
+
+          <!-- 备注 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark') }}
+            </label>
+            <textarea
+              v-model="notificationForm.remark"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark')"
+            ></textarea>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-border-dark">
+            <button
+              type="button"
+              @click="cancelNotification"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+            >
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary-hover transition-colors"
+            >
+              {{ $t('common.save') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -3547,6 +3744,18 @@ const leftPaneActiveTab = ref('taskManagement')
 const activeCardTab = ref('impactedServices')
 // 进展同步指令筛选类型
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
+// 事件通报/简报相关状态
+const incidentNotifications = ref([]) // 事件通报列表
+const showAddNotificationDialog = ref(false) // 显示新增通报对话框
+const editingNotificationIndex = ref(-1) // 正在编辑的通报索引，-1表示新增
+const notificationForm = ref({
+  event: '',
+  type: 'firstNotification',
+  owner: '',
+  progress: '',
+  nextPlan: '',
+  remark: ''
+})
 // 任务管理相关状态
 const selectedTaskId = ref('') // 保留用于向后兼容
 const selectedWarroomIds = ref([]) // 选中的warroom ID数组
@@ -4067,7 +4276,83 @@ const formatTaskDateTime = (dateTimeString) => {
   } catch (e) {
     // 如果解析失败，返回原始字符串
   }
-  return dateTimeString
+}
+
+// 获取通报类型标签
+const getNotificationTypeLabel = (type) => {
+  const typeMap = {
+    'firstNotification': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.firstNotification'),
+    'closeNotification': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.closeNotification'),
+    'networkProtectionDaily': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.networkProtectionDaily'),
+    'other': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.other')
+  }
+  return typeMap[type] || type
+}
+
+// 编辑通报
+const editNotification = (index) => {
+  editingNotificationIndex.value = index
+  const notification = incidentNotifications.value[index]
+  notificationForm.value = {
+    event: notification.event || '',
+    type: notification.type || 'firstNotification',
+    owner: notification.owner || '',
+    progress: notification.progress || '',
+    nextPlan: notification.nextPlan || '',
+    remark: notification.remark || ''
+  }
+  showAddNotificationDialog.value = true
+}
+
+// 删除通报
+const deleteNotification = (index) => {
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    incidentNotifications.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
+}
+
+// 保存通报（新增或编辑）
+const saveNotification = () => {
+  if (!notificationForm.value.event) {
+    toast.error(t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') + ' ' + t('common.warning'))
+    return
+  }
+  
+  const notification = { ...notificationForm.value }
+  
+  if (editingNotificationIndex.value >= 0) {
+    // 编辑
+    incidentNotifications.value[editingNotificationIndex.value] = notification
+  } else {
+    // 新增
+    incidentNotifications.value.push(notification)
+  }
+  
+  // 重置表单
+  resetNotificationForm()
+  showAddNotificationDialog.value = false
+  // TODO: 调用后端API保存
+}
+
+// 重置通报表单
+const resetNotificationForm = () => {
+  notificationForm.value = {
+    event: '',
+    type: 'firstNotification',
+    owner: '',
+    progress: '',
+    nextPlan: '',
+    remark: ''
+  }
+  editingNotificationIndex.value = -1
+}
+
+// 取消新增/编辑通报
+const cancelNotification = () => {
+  resetNotificationForm()
+  showAddNotificationDialog.value = false
 }
 
 // 获取优先级标签

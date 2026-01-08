@@ -618,7 +618,26 @@
             "title": "事件简报",
             "brief": "简报",
             "announcement": "通告",
-            "bulletin": "公告"
+            "bulletin": "公告",
+            "notificationTable": {
+              "title": "事件通报/简报",
+              "addNotification": "新增通报",
+              "columns": {
+                "notificationEvent": "通报事件",
+                "notificationType": "通报类型",
+                "owner": "责任人",
+                "progress": "进展",
+                "nextPlan": "下一步计划",
+                "remark": "备注"
+              },
+              "types": {
+                "firstNotification": "首次通报",
+                "closeNotification": "关闭通报",
+                "networkProtectionDaily": "护网日报",
+                "other": "其他"
+              },
+              "noData": "暂无通报记录"
+            }
           }
         },
         "services": {

@@ -623,7 +623,26 @@
             "title": "Incident Brief",
             "brief": "Brief",
             "announcement": "Announcement",
-            "bulletin": "Bulletin"
+            "bulletin": "Bulletin",
+            "notificationTable": {
+              "title": "Incident Notifications/Briefs",
+              "addNotification": "Add Notification",
+              "columns": {
+                "notificationEvent": "Notification Event",
+                "notificationType": "Notification Type",
+                "owner": "Owner",
+                "progress": "Progress",
+                "nextPlan": "Next Plan",
+                "remark": "Remark"
+              },
+              "types": {
+                "firstNotification": "First Notification",
+                "closeNotification": "Close Notification",
+                "networkProtectionDaily": "Network Protection Daily",
+                "other": "Other"
+              },
+              "noData": "No notification records"
+            }
           }
         },
         "services": {
