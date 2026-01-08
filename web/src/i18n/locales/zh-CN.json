@@ -567,6 +567,128 @@
         "assets": "受影响资产",
         "evidenceResponse": "证据与响应"
       },
+      "evidenceResponse": {
+        "title": "响应流程",
+        "welinkGroup": "welink 群组",
+        "emergencyReport": "应急报告",
+        "maturityAssessment": "成熟度评估",
+        "rlReview": "RL复盘",
+        "gocReview": "GOC复盘",
+        "updateStatus": "更新状态",
+        "steps": {
+          "detection": "Detection",
+          "response": "Response",
+          "mitigation": "Mitigation",
+          "reporting": "Reporting",
+          "recovery": "Recovery",
+          "remediation": "Remediation",
+          "lessonsLearned": "Lessons learned"
+        },
+        "cards": {
+          "impactedServices": {
+            "title": "影响服务",
+            "notExported": "影响面未导出",
+            "unconfirmed": "未确认",
+            "confirmed": "已确认"
+          },
+          "progressSync": {
+            "title": "进展同步",
+            "instructions": "指令",
+            "progress": "进展",
+            "status": "状态",
+            "inProgress": "进行中",
+            "filters": {
+              "myCreated": "我创建的指令",
+              "myPending": "待我处理的指令",
+              "all": "全部指令",
+              "other": "其他进展"
+            },
+            "createInstruction": "创建指令",
+            "columns": {
+              "taskName": "任务名称",
+              "stageName": "阶段",
+              "owner": "责任人",
+              "planEndTime": "计划结束时间",
+              "priority": "优先级",
+              "status": "状态",
+              "warroom": "Warroom"
+            }
+          },
+          "incidentBrief": {
+            "title": "事件简报",
+            "brief": "简报",
+            "announcement": "通告",
+            "bulletin": "公告",
+            "notificationTable": {
+              "title": "事件通报/简报",
+              "addNotification": "新增通报",
+              "columns": {
+                "notificationEvent": "通报事件",
+                "notificationType": "通报类型",
+                "owner": "责任人",
+                "progress": "进展",
+                "nextPlan": "下一步计划",
+                "remark": "备注"
+              },
+              "types": {
+                "firstNotification": "首次通报",
+                "closeNotification": "关闭通报",
+                "networkProtectionDaily": "护网日报",
+                "other": "其他"
+              },
+              "noData": "暂无通报记录"
+            }
+          }
+        },
+        "services": {
+          "preliminaryJudgment": "初步判断—共",
+          "servicesAffected": "个服务受影响",
+          "servicesNotExported": "个服务的印象面还未导出",
+          "updateTime": "更新时间",
+          "add": "新增",
+          "batchAdd": "批量增加",
+          "columns": {
+            "service": "服务",
+            "measure": "措施",
+            "sla": "SLA",
+            "plannedCompletionTime": "计划完成时间",
+            "owner": "责任人",
+            "progress": "进展",
+            "remark": "备注"
+          },
+          "impactStatus": {
+            "exported": "已导出",
+            "download": "下载",
+            "query": "查询",
+            "import": "导入",
+            "analysisComplete": "分析完成"
+          },
+          "actions": {
+            "review": "复盘",
+            "edit": "编辑",
+            "delete": "删除"
+          },
+          "detail": {
+            "addInstanceId": "添加实例ID",
+            "tabs": {
+              "changeInfo": "变更信息",
+              "alertInfo": "告警信息",
+              "affectedCustomers": "受影响客户"
+            },
+            "syncWelink": "同步welink",
+            "defaultQuery": "默认查询warroom启动前24小时的ABC级变更",
+            "columns": {
+              "title": "标题",
+              "level": "级别",
+              "changeService": "变更服务",
+              "changeExecutor": "变更实施人",
+              "createTime": "创建时间",
+              "changeTimeWindow": "变更时间窗"
+            },
+            "noData": "暂无数据"
+          }
+        }
+      },
       "eventGraph": {
         "title": "攻击图谱",
         "summaryTitle": "事件概要",
@@ -650,6 +772,17 @@
         "loadingTaskDetail": "加载中...",
         "taskDetailTitle": "任务详情",
         "taskDetailError": "加载任务详情失败",
+        "selectWarroom": "选择Warroom",
+        "warroomPlaceholder": "请从下拉框选择",
+        "warroomHint": "点击输入框从 {count} 个Warroom中选择",
+        "bindWarroom": "绑定Warroom",
+        "bindingWarroom": "绑定中...",
+        "unbindWarroom": "解绑",
+        "unbind": "解绑",
+        "warroomRequired": "请至少选择一个Warroom",
+        "bindWarroomError": "绑定Warroom失败",
+        "unbindError": "解绑失败",
+        "noTaskData": "暂无任务数据",
         "taskName": "任务名称",
         "stageName": "阶段",
         "employeeAccount": "责任人",

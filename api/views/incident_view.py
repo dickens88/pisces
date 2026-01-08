@@ -230,12 +230,16 @@ class IncidentTask(Resource):
 
     @auth_required
     def put(self, username=None, incident_id=None):
-        """Update stored task_id for an incident in local DB."""
+        """Update stored task_id for an incident in local DB.
+        Supports both single task_id (string) and multiple warroom IDs (list)."""
         try:
             data = json.loads(request.data or "{}")
             task_id = data.get("task_id")
+            # 支持接收warroom_ids字段（多个warroom ID数组）
+            if "warroom_ids" in data:
+                task_id = data.get("warroom_ids")
             result = Incident.update_task_id(incident_id, task_id)
-            logger.info(f"[Incident] Updated task_id for incident {incident_id} to {task_id!r}.[{username}]")
+            logger.info(f"[Incident] Updated task_id/warroom_ids for incident {incident_id} to {task_id!r}.[{username}]")
             return {"data": result}, 200
         except Exception as ex:
             logger.exception(ex)
