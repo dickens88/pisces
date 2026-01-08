@@ -105,6 +105,7 @@
     "finished": "已完成",
     "operationSuccess": "操作成功",
     "operationError": "操作失败",
+    "openInNewWindow": "在新窗口打开",
     "userMenu": {
       "preferences": "偏好设置",
       "theme": "主题",

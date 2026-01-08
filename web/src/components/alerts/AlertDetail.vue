@@ -492,94 +492,7 @@
                 </div>
 
                 <!-- 事件时间线 -->
-                <div class="space-y-4" v-if="alert?.timeline && alert.timeline.length">
-                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">
-                    {{ $t('alerts.detail.eventTimeline') }}
-                    <span class="ml-2 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-border-dark px-2 py-0.5 text-[11px] font-medium text-gray-600 dark:text-text-light">
-                      {{ alert.timeline.length }}
-                    </span>
-                  </h3>
-                  <div class="relative pl-6">
-                    <div class="absolute left-0 h-full w-0.5 bg-gray-200 dark:bg-border-dark"></div>
-                    <div class="relative space-y-4">
-                      <div
-                        v-for="(event, index) in alert.timeline"
-                        :key="index"
-                        class="relative group"
-                      >
-                        <div
-                          :class="[
-                            'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-gray-100 dark:ring-panel-dark',
-                            openedTimelineIndex === index ? 'bg-primary' : 'bg-gray-300 dark:bg-border-dark'
-                          ]"
-                        ></div>
-
-                        <!-- 单条事件抽屉 -->
-                        <details
-                          class="bg-gray-100/70 dark:bg-[#2a3546]/30 border border-gray-200/60 dark:border-border-dark rounded-md overflow-hidden hover:bg-gray-100 dark:hover:bg-[#2a3546]/50 transition-colors group/details"
-                          @toggle="handleTimelineToggle(index, $event.target.open)"
-                        >
-                          <summary class="flex items-start gap-2 p-2.5 cursor-pointer select-none outline-none">
-                            <div class="flex-1 min-w-0">
-                              <div class="flex items-center justify-between mb-0.5">
-                                <span class="text-[11px] font-mono text-gray-500 dark:text-text-light font-medium">
-                                  {{ event.time }}
-                                </span>
-                              </div>
-                              <div class="flex items-center gap-2">
-                                <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                  {{ getTimelineEventLabel(event.event) }}
-                                </h4>
-                                <div
-                                  v-if="event.author"
-                                  class="shrink-0"
-                                  :title="event.author"
-                                >
-                                  <div class="scale-75 origin-left">
-                                    <UserAvatar :name="event.author" />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <span class="material-symbols-outlined text-gray-500 dark:text-text-light text-base mt-0.5 marker shrink-0">
-                              expand_more
-                            </span>
-                          </summary>
-
-                          <div
-                            v-if="event.content"
-                            class="px-3 pb-3 pt-0 border-t border-dashed border-gray-200/70 dark:border-border-dark/50 mt-1"
-                          >
-                            <div class="pt-3 space-y-3">
-                              <div class="space-y-1">
-                                <span class="text-[11px] text-gray-500 dark:text-text-light uppercase tracking-wider font-semibold block">
-                                  {{ $t('alerts.detail.description') || 'Description' }}
-                                </span>
-                                <div
-                                  class="text-[11px] leading-snug text-gray-700 dark:text-gray-300 bg-white/60 dark:bg-background-dark/30 p-2 rounded border border-gray-200/70 dark:border-border-dark/40 whitespace-pre-wrap break-words"
-                                >
-                                  <template v-if="isContentExpanded(index)">
-                                    {{ stripHtmlAndEntities(event.content) }}
-                                  </template>
-                                  <template v-else>
-                                    {{ getTruncatedContent(event.content) }}
-                                  </template>
-                                  <button
-                                    v-if="shouldShowExpandButton(event.content)"
-                                    @click.stop="toggleContentExpanded(index)"
-                                    class="mt-2 text-primary hover:text-primary/80 text-[11px] font-medium underline cursor-pointer transition-colors"
-                                  >
-                                    {{ isContentExpanded(index) ? ($t('alerts.detail.collapseContent') || '收起') : ($t('alerts.detail.expandContent') || '阅读全部') }}
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </details>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AlertTimeline :timeline="alert?.timeline || []" />
                 </div>
               </div>
             </aside>
@@ -786,6 +699,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
+import AlertTimeline from '@/components/common/AlertTimeline.vue'
 import { useToast } from '@/composables/useToast'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
@@ -871,44 +785,6 @@ const showAISidebar = ref(false)
 const aiSidebarRef = ref(null)
 const aiFindingSummary = ref('')
 const showFindingSummary = ref(false)
-// 当前展开的时间线索引，-1 表示都不高亮
-const openedTimelineIndex = ref(-1)
-// 跟踪每个timeline事件content的展开状态
-const expandedContentIndices = ref(new Set())
-
-// 内容截断长度，从环境变量读取，默认500
-const CONTENT_TRUNCATE_LENGTH = parseInt(import.meta.env.VITE_ALERT_TIMELINE_CONTENT_TRUNCATE_LENGTH || '500', 10)
-
-// 判断内容是否应该显示展开按钮
-const shouldShowExpandButton = (content) => {
-  if (!content) return false
-  const plainContent = stripHtmlAndEntities(content)
-  return plainContent.length > CONTENT_TRUNCATE_LENGTH
-}
-
-// 获取截断的内容
-const getTruncatedContent = (content) => {
-  if (!content) return ''
-  const plainContent = stripHtmlAndEntities(content)
-  if (plainContent.length <= CONTENT_TRUNCATE_LENGTH) {
-    return plainContent
-  }
-  return plainContent.substring(0, CONTENT_TRUNCATE_LENGTH) + '...'
-}
-
-// 检查某个索引的内容是否已展开
-const isContentExpanded = (index) => {
-  return expandedContentIndices.value.has(index)
-}
-
-// 切换内容展开状态
-const toggleContentExpanded = (index) => {
-  if (expandedContentIndices.value.has(index)) {
-    expandedContentIndices.value.delete(index)
-  } else {
-    expandedContentIndices.value.add(index)
-  }
-}
 
 const tabs = [
   { key: 'overview', label: 'alerts.detail.overview' },
@@ -934,30 +810,6 @@ const getTabCount = (tabKey) => {
   }
 }
 
-const getTimelineEventLabel = (eventName) => {
-  if (!eventName) {
-    return t('alerts.detail.unknownEvent') || 'Event'
-  }
-
-  const mapping = {
-    'Alert Triggered': 'alerts.detail.timelineEvents.alertTriggered',
-    'Close Alert': 'alerts.detail.timelineEvents.closeAlert',
-    'Add Intelligence': 'alerts.detail.timelineEvents.addIntelligence',
-    'AI Analysis': 'alerts.detail.timelineEvents.aiAnalysis',
-    'Find Similar Alerts': 'alerts.detail.timelineEvents.findSimilarAlerts',
-    'Add Comment': 'alerts.detail.timelineEvents.addComment',
-    'To Incident': 'alerts.detail.timelineEvents.toIncident'
-  }
-
-  const key = mapping[eventName] || null
-  return key ? (t(key) || eventName) : eventName
-}
-
-const handleTimelineToggle = (index, isOpen) => {
-  openedTimelineIndex.value = isOpen
-    ? index
-    : (openedTimelineIndex.value === index ? -1 : openedTimelineIndex.value)
-}
 
 const stripHtmlTags = (html = '') => {
   if (!html || typeof html !== 'string') return ''
@@ -1894,8 +1746,6 @@ watch(
   () => alert.value?.id,
   () => {
     hasAutoOpenedAiSidebar.value = false
-    // 重置内容展开状态
-    expandedContentIndices.value.clear()
   }
 )
 
