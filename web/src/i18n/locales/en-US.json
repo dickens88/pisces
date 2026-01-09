@@ -623,10 +623,13 @@
               "taskName": "Task Name",
               "stageName": "Stage",
               "owner": "Owner",
+              "startTime": "Start Time",
               "planEndTime": "Plan End Time",
               "priority": "Priority",
               "status": "Status",
-              "warroom": "Warroom"
+              "warroom": "Warroom",
+              "tag": "Tag",
+              "noTag": "No Tag"
             }
           },
           "incidentBrief": {
