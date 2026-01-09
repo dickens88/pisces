@@ -570,7 +570,7 @@
       "evidenceResponse": {
         "title": "响应流程",
         "welinkGroup": "welink 群组",
-        "emergencyReport": "应急报告",
+        "emergencyReport": "生成报告",
         "maturityAssessment": "成熟度评估",
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
