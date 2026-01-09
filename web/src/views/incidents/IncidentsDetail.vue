@@ -198,16 +198,13 @@
                       </label>
                     </div>
                     <div class="relative" ref="taskIdDropdownRef">
+                      <!-- 搜索输入框和已选标签容器 -->
                       <div
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 cursor-pointer min-h-[2.5rem] flex items-center flex-wrap gap-1"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 min-h-[2.5rem] flex items-center flex-wrap gap-1"
                         @click="toggleTaskIdDropdown"
                       >
-                        <template v-if="selectedWarroomIds.length === 0">
-                          <span class="text-gray-400 dark:text-slate-500">
-                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
-                          </span>
-                        </template>
-                        <template v-else>
+                        <!-- 已选中的warroom标签 -->
+                        <template v-if="selectedWarroomIds.length > 0">
                           <span
                             v-for="warroomId in selectedWarroomIds"
                             :key="warroomId"
@@ -222,13 +219,43 @@
                             </button>
                           </span>
                         </template>
+                        <!-- 搜索输入框 -->
+                        <input
+                          v-if="showTaskIdDropdown"
+                          v-model="warroomSearchKeyword"
+                          @input="handleWarroomSearch"
+                          @click.stop
+                          @keydown.escape="showTaskIdDropdown = false"
+                          type="text"
+                          :placeholder="translateOr('incidents.detail.eventGraph.searchWarroomPlaceholder', '输入关键字搜索WR...')"
+                          class="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                        />
+                        <!-- 未选中且未展开时的占位符 -->
+                        <template v-else-if="selectedWarroomIds.length === 0">
+                          <span class="text-gray-400 dark:text-slate-500">
+                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
+                          </span>
+                        </template>
+                        <!-- 下拉箭头图标 -->
+                        <span class="material-symbols-outlined text-sm text-gray-400 dark:text-slate-500 ml-auto">
+                          {{ showTaskIdDropdown ? 'expand_less' : 'expand_more' }}
+                        </span>
                       </div>
                       <!-- 下拉选择列表（多选） -->
                       <div
-                        v-if="showTaskIdDropdown && projectOptions.length > 0"
+                        v-if="showTaskIdDropdown"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         @mousedown.prevent
                       >
+                        <!-- 加载状态 -->
+                        <div v-if="loadingProjectList" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.loading', '加载中...') }}
+                        </div>
+                        <!-- 无结果提示 -->
+                        <div v-else-if="!loadingProjectList && projectOptions.length === 0" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.noWarroomFound', '未找到匹配的WR') }}
+                        </div>
+                        <!-- 选项列表 -->
                         <div
                           v-for="option in projectOptions"
                           :key="option.value"
@@ -3525,6 +3552,10 @@ onBeforeUnmount(() => {
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
   }
+  // 清理WR搜索防抖定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
     // 移除点击外部区域关闭下拉框的事件监听
@@ -3839,6 +3870,8 @@ const showTaskIdDropdown = ref(false)
 const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 const taskIdDropdownRef = ref(null)
+const warroomSearchKeyword = ref('') // WR搜索关键字
+const warroomSearchTimer = ref(null) // 防抖定时器
 
 // 根据选中的 taskId 获取对应的 project_name 用于显示（向后兼容）
 const selectedTaskName = computed(() => {
@@ -3948,12 +3981,50 @@ const toggleWarroomSelection = (warroomId) => {
   }
 }
 
-// 移除warroom（从选中列表中移除）
-const removeWarroom = (warroomId) => {
+// 移除warroom（从选中列表中移除，并执行解绑操作）
+const removeWarroom = async (warroomId) => {
   const id = String(warroomId)
   const index = selectedWarroomIds.value.indexOf(id)
-  if (index > -1) {
+  if (index === -1) {
+    return // 如果不在选中列表中，直接返回
+  }
+
+  // 如果事件ID不存在，只从本地状态移除（用于未保存的情况）
+  if (!incident.value?.id) {
     selectedWarroomIds.value.splice(index, 1)
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+    return
+  }
+
+  try {
+    // 1. 从选中列表中移除
+    selectedWarroomIds.value.splice(index, 1)
+
+    // 2. 从分组任务详情中移除
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+
+    // 3. 更新数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 如果所有warroom都解绑了，重置状态
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+  } catch (error) {
+    console.error('Failed to remove warroom:', error)
+    // 如果操作失败，恢复选中状态
+    if (!selectedWarroomIds.value.includes(id)) {
+      selectedWarroomIds.value.push(id)
+    }
+    // 显示错误提示
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
   }
 }
 
@@ -4621,10 +4692,12 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
-const loadProjectList = async () => {
+const loadProjectList = async (keyword = '') => {
   loadingProjectList.value = true
   try {
-    const projectList = await getProjectList({ project_name: 'warroom' })
+    // 如果有关键字，使用关键字作为project_name进行模糊搜索；否则使用默认值'warroom'
+    const project_name = keyword.trim() || 'warroom'
+    const projectList = await getProjectList({ project_name })
     
     if (!Array.isArray(projectList)) {
       projectOptions.value = []
@@ -4645,6 +4718,20 @@ const loadProjectList = async () => {
   }
 }
 
+// 处理WR搜索输入（带防抖）
+const handleWarroomSearch = () => {
+  // 清除之前的定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
+  
+  // 设置新的防抖定时器（500ms）
+  warroomSearchTimer.value = setTimeout(() => {
+    const keyword = warroomSearchKeyword.value.trim()
+    loadProjectList(keyword)
+  }, 500)
+}
+
 // 选择任务ID（向后兼容）
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
@@ -4652,8 +4739,20 @@ const selectTaskId = (taskId) => {
 }
 
 const toggleTaskIdDropdown = () => {
-  if (projectOptions.value.length > 0) {
-    showTaskIdDropdown.value = !showTaskIdDropdown.value
+  showTaskIdDropdown.value = !showTaskIdDropdown.value
+  // 当打开下拉框时，如果没有选项，加载默认列表
+  if (showTaskIdDropdown.value) {
+    if (projectOptions.value.length === 0) {
+      // 如果没有选项，重置搜索关键字并加载默认列表
+      warroomSearchKeyword.value = ''
+      loadProjectList()
+    } else if (warroomSearchKeyword.value.trim()) {
+      // 如果有关键字，使用关键字重新搜索
+      loadProjectList(warroomSearchKeyword.value.trim())
+    }
+  } else {
+    // 关闭下拉框时，清空搜索关键字
+    warroomSearchKeyword.value = ''
   }
 }
 
@@ -4664,6 +4763,8 @@ const closeTaskIdDropdown = (event) => {
     return
   }
   showTaskIdDropdown.value = false
+  // 关闭下拉框时，清空搜索关键字
+  warroomSearchKeyword.value = ''
 }
 
 // 将当前warroom IDs写入本地数据库（与事件绑定）
@@ -4768,32 +4869,9 @@ const bindWarrooms = async () => {
   }
 }
 
-// 解绑warroom：从数据库和本地状态中移除
+// 解绑warroom：从数据库和本地状态中移除（调用removeWarroom执行完整解绑操作）
 const unbindWarroom = async (warroomId) => {
-  if (!incident.value?.id) {
-    return
-  }
-
-  try {
-    // 1. 从选中列表中移除
-    removeWarroom(warroomId)
-
-    // 2. 从分组任务详情中移除
-    const newGrouped = { ...groupedTaskDetails.value }
-    delete newGrouped[warroomId]
-    groupedTaskDetails.value = newGrouped
-
-    // 3. 更新数据库
-    await saveWarroomIdsForIncident(selectedWarroomIds.value)
-
-    // 如果所有warroom都解绑了，重置状态
-    if (selectedWarroomIds.value.length === 0) {
-      taskDetailLoaded.value = false
-    }
-  } catch (error) {
-    console.error('Failed to unbind warroom:', error)
-    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
-  }
+  await removeWarroom(warroomId)
 }
 
 // 加载任务详情（向后兼容，保留原有逻辑）
