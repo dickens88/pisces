@@ -54,7 +54,9 @@ class StatisticsService:
         
         return utc_naive, db_string
     @classmethod
-    def get_alert_count_by_product_name(cls, start_date, end_date=None, status=None):
+    def get_alert_count_by_product_name(cls, start_date, end_date=None, status=None, severity=None,
+                                         auto_close=None, verification_state=None, risk_mode=None,
+                                         search_keywords=None):
         """Get alert count grouped by product name and is_auto_closed."""
         _, start_date_str = cls._prepare_datetime_for_query(start_date)
         _, end_date_str = cls._prepare_datetime_for_query(end_date)
@@ -78,9 +80,45 @@ class StatisticsService:
             if end_date_str:
                 query = query.filter(Alert.create_time <= end_date_str)
             
+            # Apply filters
             if status and status != 'all':
                 status_map = {'open': 'Open', 'block': 'Block', 'closed': 'Closed'}
                 query = query.filter(Alert.handle_status == status_map.get(status.lower(), status.capitalize()))
+            
+            if severity and severity != 'all':
+                severity_map = {'fatal': 'Fatal', 'high': 'High', 'medium': 'Medium', 'low': 'Low', 'tips': 'Tips'}
+                query = query.filter(Alert.severity == severity_map.get(severity.lower(), severity.capitalize()))
+            
+            if auto_close and auto_close != 'all':
+                query = query.filter(Alert.is_auto_closed == auto_close)
+            
+            if verification_state and verification_state != 'all':
+                query = query.filter(Alert.verification_state == verification_state)
+            
+            # Apply search keywords (including ipdrr_phase)
+            if search_keywords:
+                for kw in search_keywords:
+                    if isinstance(kw, dict) and 'field' in kw and 'value' in kw:
+                        field = kw['field']
+                        value = kw['value']
+                        if field == 'ipdrr_phase':
+                            if value == 'to_incident':
+                                query = query.filter(Alert.ipdrr_phase == 'to_incident')
+                            elif value == 'not_to_incident':
+                                query = query.filter(Alert.ipdrr_phase != 'to_incident')
+                        elif field == 'title':
+                            query = query.filter(Alert.title.ilike(f"%{value}%"))
+                        elif field == 'id':
+                            query = query.filter(Alert.alert_id == str(value))
+                        elif field == 'creator':
+                            query = query.filter(Alert.creator.ilike(f"%{value}%"))
+                        elif field == 'actor':
+                            query = query.filter(Alert.actor.ilike(f"%{value}%"))
+            
+            # Apply risk mode filter
+            if risk_mode == 'unclosedHighRisk':
+                query = query.filter(Alert.handle_status == 'Open')
+                query = query.filter(Alert.severity.in_(['Fatal', 'High']))
             
             results = query.group_by(Alert.data_source_product_name, closure_type_expr).all()
 
@@ -98,7 +136,9 @@ class StatisticsService:
         return result
 
     @classmethod
-    def get_alert_status_by_severity(cls, start_date, end_date, status=None):
+    def get_alert_status_by_severity(cls, start_date, end_date, status=None, severity=None,
+                                      auto_close=None, verification_state=None, risk_mode=None,
+                                      search_keywords=None):
         """
         Get alert count grouped by handle_status and severity between start_date and end_date.
         Returns a nested dict:
@@ -112,6 +152,11 @@ class StatisticsService:
             start_date: Start datetime
             end_date: End datetime
             status: Optional status filter ('open', 'block', 'closed', or None for all)
+            severity: Optional severity filter
+            auto_close: Optional auto close filter
+            verification_state: Optional AI judgment state filter
+            risk_mode: Optional risk mode filter
+            search_keywords: Optional search keywords list
         """
         # Normalize and format datetime for database query
         _, start_date_str = cls._prepare_datetime_for_query(start_date)
@@ -150,6 +195,42 @@ class StatisticsService:
                 }
                 db_status = status_map.get(status.lower(), status.capitalize())
                 query = query.filter(Alert.handle_status == db_status)
+            
+            # Apply additional filters
+            if severity and severity != 'all':
+                severity_map = {'fatal': 'Fatal', 'high': 'High', 'medium': 'Medium', 'low': 'Low', 'tips': 'Tips'}
+                query = query.filter(Alert.severity == severity_map.get(severity.lower(), severity.capitalize()))
+            
+            if auto_close and auto_close != 'all':
+                query = query.filter(Alert.is_auto_closed == auto_close)
+            
+            if verification_state and verification_state != 'all':
+                query = query.filter(Alert.verification_state == verification_state)
+            
+            # Apply search keywords (including ipdrr_phase)
+            if search_keywords:
+                for kw in search_keywords:
+                    if isinstance(kw, dict) and 'field' in kw and 'value' in kw:
+                        field = kw['field']
+                        value = kw['value']
+                        if field == 'ipdrr_phase':
+                            if value == 'to_incident':
+                                query = query.filter(Alert.ipdrr_phase == 'to_incident')
+                            elif value == 'not_to_incident':
+                                query = query.filter(Alert.ipdrr_phase != 'to_incident')
+                        elif field == 'title':
+                            query = query.filter(Alert.title.ilike(f"%{value}%"))
+                        elif field == 'id':
+                            query = query.filter(Alert.alert_id == str(value))
+                        elif field == 'creator':
+                            query = query.filter(Alert.creator.ilike(f"%{value}%"))
+                        elif field == 'actor':
+                            query = query.filter(Alert.actor.ilike(f"%{value}%"))
+            
+            # Apply risk mode filter
+            if risk_mode == 'unclosedHighRisk':
+                query = query.filter(Alert.handle_status == 'Open')
+                query = query.filter(Alert.severity.in_(['Fatal', 'High']))
             
             query = query.group_by(Alert.handle_status, Alert.severity)
 

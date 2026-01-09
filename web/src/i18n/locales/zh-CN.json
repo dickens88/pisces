@@ -231,7 +231,7 @@
       "alertId": "告警ID",
       "phase": "转事件的告警",
       "phaseToIncident": "已转事件",
-      "phaseAll": "全部",
+      "phaseAll": "是否转事件",
       "autoClose": {
         "all": "关闭方式",
         "autoClosed": "自动关闭",

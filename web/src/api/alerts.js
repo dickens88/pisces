@@ -288,17 +288,56 @@ const setDateParam = (params, key, value) => {
  * @brief 获取按数据源产品名称统计的告警数量
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象，可选）
- * @param {string} status - 状态过滤（可选）
+ * @param {Object|string} filters - 筛选条件对象或状态字符串（向后兼容）
+ * @param {string} filters.status - 状态过滤
+ * @param {string} filters.severity - 风险等级过滤
+ * @param {string} filters.autoClose - 关闭方式过滤
+ * @param {string} filters.verificationState - AI研判状态过滤
+ * @param {Array} filters.searchKeywords - 搜索关键字
+ * @param {string} filters.risk_mode - 风险模式
  * @returns {Promise} 告警数量映射
  */
-export const getAlertCountsBySource = (startDate, endDate = null, status = null) => {
-  const params = {}
+export const getAlertCountsBySource = (startDate, endDate = null, filters = null) => {
+  const params = {
+    chart: 'data-source-count'
+  }
   setDateParam(params, 'start_date', startDate)
   setDateParam(params, 'end_date', endDate)
-  if (status && status !== 'all') {
-    params.status = status
+  
+  // 向后兼容：如果 filters 是字符串，则视为 status
+  if (typeof filters === 'string') {
+    if (filters && filters !== 'all') {
+      params.status = filters
+    }
+  } else if (filters && typeof filters === 'object') {
+    // 传递筛选条件
+    if (filters.status && filters.status !== 'all') {
+      params.status = filters.status
+    }
+    if (filters.severity && filters.severity !== 'all') {
+      params.severity = filters.severity
+    }
+    if (filters.autoClose && filters.autoClose !== 'all') {
+      params.auto_close = filters.autoClose
+    }
+    if (filters.verificationState && filters.verificationState !== 'all') {
+      params.verification_state = filters.verificationState
+    }
+    if (filters.risk_mode) {
+      params.risk_mode = filters.risk_mode
+    }
+    // 处理搜索关键字（包括 ipdrr_phase）
+    if (filters.searchKeywords && filters.searchKeywords.length > 0) {
+      filters.searchKeywords.forEach((kw, index) => {
+        if (kw.field && kw.value) {
+          params[`search_${kw.field}_${index}`] = kw.value
+        }
+      })
+      params.search_keywords = JSON.stringify(filters.searchKeywords)
+    }
   }
-  return service.get('/stats/alerts?chart=data-source-count', { params })
+  
+  return service.get('/stats/alerts', { params })
 }
 
 /**
@@ -327,18 +366,55 @@ export const getAlertTrend = (startDate, endDate) => {
  *
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
- * @param {string} status - 状态过滤（可选）
+ * @param {Object|string} filters - 筛选条件对象或状态字符串（向后兼容）
+ * @param {string} filters.status - 状态过滤
+ * @param {string} filters.severity - 风险等级过滤
+ * @param {string} filters.autoClose - 关闭方式过滤
+ * @param {string} filters.verificationState - AI研判状态过滤
+ * @param {Array} filters.searchKeywords - 搜索关键字
+ * @param {string} filters.risk_mode - 风险模式
  * @returns {Promise} 告警状态与风险等级分布数据
  */
-export const getAlertStatusBySeverity = (startDate, endDate, status = null) => {
+export const getAlertStatusBySeverity = (startDate, endDate, filters = null) => {
   const params = {
     chart: 'alert-status-by-severity'
   }
   setDateParam(params, 'start_date', startDate)
   setDateParam(params, 'end_date', endDate)
-  if (status && status !== 'all') {
-    params.status = status
+  
+  // 向后兼容：如果 filters 是字符串，则视为 status
+  if (typeof filters === 'string') {
+    if (filters && filters !== 'all') {
+      params.status = filters
+    }
+  } else if (filters && typeof filters === 'object') {
+    // 传递筛选条件
+    if (filters.status && filters.status !== 'all') {
+      params.status = filters.status
+    }
+    if (filters.severity && filters.severity !== 'all') {
+      params.severity = filters.severity
+    }
+    if (filters.autoClose && filters.autoClose !== 'all') {
+      params.auto_close = filters.autoClose
+    }
+    if (filters.verificationState && filters.verificationState !== 'all') {
+      params.verification_state = filters.verificationState
+    }
+    if (filters.risk_mode) {
+      params.risk_mode = filters.risk_mode
+    }
+    // 处理搜索关键字（包括 ipdrr_phase）
+    if (filters.searchKeywords && filters.searchKeywords.length > 0) {
+      filters.searchKeywords.forEach((kw, index) => {
+        if (kw.field && kw.value) {
+          params[`search_${kw.field}_${index}`] = kw.value
+        }
+      })
+      params.search_keywords = JSON.stringify(filters.searchKeywords)
+    }
   }
+  
   return service.get('/stats/alerts', { params })
 }
 

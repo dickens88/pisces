@@ -231,7 +231,7 @@
       "alertId": "Alert ID",
       "phase": "To Incident",
       "phaseToIncident": "Show To Incident Alerts",
-      "phaseAll": "All",
+      "phaseAll": "To Incident",
       "autoClose": {
         "all": "Closing Modes",
         "autoClosed": "Auto Closed",

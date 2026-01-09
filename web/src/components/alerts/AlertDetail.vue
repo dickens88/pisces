@@ -1183,18 +1183,27 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    // 如果父组件传入 workspace（例如从 ASM 漏洞详情页打开），则在请求中带上 workspace
-    const response = await getAlertDetail(currentAlertId.value, props.workspace)
-    alert.value = transformAlertDetailData(response.data)
-    loadAssociatedAlerts()
-    // 加载与当前告警关联的事件（如果存在）
-    try {
-      const relationsResp = await getAlertRelations(currentAlertId.value, props.workspace)
-      relatedIncidentId.value = relationsResp.data?.incident_id || null
-    } catch (relationsError) {
-      console.error('Failed to load alert relations:', relationsError)
+    const [detailResponse, relationsResponse] = await Promise.allSettled([
+      getAlertDetail(currentAlertId.value, props.workspace),
+      getAlertRelations(currentAlertId.value, props.workspace)
+    ])
+    
+    // 处理告警详情响应
+    if (detailResponse.status === 'fulfilled') {
+      alert.value = transformAlertDetailData(detailResponse.value.data)
+      loadAssociatedAlerts()
+    } else {
+      throw detailResponse.reason
+    }
+    
+    // 处理关系响应（即使失败也不影响主流程）
+    if (relationsResponse.status === 'fulfilled') {
+      relatedIncidentId.value = relationsResponse.value.data?.incident_id || null
+    } else {
+      console.error('Failed to load alert relations:', relationsResponse.reason)
       relatedIncidentId.value = null
     }
+    
     // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
     hasAutoOpenedAiSidebar.value = false
   } catch (error) {

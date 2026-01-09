@@ -87,8 +87,23 @@ class AlertCountBySourceView(Resource):
                             return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
                     except Exception as e:
                         return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+                # Get additional filter parameters
+                severity = request.args.get("severity")
+                auto_close = request.args.get("auto_close")
+                verification_state = request.args.get("verification_state")
+                risk_mode = request.args.get("risk_mode")
+                search_keywords_str = request.args.get("search_keywords")
+                search_keywords = []
+                if search_keywords_str:
+                    try:
+                        import json
+                        search_keywords = json.loads(search_keywords_str)
+                    except:
+                        pass
                 data = StatisticsService.get_alert_count_by_product_name(
-                    start_date, end_date=end_date, status=status
+                    start_date, end_date=end_date, status=status, severity=severity,
+                    auto_close=auto_close, verification_state=verification_state,
+                    risk_mode=risk_mode, search_keywords=search_keywords
                 )
                 return {
                     "data": data,
@@ -237,9 +252,33 @@ class AlertCountBySourceView(Resource):
                     "description": "Accuracy of each AI model in the selected time range.",
                 }, 200
             elif chart_name_normalized == "alert-status-by-severity":
-                end_date = parse_datetime_with_timezone(end_date_str)
+                if not end_date_str:
+                    return {"error_message": "end_date is required for alert-status-by-severity chart"}, 400
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
                 status = request.args.get("status")  # Get status filter parameter
-                data = StatisticsService.get_alert_status_by_severity(start_date, end_date, status=status)
+                # Get additional filter parameters
+                severity = request.args.get("severity")
+                auto_close = request.args.get("auto_close")
+                verification_state = request.args.get("verification_state")
+                risk_mode = request.args.get("risk_mode")
+                search_keywords_str = request.args.get("search_keywords")
+                search_keywords = []
+                if search_keywords_str:
+                    try:
+                        import json
+                        search_keywords = json.loads(search_keywords_str)
+                    except:
+                        pass
+                data = StatisticsService.get_alert_status_by_severity(
+                    start_date, end_date, status=status, severity=severity,
+                    auto_close=auto_close, verification_state=verification_state,
+                    risk_mode=risk_mode, search_keywords=search_keywords
+                )
                 return {
                     "data": data,
                     "description": "Distribution of alert statuses by severity in the selected time range.",
