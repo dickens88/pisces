@@ -19,15 +19,6 @@ const props = defineProps({
   }
 })
 
-// Preset 5 colors (warm tones for general users)
-const colors = [
-  '#e67e22', // Carrot (orange)
-  '#e74c3c', // Alizarin (red)
-  '#f39c12', // Orange
-  '#d35400', // Pumpkin (deep orange)
-  '#c0392b'  // Pomegranate (deep red)
-]
-
 /**
  * @brief 根据名称生成缩写
  * @description 只显示名字的第一个字符
@@ -38,23 +29,18 @@ const abbreviation = computed(() => {
 })
 
 /**
- * @brief 根据名称的哈希值选择一个颜色
- * @description 确保相同的名称总是得到相同的颜色
+ * @brief 根据账号类型返回颜色
+ * @description 机器人账号使用蓝色，其他账号使用橙色
  */
 const avatarColor = computed(() => {
-  if (!props.name) return colors[0]
+  if (!props.name) return '#ee9b00' // Orange-500
 
-  // Special rule: accounts containing "robot" or "SecMaster" (case-insensitive) use blue background
+  // Robot accounts use blue, others use orange
   const lowerName = props.name.toLowerCase()
   if (lowerName.includes('robot') || lowerName.includes('secmaster') || lowerName.includes('autoclosed')) {
-    return '#3498db' // consistent blue
+    return '#3b82f6' // Blue-500 for robot accounts
   }
 
-  let hash = 0
-  for (let i = 0; i < props.name.length; i++) {
-    hash = props.name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  const index = Math.abs(hash % colors.length)
-  return colors[index]
+  return '#f97316' // Orange-500 for other accounts
 })
 </script>

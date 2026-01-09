@@ -401,7 +401,6 @@ const handleSubmit = async () => {
   try {
     isSubmitting.value = true
     
-    // 构建符合 /api/incidents 接口格式的请求体
     const body = {
       action: 'update',
       title: formData.value.title,
@@ -410,6 +409,7 @@ const handleSubmit = async () => {
       close_time: formData.value.closeTime ? formatTimestamp(formData.value.closeTime) : null,
       severity: numberToSeverity(Number(formData.value.severity)) || '',
       actor: formData.value.actor || '',
+      handle_status: formData.value.status || 'Open',
       resource_list: [{
         owner: formData.value.responsiblePerson,
         responsible_person: formData.value.responsiblePerson,
@@ -419,7 +419,6 @@ const handleSubmit = async () => {
       }]
     }
 
-    // 直接调用 PUT /api/incidents/<incident_id> 接口
     const apiBaseURL = import.meta.env.VITE_API_BASE_URL || ''
     const url = apiBaseURL ? `${apiBaseURL}/incidents/${props.incidentId}` : `/api/incidents/${props.incidentId}`
     

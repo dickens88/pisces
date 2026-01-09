@@ -550,12 +550,12 @@ const handlePostComment = async ({ comment, files }) => {
 }
 
 const getStatusText = (status) => {
-  if (!status) return t('vulnerabilities.detail.status.open') || 'Open'
+  if (!status) return t('incidents.list.open')
   const statusLower = status.toLowerCase()
   const statusMap = {
-    'open': t('vulnerabilities.detail.status.open') || 'Open',
-    'block': t('vulnerabilities.detail.status.inProgress') || 'In Progress',
-    'closed': t('vulnerabilities.detail.status.patched') || 'Patched'
+    'open': t('incidents.list.open'),
+    'block': t('incidents.list.block'),
+    'closed': t('incidents.list.closed')
   }
   return statusMap[statusLower] || status
 }

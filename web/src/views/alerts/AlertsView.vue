@@ -332,7 +332,7 @@
           <ClearableSelect
             v-model="severityFilter"
             clear-value="all"
-            @change="reloadAlertsFromFirstPage"
+            @change="handleFilterChange"
           >
             <option value="all">{{ $t('common.severity.all') || $t('common.filter') }}</option>
             <option value="fatal">{{ $t('common.severity.fatal') }}</option>
@@ -461,7 +461,7 @@
             <ClearableSelect
               v-model="autoCloseFilter"
               clear-value="all"
-              @change="reloadAlertsFromFirstPage"
+              @change="handleFilterChange"
             >
               <option value="all">{{ $t('alerts.list.autoClose.all') || $t('common.filter') }}</option>
               <option value="AutoClosed">{{ $t('alerts.list.autoClose.autoClosed') }}</option>
@@ -472,7 +472,7 @@
             <ClearableSelect
               v-model="aiJudgeFilter"
               clear-value="all"
-              @change="reloadAlertsFromFirstPage"
+              @change="handleFilterChange"
             >
               <option value="all">{{ $t('alerts.list.allAiJudge') }}</option>
               <option value="True_Positive">{{ $t('alerts.list.aiJudgeResult.truePositive') }}</option>
@@ -480,23 +480,15 @@
               <option value="Unknown">{{ $t('alerts.list.aiJudgeResult.unknown') }}</option>
             </ClearableSelect>
           </div>
-          <!-- Phase Filter Dropdown -->
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              {{ $t('alerts.list.associateIncident') }}
-            </span>
-            <div class="min-w-[100px] max-w-[10rem]">
-              <ClearableSelect
-                v-model="phaseFilterValue"
-                clear-value="no"
-                @change="handlePhaseFilterChange"
-              >
-                <!-- 否：表示不筛选 -->
-                <option value="no">No</option>
-                <!-- 是：表示筛选 -->
-                <option value="yes">Yes</option>
-              </ClearableSelect>
-            </div>
+          <div class="min-w-[100px] max-w-[10rem]">
+            <ClearableSelect
+              v-model="phaseFilterValue"
+              clear-value="no"
+              @change="handlePhaseFilterChange"
+            >
+              <option value="no">{{ $t('alerts.list.phaseAll') }}</option>
+              <option value="yes">{{ $t('alerts.list.phaseToIncident') }}</option>
+            </ClearableSelect>
           </div>
         </div>
       </div>
@@ -1073,6 +1065,21 @@ const alertTypeChartTotal = ref(0)
 let alertTypeChartInstance = null
 let alertTypeChartResizeBound = false
 
+// Alert type chart color configuration
+const alertTypeChartColors = {
+  manual: '#bb3e03',      // Orange for manual closure
+  autoClosed: '#94d2bd',  // Cyan for auto-closed
+  none: '#e9d8a6',        // Yellow for open/None
+  default: '#0a9396'      // Default color for old format
+}
+
+// AI performance chart color configuration
+const aiPerformanceChartColors = {
+  automationRate: '#94d2bd',  // Cyan for automation closure rate
+  coverageRate: '#0a9396',     // Dark blue for AI judgment coverage rate
+  accuracyRate: '#005f73'      // Green for AI judgment accuracy rate
+}
+
 // Pie chart management helper
 const createPieChartManager = (chartRef) => {
   let instance = null
@@ -1170,7 +1177,7 @@ const updateAutomationRateChart = () => {
     total: statistics.value.totalClosed || 0,
     value: statistics.value.autoClosed || 0,
     rate: statistics.value.automationRate || 0,
-    primaryColor: '#3b82f6',
+    primaryColor: aiPerformanceChartColors.automationRate,
     labels: [
       t('alerts.list.statistics.autoClosed') || '自动关闭',
       t('alerts.list.statistics.manualClosed') || '手动关闭'
@@ -1184,7 +1191,7 @@ const updateCoverageRateChart = () => {
     total: coverageStats.value.totalAlerts || 0,
     value: coverageStats.value.coveredAlerts || 0,
     rate: coverageStats.value.coverageRate || 0,
-    primaryColor: '#a855f7',
+    primaryColor: aiPerformanceChartColors.coverageRate,
     labels: [
       t('alerts.list.statistics.covered') || '已覆盖',
       t('alerts.list.statistics.uncovered') || '未覆盖'
@@ -1198,7 +1205,7 @@ const updateAccuracyRateChart = () => {
     total: accuracyStats.value.totalJudgments || 0,
     value: accuracyStats.value.correctJudgments || 0,
     rate: accuracyStats.value.accuracyRate || 0,
-    primaryColor: '#3b82f6',
+    primaryColor: aiPerformanceChartColors.accuracyRate,
     labels: [
       t('alerts.list.statistics.correct') || '正确',
       t('alerts.list.statistics.incorrect') || '错误'
@@ -1218,6 +1225,29 @@ let alertStatusChartResizeBound = false
 const formatDateForBackend = (date) => {
   const isoString = date.toISOString()
   return isoString.includes('.') ? isoString.split('.')[0] : isoString.replace('Z', '')
+}
+
+/**
+ * @brief 构建图表筛选条件对象
+ * @returns {Object} 包含所有筛选条件的对象
+ */
+const buildChartFilters = () => {
+  // Build search keywords, filtering out any existing ipdrr_phase entries
+  const filteredKeywords = searchKeywords.value.filter(kw => kw.field !== 'ipdrr_phase')
+  
+  // Add phase filter to search keywords if enabled
+  if (phaseFilter.value) {
+    filteredKeywords.push({ field: 'ipdrr_phase', value: 'to_incident' })
+  }
+  
+  return {
+    status: statusFilter.value,
+    severity: severityFilter.value,
+    autoClose: autoCloseFilter.value,
+    verificationState: aiJudgeFilter.value,
+    searchKeywords: filteredKeywords,
+    risk_mode: alertFilterMode.value
+  }
 }
 
 const computeSelectedRange = () => {
@@ -1391,11 +1421,7 @@ const updateAlertTypeChart = () => {
             barWidth: '45%',
             itemStyle: {
               borderRadius: [8, 8, 0, 0],
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#60a5fa' },
-                { offset: 0.7, color: '#3b82f6' },
-                { offset: 1, color: '#2563eb' }
-              ])
+              color: alertTypeChartColors.default
             }
           }
         ]
@@ -1491,10 +1517,11 @@ const loadAlertTypeDistribution = async () => {
   alertTypeChartTotal.value = 0
   try {
     const range = computeSelectedRange()
+    const filters = buildChartFilters()
     const response = await getAlertCountsBySource(
       range.start,
       range.end,
-      statusFilter.value
+      filters
     )
     const counts = response?.data || {}
     
@@ -1542,7 +1569,7 @@ const loadAlertTypeDistribution = async () => {
           data: manualData,
           itemStyle: {
             borderRadius: [0, 0, 0, 0],
-            color: '#2563eb' // Dark blue for manual
+            color: alertTypeChartColors.manual
           }
         },
         {
@@ -1552,7 +1579,7 @@ const loadAlertTypeDistribution = async () => {
           data: autoClosedData,
           itemStyle: {
             borderRadius: [0, 0, 0, 0],
-            color: '#3b82f6' // Medium blue for auto-closed
+            color: alertTypeChartColors.autoClosed
           }
         },
         {
@@ -1562,7 +1589,7 @@ const loadAlertTypeDistribution = async () => {
           data: noneData,
           itemStyle: {
             borderRadius: [0, 0, 0, 0],
-            color: '#60a5fa' // Light blue for open/None
+            color: alertTypeChartColors.none
           }
         }
       ]
@@ -1609,10 +1636,11 @@ const loadAlertStatusBySeverity = async () => {
 
   try {
     const range = computeSelectedRange()
+    const filters = buildChartFilters()
     const response = await getAlertStatusBySeverity(
       range.start,
       range.end,
-      statusFilter.value
+      filters
     )
     const rawData = response?.data || {}
 
@@ -1625,11 +1653,11 @@ const loadAlertStatusBySeverity = async () => {
     }
     const severities = ['Fatal', 'High', 'Medium', 'Low', 'Tips']
     const severityColors = {
-      Fatal: '#1e3a8a',      // 深蓝色
-      High: '#2563eb',       // 中深蓝色
-      Medium: '#3b82f6',     // 中蓝色
-      Low: '#60a5fa',        // 浅蓝色
-      Tips: '#93c5fd'        // 很浅的蓝色
+      Fatal: '#9b2226',      // 红色 - 致命
+      High: '#bb3e03',       // 橙色 - 高风险
+      Medium: '#e9d8a6',     // 黄色 - 中风险
+      Low: '#94d2bd',        // 绿色 - 低风险
+      Tips: '#005f73'        // 蓝色 - 提示
     }
 
     const yAxisLabels = statusOrder.map(statusKey => {
@@ -1947,14 +1975,14 @@ const addKeyword = () => {
       currentSearchInput.value = ''
       currentField.value = ''
       showFieldMenu.value = false
-      reloadAlertsFromFirstPage()
+      handleFilterChange()
     }
   }
 }
 
 const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
-  reloadAlertsFromFirstPage()
+  handleFilterChange()
 }
 
 const handleKeywordDeleteKey = (event) => {
@@ -2018,26 +2046,33 @@ const handleSearchContainerClick = () => {
   })
 }
 
-const handleFilter = () => {
+/**
+ * @brief 处理筛选条件变更，刷新告警列表和图表
+ */
+const handleFilterChange = () => {
   reloadAlertsFromFirstPage()
-  loadAlertTypeDistribution()
-  loadAlertStatusBySeverity()
+  if (showCharts.value) {
+    loadAlertTypeDistribution()
+    loadAlertStatusBySeverity()
+  }
+}
+
+const handleFilter = () => {
+  handleFilterChange()
 }
 
 const handlePhaseFilterChange = () => {
   phaseFilter.value = phaseFilterValue.value === 'yes'
 
   if (phaseFilter.value) {
-    // 开启“转事件告警”筛选时，将状态筛选设为 closed
+    // 开启"转事件告警"筛选时，将状态筛选设为 closed
     statusFilter.value = 'closed'
   } else {
-    // 关闭“转事件告警”筛选时，直接重置状态筛选为 all
+    // 关闭"转事件告警"筛选时，直接重置状态筛选为 all
     statusFilter.value = 'all'
   }
 
-  reloadAlertsFromFirstPage()
-  loadAlertTypeDistribution()
-  loadAlertStatusBySeverity()
+  handleFilterChange()
 }
 
 const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
@@ -2048,11 +2083,13 @@ const applyRiskFilterMode = async (mode, { skipReload = false } = {}) => {
   }
 
   if (!skipReload) {
-    await Promise.all([
-      reloadAlertsFromFirstPage(),
-      loadAlertTypeDistribution(),
-      loadAlertStatusBySeverity()
-    ])
+    reloadAlertsFromFirstPage()
+    if (showCharts.value) {
+      await Promise.all([
+        loadAlertTypeDistribution(),
+        loadAlertStatusBySeverity()
+      ])
+    }
   }
 }
 
@@ -2130,10 +2167,11 @@ const closeAlertDetail = () => {
   router.push({ path: '/alerts', replace: true })
 }
 
-// 刷新告警列表和高风险告警数量的通用函数
-const refreshAlertsAndCount = () => {
-  loadAlerts()
-  loadHighRiskAlertCount()
+const refreshAlertsAndCount = async () => {
+  await Promise.allSettled([
+    loadAlerts(),
+    loadHighRiskAlertCount()
+  ])
   selectedAlerts.value = []
   if (dataTableRef.value) {
     dataTableRef.value.clearSelection()
@@ -2322,8 +2360,9 @@ const handleBatchClose = async () => {
     
     closeBatchCloseDialog()
     
-    // 统一使用刷新函数
-    refreshAlertsAndCount()
+    refreshAlertsAndCount().catch(err => {
+      console.error('Failed to refresh alerts after batch close:', err)
+    })
   } catch (error) {
     console.error('Failed to batch close alerts:', error)
     const errorMessage = error?.response?.data?.message || error?.response?.data?.error_message || error?.message || t('alerts.list.batchCloseError') || '批量关闭告警失败，请稍后重试'

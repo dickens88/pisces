@@ -344,7 +344,8 @@ class AlertService:
                 "id": item['id'],
                 "author": item['content']['come_from'],
                 "create_time": item['content']['occurred_time'],
-                "content": item["content"]["value"]
+                "content": item["content"]["value"],
+                "type": item["note_type"]
             }
             owner = CommentService.extract_owner_from_content(row["content"])
             row["author"] = owner if owner else row["author"]

@@ -7,7 +7,7 @@
       </span>
     </h3>
     <div class="relative pl-6">
-      <div class="absolute left-0 h-full w-0.5 bg-gray-200 dark:bg-border-dark"></div>
+      <div class="absolute left-0 top-0 h-full w-0.5 bg-gray-200 dark:bg-border-dark timeline-line"></div>
       <div class="relative space-y-4">
         <div
           v-for="(event, index) in timeline"
@@ -16,10 +16,30 @@
         >
           <div
             :class="[
-              'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-gray-100 dark:ring-panel-dark',
-              openedIndex === index ? 'bg-primary' : 'bg-gray-300 dark:bg-border-dark'
+              'absolute left-0 top-1.5 h-5 w-5 rounded-full flex items-center justify-center z-10 shadow-sm timeline-circle',
+              openedIndex === index 
+                ? 'bg-primary ring-2 ring-primary/20' 
+                : 'bg-white dark:bg-panel-dark border-2 border-gray-300 dark:border-border-dark'
             ]"
-          ></div>
+          >
+            <svg
+              width="8"
+              height="8"
+              viewBox="0 0 8 8"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              class="timeline-arrow"
+              :class="openedIndex === index ? 'timeline-arrow-active' : 'timeline-arrow-inactive'"
+            >
+              <path
+                d="M4 1L4 7M4 7L2 5M4 7L6 5"
+                stroke="currentColor"
+                stroke-width="1.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
 
           <details
             class="bg-gray-100/70 dark:bg-[#2a3546]/30 border border-gray-200/60 dark:border-border-dark rounded-md overflow-hidden hover:bg-gray-100 dark:hover:bg-[#2a3546]/50 transition-colors group/details"
@@ -183,6 +203,30 @@ details > summary .marker {
 
 details[open] > summary .marker {
   transform: rotate(90deg);
+}
+
+.timeline-line {
+  /* 时间线宽度是 2px (w-0.5)，中心在 1px */
+  left: 0;
+  width: 2px;
+}
+
+.timeline-circle {
+  /* 圆圈宽度是 20px (h-5 w-5)，中心应该在 1px 与时间线对齐 */
+  left: 1px;
+  transform: translateX(-50%);
+}
+
+.timeline-arrow {
+  color: #9ca3af;
+}
+
+.dark .timeline-arrow {
+  color: #cbd5e1;
+}
+
+.timeline-arrow-active {
+  color: #ffffff;
 }
 </style>
 
