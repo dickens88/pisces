@@ -1268,7 +1268,7 @@
 
       <!-- Evidence & Response 标签页：响应流程 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
           <!-- 顶部Header -->
           <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
             <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1282,19 +1282,10 @@
               <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
               </button>
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.rlReview') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.gocReview') }}
-              </button>
               <div class="relative group">
                 <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
                   {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                  <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                  <span class="material-symbols-outlined text-sm">refresh</span>
                 </button>
               </div>
             </div>
