@@ -422,7 +422,7 @@
               type="button"
               class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-transparent border-2 border-gray-300 dark:border-[#324867] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-[#1c2533] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               :disabled="!selectedAlert"
-              @click="!selectedAlert ? null : (showRetrievalOverlay = true)"
+              @click="handleFineTuneClick"
             >
               <span class="material-symbols-outlined text-base">tune</span>
               {{ $t('aiPlayground.fineTuneAI') }}
@@ -524,6 +524,13 @@
                         class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
                       >
                         <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                        <option
+                          v-for="workflow in workflows"
+                          :key="workflow.id"
+                          :value="workflow.id"
+                        >
+                          {{ workflow.name }}
+                        </option>
                       </select>
                       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
                         <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
@@ -559,6 +566,10 @@ import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 const { t } = useI18n()
 const toast = useToast()
 
+// Dify workflow API configuration (frontend env vars)
+const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
+const aiWorkflowApiKey = import.meta.env.VITE_PLAYGROUND_WORKFLOWS_KEY
+
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
 const showCharts = ref(true)
@@ -592,6 +603,7 @@ const selectedAlertDetail = ref(null)
 const selectedAlertLoading = ref(false)
 const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
+const workflows = ref([])
 const aiJudgeFilter = ref('all')
 const matchFilter = ref('all')
 const humanVerdictValue = ref('')
@@ -1330,6 +1342,60 @@ const handleUpdateVerdict = async () => {
   }
 }
 
+// Trigger Dify workflow API for the selected alert
+const triggerAiWorkflow = async () => {
+  if (!selectedAlert.value || !aiWorkflowApi || !aiWorkflowApiKey) return
+
+  try {
+    const alertId = selectedAlert.value.alert_id || selectedAlert.value.id
+    if (!alertId) return
+
+    const payload = {
+      inputs:{},
+      response_mode: 'blocking',
+      user:'Pisces AI Playground'
+    }
+
+    const response = await fetch(aiWorkflowApi, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${aiWorkflowApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      // Note: In browsers, SSL certificate validation cannot be bypassed.
+      // If the certificate is invalid, the request will fail at the network layer.
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    
+    // Parse the response structure: data.outputs.results
+    if (data?.data?.outputs?.results && Array.isArray(data.data.outputs.results)) {
+      workflows.value = data.data.outputs.results.map(result => ({
+        id: result.id,
+        name: result.name
+      }))
+    } else {
+      workflows.value = []
+      console.warn('Unexpected response structure from AI workflow API:', data)
+    }
+  } catch (error) {
+    console.error('Failed to call AI workflow API:', error)
+    workflows.value = []
+  }
+}
+
+// Handle Fine-tune AI button click
+const handleFineTuneClick = () => {
+  if (!selectedAlert.value) return
+  showRetrievalOverlay.value = true
+  triggerAiWorkflow()
+}
+
 const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
@@ -1479,11 +1545,18 @@ watch(showRetrievalOverlay, (isOpen) => {
     document.body.style.overflow = 'hidden'
   } else {
     document.body.style.overflow = ''
+    // Reset workflow selection when overlay closes
+    selectedWorkflow.value = ''
+    workflows.value = []
   }
 })
 
 // Watch selectedAlert to constrain table columns when detail panel opens/closes
 watch(selectedAlert, () => {
+  // Reset workflow selection when a new alert is selected
+  selectedWorkflow.value = ''
+  workflows.value = []
+  
   // Wait for layout to update, then constrain columns
   nextTick(() => {
     setTimeout(() => {
