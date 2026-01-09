@@ -589,14 +589,16 @@
         "rlReview": "RL Review",
         "gocReview": "GOC Review",
         "updateStatus": "Update Status",
-        "steps": {
-          "detection": "Detection",
-          "response": "Response",
-          "mitigation": "Mitigation",
-          "reporting": "Reporting",
-          "recovery": "Recovery",
-          "remediation": "Remediation",
-          "lessonsLearned": "Lessons learned"
+        "metrics": {
+          "averageAttackTracingTime": "Average Attack Tracing Time",
+          "mttTracing": "MTT Tracing",
+          "averageAttackBlockingTime": "Average Attack Blocking Time",
+          "mttBlocking": "MTT Blocking",
+          "averageRiskMitigationTime": "Average Risk Mitigation Time",
+          "mttr": "MTTR",
+          "averageVulnerabilityEntryTime": "Average Vulnerability Entry Location Time",
+          "mttVulnerabilityEntry": "MTT Vulnerability Entry",
+          "unit": "hours"
         },
         "cards": {
           "impactedServices": {
@@ -857,6 +859,7 @@
         "confirmMessage": "Are you sure you want to disassociate {count} alert(s)?"
       },
       "comments": {
+        "title": "Comments",
         "addComment": "Add a comment...",
         "post": "Post",
         "attachFile": "Attach File",

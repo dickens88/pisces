@@ -584,14 +584,16 @@
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
-        "steps": {
-          "detection": "Detection",
-          "response": "Response",
-          "mitigation": "Mitigation",
-          "reporting": "Reporting",
-          "recovery": "Recovery",
-          "remediation": "Remediation",
-          "lessonsLearned": "Lessons learned"
+        "metrics": {
+          "averageAttackTracingTime": "平均攻击溯源时间",
+          "mttTracing": "MTT溯源",
+          "averageAttackBlockingTime": "平均攻击源拦截时间",
+          "mttBlocking": "MTT拦截",
+          "averageRiskMitigationTime": "平均风险消减时间",
+          "mttr": "MTTR",
+          "averageVulnerabilityEntryTime": "平均漏洞入口定位时间",
+          "mttVulnerabilityEntry": "MTT漏洞入口定位",
+          "unit": "小时"
         },
         "cards": {
           "impactedServices": {
@@ -863,6 +865,7 @@
         "confirmMessage": "请确认是否解关联 {count} 条告警？"
       },
       "comments": {
+        "title": "评论",
         "addComment": "添加评论...",
         "post": "发布",
         "attachFile": "附件",
