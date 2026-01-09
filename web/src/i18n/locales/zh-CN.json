@@ -527,6 +527,7 @@
       "rootCauseUnauthorizedApi": "未授权接口",
       "rootCausePenetrationTest": "渗透测试",
       "rootCauseVulnerabilityExploit": "漏洞利用",
+      "rootCauseInfringementComplaint": "侵权投诉",
       "selectSeverity": "请选择严重程度",
       "currentStatus": "当前状态",
       "description": "事件描述",

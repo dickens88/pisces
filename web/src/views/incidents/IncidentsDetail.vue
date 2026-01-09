@@ -4685,9 +4685,8 @@ const formatComments = (comments) => {
       content: comment.content || comment.message,
       create_time: comment.create_time,
       file: comment.file || null,  // 保留文件信息
-      // 评论类型（后端可能返回 comment_type 或 type）
-      type: comment.comment_type || comment.type || 'comment',
-      comment_type: comment.comment_type || comment.type || 'comment',
+      type: comment.comment_type || comment.type || null,
+      comment_type: comment.comment_type || comment.type || null,
       // 标记评论是否存在于数据库中
       exists_in_db: comment.exists_in_db !== false  // 默认为true，如果明确标记为false则为false
     }

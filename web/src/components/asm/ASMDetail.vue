@@ -867,7 +867,8 @@ const transformAlertDetailData = (apiData) => {
     authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
     time: formatDateTime(comment.create_time || comment.time),
     content: comment.content || '',
-    file: comment.file || null
+    file: comment.file || null,
+    type: comment.type || null
   }))
 
   const intelligence = (apiData.intelligence || []).map(item => ({
