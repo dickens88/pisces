@@ -198,16 +198,13 @@
                       </label>
                     </div>
                     <div class="relative" ref="taskIdDropdownRef">
+                      <!-- 搜索输入框和已选标签容器 -->
                       <div
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 cursor-pointer min-h-[2.5rem] flex items-center flex-wrap gap-1"
-                        @click="showTaskIdDropdown = taskIdOptions.length > 0"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 min-h-[2.5rem] flex items-center flex-wrap gap-1"
+                        @click="toggleTaskIdDropdown"
                       >
-                        <template v-if="selectedWarroomIds.length === 0">
-                          <span class="text-gray-400 dark:text-slate-500">
-                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
-                          </span>
-                        </template>
-                        <template v-else>
+                        <!-- 已选中的warroom标签 -->
+                        <template v-if="selectedWarroomIds.length > 0">
                           <span
                             v-for="warroomId in selectedWarroomIds"
                             :key="warroomId"
@@ -222,15 +219,45 @@
                             </button>
                           </span>
                         </template>
+                        <!-- 搜索输入框 -->
+                        <input
+                          v-if="showTaskIdDropdown"
+                          v-model="warroomSearchKeyword"
+                          @input="handleWarroomSearch"
+                          @click.stop
+                          @keydown.escape="showTaskIdDropdown = false"
+                          type="text"
+                          :placeholder="translateOr('incidents.detail.eventGraph.searchWarroomPlaceholder', '输入关键字搜索WR...')"
+                          class="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                        />
+                        <!-- 未选中且未展开时的占位符 -->
+                        <template v-else-if="selectedWarroomIds.length === 0">
+                          <span class="text-gray-400 dark:text-slate-500">
+                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
+                          </span>
+                        </template>
+                        <!-- 下拉箭头图标 -->
+                        <span class="material-symbols-outlined text-sm text-gray-400 dark:text-slate-500 ml-auto">
+                          {{ showTaskIdDropdown ? 'expand_less' : 'expand_more' }}
+                        </span>
                       </div>
                       <!-- 下拉选择列表（多选） -->
                       <div
-                        v-if="showTaskIdDropdown && taskIdOptions.length > 0"
+                        v-if="showTaskIdDropdown"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         @mousedown.prevent
                       >
+                        <!-- 加载状态 -->
+                        <div v-if="loadingProjectList" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.loading', '加载中...') }}
+                        </div>
+                        <!-- 无结果提示 -->
+                        <div v-else-if="!loadingProjectList && projectOptions.length === 0" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.noWarroomFound', '未找到匹配的WR') }}
+                        </div>
+                        <!-- 选项列表 -->
                         <div
-                          v-for="option in taskIdOptions"
+                          v-for="option in projectOptions"
                           :key="option.value"
                           @click.stop="toggleWarroomSelection(option.value)"
                           :class="[
@@ -315,11 +342,23 @@
                                   {{ task.stageName }}
                                 </span>
                               </div>
-                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
-                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                              </div>
+                              <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                              </div>
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              </div>
+                              <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
+                                <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                  {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.finished', 'Finished') : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
+                                </span>
                               </div>
                               <div v-if="task.detail_url" class="mt-2">
                                 <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -353,11 +392,23 @@
                                   {{ task.stageName }}
                                 </span>
                               </div>
-                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
-                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                              </div>
+                              <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                              </div>
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              </div>
+                              <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
+                                <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                  {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.finished', 'Finished') : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
+                                </span>
                               </div>
                               <div v-if="task.detail_url" class="mt-2">
                                 <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -418,11 +469,23 @@
                                     {{ task.stageName }}
                                   </span>
                                 </div>
-                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                                 </div>
-                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                                </div>
+                                <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                                </div>
+                                <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                                </div>
+                                <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Is Done') }}: </span>
+                                  <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                    {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.yes', 'Yes') : translateOr('incidents.detail.eventGraph.no', 'No') }}
+                                  </span>
                                 </div>
                                 <div v-if="task.detail_url" class="mt-2">
                                   <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -459,11 +522,23 @@
                                     {{ task.stageName }}
                                   </span>
                                 </div>
-                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                                 </div>
-                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                                </div>
+                                <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                                </div>
+                                <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                                </div>
+                                <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Is Done') }}: </span>
+                                  <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                    {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.yes', 'Yes') : translateOr('incidents.detail.eventGraph.no', 'No') }}
+                                  </span>
                                 </div>
                                 <div v-if="task.detail_url" class="mt-2">
                                   <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -503,21 +578,30 @@
                               </span>
                             </div>
                             <!-- 员工账号 -->
-                            <div v-if="taskDetail.employeeAccount" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                            <div v-if="taskDetail.owner" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}
                               </div>
                               <div class="text-xs text-gray-700 dark:text-slate-300">
-                                {{ taskDetail.employeeAccount }}
+                                {{ taskDetail.owner }}
                               </div>
                             </div>
-                            <!-- 计划结束时间 -->
-                            <div v-if="taskDetail.plan_end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                            <!-- 开始时间 -->
+                            <div v-if="taskDetail.start_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}
                               </div>
                               <div class="text-xs text-gray-700 dark:text-slate-300">
-                                {{ formatTaskDateTime(taskDetail.plan_end_time) }}
+                                {{ formatTaskDateTime(taskDetail.start_time) }}
+                              </div>
+                            </div>
+                            <!-- 结束时间 -->
+                            <div v-if="taskDetail.end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ formatTaskDateTime(taskDetail.end_time) }}
                               </div>
                             </div>
                             <!-- 优先级 -->
@@ -543,8 +627,8 @@
                                 ]"
                               >
                                 {{ taskDetail.isDone === 'true' || taskDetail.isDone === true 
-                                  ? translateOr('incidents.detail.eventGraph.completed', 'Completed')
-                                  : translateOr('incidents.detail.eventGraph.inProgress', 'In Progress') }}
+                                  ? translateOr('incidents.detail.eventGraph.finished', 'Finished')
+                                  : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
                               </span>
                             </div>
                             <!-- 详情链接 -->
@@ -1184,7 +1268,7 @@
 
       <!-- Evidence & Response 标签页：响应流程 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
           <!-- 顶部Header -->
           <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
             <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1198,19 +1282,10 @@
               <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
               </button>
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.rlReview') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.gocReview') }}
-              </button>
               <div class="relative group">
                 <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
                   {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                  <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                  <span class="material-symbols-outlined text-sm">refresh</span>
                 </button>
               </div>
             </div>
@@ -1506,8 +1581,8 @@
                             {{ task.stageName || '--' }}
                           </span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.employeeAccount || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.plan_end_time ? formatTaskDateTime(task.plan_end_time) : '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.owner || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
                           <span v-if="task.priority" :class="[
                             'inline-block px-2 py-0.5 rounded text-xs',
@@ -1881,7 +1956,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
 import { updateComment, deleteComment } from '@/api/comments'
-import { getGroupList, getTaskDetail } from '@/api/securityAgent'
+import { getProjectList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -3468,6 +3543,10 @@ onBeforeUnmount(() => {
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
   }
+  // 清理WR搜索防抖定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
     // 移除点击外部区域关闭下拉框的事件监听
@@ -3771,8 +3850,8 @@ const notificationForm = ref({
 // 任务管理相关状态
 const selectedTaskId = ref('') // 保留用于向后兼容
 const selectedWarroomIds = ref([]) // 选中的warroom ID数组
-const taskIdOptions = ref([]) // 任务ID选项列表，格式：{ label: "groupname", value: "groupid" }
-const loadingTaskIdList = ref(false)
+const projectOptions = ref([]) // 项目选项列表，格式：{ label: "project_name", value: "project_uuid" }
+const loadingProjectList = ref(false)
 const taskDetail = ref(null) // 保留用于向后兼容
 const groupedTaskDetails = ref({}) // 按warroom ID分组存储的任务详情 { warroomId: taskDetail }
 const loadingTaskDetail = ref(false)
@@ -3782,13 +3861,15 @@ const showTaskIdDropdown = ref(false)
 const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 const taskIdDropdownRef = ref(null)
+const warroomSearchKeyword = ref('') // WR搜索关键字
+const warroomSearchTimer = ref(null) // 防抖定时器
 
-// 根据选中的 taskId 获取对应的 groupname 用于显示（向后兼容）
+// 根据选中的 taskId 获取对应的 project_name 用于显示（向后兼容）
 const selectedTaskName = computed(() => {
-  if (!selectedTaskId.value || !taskIdOptions.value.length) {
+  if (!selectedTaskId.value || !projectOptions.value.length) {
     return ''
   }
-  const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
+  const selectedOption = projectOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
 })
 
@@ -3848,7 +3929,7 @@ const filteredProgressSyncTasks = computed(() => {
       // 待我处理的指令：状态为待处理且责任人为当前用户
       return tasks.filter(task => {
         const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
-        const owner = task.employeeAccount || task.owner || task.assignee
+        const owner = task.owner || task.employeeAccount || task.assignee
         const isMyTask = owner === currentUser
         return isPending && isMyTask
       })
@@ -3868,10 +3949,10 @@ const filteredProgressSyncTasks = computed(() => {
 
 // 获取warroom名称
 const getWarroomName = (warroomId) => {
-  if (!warroomId || !taskIdOptions.value.length) {
+  if (!warroomId || !projectOptions.value.length) {
     return warroomId || ''
   }
-  const option = taskIdOptions.value.find(opt => opt.value === String(warroomId))
+  const option = projectOptions.value.find(opt => opt.value === String(warroomId))
   return option ? option.label : warroomId
 }
 
@@ -3891,12 +3972,50 @@ const toggleWarroomSelection = (warroomId) => {
   }
 }
 
-// 移除warroom（从选中列表中移除）
-const removeWarroom = (warroomId) => {
+// 移除warroom（从选中列表中移除，并执行解绑操作）
+const removeWarroom = async (warroomId) => {
   const id = String(warroomId)
   const index = selectedWarroomIds.value.indexOf(id)
-  if (index > -1) {
+  if (index === -1) {
+    return // 如果不在选中列表中，直接返回
+  }
+
+  // 如果事件ID不存在，只从本地状态移除（用于未保存的情况）
+  if (!incident.value?.id) {
     selectedWarroomIds.value.splice(index, 1)
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+    return
+  }
+
+  try {
+    // 1. 从选中列表中移除
+    selectedWarroomIds.value.splice(index, 1)
+
+    // 2. 从分组任务详情中移除
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+
+    // 3. 更新数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 如果所有warroom都解绑了，重置状态
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+  } catch (error) {
+    console.error('Failed to remove warroom:', error)
+    // 如果操作失败，恢复选中状态
+    if (!selectedWarroomIds.value.includes(id)) {
+      selectedWarroomIds.value.push(id)
+    }
+    // 显示错误提示
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
   }
 }
 
@@ -3970,25 +4089,27 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphGeneratedAt,
       lastUpdateTime: data.last_update_time || data.update_time
     }
-    // 自动获取任务列表（后台静默调用，不显示加载提示）
-    loadTaskIdList().catch((err) => {
-      console.error('Failed to auto load task list:', err)
+    // 自动获取项目列表（后台静默调用，不显示加载提示）
+    loadProjectList().catch((err) => {
+      console.error('Failed to auto load project list:', err)
     })
-    // 如果后端已存储 task_id 或 warroom_ids，则自动填充并尝试加载任务详情
-    if (data.task_id) {
-      // 兼容旧格式：单个task_id
-      if (typeof data.task_id === 'string') {
-        selectedTaskId.value = data.task_id
-        selectedWarroomIds.value = [data.task_id]
+    // 如果后端已存储 project_uuid 或 warroom_ids，则自动填充并尝试加载任务详情
+    // 兼容旧字段名task_id（向后兼容）
+    const projectUuid = data.project_uuid || data.task_id
+    if (projectUuid) {
+      // 兼容旧格式：单个project_uuid
+      if (typeof projectUuid === 'string') {
+        selectedTaskId.value = projectUuid
+        selectedWarroomIds.value = [projectUuid]
         // 初次进入时默认不展开编辑区域
         isEditingTaskId.value = false
         // 异步加载任务详情（失败时只在控制台打印）
         loadTaskDetail().catch((err) => {
           console.error('Failed to auto load task detail:', err)
         })
-      } else if (Array.isArray(data.task_id) && data.task_id.length > 0) {
-        // 新格式：多个warroom IDs
-        selectedWarroomIds.value = data.task_id.map(id => String(id))
+      } else if (Array.isArray(projectUuid) && projectUuid.length > 0) {
+        // 新格式：多个project UUIDs
+        selectedWarroomIds.value = projectUuid.map(id => String(id))
         // 初次进入时默认不展开编辑区域
         isEditingTaskId.value = false
         // 自动加载所有warroom的任务详情（不保存到数据库，因为已经保存过了）
@@ -4562,42 +4683,68 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
-// 自动获取组列表并格式化显示
-const loadTaskIdList = async () => {
-  loadingTaskIdList.value = true
+const loadProjectList = async (keyword = '') => {
+  loadingProjectList.value = true
   try {
-    const groupList = await getGroupList()
+    // 如果有关键字，使用关键字作为project_name进行模糊搜索；否则使用默认值'warroom'
+    const project_name = keyword.trim() || 'warroom'
+    const projectList = await getProjectList({ project_name })
     
-    if (!Array.isArray(groupList)) {
-      taskIdOptions.value = []
+    if (!Array.isArray(projectList)) {
+      projectOptions.value = []
       return
     }
     
-    // 存储格式化的选项：{ label: "groupname", value: "groupid" }，只显示 groupname
-    taskIdOptions.value = groupList
-      .map(item => {
-        if (typeof item === 'string' || typeof item === 'number') {
-          return { label: String(item), value: String(item) }
-        }
-        const groupId = String(item.group_id || item.id || item.task_id || item)
-        const groupName = item.group_name || item.name || ''
-        // 只显示 groupname，如果没有 groupname 则显示 groupId 作为后备
-        const label = groupName || groupId
-        return { label, value: groupId }
-      })
+    projectOptions.value = projectList
+      .map(item => ({
+        label: item.projectName || item.projectUuid,
+        value: item.projectUuid
+      }))
       .filter(item => item.value)
   } catch (error) {
-    console.error('Failed to load group list:', error)
-    taskIdOptions.value = []
+    console.error('Failed to load project list:', error)
+    projectOptions.value = []
   } finally {
-    loadingTaskIdList.value = false
+    loadingProjectList.value = false
   }
+}
+
+// 处理WR搜索输入（带防抖）
+const handleWarroomSearch = () => {
+  // 清除之前的定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
+  
+  // 设置新的防抖定时器（500ms）
+  warroomSearchTimer.value = setTimeout(() => {
+    const keyword = warroomSearchKeyword.value.trim()
+    loadProjectList(keyword)
+  }, 500)
 }
 
 // 选择任务ID（向后兼容）
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
   showTaskIdDropdown.value = false
+}
+
+const toggleTaskIdDropdown = () => {
+  showTaskIdDropdown.value = !showTaskIdDropdown.value
+  // 当打开下拉框时，如果没有选项，加载默认列表
+  if (showTaskIdDropdown.value) {
+    if (projectOptions.value.length === 0) {
+      // 如果没有选项，重置搜索关键字并加载默认列表
+      warroomSearchKeyword.value = ''
+      loadProjectList()
+    } else if (warroomSearchKeyword.value.trim()) {
+      // 如果有关键字，使用关键字重新搜索
+      loadProjectList(warroomSearchKeyword.value.trim())
+    }
+  } else {
+    // 关闭下拉框时，清空搜索关键字
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 关闭任务ID下拉框
@@ -4607,6 +4754,8 @@ const closeTaskIdDropdown = (event) => {
     return
   }
   showTaskIdDropdown.value = false
+  // 关闭下拉框时，清空搜索关键字
+  warroomSearchKeyword.value = ''
 }
 
 // 将当前warroom IDs写入本地数据库（与事件绑定）
@@ -4650,7 +4799,8 @@ const loadWarroomDetailsOnly = async () => {
     // 并行获取所有warroom的任务详情
     const taskDetailPromises = selectedWarroomIds.value.map(async (warroomId) => {
       try {
-        const result = await getTaskDetail({ groupId: String(warroomId).trim() })
+        // 使用project_uuid作为参数
+        const result = await getTaskDetail({ project_uuid: String(warroomId).trim() })
         return { warroomId, taskDetail: result }
       } catch (error) {
         console.error(`Failed to load task detail for warroom ${warroomId}:`, error)
@@ -4710,32 +4860,9 @@ const bindWarrooms = async () => {
   }
 }
 
-// 解绑warroom：从数据库和本地状态中移除
+// 解绑warroom：从数据库和本地状态中移除（调用removeWarroom执行完整解绑操作）
 const unbindWarroom = async (warroomId) => {
-  if (!incident.value?.id) {
-    return
-  }
-
-  try {
-    // 1. 从选中列表中移除
-    removeWarroom(warroomId)
-
-    // 2. 从分组任务详情中移除
-    const newGrouped = { ...groupedTaskDetails.value }
-    delete newGrouped[warroomId]
-    groupedTaskDetails.value = newGrouped
-
-    // 3. 更新数据库
-    await saveWarroomIdsForIncident(selectedWarroomIds.value)
-
-    // 如果所有warroom都解绑了，重置状态
-    if (selectedWarroomIds.value.length === 0) {
-      taskDetailLoaded.value = false
-    }
-  } catch (error) {
-    console.error('Failed to unbind warroom:', error)
-    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
-  }
+  await removeWarroom(warroomId)
 }
 
 // 加载任务详情（向后兼容，保留原有逻辑）
@@ -4751,7 +4878,8 @@ const loadTaskDetail = async () => {
   taskDetail.value = null
 
   try {
-    const result = await getTaskDetail({ groupId: selectedTaskId.value.trim() })
+    // 使用project_uuid作为参数
+    const result = await getTaskDetail({ project_uuid: selectedTaskId.value.trim() })
     
     // 处理返回结果
     taskDetail.value = result

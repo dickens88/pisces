@@ -42,19 +42,19 @@ class Incident(Base):
     alert_list = Column(Text())
     graph_data = Column(LONGTEXT())
     graph_summary = Column(Text())
-    task_id = Column(Text())
+    project_uuid = Column(Text())
 
     def to_dict(self):
         extend_properties = parse_json_field(self.extend_properties)
         alert_list = parse_json_field(self.alert_list)
         graph_data = parse_json_field(self.graph_data)
-        # 解析task_id：如果是JSON数组字符串，解析为数组；否则保持原样
-        task_id = self.task_id
-        if task_id:
+        # 解析project_uuid：如果是JSON数组字符串，解析为数组；否则保持原样
+        project_uuid = self.project_uuid
+        if project_uuid:
             try:
-                parsed = json.loads(task_id)
+                parsed = json.loads(project_uuid)
                 if isinstance(parsed, list):
-                    task_id = parsed
+                    project_uuid = parsed
             except (json.JSONDecodeError, TypeError):
                 # 不是JSON格式，保持原样（单个字符串）
                 pass
@@ -84,7 +84,7 @@ class Incident(Base):
             "alert_list": alert_list,
             "graph_data": graph_data,
             "graph_summary": self.graph_summary,
-            "task_id": task_id,
+            "project_uuid": project_uuid,
         }
 
     @classmethod
@@ -321,30 +321,30 @@ class Incident(Base):
             is_auto_closed=str(payload.get("is_auto_closed")) if payload.get("is_auto_closed") is not None else None,
             extend_properties=extend_properties,
             alert_list=alert_list,
-            task_id=payload.get("task_id"),
+            project_uuid=payload.get("project_uuid"),
         )
 
     @classmethod
-    def update_task_id(cls, incident_id: str, task_id: str | None | list):
-        """Update or set task_id for an incident in local DB. 
-        Supports both single task_id (string) and multiple warroom IDs (list).
-        Multiple IDs are stored as JSON array string."""
+    def update_project_uuid(cls, incident_id: str, project_uuid: str | None | list):
+        """Update or set project_uuid for an incident in local DB. 
+        Supports both single project_uuid (string) and multiple project UUIDs (list).
+        Multiple UUIDs are stored as JSON array string."""
         session = Session()
         try:
-            # 处理多个warroom ID的情况：转换为JSON数组字符串
-            if isinstance(task_id, list):
-                task_id_str = json.dumps(task_id, ensure_ascii=False) if task_id else None
-            elif task_id is None:
-                task_id_str = None
+            # 处理多个project UUID的情况：转换为JSON数组字符串
+            if isinstance(project_uuid, list):
+                project_uuid_str = json.dumps(project_uuid, ensure_ascii=False) if project_uuid else None
+            elif project_uuid is None:
+                project_uuid_str = None
             else:
-                task_id_str = str(task_id)
+                project_uuid_str = str(project_uuid)
             
             incident = session.query(cls).filter_by(incident_id=incident_id).first()
             if not incident:
-                incident = cls(incident_id=incident_id, task_id=task_id_str)
+                incident = cls(incident_id=incident_id, project_uuid=project_uuid_str)
                 session.add(incident)
             else:
-                incident.task_id = task_id_str
+                incident.project_uuid = project_uuid_str
             session.commit()
             session.refresh(incident)
             return incident.to_dict()
