@@ -24,6 +24,14 @@
       "riskMitigation": "风险消减",
       "vulnerabilityIdentification": "漏洞定位"
     },
+    "action": "动作",
+    "actionTypes": {
+      "changeowner": "修改责任人",
+      "close": "关闭",
+      "changeseverity": "修改告警等级",
+      "changehandlestatus": "修改处理状态",
+      "note": "评论"
+    },
     "noData": "暂无数据",
     "warning": "警告",
     "login": {

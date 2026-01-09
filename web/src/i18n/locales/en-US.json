@@ -24,6 +24,14 @@
       "riskMitigation": "Risk mitigation",
       "vulnerabilityIdentification": "Vulnerability identification"
     },
+    "action": "Action",
+    "actionTypes": {
+      "changeowner": "Change Owner",
+      "close": "Close",
+      "changeseverity": "Change Severity",
+      "changehandlestatus": "Change Handle Status",
+      "note": "Comment"
+    },
     "noData": "No data available",
     "warning": "Warning",
     "login": {
