@@ -532,6 +532,7 @@
       "rootCauseUnauthorizedApi": "Unauthorized API",
       "rootCausePenetrationTest": "Penetration Test",
       "rootCauseVulnerabilityExploit": "Vulnerability Exploit",
+      "rootCauseInfringementComplaint": "Infringement Complaint",
       "selectSeverity": "Please select severity",
       "currentStatus": "Current Status",
       "description": "Description",

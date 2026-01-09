@@ -8,10 +8,11 @@ const SEVERITY_COLORS = {
   'High': '#FF7A45',
   'Medium': '#FFA940',
   'Low': '#1890FF',
+  'Tips': '#91D5FF',
   'Unknown': '#8C8C8C'
 }
 
-const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low']
+const SEVERITY_ORDER = ['Critical', 'High', 'Medium', 'Low', 'Tips']
 const PIE_COLORS = [
   '#60a5fa', '#3b82f6', '#2563eb', '#1d4ed8', '#1e40af',
   '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95',

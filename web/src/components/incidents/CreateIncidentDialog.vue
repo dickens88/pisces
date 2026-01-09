@@ -148,6 +148,7 @@
                     <option value="unauthorizedApi">{{ $t('incidents.create.rootCauseUnauthorizedApi') }}</option>
                     <option value="penetrationTest">{{ $t('incidents.create.rootCausePenetrationTest') }}</option>
                     <option value="vulnerabilityExploit">{{ $t('incidents.create.rootCauseVulnerabilityExploit') }}</option>
+                    <option value="infringementComplaint">{{ $t('incidents.create.rootCauseInfringementComplaint') }}</option>
                   </select>
                 </div>
 
