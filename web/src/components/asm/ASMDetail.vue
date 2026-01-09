@@ -518,28 +518,7 @@
                 </div>
 
                 <!-- 事件时间线 -->
-                <div class="space-y-4" v-if="alert?.timeline">
-                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.eventTimeline') }}</h3>
-                  <div class="relative pl-6">
-                    <div class="absolute left-0 h-full w-0.5 bg-gray-200 dark:bg-border-dark"></div>
-                    <div class="relative space-y-6">
-                      <div
-                        v-for="(event, index) in alert.timeline"
-                        :key="index"
-                        class="relative"
-                      >
-                        <div
-                          :class="[
-                            'absolute -left-7 top-1.5 h-2 w-2 rounded-full ring-4 ring-gray-100 dark:ring-panel-dark',
-                            index === 0 ? 'bg-primary' : 'bg-gray-300 dark:bg-border-dark'
-                          ]"
-                        ></div>
-                        <p class="text-xs text-gray-500 dark:text-text-light">{{ event.time }}</p>
-                        <p class="text-sm text-gray-900 dark:text-white">{{ event.event }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AlertTimeline :timeline="alert?.timeline || []" />
                 </div>
               </div>
             </aside>
@@ -718,6 +697,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentInput from '@/components/common/CommentInput.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
+import AlertTimeline from '@/components/common/AlertTimeline.vue'
 import { useToast } from '@/composables/useToast'
 import { useRecentCloseCommentSuggestions } from '@/composables/useRecentCloseCommentSuggestions'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
@@ -911,10 +891,14 @@ const transformAlertDetailData = (apiData) => {
   }))
 
   const timeline = (apiData.timeline || []).map(event => {
-    const formattedTime = formatDateTime(event.time || event.timestamp)
+    const rawTime = event.time || event.timestamp
+    const formattedTime = formatDateTime(rawTime)
     return {
-      time: formattedTime !== '-' ? formattedTime : (event.time || '-'),
-      event: event.event || ''
+      time: formattedTime !== '-' ? formattedTime : (rawTime || '-'),
+      event: event.event || '',
+      author: event.author || '',
+      content: event.content || '',
+      rawTime: rawTime || ''
     }
   })
 

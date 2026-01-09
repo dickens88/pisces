@@ -53,6 +53,7 @@ export const regenerateIncidentGraph = (incidentId) => {
 }
 
 // Get / update task id bound to an incident (stored only in local DB)
+// Supports both single task_id (string) and multiple warroom_ids (array)
 export const updateIncidentTask = (incidentId, data) => {
   return service.put(`/incidents/${incidentId}/task`, data)
 }

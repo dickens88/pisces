@@ -48,6 +48,16 @@ class Incident(Base):
         extend_properties = parse_json_field(self.extend_properties)
         alert_list = parse_json_field(self.alert_list)
         graph_data = parse_json_field(self.graph_data)
+        # 解析task_id：如果是JSON数组字符串，解析为数组；否则保持原样
+        task_id = self.task_id
+        if task_id:
+            try:
+                parsed = json.loads(task_id)
+                if isinstance(parsed, list):
+                    task_id = parsed
+            except (json.JSONDecodeError, TypeError):
+                # 不是JSON格式，保持原样（单个字符串）
+                pass
 
         return {
             "id": self.id,
@@ -74,7 +84,7 @@ class Incident(Base):
             "alert_list": alert_list,
             "graph_data": graph_data,
             "graph_summary": self.graph_summary,
-            "task_id": self.task_id,
+            "task_id": task_id,
         }
 
     @classmethod
@@ -315,16 +325,26 @@ class Incident(Base):
         )
 
     @classmethod
-    def update_task_id(cls, incident_id: str, task_id: str | None):
-        """Update or set task_id for an incident in local DB."""
+    def update_task_id(cls, incident_id: str, task_id: str | None | list):
+        """Update or set task_id for an incident in local DB. 
+        Supports both single task_id (string) and multiple warroom IDs (list).
+        Multiple IDs are stored as JSON array string."""
         session = Session()
         try:
+            # 处理多个warroom ID的情况：转换为JSON数组字符串
+            if isinstance(task_id, list):
+                task_id_str = json.dumps(task_id, ensure_ascii=False) if task_id else None
+            elif task_id is None:
+                task_id_str = None
+            else:
+                task_id_str = str(task_id)
+            
             incident = session.query(cls).filter_by(incident_id=incident_id).first()
             if not incident:
-                incident = cls(incident_id=incident_id, task_id=task_id)
+                incident = cls(incident_id=incident_id, task_id=task_id_str)
                 session.add(incident)
             else:
-                incident.task_id = task_id
+                incident.task_id = task_id_str
             session.commit()
             session.refresh(incident)
             return incident.to_dict()

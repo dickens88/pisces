@@ -184,30 +184,46 @@
               <div class="flex-1 overflow-y-auto" style="height: 0;">
                 <!-- 任务管理内容 -->
                 <div v-if="leftPaneActiveTab === 'taskManagement'" class="p-4 space-y-4">
-                  <!-- 任务ID选择器：
+                  <!-- Warroom选择器：
                        - 初次进入 / 未加载过详情时始终可见
                        - 点击铅笔进入编辑时可见
                        - 只有在已加载出任务详情且未处于编辑状态时才收起 -->
                   <div
-                    v-if="isEditingTaskId || !taskDetailLoaded || !selectedTaskId || loadingTaskDetail"
+                    v-if="isEditingTaskId || !taskDetailLoaded || selectedWarroomIds.length === 0 || loadingTaskDetail"
                     class="space-y-2"
                   >
                     <div class="flex items-center justify-between">
                       <label class="text-xs font-medium text-gray-700 dark:text-slate-300">
-                        {{ translateOr('incidents.detail.eventGraph.selectTaskId', 'Select Group ID') }}
+                        {{ translateOr('incidents.detail.eventGraph.selectWarroom', '选择Warroom') }}
                       </label>
                     </div>
                     <div class="relative" ref="taskIdDropdownRef">
-                      <input
-                        :value="selectedTaskName"
-                        type="text"
-                        readonly
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/60 focus:border-primary/60 cursor-pointer"
-                        :placeholder="translateOr('incidents.detail.eventGraph.taskIdPlaceholder', 'Please select from dropdown')"
-                        @focus="showTaskIdDropdown = taskIdOptions.length > 0"
+                      <div
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 cursor-pointer min-h-[2.5rem] flex items-center flex-wrap gap-1"
                         @click="showTaskIdDropdown = taskIdOptions.length > 0"
-                      />
-                      <!-- 下拉选择列表 -->
+                      >
+                        <template v-if="selectedWarroomIds.length === 0">
+                          <span class="text-gray-400 dark:text-slate-500">
+                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
+                          </span>
+                        </template>
+                        <template v-else>
+                          <span
+                            v-for="warroomId in selectedWarroomIds"
+                            :key="warroomId"
+                            class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs"
+                          >
+                            {{ getWarroomName(warroomId) }}
+                            <button
+                              @click.stop="removeWarroom(warroomId)"
+                              class="hover:text-blue-600 dark:hover:text-blue-200"
+                            >
+                              <span class="material-symbols-outlined text-xs">close</span>
+                            </button>
+                          </span>
+                        </template>
+                      </div>
+                      <!-- 下拉选择列表（多选） -->
                       <div
                         v-if="showTaskIdDropdown && taskIdOptions.length > 0"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
@@ -216,31 +232,151 @@
                         <div
                           v-for="option in taskIdOptions"
                           :key="option.value"
-                          @click="selectTaskId(option.value)"
-                          class="px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer"
+                          @click.stop="toggleWarroomSelection(option.value)"
+                          :class="[
+                            'px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer flex items-center gap-2',
+                            isWarroomSelected(option.value) ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                          ]"
                         >
+                          <span class="material-symbols-outlined text-sm" v-if="isWarroomSelected(option.value)">
+                            check_circle
+                          </span>
+                          <span class="material-symbols-outlined text-sm text-transparent" v-else>
+                            circle
+                          </span>
                           {{ option.label }}
                         </div>
                       </div>
                     </div>
-                    <div
-                      v-if="!showTaskIdDropdown && taskIdOptions.length > 0"
-                      class="text-xs text-gray-500 dark:text-slate-400 mt-1"
-                    >
-                      {{ translateOr('incidents.detail.eventGraph.taskIdHint', `Click input to select from ${taskIdOptions.length} task IDs`).replace('{count}', String(taskIdOptions.length)) }}
-                    </div>
                     <button
-                      @click="loadTaskDetail"
-                      :disabled="loadingTaskDetail || !selectedTaskId"
+                      @click="bindWarrooms"
+                      :disabled="loadingTaskDetail || selectedWarroomIds.length === 0"
                       class="w-full px-4 py-2 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {{ loadingTaskDetail 
-                        ? translateOr('incidents.detail.eventGraph.loadingTaskDetail', 'Loading...')
-                        : translateOr('incidents.detail.eventGraph.loadTaskDetail', 'Load Task Detail') }}
+                        ? translateOr('incidents.detail.eventGraph.bindingWarroom', '绑定中...')
+                        : translateOr('incidents.detail.eventGraph.bindWarroom', '绑定Warroom') }}
                     </button>
                   </div>
-                  <!-- 任务详情 -->
-                  <div v-if="taskDetailLoaded && taskDetail" class="-mt-4 space-y-2">
+                  <!-- 任务详情（分组显示） -->
+                  <div v-if="taskDetailLoaded && groupedTaskDetails && Object.keys(groupedTaskDetails).length > 0 && selectedWarroomIds.length > 0" class="-mt-4 space-y-4">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
+                      <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
+                        {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
+                      </div>
+                      <button
+                        type="button"
+                        class="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
+                        :title="$t('common.edit')"
+                        @click.stop="toggleTaskEdit"
+                      >
+                        <span class="material-symbols-outlined text-sm leading-none">edit</span>
+                      </button>
+                    </div>
+                    <!-- 按warroom分组显示任务详情 -->
+                    <div v-for="(warroomDetail, warroomId) in groupedTaskDetails" :key="warroomId" class="border border-gray-300 dark:border-slate-600 rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-slate-800/50">
+                      <!-- Warroom标题和解绑按钮 -->
+                      <div class="flex items-center justify-between pb-2 border-b border-gray-300 dark:border-slate-600">
+                        <div class="text-xs font-semibold text-gray-900 dark:text-slate-100">
+                          {{ getWarroomName(warroomId) }}
+                        </div>
+                        <button
+                          type="button"
+                          @click="unbindWarroom(warroomId)"
+                          class="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          :title="translateOr('incidents.detail.eventGraph.unbindWarroom', '解绑')"
+                        >
+                          {{ translateOr('incidents.detail.eventGraph.unbind', '解绑') }}
+                        </button>
+                      </div>
+                      <!-- 该warroom的任务列表 -->
+                      <div class="space-y-0">
+                        <template v-if="Array.isArray(warroomDetail)">
+                          <div
+                            v-for="(task, index) in warroomDetail"
+                            :key="index"
+                            :class="[
+                              'py-3',
+                              index !== warroomDetail.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                            ]"
+                          >
+                            <div class="space-y-2">
+                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.stageName" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                <span 
+                                  :class="[
+                                    'inline-block px-2 py-0.5 rounded text-xs',
+                                    task.stageName === '待处理' || task.stageName === 'Pending' 
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                  ]"
+                                >
+                                  {{ task.stageName }}
+                                </span>
+                              </div>
+                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              </div>
+                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              </div>
+                              <div v-if="task.detail_url" class="mt-2">
+                                <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                  {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list)">
+                          <div
+                            v-for="(task, index) in warroomDetail.task_list"
+                            :key="index"
+                            :class="[
+                              'py-3',
+                              index !== warroomDetail.task_list.length - 1 ? 'border-b border-gray-200 dark:border-slate-700' : ''
+                            ]"
+                          >
+                            <div class="space-y-2">
+                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.stageName" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
+                                <span 
+                                  :class="[
+                                    'inline-block px-2 py-0.5 rounded text-xs',
+                                    task.stageName === '待处理' || task.stageName === 'Pending' 
+                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                  ]"
+                                >
+                                  {{ task.stageName }}
+                                </span>
+                              </div>
+                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              </div>
+                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              </div>
+                              <div v-if="task.detail_url" class="mt-2">
+                                <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
+                                  {{ translateOr('incidents.detail.eventGraph.viewDetail', 'View Detail') }}
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </template>
+                        <template v-else>
+                          <div class="py-3 text-xs text-gray-500 dark:text-slate-400">
+                            {{ translateOr('incidents.detail.eventGraph.noTaskData', '暂无任务数据') }}
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 向后兼容：单个任务详情显示（当使用旧格式时） -->
+                  <div v-else-if="taskDetailLoaded && taskDetail && selectedTaskId && (!groupedTaskDetails || Object.keys(groupedTaskDetails).length === 0) && selectedWarroomIds.length === 0" class="-mt-4 space-y-2">
                     <div class="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-slate-700">
                       <div class="text-sm font-bold text-gray-900 dark:text-slate-100">
                         {{ translateOr('incidents.detail.eventGraph.taskDetailTitle', 'Task Detail') }}
@@ -434,7 +570,6 @@
                         </div>
                       </template>
                     </div>
-                    <div class="border-b border-gray-200 dark:border-slate-700"></div>
                   </div>
                   <!-- 任务详情错误状态 -->
                   <div
@@ -1047,9 +1182,463 @@
         </div>
       </div>
 
-      <!-- Evidence & Response 标签页：评论 / 证据 -->
-      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl flex flex-col">
+      <!-- Evidence & Response 标签页：响应流程 -->
+      <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col">
+          <!-- 顶部Header -->
+          <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary">analytics</span>
+              {{ $t('incidents.detail.evidenceResponse.title') }}
+            </h1>
+            <div class="flex items-center gap-3">
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+                {{ $t('incidents.detail.evidenceResponse.rlReview') }}
+              </button>
+              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
+                {{ $t('incidents.detail.evidenceResponse.gocReview') }}
+              </button>
+              <div class="relative group">
+                <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
+                  {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
+                  <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
+          <!-- 响应流程区域 -->
+          <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
+            <!-- 响应流程步骤条 -->
+            <div class="mb-8 overflow-x-auto pb-4">
+            <div class="flex items-center justify-between min-w-[1000px] relative px-4">
+              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-border-dark -z-10 transform -translate-y-1/2"></div>
+              
+              <!-- Step 1: Detection -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">1</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:01</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.detection') }}</span>
+              </div>
+
+              <!-- Step 2: Response -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">2</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:23</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.response') }}</span>
+              </div>
+
+              <!-- Step 3: Mitigation -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-primary font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">3</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">09:41</span>
+                </div>
+                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.mitigation') }}</span>
+              </div>
+
+              <!-- Step 4: Reporting -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">4</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.reporting') }}</span>
+              </div>
+
+              <!-- Step 5: Recovery -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">5</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.recovery') }}</span>
+              </div>
+
+              <!-- Step 6: Remediation -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">6</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.remediation') }}</span>
+              </div>
+
+              <!-- Step 7: Lessons learned -->
+              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
+                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
+                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">7</span>
+                </div>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.lessonsLearned') }}</span>
+              </div>
+            </div>
+            <!-- 进度条 -->
+            <div class="mt-4 w-full h-2 bg-gray-200 dark:bg-border-dark rounded-full overflow-hidden">
+              <div class="h-full bg-primary w-[40%] rounded-full"></div>
+            </div>
+          </div>
+
+          <!-- 三个统计卡片 -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- 影响服务卡片 -->
+            <button 
+              @click="activeCardTab = 'impactedServices'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'impactedServices'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'impactedServices' 
+                      ? 'text-primary dark:text-blue-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.notExported') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.unconfirmed') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.confirmed') }} 1
+                  </p>
+                </div>
+              </div>
+              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
+            </button>
+
+            <!-- 进展同步卡片 -->
+            <button 
+              @click="activeCardTab = 'progressSync'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'progressSync'
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-500'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-emerald-100 dark:bg-emerald-900/20 rounded-full text-emerald-600 dark:text-emerald-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">sync</span>
+                </div>
+                <div>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'progressSync' 
+                      ? 'text-emerald-700 dark:text-emerald-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} 5 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.status') }}: {{ $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
+                  </p>
+                </div>
+              </div>
+              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-emerald-900/20 border-r border-b border-emerald-500 transform rotate-45"></div>
+            </button>
+
+            <!-- 事件简报卡片 -->
+            <button 
+              @click="activeCardTab = 'incidentBrief'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'incidentBrief'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-500'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-full text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">article</span>
+                </div>
+                <div>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'incidentBrief' 
+                      ? 'text-indigo-700 dark:text-indigo-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
+                  <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.brief') }} 2 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.announcement') }} 3 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.bulletin') }} 0
+                  </p>
+                </div>
+              </div>
+              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-indigo-900/20 border-r border-b border-indigo-500 transform rotate-45"></div>
+            </button>
+          </div>
+
+          <!-- 更新时间 -->
+          <div class="flex items-center justify-end mb-4">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.services.updateTime') }}: {{ formatDateTime(incident?.updateTime) }}</span>
+          </div>
+
+          <!-- 影响服务内容 -->
+          <template v-if="activeCardTab === 'impactedServices'">
+            <!-- 操作按钮 -->
+            <div class="flex gap-2 mb-4">
+              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+                {{ $t('incidents.detail.evidenceResponse.services.add') }}
+              </button>
+              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+                {{ $t('incidents.detail.evidenceResponse.services.batchAdd') }}
+              </button>
+            </div>
+
+            <!-- 受影响服务表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                      <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+
+          <!-- 进展同步内容 -->
+          <template v-if="activeCardTab === 'progressSync'">
+            <!-- 功能键 -->
+            <div class="flex gap-2 mb-4 flex-wrap">
+              <button 
+                @click="progressSyncFilterType = 'myCreated'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'myCreated'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.myCreated', '我创建的指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'myPending'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'myPending'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.myPending', '待我处理的指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'all'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'all'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
+              </button>
+              <button 
+                @click="progressSyncFilterType = 'other'"
+                :class="[
+                  'px-4 py-1.5 text-sm rounded transition-colors',
+                  progressSyncFilterType === 'other'
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
+                ]">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.other', '其他进展') }}
+              </button>
+              <button class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                {{ translateOr('incidents.detail.evidenceResponse.progressSync.createInstruction', '创建指令') }}
+              </button>
+            </div>
+
+            <!-- 进展同步表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.stageName', '阶段') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.planEndTime', '计划结束时间') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <template v-if="filteredProgressSyncTasks.length > 0">
+                      <tr 
+                        v-for="(task, index) in filteredProgressSyncTasks" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ task.task_name || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs',
+                              task.stageName === '待处理' || task.stageName === 'Pending'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            ]">
+                            {{ task.stageName || '--' }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.employeeAccount || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.plan_end_time ? formatTaskDateTime(task.plan_end_time) : '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          <span v-if="task.priority" :class="[
+                            'inline-block px-2 py-0.5 rounded text-xs',
+                            task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                            task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                            'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                          ]">
+                            {{ task.priority }}
+                          </span>
+                          <span v-else>--</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          <span :class="[
+                            'inline-block px-2 py-0.5 rounded text-xs',
+                            task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          ]">
+                            {{ task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed' 
+                              ? $t('incidents.detail.eventGraph.completed') 
+                              : $t('incidents.detail.eventGraph.inProgress') }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('common.noData') }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+
+          <!-- 事件简报内容 -->
+          <template v-if="activeCardTab === 'incidentBrief'">
+            <!-- 操作按钮 -->
+            <div class="flex gap-2 mb-4">
+              <button 
+                @click="showAddNotificationDialog = true"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+              </button>
+            </div>
+
+            <!-- 事件通报/简报表格 -->
+            <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
+                    <tr>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationType') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan') }}</th>
+                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark') }}</th>
+                      <th class="px-4 py-3 w-24">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
+                    <template v-if="incidentNotifications.length > 0">
+                      <tr 
+                        v-for="(notification, index) in incidentNotifications" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ notification.event || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs',
+                              notification.type === 'firstNotification' 
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                : notification.type === 'closeNotification'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : notification.type === 'networkProtectionDaily'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            ]">
+                            {{ getNotificationTypeLabel(notification.type) }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.owner || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.progress || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.nextPlan || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ notification.remark || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <button 
+                              @click="editNotification(index)"
+                              class="text-primary hover:text-primary-hover transition-colors"
+                              :title="$t('common.edit')">
+                              <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button 
+                              @click="deleteNotification(index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')">
+                              <span class="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.noData') }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </template>
+          </div>
+
+          </main>
+        </div>
+
+        <!-- 评论区域（保留原有功能），独立容器 -->
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl shadow-sm">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-[#324867]/70">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">comment</span>
+              {{ $t('incidents.detail.comments.title') }}
+            </h2>
+          </div>
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="incident?.comments || []"
@@ -1158,6 +1747,129 @@
       :alert-id="route.params.id"
       @close="showAISidebar = false"
     />
+
+    <!-- 新增/编辑通报对话框 -->
+    <div
+      v-if="showAddNotificationDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelNotification"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ editingNotificationIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+          </h2>
+          <button
+            @click="cancelNotification"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveNotification" class="space-y-4">
+          <!-- 通报事件 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="notificationForm.event"
+              type="text"
+              required
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent')"
+            />
+          </div>
+
+          <!-- 通报类型 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationType') }}
+            </label>
+            <select
+              v-model="notificationForm.type"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="firstNotification">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.firstNotification') }}</option>
+              <option value="closeNotification">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.closeNotification') }}</option>
+              <option value="networkProtectionDaily">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.networkProtectionDaily') }}</option>
+              <option value="other">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.other') }}</option>
+            </select>
+          </div>
+
+          <!-- 责任人 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner') }}
+            </label>
+            <input
+              v-model="notificationForm.owner"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner')"
+            />
+          </div>
+
+          <!-- 进展 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress') }}
+            </label>
+            <textarea
+              v-model="notificationForm.progress"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress')"
+            ></textarea>
+          </div>
+
+          <!-- 下一步计划 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan') }}
+            </label>
+            <textarea
+              v-model="notificationForm.nextPlan"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan')"
+            ></textarea>
+          </div>
+
+          <!-- 备注 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark') }}
+            </label>
+            <textarea
+              v-model="notificationForm.remark"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark')"
+            ></textarea>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-border-dark">
+            <button
+              type="button"
+              @click="cancelNotification"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+            >
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary-hover transition-colors"
+            >
+              {{ $t('common.save') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -3040,11 +3752,29 @@ watch([timelinePageSize, associatedAlertsTimeline], () => {
 const isLeftPaneCollapsed = ref(false)
 // 左侧面板标签切换：默认显示任务管理
 const leftPaneActiveTab = ref('taskManagement')
+// 证据与响应卡片切换：默认显示影响服务
+const activeCardTab = ref('impactedServices')
+// 进展同步指令筛选类型
+const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
+// 事件通报/简报相关状态
+const incidentNotifications = ref([]) // 事件通报列表
+const showAddNotificationDialog = ref(false) // 显示新增通报对话框
+const editingNotificationIndex = ref(-1) // 正在编辑的通报索引，-1表示新增
+const notificationForm = ref({
+  event: '',
+  type: 'firstNotification',
+  owner: '',
+  progress: '',
+  nextPlan: '',
+  remark: ''
+})
 // 任务管理相关状态
-const selectedTaskId = ref('')
+const selectedTaskId = ref('') // 保留用于向后兼容
+const selectedWarroomIds = ref([]) // 选中的warroom ID数组
 const taskIdOptions = ref([]) // 任务ID选项列表，格式：{ label: "groupname", value: "groupid" }
 const loadingTaskIdList = ref(false)
-const taskDetail = ref(null)
+const taskDetail = ref(null) // 保留用于向后兼容
+const groupedTaskDetails = ref({}) // 按warroom ID分组存储的任务详情 { warroomId: taskDetail }
 const loadingTaskDetail = ref(false)
 const taskDetailError = ref('')
 const taskDetailLoaded = ref(false)
@@ -3053,7 +3783,7 @@ const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 const taskIdDropdownRef = ref(null)
 
-// 根据选中的 taskId 获取对应的 groupname 用于显示
+// 根据选中的 taskId 获取对应的 groupname 用于显示（向后兼容）
 const selectedTaskName = computed(() => {
   if (!selectedTaskId.value || !taskIdOptions.value.length) {
     return ''
@@ -3061,6 +3791,114 @@ const selectedTaskName = computed(() => {
   const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
 })
+
+// 从 groupedTaskDetails 中提取所有任务项，用于进展同步表格
+const allProgressSyncTasks = computed(() => {
+  const tasks = []
+  if (!groupedTaskDetails.value || Object.keys(groupedTaskDetails.value).length === 0) {
+    return tasks
+  }
+  
+  // 遍历所有 warroom
+  Object.keys(groupedTaskDetails.value).forEach(warroomId => {
+    const warroomDetail = groupedTaskDetails.value[warroomId]
+    const warroomName = getWarroomName(warroomId)
+    
+    // 处理数组格式的任务列表
+    if (Array.isArray(warroomDetail)) {
+      warroomDetail.forEach(task => {
+        tasks.push({
+          ...task,
+          warroomId: warroomId,
+          warroomName: warroomName
+        })
+      })
+    } 
+    // 处理对象格式，包含 task_list 数组
+    else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+      warroomDetail.task_list.forEach(task => {
+        tasks.push({
+          ...task,
+          warroomId: warroomId,
+          warroomName: warroomName
+        })
+      })
+    }
+  })
+  
+  return tasks
+})
+
+// 根据筛选类型过滤任务
+const filteredProgressSyncTasks = computed(() => {
+  const tasks = allProgressSyncTasks.value
+  if (!tasks.length) return []
+  
+  // 获取当前用户信息
+  const currentUser = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
+  
+  switch (progressSyncFilterType.value) {
+    case 'myCreated':
+      // 我创建的指令：根据创建者字段筛选（需要根据实际数据结构调整）
+      return tasks.filter(task => {
+        const creator = task.creator || task.create_by || task.created_by
+        return creator === currentUser
+      })
+    case 'myPending':
+      // 待我处理的指令：状态为待处理且责任人为当前用户
+      return tasks.filter(task => {
+        const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
+        const owner = task.employeeAccount || task.owner || task.assignee
+        const isMyTask = owner === currentUser
+        return isPending && isMyTask
+      })
+    case 'all':
+      // 全部指令
+      return tasks
+    case 'other':
+      // 其他进展：排除指令类型的任务（需要根据实际数据结构调整）
+      return tasks.filter(task => {
+        const taskType = task.type || task.task_type || ''
+        return taskType !== 'instruction' && taskType !== '指令'
+      })
+    default:
+      return tasks
+  }
+})
+
+// 获取warroom名称
+const getWarroomName = (warroomId) => {
+  if (!warroomId || !taskIdOptions.value.length) {
+    return warroomId || ''
+  }
+  const option = taskIdOptions.value.find(opt => opt.value === String(warroomId))
+  return option ? option.label : warroomId
+}
+
+// 检查warroom是否已选中
+const isWarroomSelected = (warroomId) => {
+  return selectedWarroomIds.value.includes(String(warroomId))
+}
+
+// 切换warroom选择状态
+const toggleWarroomSelection = (warroomId) => {
+  const id = String(warroomId)
+  const index = selectedWarroomIds.value.indexOf(id)
+  if (index > -1) {
+    selectedWarroomIds.value.splice(index, 1)
+  } else {
+    selectedWarroomIds.value.push(id)
+  }
+}
+
+// 移除warroom（从选中列表中移除）
+const removeWarroom = (warroomId) => {
+  const id = String(warroomId)
+  const index = selectedWarroomIds.value.indexOf(id)
+  if (index > -1) {
+    selectedWarroomIds.value.splice(index, 1)
+  }
+}
 
 const alarmCount = computed(() => {
   return incident.value?.alarmCount ?? incident.value?.associatedAlerts?.length ?? 0
@@ -3136,15 +3974,31 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
     loadTaskIdList().catch((err) => {
       console.error('Failed to auto load task list:', err)
     })
-    // 如果后端已存储 task_id，则自动填充并尝试加载任务详情
+    // 如果后端已存储 task_id 或 warroom_ids，则自动填充并尝试加载任务详情
     if (data.task_id) {
-      selectedTaskId.value = data.task_id
-      // 初次进入时默认不展开编辑区域
-      isEditingTaskId.value = false
-      // 异步加载任务详情（失败时只在控制台打印）
-      loadTaskDetail().catch((err) => {
-        console.error('Failed to auto load task detail:', err)
-      })
+      // 兼容旧格式：单个task_id
+      if (typeof data.task_id === 'string') {
+        selectedTaskId.value = data.task_id
+        selectedWarroomIds.value = [data.task_id]
+        // 初次进入时默认不展开编辑区域
+        isEditingTaskId.value = false
+        // 异步加载任务详情（失败时只在控制台打印）
+        loadTaskDetail().catch((err) => {
+          console.error('Failed to auto load task detail:', err)
+        })
+      } else if (Array.isArray(data.task_id) && data.task_id.length > 0) {
+        // 新格式：多个warroom IDs
+        selectedWarroomIds.value = data.task_id.map(id => String(id))
+        // 初次进入时默认不展开编辑区域
+        isEditingTaskId.value = false
+        // 自动加载所有warroom的任务详情（不保存到数据库，因为已经保存过了）
+        // 使用 nextTick 确保 DOM 更新后再加载
+        nextTick(() => {
+          loadWarroomDetailsOnly().catch((err) => {
+            console.error('Failed to auto load warroom task details:', err)
+          })
+        })
+      }
     }
     loadGraphData(graphPayload)
   } catch (error) {
@@ -3434,7 +4288,83 @@ const formatTaskDateTime = (dateTimeString) => {
   } catch (e) {
     // 如果解析失败，返回原始字符串
   }
-  return dateTimeString
+}
+
+// 获取通报类型标签
+const getNotificationTypeLabel = (type) => {
+  const typeMap = {
+    'firstNotification': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.firstNotification'),
+    'closeNotification': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.closeNotification'),
+    'networkProtectionDaily': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.networkProtectionDaily'),
+    'other': t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.types.other')
+  }
+  return typeMap[type] || type
+}
+
+// 编辑通报
+const editNotification = (index) => {
+  editingNotificationIndex.value = index
+  const notification = incidentNotifications.value[index]
+  notificationForm.value = {
+    event: notification.event || '',
+    type: notification.type || 'firstNotification',
+    owner: notification.owner || '',
+    progress: notification.progress || '',
+    nextPlan: notification.nextPlan || '',
+    remark: notification.remark || ''
+  }
+  showAddNotificationDialog.value = true
+}
+
+// 删除通报
+const deleteNotification = (index) => {
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    incidentNotifications.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
+}
+
+// 保存通报（新增或编辑）
+const saveNotification = () => {
+  if (!notificationForm.value.event) {
+    toast.error(t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') + ' ' + t('common.warning'))
+    return
+  }
+  
+  const notification = { ...notificationForm.value }
+  
+  if (editingNotificationIndex.value >= 0) {
+    // 编辑
+    incidentNotifications.value[editingNotificationIndex.value] = notification
+  } else {
+    // 新增
+    incidentNotifications.value.push(notification)
+  }
+  
+  // 重置表单
+  resetNotificationForm()
+  showAddNotificationDialog.value = false
+  // TODO: 调用后端API保存
+}
+
+// 重置通报表单
+const resetNotificationForm = () => {
+  notificationForm.value = {
+    event: '',
+    type: 'firstNotification',
+    owner: '',
+    progress: '',
+    nextPlan: '',
+    remark: ''
+  }
+  editingNotificationIndex.value = -1
+}
+
+// 取消新增/编辑通报
+const cancelNotification = () => {
+  resetNotificationForm()
+  showAddNotificationDialog.value = false
 }
 
 // 获取优先级标签
@@ -3664,7 +4594,7 @@ const loadTaskIdList = async () => {
   }
 }
 
-// 选择任务ID
+// 选择任务ID（向后兼容）
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
   showTaskIdDropdown.value = false
@@ -3679,7 +4609,22 @@ const closeTaskIdDropdown = (event) => {
   showTaskIdDropdown.value = false
 }
 
-// 将当前任务 ID 写入本地数据库（与事件绑定）
+// 将当前warroom IDs写入本地数据库（与事件绑定）
+const saveWarroomIdsForIncident = async (warroomIds) => {
+  if (!incident.value?.id) {
+    return
+  }
+  try {
+    // 支持传入数组或单个值
+    const ids = Array.isArray(warroomIds) ? warroomIds : (warroomIds ? [warroomIds] : [])
+    await updateIncidentTask(incident.value.id, { warroom_ids: ids.length > 0 ? ids : null })
+  } catch (error) {
+    console.error('Failed to save warroom ids for incident:', error)
+    throw error
+  }
+}
+
+// 将当前任务 ID 写入本地数据库（与事件绑定）- 向后兼容函数
 const saveTaskIdForIncident = async (taskId) => {
   if (!incident.value?.id) {
     return
@@ -3691,7 +4636,109 @@ const saveTaskIdForIncident = async (taskId) => {
   }
 }
 
-// 加载任务详情，并在成功后同步保存 task_id 到本地数据库
+// 仅加载warroom任务详情（不保存到数据库，用于页面加载时恢复）
+const loadWarroomDetailsOnly = async () => {
+  if (selectedWarroomIds.value.length === 0) {
+    return
+  }
+
+  loadingTaskDetail.value = true
+  taskDetailError.value = ''
+  taskDetailLoaded.value = false
+
+  try {
+    // 并行获取所有warroom的任务详情
+    const taskDetailPromises = selectedWarroomIds.value.map(async (warroomId) => {
+      try {
+        const result = await getTaskDetail({ groupId: String(warroomId).trim() })
+        return { warroomId, taskDetail: result }
+      } catch (error) {
+        console.error(`Failed to load task detail for warroom ${warroomId}:`, error)
+        return { warroomId, taskDetail: null, error: error?.message }
+      }
+    })
+
+    const results = await Promise.all(taskDetailPromises)
+    
+    // 按warroom ID分组存储任务详情
+    const grouped = {}
+    results.forEach(({ warroomId, taskDetail, error }) => {
+      if (error) {
+        grouped[warroomId] = { error }
+      } else {
+        grouped[warroomId] = taskDetail
+      }
+    })
+
+    groupedTaskDetails.value = grouped
+    taskDetailLoaded.value = true
+  } catch (error) {
+    console.error('Failed to load warroom task details:', error)
+    taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.bindWarroomError', '加载Warroom任务详情失败')
+    taskDetailLoaded.value = true
+  } finally {
+    loadingTaskDetail.value = false
+  }
+}
+
+// 绑定warroom：保存到数据库并加载任务详情
+const bindWarrooms = async () => {
+  if (selectedWarroomIds.value.length === 0) {
+    taskDetailError.value = translateOr('incidents.detail.eventGraph.warroomRequired', '请至少选择一个Warroom')
+    return
+  }
+
+  loadingTaskDetail.value = true
+  taskDetailError.value = ''
+  taskDetailLoaded.value = false
+
+  try {
+    // 1. 先保存到数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 2. 加载任务详情
+    await loadWarroomDetailsOnly()
+
+    // 关闭下拉框
+    showTaskIdDropdown.value = false
+  } catch (error) {
+    console.error('Failed to bind warrooms:', error)
+    taskDetailError.value = error?.message || translateOr('incidents.detail.eventGraph.bindWarroomError', '绑定Warroom失败')
+    taskDetailLoaded.value = true
+  } finally {
+    loadingTaskDetail.value = false
+  }
+}
+
+// 解绑warroom：从数据库和本地状态中移除
+const unbindWarroom = async (warroomId) => {
+  if (!incident.value?.id) {
+    return
+  }
+
+  try {
+    // 1. 从选中列表中移除
+    removeWarroom(warroomId)
+
+    // 2. 从分组任务详情中移除
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[warroomId]
+    groupedTaskDetails.value = newGrouped
+
+    // 3. 更新数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 如果所有warroom都解绑了，重置状态
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+  } catch (error) {
+    console.error('Failed to unbind warroom:', error)
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
+  }
+}
+
+// 加载任务详情（向后兼容，保留原有逻辑）
 const loadTaskDetail = async () => {
   if (!selectedTaskId.value || !selectedTaskId.value.trim()) {
     taskDetailError.value = translateOr('incidents.detail.eventGraph.taskIdRequired', 'Please select a task ID first')
