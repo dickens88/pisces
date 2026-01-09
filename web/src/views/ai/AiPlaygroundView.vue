@@ -521,9 +521,11 @@
                     <div class="relative">
                       <select
                         v-model="selectedWorkflow"
-                        class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
+                        :disabled="loadingWorkflows"
+                        class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                        <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
                         <option
                           v-for="workflow in workflows"
                           :key="workflow.id"
@@ -533,7 +535,20 @@
                         </option>
                       </select>
                       <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-                        <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
+                        <span
+                          v-if="loadingWorkflows"
+                          class="material-symbols-outlined animate-spin"
+                          style="font-size: 20px;"
+                        >
+                          sync
+                        </span>
+                        <span
+                          v-else
+                          class="material-symbols-outlined"
+                          style="font-size: 20px;"
+                        >
+                          arrow_drop_down
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -604,6 +619,7 @@ const selectedAlertLoading = ref(false)
 const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
 const workflows = ref([])
+const loadingWorkflows = ref(false)
 const aiJudgeFilter = ref('all')
 const matchFilter = ref('all')
 const humanVerdictValue = ref('')
@@ -1346,6 +1362,10 @@ const handleUpdateVerdict = async () => {
 const triggerAiWorkflow = async () => {
   if (!selectedAlert.value || !aiWorkflowApi || !aiWorkflowApiKey) return
 
+  loadingWorkflows.value = true
+  workflows.value = []
+  selectedWorkflow.value = ''
+
   try {
     const alertId = selectedAlert.value.alert_id || selectedAlert.value.id
     if (!alertId) return
@@ -1386,6 +1406,8 @@ const triggerAiWorkflow = async () => {
   } catch (error) {
     console.error('Failed to call AI workflow API:', error)
     workflows.value = []
+  } finally {
+    loadingWorkflows.value = false
   }
 }
 
@@ -1548,6 +1570,7 @@ watch(showRetrievalOverlay, (isOpen) => {
     // Reset workflow selection when overlay closes
     selectedWorkflow.value = ''
     workflows.value = []
+    loadingWorkflows.value = false
   }
 })
 
@@ -1556,6 +1579,7 @@ watch(selectedAlert, () => {
   // Reset workflow selection when a new alert is selected
   selectedWorkflow.value = ''
   workflows.value = []
+  loadingWorkflows.value = false
   
   // Wait for layout to update, then constrain columns
   nextTick(() => {
