@@ -219,27 +219,27 @@ class IncidentTask(Resource):
 
     @auth_required
     def get(self, username=None, incident_id=None):
-        """Get stored task_id for an incident from local DB."""
+        """Get stored project_uuid for an incident from local DB."""
         try:
             record = Incident.get_by_incident_id(incident_id)
-            task_id = record.task_id if record else None
-            return {"data": {"task_id": task_id}}, 200
+            project_uuid = record.project_uuid if record else None
+            return {"data": {"project_uuid": project_uuid}}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
     @auth_required
     def put(self, username=None, incident_id=None):
-        """Update stored task_id for an incident in local DB.
-        Supports both single task_id (string) and multiple warroom IDs (list)."""
+        """Update stored project_uuid for an incident in local DB.
+        Supports both single project_uuid (string) and multiple project UUIDs (list)."""
         try:
             data = json.loads(request.data or "{}")
-            task_id = data.get("task_id")
-            # 支持接收warroom_ids字段（多个warroom ID数组）
+            project_uuid = data.get("project_uuid")
+            # 支持接收warroom_ids字段（多个project UUID数组，向后兼容）
             if "warroom_ids" in data:
-                task_id = data.get("warroom_ids")
-            result = Incident.update_task_id(incident_id, task_id)
-            logger.info(f"[Incident] Updated task_id/warroom_ids for incident {incident_id} to {task_id!r}.[{username}]")
+                project_uuid = data.get("warroom_ids")
+            result = Incident.update_project_uuid(incident_id, project_uuid)
+            logger.info(f"[Incident] Updated project_uuid for incident {incident_id} to {project_uuid!r}.[{username}]")
             return {"data": result}, 200
         except Exception as ex:
             logger.exception(ex)
