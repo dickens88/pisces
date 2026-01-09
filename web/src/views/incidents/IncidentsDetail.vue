@@ -1479,7 +1479,9 @@
           <template v-if="activeCardTab === 'impactedServices'">
             <!-- 操作按钮 -->
             <div class="flex gap-2 mb-4">
-              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+              <button 
+                @click="showAddServiceDialog = true"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.services.add') }}
               </button>
               <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
@@ -1503,14 +1505,24 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
-                    <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
-                      <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <template v-if="impactedServices.length > 0">
+                      <tr 
+                        v-for="(service, index) in impactedServices" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ service.service || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.measure || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.sla || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.plannedCompletionTime || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.owner || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.progress || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('common.noData') }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -1840,6 +1852,138 @@
       :alert-id="route.params.id"
       @close="showAISidebar = false"
     />
+
+    <!-- 新增/编辑影响服务对话框 -->
+    <div
+      v-if="showAddServiceDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelService"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ editingServiceIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.services.add') }}
+          </h2>
+          <button
+            @click="cancelService"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveService" class="space-y-4">
+          <!-- 服务 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.service') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="serviceForm.service"
+              type="text"
+              required
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.service')"
+            />
+          </div>
+
+          <!-- 措施 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}
+            </label>
+            <textarea
+              v-model="serviceForm.measure"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.measure')"
+            ></textarea>
+          </div>
+
+          <!-- SLA -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}
+            </label>
+            <input
+              v-model="serviceForm.sla"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.sla')"
+            />
+          </div>
+
+          <!-- 计划完成时间 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}
+            </label>
+            <input
+              v-model="serviceForm.plannedCompletionTime"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <!-- 责任人 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}
+            </label>
+            <input
+              v-model="serviceForm.owner"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.owner')"
+            />
+          </div>
+
+          <!-- 进展 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}
+            </label>
+            <textarea
+              v-model="serviceForm.progress"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.progress')"
+            ></textarea>
+          </div>
+
+          <!-- 备注 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}
+            </label>
+            <textarea
+              v-model="serviceForm.remark"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.remark')"
+            ></textarea>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-border-dark">
+            <button
+              type="button"
+              @click="cancelService"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+            >
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary-hover transition-colors"
+            >
+              {{ $t('common.save') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- 新增/编辑通报对话框 -->
     <div
@@ -3872,6 +4016,19 @@ const notificationForm = ref({
   nextPlan: '',
   remark: ''
 })
+// 影响服务相关状态
+const impactedServices = ref([]) // 影响服务列表
+const showAddServiceDialog = ref(false) // 显示新增影响服务对话框
+const editingServiceIndex = ref(-1) // 正在编辑的服务索引，-1表示新增
+const serviceForm = ref({
+  service: '',
+  measure: '',
+  sla: '',
+  plannedCompletionTime: '',
+  owner: '',
+  progress: '',
+  remark: ''
+})
 // 任务管理相关状态
 const selectedTaskId = ref('') // 保留用于向后兼容
 const selectedWarroomIds = ref([]) // 选中的warroom ID数组
@@ -4511,6 +4668,50 @@ const resetNotificationForm = () => {
 const cancelNotification = () => {
   resetNotificationForm()
   showAddNotificationDialog.value = false
+}
+
+// 保存影响服务（新增或编辑）
+const saveService = () => {
+  if (!serviceForm.value.service) {
+    toast.error(t('incidents.detail.evidenceResponse.services.columns.service') + ' ' + t('common.warning'))
+    return
+  }
+  
+  const service = { ...serviceForm.value }
+  
+  if (editingServiceIndex.value >= 0) {
+    // 编辑
+    impactedServices.value[editingServiceIndex.value] = service
+  } else {
+    // 新增
+    impactedServices.value.push(service)
+  }
+  
+  // 重置表单
+  resetServiceForm()
+  showAddServiceDialog.value = false
+  toast.success(t('common.operationSuccess'))
+  // TODO: 调用后端API保存
+}
+
+// 重置影响服务表单
+const resetServiceForm = () => {
+  serviceForm.value = {
+    service: '',
+    measure: '',
+    sla: '',
+    plannedCompletionTime: '',
+    owner: '',
+    progress: '',
+    remark: ''
+  }
+  editingServiceIndex.value = -1
+}
+
+// 取消新增/编辑影响服务
+const cancelService = () => {
+  resetServiceForm()
+  showAddServiceDialog.value = false
 }
 
 // 获取优先级标签
