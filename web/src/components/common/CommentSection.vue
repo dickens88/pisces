@@ -323,7 +323,7 @@ const getCommentTypeClass = (rawType) => {
 const isActionType = (rawType) => {
   if (!rawType) return false
   const value = String(rawType).toLowerCase()
-  const actionTypes = ['changeowner', 'close', 'changeseverity', 'changehandlestatus', 'note']
+  const actionTypes = ['changeowner', 'close', 'changeseverity', 'changehandlestatus', 'note', 'create', 'relatetodataobject', 'pisces']
   return actionTypes.includes(value)
 }
 

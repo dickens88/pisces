@@ -30,7 +30,10 @@
       "close": "Close",
       "changeseverity": "Change Severity",
       "changehandlestatus": "Change Handle Status",
-      "note": "Comment"
+      "note": "Comment",
+      "create": "Create",
+      "relatetodataobject": "Relate to Incident",
+      "pisces": "Comment"
     },
     "noData": "No data available",
     "warning": "Warning",
