@@ -1292,75 +1292,94 @@
           </header>
 
           <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
-          <!-- 响应流程区域 -->
+          <!-- 响应指标区域 -->
           <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
-            <!-- 响应流程步骤条 -->
-            <div class="mb-8 overflow-x-auto pb-4">
-            <div class="flex items-center justify-between min-w-[1000px] relative px-4">
-              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-border-dark -z-10 transform -translate-y-1/2"></div>
-              
-              <!-- Step 1: Detection -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">1</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:01</span>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">响应指标</h2>
+            <!-- 指标卡片网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <!-- 指标1: 平均攻击溯源时间 -->
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-primary dark:text-blue-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackTracingTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttTracing') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">search</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.detection') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 2: Response -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">2</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:23</span>
+              <!-- 指标2: 平均攻击源拦截时间 -->
+              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-emerald-700 dark:text-emerald-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackBlockingTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttBlocking') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10 dark:bg-green-500/20">
+                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">shield</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.response') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 3: Mitigation -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">3</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:41</span>
+              <!-- 指标3: 平均风险消减时间 -->
+              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-orange-700 dark:text-orange-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageRiskMitigationTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttr') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
+                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">trending_down</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.mitigation') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 4: Reporting -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">4</span>
+              <!-- 指标4: 平均漏洞入口定位时间 -->
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-indigo-700 dark:text-indigo-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageVulnerabilityEntryTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttVulnerabilityEntry') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
+                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-2xl">bug_report</span>
+                  </div>
                 </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.reporting') }}</span>
-              </div>
-
-              <!-- Step 5: Recovery -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">5</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.recovery') }}</span>
               </div>
-
-              <!-- Step 6: Remediation -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">6</span>
-                </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.remediation') }}</span>
-              </div>
-
-              <!-- Step 7: Lessons learned -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">7</span>
-                </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.lessonsLearned') }}</span>
-              </div>
-            </div>
-            <!-- 进度条 -->
-            <div class="mt-4 w-full h-2 bg-gray-200 dark:bg-border-dark rounded-full overflow-hidden">
-              <div class="h-full bg-primary w-[40%] rounded-full"></div>
             </div>
           </div>
 
@@ -1701,7 +1720,6 @@
               </div>
             </div>
           </template>
-          </div>
 
           </main>
         </div>
@@ -2098,6 +2116,13 @@ const incident = ref(null)
 const loadingIncident = ref(false)
 // 默认进入 Alert story 视图
 const activeTab = ref('alertStory')
+// 响应指标数据
+const metricsData = ref({
+  mttTracing: null, // 平均攻击溯源时间
+  mttBlocking: null, // 平均攻击源拦截时间
+  mttr: null, // 平均风险消减时间
+  mttVulnerabilityEntry: null // 平均漏洞入口定位时间
+})
 const newComment = ref('')
 const selectedAlertId = ref(null)
 const showShareSuccess = ref(false)
