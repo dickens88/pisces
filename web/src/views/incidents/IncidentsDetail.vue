@@ -1438,7 +1438,7 @@
                   </p>
                 </div>
               </div>
-              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-emerald-900/20 border-r border-b border-emerald-500 transform rotate-45"></div>
+              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-[#152342] border-r border-b border-emerald-500 transform rotate-45"></div>
             </button>
 
             <!-- 事件简报卡片 -->
@@ -1466,7 +1466,7 @@
                   </p>
                 </div>
               </div>
-              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-indigo-900/20 border-r border-b border-indigo-500 transform rotate-45"></div>
+              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-[#152342] border-r border-b border-indigo-500 transform rotate-45"></div>
             </button>
           </div>
 

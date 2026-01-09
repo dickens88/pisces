@@ -858,6 +858,7 @@
         "confirmMessage": "Are you sure you want to disassociate {count} alert(s)?"
       },
       "comments": {
+        "title": "Comments",
         "addComment": "Add a comment...",
         "post": "Post",
         "attachFile": "Attach File",

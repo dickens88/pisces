@@ -864,6 +864,7 @@
         "confirmMessage": "请确认是否解关联 {count} 条告警？"
       },
       "comments": {
+        "title": "评论",
         "addComment": "添加评论...",
         "post": "发布",
         "attachFile": "附件",
