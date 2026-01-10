@@ -1313,12 +1313,25 @@ const updateAiDecisionChart = () => {
   aiDecisionChartInstance.value.clear()
 
   // Build pie data using centralized config
+  const isDark = isDarkMode()
   const pieData = aiDecisionData.value.map((item) => {
     const statusConfig = getMatchStatusConfig(item.name)
+    // Use lighter/more vibrant colors for light mode, darker for dark mode
+    let color = statusConfig.color
+    if (!isDark) {
+      // Adjust colors for light mode - use softer, more pleasant colors
+      const colorMap = {
+        '#10b981': '#94d2bd', // TT - slightly deeper green for better contrast
+        '#ef4444': '#dc2626', // FP - slightly deeper red for better contrast
+        '#f59e0b': '#d97706', // FN - slightly deeper orange for better contrast
+        '#94a3b8': '#6b7280'  // Empty - darker gray for better visibility
+      }
+      color = colorMap[statusConfig.color] || statusConfig.color
+    }
     return {
       name: t(statusConfig.i18nKey),
       value: item.value,
-      itemStyle: { color: statusConfig.color },
+      itemStyle: { color },
       // Store original name for click event
       originalName: item.name
     }
@@ -1328,10 +1341,12 @@ const updateAiDecisionChart = () => {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+      borderWidth: isDark ? 0 : 1,
+      borderColor: isDark ? 'transparent' : '#d1d5db',
+      textStyle: { color: isDark ? '#e2e8f0' : '#111827' },
       padding: [10, 12],
+      extraCssText: isDark ? '' : 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);',
       formatter: (params) => {
         if (!params) return ''
         const total = aiDecisionTotal.value
@@ -1348,8 +1363,9 @@ const updateAiDecisionChart = () => {
       right: 10,
       top: 'center',
       textStyle: {
-        color: '#cbd5f5',
-        fontSize: 11
+        color: isDark ? '#cbd5f5' : '#374151',
+        fontSize: 11,
+        fontWeight: isDark ? 'normal' : '500'
       },
       itemGap: 8
     },
@@ -1362,7 +1378,7 @@ const updateAiDecisionChart = () => {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 4,
-          borderColor: '#19222c',
+          borderColor: isDark ? '#19222c' : '#ffffff',
           borderWidth: 2
         },
         label: {
@@ -1373,7 +1389,7 @@ const updateAiDecisionChart = () => {
             show: true,
             fontSize: 12,
             fontWeight: 'bold',
-            color: '#e2e8f0'
+            color: isDark ? '#e2e8f0' : '#1f2937'
           }
         },
         labelLine: {
