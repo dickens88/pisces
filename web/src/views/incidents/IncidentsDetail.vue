@@ -1380,7 +1380,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.notExported') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.unconfirmed') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.confirmed') }} 1
+                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
                   </p>
                 </div>
               </div>
@@ -1408,7 +1408,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} {{ progressSyncMetrics.instructions || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} {{ progressSyncMetrics.progress || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.statusLabel') }}: {{ progressSyncMetrics.statusText || $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
+                    指令个数 {{ progressSyncMetrics.total }} | 已完成 {{ progressSyncMetrics.completed }} | 未完成 {{ progressSyncMetrics.uncompleted }}
                   </p>
                 </div>
               </div>
@@ -1436,7 +1436,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.brief') }} 2 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.announcement') }} 3 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.bulletin') }} 0
+                    通报 {{ incidentBriefStats.notifications }} | 日报 {{ incidentBriefStats.dailyReports }}
                   </p>
                 </div>
               </div>
@@ -1476,6 +1476,7 @@
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                      <th class="px-4 py-3">操作</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
@@ -1487,14 +1488,43 @@
                         <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ service.service || '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.measure || '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.sla || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.plannedCompletionTime || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          {{ formatServiceDateTime(service.plannedCompletionTime) }}
+                        </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.owner || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.progress || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="service.progress === '已完成' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : service.progress === '未完成'
+                              ? 'text-orange-600 dark:text-orange-400'
+                              : 'text-slate-500 dark:text-slate-400'">
+                            {{ service.progress || '--' }}
+                          </span>
+                        </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click="editService(index)"
+                              class="text-primary hover:text-primary-hover transition-colors"
+                              title="编辑"
+                            >
+                              <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button
+                              @click="deleteService(index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')"
+                            >
+                              <span class="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>
@@ -1539,28 +1569,20 @@
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
               </button>
               <button 
-                @click="progressSyncFilterType = 'other'"
-                :class="[
-                  'px-4 py-1.5 text-sm rounded transition-colors',
-                  progressSyncFilterType === 'other'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
-                ]">
-                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.other', '其他进展') }}
-              </button>
-              <button class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                @click="createNewTask"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.createInstruction', '创建指令') }}
               </button>
             </div>
 
             <!-- 进展同步表格 -->
             <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left" style="table-layout: auto; min-width: 100%;">
+              <div class="overflow-hidden">
+                <table class="w-full text-sm text-left" style="table-layout: auto;">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
                       <th class="px-4 py-3 w-28">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
-                      <th class="px-4 py-3 w-12">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
+                      <th class="px-4 py-3 max-w-[280px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
                       <th class="px-4 py-3 w-24">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
                       <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
                       <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
@@ -1580,10 +1602,10 @@
                         <!-- WR名字 -->
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
                         <!-- 任务名称 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 max-w-[280px]">
                           <span
                             @click="openTaskEditDialog(task, index)"
-                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal"
+                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal block"
                             :title="task.task_name || '--'"
                           >{{ task.task_name || '--' }}</span>
                         </td>
@@ -1687,13 +1709,22 @@
                         </td>
                         <!-- 操作 -->
                         <td class="px-4 py-3 whitespace-nowrap">
-                          <button
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
-                            :title="$t('common.edit')"
-                          >
-                            <span class="material-symbols-outlined text-sm">edit</span>
-                          </button>
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click="openTaskEditDialog(task, index)"
+                              class="text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
+                              :title="$t('common.edit')"
+                            >
+                              <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button
+                              @click="deleteProgressSyncTask(task, index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')"
+                            >
+                              <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </template>
@@ -1851,7 +1882,7 @@
       <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
-            {{ translateOr('incidents.detail.evidenceResponse.progressSync.editTask', '编辑任务') }}
+            {{ editingTask ? translateOr('incidents.detail.evidenceResponse.progressSync.editTask', '编辑任务') : translateOr('incidents.detail.evidenceResponse.progressSync.createTask', '创建任务') }}
           </h3>
           <button
             @click="closeTaskEditDialog"
@@ -2084,7 +2115,7 @@
               v-model="serviceForm.sla"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.sla')"
+              placeholder="例如: 4h, 24h"
             />
           </div>
 
@@ -2096,7 +2127,7 @@
             <input
               v-model="serviceForm.plannedCompletionTime"
               type="datetime-local"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 dark:[&::-webkit-calendar-picker-indicator]:invert"
             />
           </div>
 
@@ -2118,12 +2149,14 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}
             </label>
-            <textarea
+            <select
               v-model="serviceForm.progress"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.progress')"
-            ></textarea>
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">请选择</option>
+              <option value="已完成">已完成</option>
+              <option value="未完成">未完成</option>
+            </select>
           </div>
 
           <!-- 备注 -->
@@ -3331,6 +3364,32 @@ const graphLastGeneratedTime = computed(() => {
   return formatDateTime(time)
 })
 
+// 影响服务统计数据
+const impactedServicesStats = computed(() => {
+  const total = impactedServices.value.length
+  const completed = impactedServices.value.filter(service => service.progress === '已完成').length
+  const uncompleted = impactedServices.value.filter(service => service.progress === '未完成').length
+  return {
+    total,
+    completed,
+    uncompleted
+  }
+})
+
+// 事件简报统计数据
+const incidentBriefStats = computed(() => {
+  const notifications = incidentNotifications.value.filter(
+    notification => notification.type === 'firstNotification' || notification.type === 'closeNotification'
+  ).length
+  const dailyReports = incidentNotifications.value.filter(
+    notification => notification.type === 'networkProtectionDaily'
+  ).length
+  return {
+    notifications,
+    dailyReports
+  }
+})
+
 const graphSummaryHtml = computed(() => {
   if (!incident.value?.graphSummary) {
     return ''
@@ -4177,7 +4236,7 @@ const leftPaneActiveTab = ref('taskManagement')
 // 证据与响应卡片切换：默认显示影响服务
 const activeCardTab = ref('impactedServices')
 // 进展同步指令筛选类型
-const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
+const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4324,13 +4383,6 @@ const filteredProgressSyncTasks = computed(() => {
       // 全部指令
       filtered = tasksWithTags
       break
-    case 'other':
-      // 其他进展：排除指令类型的任务（需要根据实际数据结构调整）
-      filtered = tasksWithTags.filter(task => {
-        const taskType = task.type || task.task_type || ''
-        return taskType !== 'instruction' && taskType !== '指令'
-      })
-      break
     default:
       filtered = tasksWithTags
   }
@@ -4386,19 +4438,15 @@ watch([filteredProgressSyncTasks, taskTags], () => {
 
 // 进展同步卡片指标
 const progressSyncMetrics = computed(() => {
-  const tasks = filteredProgressSyncTasks.value
-  const instructions = tasks.filter(task => task.type === 'instruction' || task.task_type === 'instruction').length
-  const progress = tasks.length
-  const completedCount = tasks.filter(task => isTaskCompleted(task)).length
-  const statusText = completedCount === progress && progress > 0 
-    ? t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成')
-    : t('incidents.detail.evidenceResponse.cards.progressSync.inProgress', '进行中')
+  const tasks = allProgressSyncTasks.value
+  const total = tasks.length
+  const completed = tasks.filter(task => isTaskCompleted(task)).length
+  const uncompleted = total - completed
   
   return {
-    instructions,
-    progress,
-    completedCount,
-    statusText
+    total,
+    completed,
+    uncompleted
   }
 })
 
@@ -4606,37 +4654,152 @@ const closeTaskEditDialog = () => {
   }
 }
 
+// 创建新任务
+const createNewTask = () => {
+  editingTask.value = null
+  editingTaskIdx.value = -1
+  taskEditForm.value = {
+    task_name: '',
+    owner: '',
+    start_time: '',
+    end_time: '',
+    priority: '',
+    isDone: false
+  }
+  showTaskEditDialog.value = true
+}
+
 // 保存任务编辑
 const saveTaskEdit = () => {
-  if (!editingTask.value) return
+  if (!taskEditForm.value.task_name) {
+    toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') + ' ' + t('common.warning'))
+    return
+  }
   
-  const taskUniqueId = getTaskUniqueId(editingTask.value, editingTaskIdx.value)
-  
-  // 更新任务数据
-  const updatedTask = {
-    ...editingTask.value,
+  // 构建任务数据
+  const taskData = {
     task_name: taskEditForm.value.task_name,
-    owner: taskEditForm.value.owner,
+    owner: taskEditForm.value.owner || '',
     start_time: taskEditForm.value.start_time ? new Date(taskEditForm.value.start_time).toISOString() : null,
     end_time: taskEditForm.value.end_time ? new Date(taskEditForm.value.end_time).toISOString() : null,
-    priority: taskEditForm.value.priority,
-    isDone: taskEditForm.value.isDone
+    priority: taskEditForm.value.priority !== '' ? taskEditForm.value.priority : null,
+    isDone: taskEditForm.value.isDone || false
   }
   
-  // 更新到 filteredProgressSyncTasks（这会触发响应式更新）
-  const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
-  if (taskIndex !== -1) {
-    Object.assign(filteredProgressSyncTasks.value[taskIndex], updatedTask)
+  if (editingTask.value) {
+    // 编辑现有任务
+    const taskUniqueId = getTaskUniqueId(editingTask.value, editingTaskIdx.value)
+    
+    // 更新任务数据
+    const updatedTask = {
+      ...editingTask.value,
+      ...taskData
+    }
+    
+    // 更新到 filteredProgressSyncTasks（这会触发响应式更新）
+    const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
+    if (taskIndex !== -1) {
+      Object.assign(filteredProgressSyncTasks.value[taskIndex], updatedTask)
+    }
+    
+    // 同步更新到groupedTaskDetails
+    updateTaskInGroupedDetails(updatedTask)
+  } else {
+    // 创建新任务
+    // 获取第一个 warroom 或默认 warroom
+    const warroomIds = Object.keys(groupedTaskDetails.value)
+    if (warroomIds.length === 0) {
+      toast.error('请先绑定 Warroom')
+      return
+    }
+    
+    const defaultWarroomId = warroomIds[0]
+    const warroomName = getWarroomName(defaultWarroomId)
+    
+    // 创建新任务对象
+    const newTask = {
+      ...taskData,
+      warroomId: defaultWarroomId,
+      warroomName: warroomName,
+      uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    // 添加到 filteredProgressSyncTasks
+    filteredProgressSyncTasks.value.push(newTask)
+    
+    // 添加到 groupedTaskDetails
+    if (!groupedTaskDetails.value[defaultWarroomId]) {
+      groupedTaskDetails.value[defaultWarroomId] = []
+    }
+    
+    const warroomDetail = groupedTaskDetails.value[defaultWarroomId]
+    if (Array.isArray(warroomDetail)) {
+      warroomDetail.push(newTask)
+    } else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+      warroomDetail.task_list.push(newTask)
+    } else {
+      groupedTaskDetails.value[defaultWarroomId] = [newTask]
+    }
+    
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API创建
   }
-  
-  // 同步更新到groupedTaskDetails
-  updateTaskInGroupedDetails(updatedTask)
   
   // 重新计算指标
   calculateMetricsFromTasks(filteredProgressSyncTasks.value)
   
   // 关闭对话框
   closeTaskEditDialog()
+}
+
+// 删除进展同步任务
+const deleteProgressSyncTask = (task, index) => {
+  if (!task) return
+  
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    const taskUniqueId = getTaskUniqueId(task, index)
+    
+    // 从 filteredProgressSyncTasks 中删除
+    const taskIndex = filteredProgressSyncTasks.value.findIndex(t => {
+      const tId = getTaskUniqueId(t, filteredProgressSyncTasks.value.indexOf(t))
+      return tId === taskUniqueId
+    })
+    if (taskIndex !== -1) {
+      filteredProgressSyncTasks.value.splice(taskIndex, 1)
+    }
+    
+    // 从 groupedTaskDetails 中删除
+    if (task.warroomId && groupedTaskDetails.value[task.warroomId]) {
+      const warroomDetail = groupedTaskDetails.value[task.warroomId]
+      
+      // 处理数组格式
+      if (Array.isArray(warroomDetail)) {
+        const indexInWarroom = warroomDetail.findIndex(t => {
+          const tId = getTaskUniqueId(t, warroomDetail.indexOf(t))
+          return tId === taskUniqueId
+        })
+        if (indexInWarroom !== -1) {
+          warroomDetail.splice(indexInWarroom, 1)
+        }
+      }
+      // 处理对象格式，包含 task_list 数组
+      else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+        const indexInWarroom = warroomDetail.task_list.findIndex(t => {
+          const tId = getTaskUniqueId(t, warroomDetail.task_list.indexOf(t))
+          return tId === taskUniqueId
+        })
+        if (indexInWarroom !== -1) {
+          warroomDetail.task_list.splice(indexInWarroom, 1)
+        }
+      }
+    }
+    
+    // 重新计算指标
+    calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+    
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
 }
 
 // 获取warroom名称
@@ -5089,6 +5252,20 @@ const formatLastModified = (dateString) => {
 }
 
 // 格式化任务日期时间
+const formatServiceDateTime = (dateTimeString) => {
+  if (!dateTimeString) return '--'
+  // 尝试解析日期时间字符串，支持 ISO 格式和 "2026-01-31 03:11:19" 格式
+  try {
+    const date = parseToDate(dateTimeString)
+    if (date) {
+      return formatDateTime(date)
+    }
+  } catch (e) {
+    // 如果解析失败，返回原始字符串
+  }
+  return dateTimeString || '--'
+}
+
 const formatTaskDateTime = (dateTimeString) => {
   if (!dateTimeString) return ''
   // 尝试解析日期时间字符串，支持 "2026-01-31 03:11:19" 格式
@@ -5188,6 +5365,21 @@ const saveService = () => {
   
   const service = { ...serviceForm.value }
   
+  // 如果计划完成时间是datetime-local格式，转换为标准格式
+  if (service.plannedCompletionTime) {
+    try {
+      // 检查是否是datetime-local格式 (YYYY-MM-DDTHH:mm)
+      if (service.plannedCompletionTime.includes('T')) {
+        const date = new Date(service.plannedCompletionTime)
+        if (!isNaN(date.getTime())) {
+          service.plannedCompletionTime = date.toISOString()
+        }
+      }
+    } catch (e) {
+      // 如果转换失败，保持原值
+    }
+  }
+  
   if (editingServiceIndex.value >= 0) {
     // 编辑
     impactedServices.value[editingServiceIndex.value] = service
@@ -5215,6 +5407,56 @@ const resetServiceForm = () => {
     remark: ''
   }
   editingServiceIndex.value = -1
+}
+
+// 编辑影响服务
+const editService = (index) => {
+  if (index < 0 || index >= impactedServices.value.length) return
+  
+  const service = impactedServices.value[index]
+  editingServiceIndex.value = index
+  
+  // 格式化计划完成时间为datetime-local格式
+  let formattedTime = ''
+  if (service.plannedCompletionTime) {
+    try {
+      const date = new Date(service.plannedCompletionTime)
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`
+      }
+    } catch (e) {
+      // 如果已经是正确格式，直接使用
+      formattedTime = service.plannedCompletionTime
+    }
+  }
+  
+  serviceForm.value = {
+    service: service.service || '',
+    measure: service.measure || '',
+    sla: service.sla || '',
+    plannedCompletionTime: formattedTime,
+    owner: service.owner || '',
+    progress: service.progress || '',
+    remark: service.remark || ''
+  }
+  
+  showAddServiceDialog.value = true
+}
+
+// 删除影响服务
+const deleteService = (index) => {
+  if (index < 0 || index >= impactedServices.value.length) return
+  
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    impactedServices.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
 }
 
 // 取消新增/编辑影响服务
