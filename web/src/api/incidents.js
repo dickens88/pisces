@@ -80,6 +80,48 @@ export const deleteIncidents = (incidentIds, workspace = null) => {
 // Post comment (imported from comments.js for backward compatibility)
 export { postComment } from './comments.js'
 
+// Impacted Services API
+// Get impacted services for an incident
+export const getImpactedServices = (incidentId) => {
+  return service.get(`/incidents/${incidentId}/impacted-services`)
+}
+
+// Create a new impacted service
+export const createImpactedService = (incidentId, data) => {
+  return service.post(`/incidents/${incidentId}/impacted-services`, data)
+}
+
+// Update an impacted service
+export const updateImpactedService = (incidentId, serviceId, data) => {
+  return service.put(`/incidents/${incidentId}/impacted-services/${serviceId}`, data)
+}
+
+// Delete an impacted service
+export const deleteImpactedService = (incidentId, serviceId) => {
+  return service.delete(`/incidents/${incidentId}/impacted-services/${serviceId}`)
+}
+
+// Incident Brief API
+// Get incident briefs for an incident
+export const getIncidentBriefs = (incidentId) => {
+  return service.get(`/incidents/${incidentId}/incident-briefs`)
+}
+
+// Create a new incident brief
+export const createIncidentBrief = (incidentId, data) => {
+  return service.post(`/incidents/${incidentId}/incident-briefs`, data)
+}
+
+// Update an incident brief
+export const updateIncidentBrief = (incidentId, notificationId, data) => {
+  return service.put(`/incidents/${incidentId}/incident-briefs/${notificationId}`, data)
+}
+
+// Delete an incident brief
+export const deleteIncidentBrief = (incidentId, notificationId) => {
+  return service.delete(`/incidents/${incidentId}/incident-briefs/${notificationId}`)
+}
+
 /**
  * @brief 获取事件趋势数据（按日期分组统计）
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
