@@ -174,6 +174,7 @@
             Pisces {{ systemVersion || '-' }} is the latest version available.
           </span>
           <button
+            @click="openChangelog"
             class="ml-4 inline-flex items-center rounded-full border border-slate-300 dark:border-slate-600 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
             type="button"
           >
@@ -232,6 +233,13 @@ const openAbout = () => {
 const openIssue = () => {
   showUserMenu.value = false
   window.open('https://codehub-g.huawei.com/csirt_hunting/Tianyan-WEB/issues', '_blank', 'noopener,noreferrer')
+}
+
+const openChangelog = () => {
+  const changelogUrl = import.meta.env.VITE_CHANGELOG_URL
+  if (changelogUrl) {
+    window.open(changelogUrl, '_blank', 'noopener,noreferrer')
+  }
 }
 
 const selectLanguage = (lang) => {

@@ -176,7 +176,7 @@
                 {{ coverageStats.coverageRate }}%
               </p>
               <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                {{ coverageStats.coveredAlerts || 0 }}/{{ coverageStats.totalAlerts || 0 }} {{ $t('alerts.list.statistics.closedAlerts') || '研判' }}
+                {{ coverageStats.coveredAlerts || 0 }}/{{ coverageStats.totalAlerts || 0 }} {{ $t('alerts.list.statistics.Alerts') }}
               </p>
             </div>
           </div>
@@ -211,7 +211,7 @@
                 {{ accuracyStats.accuracyRate }}%
               </p>
               <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                {{ accuracyStats.correctJudgments || 0 }}/{{ accuracyStats.totalJudgments || 0 }} {{ $t('alerts.list.statistics.closedAlerts') || '研判' }}
+                {{ accuracyStats.correctJudgments || 0 }}/{{ accuracyStats.totalJudgments || 0 }} {{ $t('alerts.list.statistics.Alerts') }}
               </p>
             </div>
           </div>
