@@ -329,19 +329,6 @@
                           >
                             <div class="space-y-2">
                               <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
-                              <div v-if="task.stageName" class="text-xs">
-                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
-                                <span 
-                                  :class="[
-                                    'inline-block px-2 py-0.5 rounded text-xs',
-                                    task.stageName === '待处理' || task.stageName === 'Pending' 
-                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                  ]"
-                                >
-                                  {{ task.stageName }}
-                                </span>
-                              </div>
                               <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
@@ -379,19 +366,6 @@
                           >
                             <div class="space-y-2">
                               <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
-                              <div v-if="task.stageName" class="text-xs">
-                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
-                                <span 
-                                  :class="[
-                                    'inline-block px-2 py-0.5 rounded text-xs',
-                                    task.stageName === '待处理' || task.stageName === 'Pending' 
-                                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                                  ]"
-                                >
-                                  {{ task.stageName }}
-                                </span>
-                              </div>
                               <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
@@ -1587,13 +1561,13 @@
                     <tr>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.stageName', '阶段') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.planEndTime', '计划结束时间') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</th>
                       <th class="px-4 py-3 w-20">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
@@ -1605,169 +1579,65 @@
                         class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
                         <!-- WR名字 -->
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
-                        <!-- 任务名称（可编辑） -->
+                        <!-- 任务名称 -->
                         <td class="px-4 py-3">
-                          <input
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'task_name'"
-                            v-model="editingTaskValue"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'task_name', editingTaskValue)"
-                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'task_name', editingTaskValue)"
-                            @keyup.esc="cancelEditTask"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          />
                           <span
-                            v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'task_name', task.task_name || '')"
+                            @click="openTaskEditDialog(task, index)"
                             class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary"
                             :title="$t('common.edit')"
                           >{{ task.task_name || '--' }}</span>
                         </td>
-                        <!-- 阶段（可编辑） -->
+                        <!-- 责任人 -->
                         <td class="px-4 py-3">
-                          <select
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'stageName'"
-                            v-model="editingTaskValue"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'stageName', editingTaskValue)"
-                            @change="saveTaskField(getTaskUniqueId(task, index), 'stageName', editingTaskValue)"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          >
-                            <option value="待处理">待处理</option>
-                            <option value="进行中">进行中</option>
-                            <option value="已完成">已完成</option>
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                          </select>
                           <span
-                            v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'stageName', task.stageName || '')"
-                            :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
-                              task.stageName === '待处理' || task.stageName === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                            ]"
-                            :title="$t('common.edit')"
-                          >
-                            {{ task.stageName || '--' }}
-                          </span>
-                        </td>
-                        <!-- 责任人（可编辑） -->
-                        <td class="px-4 py-3">
-                          <input
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'owner'"
-                            v-model="editingTaskValue"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'owner', editingTaskValue)"
-                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'owner', editingTaskValue)"
-                            @keyup.esc="cancelEditTask"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          />
-                          <span
-                            v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'owner', task.owner || '')"
+                            @click="openTaskEditDialog(task, index)"
                             class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
                             :title="$t('common.edit')"
                           >{{ task.owner || '--' }}</span>
                         </td>
-                        <!-- 开始时间（可编辑） -->
+                        <!-- 开始时间 -->
                         <td class="px-4 py-3">
-                          <input
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'start_time'"
-                            v-model="editingTaskValue"
-                            type="datetime-local"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'start_time', editingTaskValue)"
-                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'start_time', editingTaskValue)"
-                            @keyup.esc="cancelEditTask"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          />
                           <span
-                            v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'start_time', task.start_time ? formatTaskDateTimeForInput(task.start_time) : '')"
+                            @click="openTaskEditDialog(task, index)"
                             class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
                             :title="$t('common.edit')"
                           >{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
                         </td>
-                        <!-- 计划结束时间（可编辑） -->
+                        <!-- 结束时间 -->
                         <td class="px-4 py-3">
-                          <input
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'end_time'"
-                            v-model="editingTaskValue"
-                            type="datetime-local"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'end_time', editingTaskValue)"
-                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'end_time', editingTaskValue)"
-                            @keyup.esc="cancelEditTask"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          />
                           <span
-                            v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'end_time', task.end_time ? formatTaskDateTimeForInput(task.end_time) : '')"
+                            @click="openTaskEditDialog(task, index)"
                             class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
                             :title="$t('common.edit')"
                           >{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
                         </td>
-                        <!-- 优先级（可编辑） -->
+                        <!-- 优先级 -->
                         <td class="px-4 py-3">
-                          <select
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'priority'"
-                            v-model="editingTaskValue"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'priority', editingTaskValue)"
-                            @change="saveTaskField(getTaskUniqueId(task, index), 'priority', editingTaskValue)"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
+                          <span
+                            v-if="task.priority"
+                            @click="openTaskEditDialog(task, index)"
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                              task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                              task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                              task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                            ]"
+                            :title="$t('common.edit')"
                           >
-                            <option value="低">低</option>
-                            <option value="中">中</option>
-                            <option value="高">高</option>
-                            <option value="紧急">紧急</option>
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                            <option value="Urgent">Urgent</option>
-                          </select>
-                          <template v-else>
-                            <span
-                              v-if="task.priority"
-                              @dblclick="startEditTask(getTaskUniqueId(task, index), 'priority', task.priority || '')"
-                              :class="[
-                                'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
-                                task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                                task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                                task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                              ]"
-                              :title="$t('common.edit')"
-                            >
-                              {{ task.priority }}
-                            </span>
-                            <span
-                              v-else
-                              @dblclick="startEditTask(getTaskUniqueId(task, index), 'priority', '')"
-                              class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                              :title="$t('common.edit')"
-                            >--</span>
-                          </template>
-                        </td>
-                        <!-- 状态（可编辑） -->
-                        <td class="px-4 py-3">
-                          <select
-                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'isDone'"
-                            v-model="editingTaskValue"
-                            @blur="saveTaskField(getTaskUniqueId(task, index), 'isDone', editingTaskValue)"
-                            @change="saveTaskField(getTaskUniqueId(task, index), 'isDone', editingTaskValue)"
-                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                            autofocus
-                          >
-                            <option :value="false">{{ $t('incidents.detail.eventGraph.inProgress') }}</option>
-                            <option :value="true">{{ $t('incidents.detail.eventGraph.completed') }}</option>
-                          </select>
+                            {{ task.priority }}
+                          </span>
                           <span
                             v-else
-                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'isDone', task.isDone)"
+                            @click="openTaskEditDialog(task, index)"
+                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                            :title="$t('common.edit')"
+                          >--</span>
+                        </td>
+                        <!-- 状态 -->
+                        <td class="px-4 py-3">
+                          <span
+                            @click="openTaskEditDialog(task, index)"
                             :class="[
                               'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
                               task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
@@ -1777,8 +1647,8 @@
                             :title="$t('common.edit')"
                           >
                             {{ task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed' 
-                              ? $t('incidents.detail.eventGraph.completed') 
-                              : $t('incidents.detail.eventGraph.inProgress') }}
+                              ? $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') 
+                              : $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}
                           </span>
                         </td>
                         <!-- 标签（可编辑） -->
@@ -1795,10 +1665,24 @@
                             <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
                           </select>
                         </td>
+                        <!-- 查看详情 -->
+                        <td class="px-4 py-3">
+                          <a
+                            v-if="task.detail_url"
+                            :href="task.detail_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-primary hover:text-primary/80 hover:underline inline-flex items-center gap-1 text-xs"
+                          >
+                            <span class="material-symbols-outlined text-sm">open_in_new</span>
+                            {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}
+                          </a>
+                          <span v-else class="text-slate-400 dark:text-slate-500 text-xs">--</span>
+                        </td>
                         <!-- 操作 -->
                         <td class="px-4 py-3">
                           <button
-                            @click="startEditTask(getTaskUniqueId(task, index), 'task_name', task.task_name || '')"
+                            @click="openTaskEditDialog(task, index)"
                             class="text-primary hover:text-primary/80 transition-colors"
                             :title="$t('common.edit')"
                           >
@@ -1951,6 +1835,129 @@
       @close="closeEditDialog"
       @updated="handleIncidentUpdated"
     />
+
+    <!-- 任务编辑对话框 -->
+    <div
+      v-if="showTaskEditDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeTaskEditDialog"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
+            {{ translateOr('incidents.detail.evidenceResponse.progressSync.editTask', '编辑任务') }}
+          </h3>
+          <button
+            @click="closeTaskEditDialog"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- 任务名称 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}
+            </label>
+            <input
+              v-model="taskEditForm.task_name"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+              :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称')"
+            />
+          </div>
+          
+          <!-- 责任人 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}
+            </label>
+            <input
+              v-model="taskEditForm.owner"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+              :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人')"
+            />
+          </div>
+          
+          <!-- 开始时间 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}
+            </label>
+            <input
+              v-model="taskEditForm.start_time"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+            />
+          </div>
+          
+          <!-- 结束时间 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}
+            </label>
+            <input
+              v-model="taskEditForm.end_time"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+            />
+          </div>
+          
+          <!-- 优先级 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}
+            </label>
+            <select
+              v-model="taskEditForm.priority"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+            >
+              <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.noPriority', '无') }}</option>
+              <option value="低">低</option>
+              <option value="中">中</option>
+              <option value="高">高</option>
+              <option value="紧急">紧急</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+          
+          <!-- 完成状态 -->
+          <div>
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}
+            </label>
+            <select
+              v-model="taskEditForm.isDone"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+            >
+              <option :value="false">{{ $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}</option>
+              <option :value="true">{{ $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') }}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6">
+          <button
+            @click="closeTaskEditDialog"
+            class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-gray-100 dark:bg-surface-hover-dark rounded-lg hover:bg-gray-200 dark:hover:bg-surface-hover-dark transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="saveTaskEdit"
+            class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            {{ $t('common.save') }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 解关联确认对话框 -->
     <div
@@ -4176,6 +4183,18 @@ const editingTaskField = ref(null) // 正在编辑的字段名
 const editingTaskValue = ref('') // 正在编辑的字段值
 // 任务标签映射（用于存储每个任务的标签）
 const taskTags = ref({}) // { taskUniqueId: tag }
+// 任务编辑弹窗状态
+const showTaskEditDialog = ref(false)
+const editingTask = ref(null)
+const editingTaskIdx = ref(-1)
+const taskEditForm = ref({
+  task_name: '',
+  owner: '',
+  start_time: '',
+  end_time: '',
+  priority: '',
+  isDone: false
+})
 // 事件通报/简报相关状态
 const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
