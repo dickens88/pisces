@@ -1467,12 +1467,17 @@ const handleRunWorkflow = async () => {
     const alertIdValue = selectedAlert.value?.alert_id || selectedAlert.value?.id || ''
     const subjectValue = selectedAlert.value?.title || ''
     const descriptionValue = getRawDescription()
+    
+    // Convert description to string - if it's an object, stringify it
+    const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
+      ? JSON.stringify(descriptionValue)
+      : String(descriptionValue || '')
 
     const payload = {
       inputs:{
         appid: String(selectedWorkflow.value),
         subject: String(subjectValue),
-        description: String(descriptionValue),
+        description: descriptionString,
         alarm_id: String(alertIdValue)
       },
       response_mode: 'blocking',
