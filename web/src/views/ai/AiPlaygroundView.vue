@@ -1290,14 +1290,12 @@ const loadAiAccuracyStatistics = async () => {
     const { start, end } = computeSelectedRange()
     const conditions = buildConditions()
     const response = await getAiAccuracyByModel(start, end, 10, conditions)
-    aiAccuracyData.value = (response?.data || [])
-      .map((item) => ({
-        name: item.model_name || item.model || 'Unknown',
-        accuracy: Number(item.accuracy) || 0,
-        correct: item.correct || 0,
-        total: item.total || 0
-      }))
-      .sort((a, b) => b.total - a.total) // 按照告警数量（total）倒排
+    aiAccuracyData.value = (response?.data || []).map((item) => ({
+      name: item.model_name || item.model || 'Unknown',
+      accuracy: Number(item.accuracy) || 0,
+      correct: item.correct || 0,
+      total: item.total || 0
+    }))
   } catch (error) {
     console.error('Failed to load AI accuracy statistics:', error)
     aiAccuracyData.value = []

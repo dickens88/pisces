@@ -828,7 +828,7 @@ class StatisticsService:
         """
         Calculate AI decision accuracy per model between start_date and end_date.
         Only includes alerts with non-null model_name and is_ai_decision_correct.
-        Returns at most `limit` models sorted by accuracy (desc).
+        Returns at most `limit` models sorted by total alert count (desc).
         
         Args:
             start_date: Start datetime
@@ -888,7 +888,7 @@ class StatisticsService:
                 'total': total
             })
 
-        stats.sort(key=lambda item: item['accuracy'], reverse=True)
+        stats.sort(key=lambda item: item['total'], reverse=True)
         return stats[:max(0, limit or 10)]
 
     @classmethod
