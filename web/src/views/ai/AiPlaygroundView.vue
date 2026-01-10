@@ -1797,10 +1797,46 @@ const handleRunWorkflow = async () => {
 
 const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
 
+// Recursively extract all string values from an object
+const extractAllTextValues = (obj, depth = 0) => {
+  if (obj === null || obj === undefined) return []
+  
+  const textValues = []
+  
+  if (typeof obj === 'string') {
+    // If it's a string, add it directly
+    textValues.push(obj)
+  } else if (Array.isArray(obj)) {
+    // If it's an array, process each element
+    obj.forEach((item, index) => {
+      const extracted = extractAllTextValues(item, depth + 1)
+      textValues.push(...extracted)
+    })
+  } else if (typeof obj === 'object') {
+    // If it's an object, process each property
+    Object.entries(obj).forEach(([key, value]) => {
+      const extracted = extractAllTextValues(value, depth + 1)
+      textValues.push(...extracted)
+    })
+  }
+  
+  return textValues
+}
+
 const workflowResultText = computed(() => {
   if (!workflowResult.value) return null
   if (workflowResult.value.error) return null
-  return workflowResult.value?.data?.outputs?.result?.result || null
+  
+  const resultObject = workflowResult.value?.data?.outputs?.result
+  if (!resultObject) return null
+  
+  // Extract all text values from the result object
+  const textValues = extractAllTextValues(resultObject)
+  
+  // Filter out empty strings and join with newlines
+  const filtered = textValues.filter(text => text && text.trim().length > 0)
+  
+  return filtered.length > 0 ? filtered.join('\n\n') : null
 })
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
