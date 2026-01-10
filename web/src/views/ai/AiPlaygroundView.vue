@@ -1800,7 +1800,7 @@ const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
 const workflowResultText = computed(() => {
   if (!workflowResult.value) return null
   if (workflowResult.value.error) return null
-  return workflowResult.value?.data?.outputs?.result?.text || null
+  return workflowResult.value?.data?.outputs?.result?.result || null
 })
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
