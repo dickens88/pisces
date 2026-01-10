@@ -131,7 +131,7 @@
           <div class="flex-shrink-0">
             <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
-                {{ $t('aiPlayground.aiJudgment') }}
+                {{ $t('aiPlayground.filter.aiJudgmentLabel') }}
               </span>
               <button
                 @click="toggleAiJudgmentFilter"
@@ -159,7 +159,7 @@
             </div>
           </div>
 
-          <div class="relative w-full max-w-xl" ref="searchContainerRef">
+          <div class="relative w-full max-w-md" ref="searchContainerRef">
             <div
               class="flex items-start gap-2 rounded-lg border-0 bg-gray-100 dark:bg-[#233348] px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
               @click="handleSearchContainerClick"
@@ -308,15 +308,17 @@
             </span>
           </template>
           <template #cell-riskLevel="{ item }">
-            <span
-              :class="[
-                'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[70px]',
-                getRiskLevelClass(item.riskLevel)
-              ]"
-              :title="$t(`common.severity.${item.riskLevel}`)"
-            >
-              {{ $t(`common.severity.${item.riskLevel}`) }}
-            </span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span
+                :class="[
+                  'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
+                  getRiskLevelClass(item.riskLevel)
+                ]"
+                :title="$t(`common.severity.${item.riskLevel}`)"
+              >
+                {{ $t(`common.severity.${item.riskLevel}`) }}
+              </span>
+            </div>
           </template>
           <template #cell-aiJudge="{ item }">
             <div class="flex items-center justify-center">
@@ -709,7 +711,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -725,6 +727,7 @@ import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
 
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
@@ -850,12 +853,8 @@ const chartNameToFilterValue = (chartName) => {
 const openAlertDetailInNewWindow = () => {
   if (!alertId.value) return
   const route = router.resolve({ path: `/alerts/${alertId.value}` })
-  const raw = import.meta.env.VITE_WEB_BASE_PATH
-  const basePath = raw && raw !== '/' 
-    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
-    : ''
-  const url = `${window.location.origin}${basePath}${route.href}`
-  window.open(url, '_blank', 'noopener,noreferrer')
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
 }
 
 // Helper function to auto-resize textarea
@@ -1314,12 +1313,25 @@ const updateAiDecisionChart = () => {
   aiDecisionChartInstance.value.clear()
 
   // Build pie data using centralized config
+  const isDark = isDarkMode()
   const pieData = aiDecisionData.value.map((item) => {
     const statusConfig = getMatchStatusConfig(item.name)
+    // Use lighter/more vibrant colors for light mode, darker for dark mode
+    let color = statusConfig.color
+    if (!isDark) {
+      // Adjust colors for light mode - use softer, more pleasant colors
+      const colorMap = {
+        '#10b981': '#94d2bd', // TT - slightly deeper green for better contrast
+        '#ef4444': '#dc2626', // FP - slightly deeper red for better contrast
+        '#f59e0b': '#d97706', // FN - slightly deeper orange for better contrast
+        '#94a3b8': '#6b7280'  // Empty - darker gray for better visibility
+      }
+      color = colorMap[statusConfig.color] || statusConfig.color
+    }
     return {
       name: t(statusConfig.i18nKey),
       value: item.value,
-      itemStyle: { color: statusConfig.color },
+      itemStyle: { color },
       // Store original name for click event
       originalName: item.name
     }
@@ -1329,10 +1341,12 @@ const updateAiDecisionChart = () => {
     backgroundColor: 'transparent',
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+      borderWidth: isDark ? 0 : 1,
+      borderColor: isDark ? 'transparent' : '#d1d5db',
+      textStyle: { color: isDark ? '#e2e8f0' : '#111827' },
       padding: [10, 12],
+      extraCssText: isDark ? '' : 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);',
       formatter: (params) => {
         if (!params) return ''
         const total = aiDecisionTotal.value
@@ -1349,8 +1363,9 @@ const updateAiDecisionChart = () => {
       right: 10,
       top: 'center',
       textStyle: {
-        color: '#cbd5f5',
-        fontSize: 11
+        color: isDark ? '#cbd5f5' : '#374151',
+        fontSize: 11,
+        fontWeight: isDark ? 'normal' : '500'
       },
       itemGap: 8
     },
@@ -1363,7 +1378,7 @@ const updateAiDecisionChart = () => {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 4,
-          borderColor: '#19222c',
+          borderColor: isDark ? '#19222c' : '#ffffff',
           borderWidth: 2
         },
         label: {
@@ -1374,7 +1389,7 @@ const updateAiDecisionChart = () => {
             show: true,
             fontSize: 12,
             fontWeight: 'bold',
-            color: '#e2e8f0'
+            color: isDark ? '#e2e8f0' : '#1f2937'
           }
         },
         labelLine: {
@@ -1955,7 +1970,7 @@ const handleFilter = () => {
 const aiJudgmentFilterText = computed(() =>
   isAiJudgmentFilterActive.value
     ? (t('common.clearFilter') || 'Clear Filter')
-    : (t('aiPlayground.aiJudgment') || 'AI Judgment')
+    : (t('aiPlayground.filter.aiJudgmentLabel') || 'AI Judgment')
 )
 
 const toggleAiJudgmentFilter = () => {
@@ -2152,6 +2167,23 @@ onMounted(() => {
   aiDecisionChartManager.ensure()
   document.addEventListener('click', handleClickOutside)
   wordWrapState.value = getWordWrapState()
+  
+  // Check if alertId is provided in query params
+  const alertId = route.query.alertId
+  if (alertId) {
+    // Add alertId to search keywords and perform search
+    const alertIdStr = String(alertId).trim()
+    if (alertIdStr) {
+      // Check if already exists
+      const exists = searchKeywords.value.some(k => k.field === 'id' && k.value === alertIdStr)
+      if (!exists) {
+        searchKeywords.value.push({ field: 'id', value: alertIdStr })
+        currentPage.value = 1
+        // Load alerts will be called by handleRefresh
+      }
+    }
+  }
+  
   handleRefresh()
 })
 

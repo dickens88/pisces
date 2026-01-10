@@ -180,6 +180,9 @@
     },
     "aiJudgment": "AI研判结论",
     "humanJudgment": "人工研判结论",
+    "filter": {
+      "aiJudgmentLabel": "AI研判"
+    },
     "verdict": "判定",
     "analyst": "分析师",
     "aiReasoning": "AI研判总结",
@@ -410,6 +413,7 @@
       "noThreatIntelligence": "暂无威胁情报匹配",
       "noAssociatedAlerts": "暂无关联告警",
       "noAiResponse": "暂无AI分析结果",
+      "aiTuning": "AI调优",
       "executedNodes": "已执行节点",
       "agentTools": "调用的工具",
       "responseTab": "响应",

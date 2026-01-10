@@ -88,6 +88,17 @@
                   >
                     {{ $t('common.noAiResponse') || 'No AI analysis results' }}
                   </div>
+                  
+                  <!-- AI调教按钮 -->
+                  <div v-if="findingSummary && findingSummary.trim() && alertId" class="flex justify-end pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      @click="handleOpenAiPlayground"
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white text-sm font-medium rounded-md transition-all duration-200 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                    >
+                      <span class="material-symbols-outlined text-base">auto_awesome</span>
+                      {{ $t('alerts.detail.aiTuning') }}
+                    </button>
+                  </div>
                 </div>
               </details>
 
@@ -741,6 +752,17 @@ const handleResetConversation = () => {
 
 const handleClose = () => emit('close')
 const handleOpenInNew = () => emit('open-in-new')
+
+const handleOpenAiPlayground = () => {
+  if (!props.alertId) return
+  
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  const basePath = raw && raw !== '/' 
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  const url = `${window.location.origin}${basePath}/ai-playground?alertId=${props.alertId}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 const handleSecurityAgentSend = async (data) => {
   // CommentInput 发出的是 { comment, files }，需要映射为 { message, files }
