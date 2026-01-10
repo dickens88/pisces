@@ -1470,10 +1470,10 @@ const handleRunWorkflow = async () => {
 
     const payload = {
       inputs:{
-        app_id: selectedWorkflow.value,
-        subject: subjectValue,
-        description: descriptionValue,
-        alarm_id: alertIdValue
+        app_id: String(selectedWorkflow.value),
+        subject: String(subjectValue),
+        description: String(descriptionValue),
+        alarm_id: String(alertIdValue)
       },
       response_mode: 'blocking',
       user:'Pisces AI Playground'
