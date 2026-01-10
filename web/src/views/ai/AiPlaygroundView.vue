@@ -1470,7 +1470,7 @@ const handleRunWorkflow = async () => {
 
     const payload = {
       inputs:{
-        app_id: String(selectedWorkflow.value),
+        appid: String(selectedWorkflow.value),
         subject: String(subjectValue),
         description: String(descriptionValue),
         alarm_id: String(alertIdValue)
