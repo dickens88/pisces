@@ -1555,12 +1555,12 @@
 
             <!-- 进展同步表格 -->
             <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
-              <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left" style="table-layout: auto; min-width: 100%;">
+              <div class="overflow-hidden">
+                <table class="w-full text-sm text-left" style="table-layout: auto;">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
                       <th class="px-4 py-3 w-28">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
-                      <th class="px-4 py-3 w-12">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
+                      <th class="px-4 py-3 max-w-[280px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
                       <th class="px-4 py-3 w-24">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
                       <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
                       <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
@@ -1580,10 +1580,10 @@
                         <!-- WR名字 -->
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
                         <!-- 任务名称 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 max-w-[280px]">
                           <span
                             @click="openTaskEditDialog(task, index)"
-                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal"
+                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal block"
                             :title="task.task_name || '--'"
                           >{{ task.task_name || '--' }}</span>
                         </td>
