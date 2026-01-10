@@ -442,16 +442,29 @@
                   {{ $t('alerts.detail.noAiResponse') }}
                 </div>
 
-                <div v-else class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
-                  <AlertInfoCard
-                    v-for="(aiItem, index) in alert.ai"
-                    :key="`ai-${index}`"
-                    :owner="aiItem.author || 'AI Agent'"
-                    owner-icon="smart_toy"
-                    :header-meta="aiItem.create_time || aiItem.time || '-'"
-                    :html-content="aiItem.content || ''"
-                    :summary="stripHtmlTags(aiItem.content || '')"
-                  />
+                <div v-else class="space-y-4">
+                  <div class="grid grid-cols-1 @lg:grid-cols-2 gap-4">
+                    <AlertInfoCard
+                      v-for="(aiItem, index) in alert.ai"
+                      :key="`ai-${index}`"
+                      :owner="aiItem.author || 'AI Agent'"
+                      owner-icon="smart_toy"
+                      :header-meta="aiItem.create_time || aiItem.time || '-'"
+                      :html-content="aiItem.content || ''"
+                      :summary="stripHtmlTags(aiItem.content || '')"
+                    />
+                  </div>
+                  
+                  <!-- AI调教按钮 -->
+                  <div class="flex justify-end pt-4">
+                    <button
+                      @click="handleOpenAiPlayground"
+                      class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white text-sm font-medium rounded-md transition-all duration-200 hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                    >
+                      <span class="material-symbols-outlined text-base">auto_awesome</span>
+                      {{ $t('alerts.detail.aiTuning') }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </main>
@@ -1632,6 +1645,17 @@ const handleAISendMessage = (message) => {
 
 const handleAIToolAction = (tool) => {
   // 工具操作由AISidebar组件内部处理
+}
+
+const handleOpenAiPlayground = () => {
+  if (!currentAlertId.value) return
+  
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  const basePath = raw && raw !== '/' 
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  const url = `${window.location.origin}${basePath}/ai-playground?alertId=${currentAlertId.value}`
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 const showShareSuccessMessage = () => {

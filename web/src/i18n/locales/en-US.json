@@ -180,6 +180,9 @@
     },
     "aiJudgment": "AI Judgment",
     "humanJudgment": "Human Judgment",
+    "filter": {
+      "aiJudgmentLabel": "AI Judge"
+    },
     "verdict": "Verdict",
     "analyst": "Analyst",
     "aiReasoning": "AI Reasoning",
@@ -411,6 +414,7 @@
       "noThreatIntelligence": "No threat intelligence matches found",
       "noAssociatedAlerts": "No associated alerts found",
       "noAiResponse": "No AI analysis results",
+      "aiTuning": "AI Tuning",
       "executedNodes": "Executed Nodes",
       "agentTools": "Tools called",
       "findingSummarization": "Finding Summarization",

@@ -131,7 +131,7 @@
           <div class="flex-shrink-0">
             <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
-                {{ $t('aiPlayground.aiJudgment') }}
+                {{ $t('aiPlayground.filter.aiJudgmentLabel') }}
               </span>
               <button
                 @click="toggleAiJudgmentFilter"
@@ -159,7 +159,7 @@
             </div>
           </div>
 
-          <div class="relative w-full max-w-xl" ref="searchContainerRef">
+          <div class="relative w-full max-w-md" ref="searchContainerRef">
             <div
               class="flex items-start gap-2 rounded-lg border-0 bg-gray-100 dark:bg-[#233348] px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
               @click="handleSearchContainerClick"
@@ -308,15 +308,17 @@
             </span>
           </template>
           <template #cell-riskLevel="{ item }">
-            <span
-              :class="[
-                'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center min-w-[70px]',
-                getRiskLevelClass(item.riskLevel)
-              ]"
-              :title="$t(`common.severity.${item.riskLevel}`)"
-            >
-              {{ $t(`common.severity.${item.riskLevel}`) }}
-            </span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span
+                :class="[
+                  'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
+                  getRiskLevelClass(item.riskLevel)
+                ]"
+                :title="$t(`common.severity.${item.riskLevel}`)"
+              >
+                {{ $t(`common.severity.${item.riskLevel}`) }}
+              </span>
+            </div>
           </template>
           <template #cell-aiJudge="{ item }">
             <div class="flex items-center justify-center">
@@ -709,7 +711,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
@@ -725,6 +727,7 @@ import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
+const route = useRoute()
 
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
@@ -850,12 +853,8 @@ const chartNameToFilterValue = (chartName) => {
 const openAlertDetailInNewWindow = () => {
   if (!alertId.value) return
   const route = router.resolve({ path: `/alerts/${alertId.value}` })
-  const raw = import.meta.env.VITE_WEB_BASE_PATH
-  const basePath = raw && raw !== '/' 
-    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
-    : ''
-  const url = `${window.location.origin}${basePath}${route.href}`
-  window.open(url, '_blank', 'noopener,noreferrer')
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
 }
 
 // Helper function to auto-resize textarea
@@ -1955,7 +1954,7 @@ const handleFilter = () => {
 const aiJudgmentFilterText = computed(() =>
   isAiJudgmentFilterActive.value
     ? (t('common.clearFilter') || 'Clear Filter')
-    : (t('aiPlayground.aiJudgment') || 'AI Judgment')
+    : (t('aiPlayground.filter.aiJudgmentLabel') || 'AI Judgment')
 )
 
 const toggleAiJudgmentFilter = () => {
@@ -2152,6 +2151,23 @@ onMounted(() => {
   aiDecisionChartManager.ensure()
   document.addEventListener('click', handleClickOutside)
   wordWrapState.value = getWordWrapState()
+  
+  // Check if alertId is provided in query params
+  const alertId = route.query.alertId
+  if (alertId) {
+    // Add alertId to search keywords and perform search
+    const alertIdStr = String(alertId).trim()
+    if (alertIdStr) {
+      // Check if already exists
+      const exists = searchKeywords.value.some(k => k.field === 'id' && k.value === alertIdStr)
+      if (!exists) {
+        searchKeywords.value.push({ field: 'id', value: alertIdStr })
+        currentPage.value = 1
+        // Load alerts will be called by handleRefresh
+      }
+    }
+  }
+  
   handleRefresh()
 })
 
