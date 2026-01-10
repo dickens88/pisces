@@ -1143,7 +1143,6 @@ const createPieChartManager = (chartRef) => {
           color: isDarkMode ? '#ffffff' : '#1f2937'
         },
         labelLine: { show: false },
-        emphasis: { disabled: true },
         data: [
           { value, name: labels[0], itemStyle: { color: primaryColor } },
           { value: total - value, name: labels[1], itemStyle: { color: secondaryColor || (isDarkMode ? '#1e293b' : '#e5e7eb') } }
