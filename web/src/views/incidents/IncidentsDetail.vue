@@ -1380,7 +1380,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
                   <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.notExported') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.unconfirmed') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.impactedServices.confirmed') }} 1
+                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
                   </p>
                 </div>
               </div>
@@ -1408,7 +1408,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} {{ progressSyncMetrics.instructions || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} {{ progressSyncMetrics.progress || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.statusLabel') }}: {{ progressSyncMetrics.statusText || $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
+                    指令个数 {{ progressSyncMetrics.total }} | 已完成 {{ progressSyncMetrics.completed }} | 未完成 {{ progressSyncMetrics.uncompleted }}
                   </p>
                 </div>
               </div>
@@ -1436,7 +1436,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.brief') }} 2 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.announcement') }} 3 | {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.bulletin') }} 0
+                    通报 {{ incidentBriefStats.notifications }} | 日报 {{ incidentBriefStats.dailyReports }}
                   </p>
                 </div>
               </div>
@@ -1476,6 +1476,7 @@
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                      <th class="px-4 py-3">操作</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
@@ -1487,14 +1488,34 @@
                         <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ service.service || '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.measure || '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.sla || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.plannedCompletionTime || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                          {{ formatServiceDateTime(service.plannedCompletionTime) }}
+                        </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.owner || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.progress || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <span 
+                            :class="service.progress === '已完成' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : service.progress === '未完成'
+                              ? 'text-orange-600 dark:text-orange-400'
+                              : 'text-slate-500 dark:text-slate-400'">
+                            {{ service.progress || '--' }}
+                          </span>
+                        </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
+                        <td class="px-4 py-3">
+                          <button
+                            @click="editService(index)"
+                            class="text-primary hover:text-primary-hover transition-colors"
+                            title="编辑"
+                          >
+                            <span class="material-symbols-outlined text-base">edit</span>
+                          </button>
+                        </td>
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>
@@ -2084,7 +2105,7 @@
               v-model="serviceForm.sla"
               type="text"
               class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
-              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.sla')"
+              placeholder="例如: 4h, 24h"
             />
           </div>
 
@@ -2096,7 +2117,7 @@
             <input
               v-model="serviceForm.plannedCompletionTime"
               type="datetime-local"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 dark:[&::-webkit-calendar-picker-indicator]:invert"
             />
           </div>
 
@@ -2118,12 +2139,14 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}
             </label>
-            <textarea
+            <select
               v-model="serviceForm.progress"
-              rows="3"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.progress')"
-            ></textarea>
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">请选择</option>
+              <option value="已完成">已完成</option>
+              <option value="未完成">未完成</option>
+            </select>
           </div>
 
           <!-- 备注 -->
@@ -3331,6 +3354,32 @@ const graphLastGeneratedTime = computed(() => {
   return formatDateTime(time)
 })
 
+// 影响服务统计数据
+const impactedServicesStats = computed(() => {
+  const total = impactedServices.value.length
+  const completed = impactedServices.value.filter(service => service.progress === '已完成').length
+  const uncompleted = impactedServices.value.filter(service => service.progress === '未完成').length
+  return {
+    total,
+    completed,
+    uncompleted
+  }
+})
+
+// 事件简报统计数据
+const incidentBriefStats = computed(() => {
+  const notifications = incidentNotifications.value.filter(
+    notification => notification.type === 'firstNotification' || notification.type === 'closeNotification'
+  ).length
+  const dailyReports = incidentNotifications.value.filter(
+    notification => notification.type === 'networkProtectionDaily'
+  ).length
+  return {
+    notifications,
+    dailyReports
+  }
+})
+
 const graphSummaryHtml = computed(() => {
   if (!incident.value?.graphSummary) {
     return ''
@@ -4386,19 +4435,15 @@ watch([filteredProgressSyncTasks, taskTags], () => {
 
 // 进展同步卡片指标
 const progressSyncMetrics = computed(() => {
-  const tasks = filteredProgressSyncTasks.value
-  const instructions = tasks.filter(task => task.type === 'instruction' || task.task_type === 'instruction').length
-  const progress = tasks.length
-  const completedCount = tasks.filter(task => isTaskCompleted(task)).length
-  const statusText = completedCount === progress && progress > 0 
-    ? t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成')
-    : t('incidents.detail.evidenceResponse.cards.progressSync.inProgress', '进行中')
+  const tasks = allProgressSyncTasks.value
+  const total = tasks.length
+  const completed = tasks.filter(task => isTaskCompleted(task)).length
+  const uncompleted = total - completed
   
   return {
-    instructions,
-    progress,
-    completedCount,
-    statusText
+    total,
+    completed,
+    uncompleted
   }
 })
 
@@ -5089,6 +5134,20 @@ const formatLastModified = (dateString) => {
 }
 
 // 格式化任务日期时间
+const formatServiceDateTime = (dateTimeString) => {
+  if (!dateTimeString) return '--'
+  // 尝试解析日期时间字符串，支持 ISO 格式和 "2026-01-31 03:11:19" 格式
+  try {
+    const date = parseToDate(dateTimeString)
+    if (date) {
+      return formatDateTime(date)
+    }
+  } catch (e) {
+    // 如果解析失败，返回原始字符串
+  }
+  return dateTimeString || '--'
+}
+
 const formatTaskDateTime = (dateTimeString) => {
   if (!dateTimeString) return ''
   // 尝试解析日期时间字符串，支持 "2026-01-31 03:11:19" 格式
@@ -5188,6 +5247,21 @@ const saveService = () => {
   
   const service = { ...serviceForm.value }
   
+  // 如果计划完成时间是datetime-local格式，转换为标准格式
+  if (service.plannedCompletionTime) {
+    try {
+      // 检查是否是datetime-local格式 (YYYY-MM-DDTHH:mm)
+      if (service.plannedCompletionTime.includes('T')) {
+        const date = new Date(service.plannedCompletionTime)
+        if (!isNaN(date.getTime())) {
+          service.plannedCompletionTime = date.toISOString()
+        }
+      }
+    } catch (e) {
+      // 如果转换失败，保持原值
+    }
+  }
+  
   if (editingServiceIndex.value >= 0) {
     // 编辑
     impactedServices.value[editingServiceIndex.value] = service
@@ -5215,6 +5289,45 @@ const resetServiceForm = () => {
     remark: ''
   }
   editingServiceIndex.value = -1
+}
+
+// 编辑影响服务
+const editService = (index) => {
+  if (index < 0 || index >= impactedServices.value.length) return
+  
+  const service = impactedServices.value[index]
+  editingServiceIndex.value = index
+  
+  // 格式化计划完成时间为datetime-local格式
+  let formattedTime = ''
+  if (service.plannedCompletionTime) {
+    try {
+      const date = new Date(service.plannedCompletionTime)
+      if (!isNaN(date.getTime())) {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`
+      }
+    } catch (e) {
+      // 如果已经是正确格式，直接使用
+      formattedTime = service.plannedCompletionTime
+    }
+  }
+  
+  serviceForm.value = {
+    service: service.service || '',
+    measure: service.measure || '',
+    sla: service.sla || '',
+    plannedCompletionTime: formattedTime,
+    owner: service.owner || '',
+    progress: service.progress || '',
+    remark: service.remark || ''
+  }
+  
+  showAddServiceDialog.value = true
 }
 
 // 取消新增/编辑影响服务
