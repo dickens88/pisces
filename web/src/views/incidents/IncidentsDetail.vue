@@ -338,8 +338,27 @@
                               <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
                               </div>
-                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400 flex items-center gap-1">
+                                <span>{{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}:</span>
+                                <span v-if="getPriorityConfig(task.priority)" class="inline-flex items-center gap-0.5">
+                                  <span 
+                                    class="material-symbols-outlined text-xs flex-shrink-0"
+                                    :class="getPriorityConfig(task.priority)?.iconClass"
+                                    style="font-size: 12px;"
+                                  >
+                                    {{ getPriorityConfig(task.priority)?.icon }}
+                                  </span>
+                                  <span 
+                                    :class="[
+                                      'px-1.5 py-0.5 rounded text-xs',
+                                      getPriorityConfig(task.priority)?.bgClass,
+                                      getPriorityConfig(task.priority)?.textClass
+                                    ]"
+                                  >
+                                    {{ getPriorityConfig(task.priority)?.label }}
+                                  </span>
+                                </span>
+                                <span v-else>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.noPriority', '无') }}</span>
                               </div>
                               <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
                                 <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
@@ -375,8 +394,27 @@
                               <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
                               </div>
-                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400 flex items-center gap-1">
+                                <span>{{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}:</span>
+                                <span v-if="getPriorityConfig(task.priority)" class="inline-flex items-center gap-0.5">
+                                  <span 
+                                    class="material-symbols-outlined text-xs flex-shrink-0"
+                                    :class="getPriorityConfig(task.priority)?.iconClass"
+                                    style="font-size: 12px;"
+                                  >
+                                    {{ getPriorityConfig(task.priority)?.icon }}
+                                  </span>
+                                  <span 
+                                    :class="[
+                                      'px-1.5 py-0.5 rounded text-xs',
+                                      getPriorityConfig(task.priority)?.bgClass,
+                                      getPriorityConfig(task.priority)?.textClass
+                                    ]"
+                                  >
+                                    {{ getPriorityConfig(task.priority)?.label }}
+                                  </span>
+                                </span>
+                                <span v-else>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.noPriority', '无') }}</span>
                               </div>
                               <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
                                 <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
@@ -583,8 +621,26 @@
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}
                               </div>
-                              <div class="text-xs text-gray-700 dark:text-slate-300">
-                                {{ getPriorityLabel(taskDetail.priority) }}
+                              <div v-if="getPriorityConfig(taskDetail.priority)" class="flex items-center">
+                                <span 
+                                  class="material-symbols-outlined text-sm flex-shrink-0 mr-1"
+                                  :class="getPriorityConfig(taskDetail.priority)?.iconClass"
+                                  style="font-size: 14px;"
+                                >
+                                  {{ getPriorityConfig(taskDetail.priority)?.icon }}
+                                </span>
+                                <span 
+                                  :class="[
+                                    'text-xs inline-flex items-center gap-1 px-2 py-0.5 rounded',
+                                    getPriorityConfig(taskDetail.priority)?.bgClass,
+                                    getPriorityConfig(taskDetail.priority)?.textClass
+                                  ]"
+                                >
+                                  {{ getPriorityConfig(taskDetail.priority)?.label }}
+                                </span>
+                              </div>
+                              <div v-else class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.noPriority', '无') }}
                               </div>
                             </div>
                             <!-- 完成状态 -->

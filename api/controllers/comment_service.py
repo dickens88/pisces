@@ -29,6 +29,47 @@ class CommentService:
 
         return json.loads(resp.text)
 
+    @staticmethod
+    def _map_comment_type_to_note_type(comment_type):
+        """
+        将评论类型映射到云脑的note_type
+        
+        Args:
+            comment_type: 评论类型 (comment, attackTracing, attackBlocking, riskMitigation, vulnerabilityIdentification)
+            
+        Returns:
+            str: 对应的note_type
+        """
+        if not comment_type:
+            return "pisces"
+        
+        # 映射关系：支持多种格式输入，统一映射到云脑的note_type格式
+        # 先尝试直接匹配（支持驼峰格式）
+        direct_mapping = {
+            "comment": "pisces",
+            "attackTracing": "attackTracing",
+            "attackBlocking": "attackBlocking",
+            "riskMitigation": "riskMitigation",
+            "vulnerabilityIdentification": "vulnerabilityIdentification"
+        }
+        
+        if comment_type in direct_mapping:
+            return direct_mapping[comment_type]
+        
+        # 统一转换为小写并移除下划线和连字符进行比较
+        normalized_type = comment_type.lower().replace("_", "").replace("-", "")
+        
+        # 标准化映射关系
+        type_mapping = {
+            "comment": "pisces",
+            "attacktracing": "attackTracing",
+            "attackblocking": "attackBlocking",
+            "riskmitigation": "riskMitigation",
+            "vulnerabilityidentification": "vulnerabilityIdentification"
+        }
+        
+        return type_mapping.get(normalized_type, comment_type)
+
     @classmethod
     def create_comment(cls, event_id, comment, owner, workspace_id=None, comment_type='comment'):
         ws_id = workspace_id or cls.workspace_id
@@ -37,11 +78,14 @@ class CommentService:
 
         comment_content = f"【@{owner}】: {comment}"
         
+        # 根据comment_type映射到对应的note_type
+        note_type = cls._map_comment_type_to_note_type(comment_type)
+        
         body = {
             "type": "textMessage",
             "content": comment_content,
             "war_room_id": event_id,
-            "note_type": "pisces"
+            "note_type": note_type
         }
         body = json.dumps(body)
 

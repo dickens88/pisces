@@ -1,6 +1,5 @@
 import json
 import os
-import uuid
 from io import BytesIO
 
 from flask import request, send_file
@@ -163,32 +162,17 @@ class CommentView(Resource):
                 data = json.loads(request.data)
                 comment_type = data.get('comment_type', 'comment')
             
-            # Step 1: Create comment via external API
+            # 直接调用云脑接口创建评论，不保存到数据库
+            # 注意：文件上传功能暂时不支持，因为云脑接口可能需要不同的处理方式
+            if file_data:
+                logger.warning(f"File upload is not supported when writing directly to cloud brain. File ignored: {file_name}")
+            
             result = CommentService.create_comment(
                 event_id=event_id, 
                 comment=comment, 
                 owner=username, 
                 workspace_id=workspace_id,
                 comment_type=comment_type
-            )
-            
-            # Step 2: Extract comment_id from response
-            comment_id = self._extract_comment_id(result)
-            if not comment_id:
-                # Generate UUID if external API didn't return ID
-                comment_id = str(uuid.uuid4())
-                logger.warning(f"External API did not return comment_id, using generated UUID: {comment_id}")
-            
-            # Step 3: Save to local database (always save to store comment_type and file if present)
-            Comment.create_comment(
-                event_id=event_id,
-                comment_id=comment_id,
-                owner=username,
-                message=comment,
-                comment_type=comment_type or 'comment',
-                file_type=file_type,
-                file_name=file_name,
-                file_obj=file_data
             )
             
             return {"data": result}, 201
