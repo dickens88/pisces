@@ -131,7 +131,10 @@
       "title": "AI Playground provides AI judgment alert tuning and accuracy statistics. Click on an alert to open the fine-tuning panel."
     },
     "retrievalTest": {
-      "selectWorkflow": "Select Workflow"
+      "selectWorkflow": "Select Workflow",
+      "runWorkflow": "Run Workflow",
+      "workflowResult": "Workflow Result",
+      "noResult": "No workflow result yet. Run a workflow to see the output."
     },
     "humanVerdict": "Human Verdict",
     "match": "Match",

@@ -131,7 +131,10 @@
       "title": "AI实验场主要用于提供AI研判告警的调优和准确度统计，点击告警可以开启微调面板。"
     },
     "retrievalTest": {
-      "selectWorkflow": "选择工作流"
+      "selectWorkflow": "选择工作流",
+      "runWorkflow": "运行工作流",
+      "workflowResult": "工作流结果",
+      "noResult": "暂无工作流结果。运行工作流以查看输出。"
     },
     "humanVerdict": "人工判定",
     "match": "匹配",
