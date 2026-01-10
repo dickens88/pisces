@@ -586,6 +586,17 @@
                       <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
                     </div>
                   </div>
+                  <div v-else-if="workflowResult?.error" class="flex-1 overflow-y-auto">
+                    <div class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                      <p class="font-semibold mb-2">{{ workflowResult.message || 'Error' }}</p>
+                      <pre class="text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
+                    </div>
+                  </div>
+                  <div v-else-if="workflowResultText" class="flex-1 overflow-y-auto">
+                    <div class="text-sm text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">
+                      {{ workflowResultText }}
+                    </div>
+                  </div>
                   <div v-else-if="workflowResult" class="flex-1 overflow-y-auto">
                     <pre class="text-xs text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult, null, 2) }}</pre>
                   </div>
@@ -1513,6 +1524,12 @@ const handleRunWorkflow = async () => {
 }
 
 const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
+
+const workflowResultText = computed(() => {
+  if (!workflowResult.value) return null
+  if (workflowResult.value.error) return null
+  return workflowResult.value?.data?.outputs?.result?.text || null
+})
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
 
