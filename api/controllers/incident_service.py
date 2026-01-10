@@ -374,23 +374,16 @@ class IncidentService:
             owner = CommentService.extract_owner_from_content(row["content"])
             row["author"] = owner if owner else row["author"]
             
-            # Query file information and comment_type by comment_id associated with id
+            # Query file information by comment_id associated with id
             if 'id' in item:
                 comment_id = str(item['id'])
                 file_info = CommentService.get_comment_file_info(comment_id)
                 if file_info:
                     row["file"] = file_info
                 
-                # Get comment_type from local database
-                db_comment = CommentService.get_comment_by_comment_id(comment_id)
-                if db_comment:
-                    row["comment_type"] = db_comment.comment_type
-                    row["type"] = db_comment.comment_type  # 兼容前端可能使用的 type 字段
-                    # 标记评论是否存在于数据库中
-                    row["exists_in_db"] = True
-                else:
-                    # 评论不在数据库中，标记为不存在
-                    row["exists_in_db"] = False
+                # 直接使用云脑返回的note_type，不再从数据库读取comment_type
+                # 云脑返回的note_type已经在第372行赋值给row["type"]
+                row["comment_type"] = row["type"]  # 兼容前端可能使用的 comment_type 字段
             
             result.append(row)
         return result

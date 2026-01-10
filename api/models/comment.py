@@ -17,7 +17,7 @@ class Comment(Base):
     owner = Column(String(255))
     create_time = Column(String(40))
     message = Column(Text())
-    comment_type = Column(String(50), default='comment')
+    # comment_type字段已删除，因为云脑返回的数据中已经有note_type，不再需要冗余存储
     file_type = Column(String(100))
     file_name = Column(String(500))
     file_obj = Column(LargeBinary())
@@ -31,7 +31,7 @@ class Comment(Base):
             "owner": self.owner,
             "create_time": self.create_time,
             "message": self.message,
-            "comment_type": self.comment_type or 'comment',
+            # comment_type字段已删除
             "file_type": self.file_type,
             "file_name": self.file_name,
             "has_file": self.file_obj is not None,
@@ -107,34 +107,11 @@ class Comment(Base):
 
     @classmethod
     def create_comment(cls, event_id, comment_id, owner, message, file_type=None, file_name=None, file_obj=None, comment_type='comment'):
-        """创建评论记录"""
-        session = Session()
-        try:
-            # 使用数据库格式 YYYY-MM-DD HH:MM:SS
-            create_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            comment = cls(
-                event_id=event_id,
-                comment_id=comment_id,
-                owner=owner,
-                message=message,
-                comment_type=comment_type or 'comment',
-                file_type=file_type,
-                file_name=file_name,
-                file_obj=file_obj,
-                create_time=create_time_str,
-                last_update_time=datetime.now()
-            )
-            session.add(comment)
-            session.commit()
-            session.refresh(comment)
-            return comment
-        except Exception as ex:
-            session.rollback()
-            logger.exception(ex)
-            raise
-        finally:
-            session.close()
+        """创建评论记录（已废弃：评论不再保存到数据库）"""
+        # 此方法已废弃，因为评论现在直接调用云脑接口，不保存到数据库
+        # 保留方法签名以避免调用处报错，但实际不执行任何操作
+        logger.warning(f"Comment.create_comment is deprecated. Comments are now written directly to cloud brain, not saved to database.")
+        return None
 
     @classmethod
     def upsert_comment(cls, comment_data: dict, event_id: str):
@@ -160,13 +137,13 @@ class Comment(Base):
             
             existing_comment = session.query(cls).filter_by(comment_id=comment_id).first()
             
-            comment_type = comment_data.get("comment_type") or comment_data.get("type") or 'comment'
+            # 不再保存comment_type字段，因为云脑返回的数据中已经有note_type
+            # comment_type字段已标记为冗余
             
             if existing_comment:
                 existing_comment.event_id = event_id
                 existing_comment.owner = owner
                 existing_comment.message = content
-                existing_comment.comment_type = comment_type
                 existing_comment.create_time = create_time
                 existing_comment.last_update_time = datetime.now()
                 session.commit()
@@ -177,7 +154,6 @@ class Comment(Base):
                 comment_id=comment_id,
                 owner=owner,
                 message=content,
-                comment_type=comment_type,
                 create_time=create_time,
                 last_update_time=datetime.now()
             )
