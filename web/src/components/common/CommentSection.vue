@@ -33,7 +33,7 @@
               <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
                <div class="flex items-center gap-2 mt-0.5">
                  <p class="text-xs text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
-                 <template v-if="comment.type && isActionType(comment.type)">
+                 <template v-if="comment.type">
                    <span class="h-3 w-px bg-gray-300 dark:bg-gray-600"></span>
                    <span class="text-xs text-gray-500 dark:text-slate-400">{{ $t('common.action') }}:</span>
                    <span
@@ -317,14 +317,6 @@ const getCommentTypeClass = (rawType) => {
   }
 
   return map[key] || map.comment
-}
-
-// 判断是否为动作类型（非评论类型）
-const isActionType = (rawType) => {
-  if (!rawType) return false
-  const value = String(rawType).toLowerCase()
-  const actionTypes = ['changeowner', 'close', 'changeseverity', 'changehandlestatus', 'note', 'create', 'relatetodataobject', 'pisces']
-  return actionTypes.includes(value)
 }
 
 // 获取动作类型标签

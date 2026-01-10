@@ -423,9 +423,10 @@ export const getAlertStatusBySeverity = (startDate, endDate, filters = null) => 
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
  * @param {number} limit - 返回的模型数量上限（默认10）
+ * @param {Array} conditions - 可选的筛选条件数组
  * @returns {Promise} AI准确率数据数组
  */
-export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
+export const getAiAccuracyByModel = (startDate, endDate, limit = 10, conditions = null) => {
   if (!startDate || !endDate) {
     throw new Error('startDate and endDate are required for AI accuracy statistics')
   }
@@ -442,6 +443,11 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
     throw new Error('Invalid startDate or endDate format')
   }
 
+  // Add conditions if provided
+  if (conditions && Array.isArray(conditions) && conditions.length > 0) {
+    params.conditions = JSON.stringify(conditions)
+  }
+
   return service.get('/stats/alerts', { params })
 }
 
@@ -449,9 +455,10 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
  * @brief 获取AI研判分析统计（按is_ai_decision_correct字段分组）
  * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
  * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @param {Array} conditions - 可选的筛选条件数组
  * @returns {Promise} AI研判分析数据数组，格式为 [{name: string, value: number}, ...]
  */
-export const getAiDecisionAnalysis = (startDate, endDate) => {
+export const getAiDecisionAnalysis = (startDate, endDate, conditions = null) => {
   if (!startDate || !endDate) {
     throw new Error('startDate and endDate are required for AI decision analysis')
   }
@@ -465,6 +472,11 @@ export const getAiDecisionAnalysis = (startDate, endDate) => {
 
   if (!params.start_date || !params.end_date) {
     throw new Error('Invalid startDate or endDate format')
+  }
+
+  // Add conditions if provided
+  if (conditions && Array.isArray(conditions) && conditions.length > 0) {
+    params.conditions = JSON.stringify(conditions)
   }
 
   return service.get('/stats/alerts', { params })

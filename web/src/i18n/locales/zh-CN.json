@@ -133,7 +133,7 @@
     "aiPlayground": "AI实验场"
   },
   "aiPlayground": {
-    "title": "AI实验场",
+    "title": "AI实验场(Beta)",
     "charts": {
       "aiAccuracy": "AI研判正确率",
       "placeholder": "后续数据占位"
@@ -178,13 +178,13 @@
       "repeated": "重复",
       "other": "其他"
     },
-    "aiJudgment": "AI研判",
-    "humanJudgment": "人工判定",
+    "aiJudgment": "AI研判结论",
+    "humanJudgment": "人工研判结论",
     "verdict": "判定",
     "analyst": "分析师",
-    "aiReasoning": "AI推理",
-    "humanReasoning": "人工推理",
-    "editHumanVerdict": "修改人工判定",
+    "aiReasoning": "AI研判总结",
+    "humanReasoning": "人工研判总结",
+    "editHumanVerdict": "修改人工结论",
     "modelName": "模型名称"
   },
   "dashboard": {

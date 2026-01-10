@@ -771,12 +771,70 @@ class StatisticsService:
             
             return distribution
 
+    @staticmethod
+    @staticmethod
+    def _apply_conditions_to_query(query, conditions):
+        """
+        Apply conditions to a SQLAlchemy query.
+        Supports the same condition keys as AlertService.list_local_alerts.
+        """
+        from sqlalchemy import or_
+        
+        if not conditions:
+            return query
+            
+        for cond in conditions:
+            if not isinstance(cond, dict):
+                continue
+            for key, value in cond.items():
+                if value is None:
+                    continue
+                val_str = str(value)
+                key_lower = key.lower()
+                if key_lower == 'title':
+                    query = query.filter(Alert.title.ilike(f"%{val_str}%"))
+                elif key_lower == 'creator':
+                    query = query.filter(Alert.creator.ilike(f"%{val_str}%"))
+                elif key_lower == 'actor':
+                    query = query.filter(Alert.actor.ilike(f"%{val_str}%"))
+                elif key_lower in ('model', 'model_name'):
+                    query = query.filter(Alert.model_name == val_str)
+                elif key_lower in ('handle_status', 'status'):
+                    query = query.filter(Alert.handle_status == val_str)
+                elif key_lower == 'severity':
+                    query = query.filter(Alert.severity == val_str)
+                elif key_lower == 'id':
+                    query = query.filter(Alert.alert_id == val_str)
+                elif key_lower == 'verification_state':
+                    query = query.filter(Alert.verification_state == val_str)
+                elif key_lower == 'verification_state!=':
+                    query = query.filter(Alert.verification_state != val_str)
+                elif key_lower == 'is_ai_decision_correct':
+                    if val_str == '':
+                        query = query.filter(
+                            or_(
+                                Alert.is_ai_decision_correct == None,
+                                Alert.is_ai_decision_correct == ''
+                            )
+                        )
+                    else:
+                        query = query.filter(Alert.is_ai_decision_correct == val_str)
+                elif key_lower == 'close_reason':
+                    query = query.filter(Alert.close_reason == val_str)
+        return query
+
     @classmethod
-    def get_ai_accuracy_by_model(cls, start_date, end_date, limit=10):
+    def get_ai_accuracy_by_model(cls, start_date, end_date, limit=10, conditions=None):
         """
         Calculate AI decision accuracy per model between start_date and end_date.
         Only includes alerts with non-null model_name and is_ai_decision_correct.
         Returns at most `limit` models sorted by accuracy (desc).
+        
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            limit: Maximum number of models to return
+            conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
         """
         if not start_date or not end_date:
             raise ValueError("start_date and end_date are required")
@@ -804,8 +862,12 @@ class StatisticsService:
                     Alert.model_name != '',
                     Alert.is_ai_decision_correct.isnot(None),
                 )
-                .group_by(Alert.model_name)
             )
+            
+            # Apply conditions if provided
+            query = StatisticsService._apply_conditions_to_query(query, conditions)
+            
+            query = query.group_by(Alert.model_name)
 
             results = query.all()
 
@@ -830,7 +892,7 @@ class StatisticsService:
         return stats[:max(0, limit or 10)]
 
     @classmethod
-    def get_ai_decision_analysis(cls, start_date, end_date):
+    def get_ai_decision_analysis(cls, start_date, end_date, conditions=None):
         """
         Get AI decision analysis statistics by grouping is_ai_decision_correct field.
         Returns count for each value: TT, FP, FN, and empty/null.
@@ -838,6 +900,7 @@ class StatisticsService:
         Args:
             start_date: Start datetime
             end_date: End datetime
+            conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
             
         Returns:
             List of dicts with keys: name (TT/FP/FN/Empty), value (count)
@@ -860,8 +923,12 @@ class StatisticsService:
                     Alert.create_time >= start_date_str,
                     Alert.create_time <= end_date_str
                 )
-                .group_by(Alert.is_ai_decision_correct)
             )
+            
+            # Apply conditions if provided
+            query = StatisticsService._apply_conditions_to_query(query, conditions)
+            
+            query = query.group_by(Alert.is_ai_decision_correct)
 
             results = query.all()
 

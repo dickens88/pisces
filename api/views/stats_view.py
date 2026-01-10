@@ -246,7 +246,18 @@ class AlertCountBySourceView(Resource):
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
 
                 limit = request.args.get("limit", default=10, type=int)
-                data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10)
+                # Parse conditions from request if provided
+                conditions = []
+                try:
+                    conditions_json = request.args.get("conditions")
+                    if conditions_json:
+                        import json
+                        conditions = json.loads(conditions_json)
+                except Exception as e:
+                    logger.warning(f"Failed to parse conditions: {str(e)}")
+                    conditions = []
+                
+                data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10, conditions=conditions)
                 return {
                     "data": data,
                     "description": "Accuracy of each AI model in the selected time range.",
@@ -266,7 +277,18 @@ class AlertCountBySourceView(Resource):
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
 
-                data = StatisticsService.get_ai_decision_analysis(start_date, end_date)
+                # Parse conditions from request if provided
+                conditions = []
+                try:
+                    conditions_json = request.args.get("conditions")
+                    if conditions_json:
+                        import json
+                        conditions = json.loads(conditions_json)
+                except Exception as e:
+                    logger.warning(f"Failed to parse conditions: {str(e)}")
+                    conditions = []
+                
+                data = StatisticsService.get_ai_decision_analysis(start_date, end_date, conditions=conditions)
                 return {
                     "data": data,
                     "description": "AI decision analysis grouped by is_ai_decision_correct field.",

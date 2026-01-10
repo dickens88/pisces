@@ -343,44 +343,24 @@
           <template #cell-humanVerdict="{ item }">
             <div class="flex items-center justify-center">
               <span class="text-sm text-gray-900 dark:text-white">
-                {{ item.close_reason || item.closeReason || '-' }}
+                {{ getHumanVerdictText(item) }}
               </span>
             </div>
           </template>
           <template #cell-match="{ item }">
             <div class="flex items-center justify-center">
-              <span
-                v-if="getMatchStatus(item) === 'TT'"
-                class="material-symbols-outlined text-green-500 dark:text-green-400 flex-shrink-0"
-                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                :title="$t('aiPlayground.matchFilter.TT')"
-              >
-                check_circle
-              </span>
-              <span
-                v-else-if="getMatchStatus(item) === 'FP'"
-                class="material-symbols-outlined text-red-500 dark:text-red-400 flex-shrink-0"
-                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                :title="$t('aiPlayground.matchFilter.FP')"
-              >
-                cancel
-              </span>
-              <span
-                v-else-if="getMatchStatus(item) === 'FN'"
-                class="material-symbols-outlined text-orange-500 dark:text-orange-400 flex-shrink-0"
-                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                :title="$t('aiPlayground.matchFilter.FN')"
-              >
-                warning
-              </span>
-              <span
-                v-else
-                class="material-symbols-outlined text-gray-400 dark:text-gray-500 flex-shrink-0"
-                style="font-size: 20px; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
-                :title="$t('aiPlayground.matchFilter.empty')"
-              >
-                remove
-              </span>
+              <template v-for="(display, index) in [getMatchStatusDisplay(getMatchStatus(item))]" :key="index">
+                <span
+                  :class="[
+                    'material-symbols-outlined flex-shrink-0',
+                    display.colorClass
+                  ]"
+                  :style="getMatchStatus(item) ? 'font-size: 20px; font-variation-settings: \'FILL\' 1, \'wght\' 600, \'GRAD\' 200, \'opsz\' 24;' : 'font-size: 20px; font-variation-settings: \'FILL\' 0, \'wght\' 400, \'GRAD\' 0, \'opsz\' 24;'"
+                  :title="display.title"
+                >
+                  {{ display.icon }}
+                </span>
+              </template>
             </div>
           </template>
         </DataTable>
@@ -388,13 +368,22 @@
 
       <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl min-h-[300px] flex flex-col">
         <!-- Header with title and close button -->
-        <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867]">
-          <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-            {{ $t('alerts.detail.title') }} #{{ alertId }}
-          </h2>
+        <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867] gap-3">
+          <div class="flex items-center gap-2 flex-1 min-w-0">
+            <button
+              @click="openAlertDetailInNewWindow"
+              class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors flex-shrink-0"
+              :title="$t('common.openInNewWindow') || 'Open in new window'"
+            >
+              <span class="material-symbols-outlined text-lg">open_in_new</span>
+            </button>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white truncate">
+              {{ $t('alerts.detail.title') }} #{{ alertId }}
+            </h2>
+          </div>
           <button
             @click="selectedAlert = null"
-            class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors"
+            class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors flex-shrink-0"
             :aria-label="$t('common.close') || 'Close'"
           >
             <span class="material-symbols-outlined text-xl">close</span>
@@ -410,16 +399,16 @@
               <span class="material-symbols-outlined text-base">smart_toy</span>
               {{ $t('aiPlayground.aiJudgment') }}
             </h3>
-            <div class="space-y-2">
-              <div>
-                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-sm">gavel</span>
-                  {{ $t('aiPlayground.verdict') }}: 
-                </span>
-                <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ getAiVerdictText(selectedAlert) }}
-                </span>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">gavel</span>
+                {{ $t('aiPlayground.verdict') }}:
+              </span>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+              >
+                {{ getAiVerdictText(selectedAlert) }}
+              </span>
             </div>
           </div>
           
@@ -430,23 +419,23 @@
               {{ $t('aiPlayground.humanJudgment') }}
             </h3>
             <div class="space-y-2">
-              <div>
+              <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                   <span class="material-symbols-outlined text-sm">gavel</span>
-                  {{ $t('aiPlayground.verdict') }}: 
+                  {{ $t('aiPlayground.verdict') }}:
                 </span>
-                <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                <span
+                  class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                >
                   {{ getHumanVerdictText(selectedAlert) }}
                 </span>
               </div>
-              <div>
+              <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                   <span class="material-symbols-outlined text-sm">badge</span>
-                  {{ $t('aiPlayground.analyst') }}: 
+                  {{ $t('alerts.list.actor') }}:
                 </span>
-                <span class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ selectedAlert?.actor || selectedAlert?.creator || '-' }}
-                </span>
+                <UserAvatar :name="selectedAlert?.actor || selectedAlert?.creator || ''" />
               </div>
             </div>
           </div>
@@ -720,10 +709,12 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import DOMPurify from 'dompurify'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
+import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert } from '@/api/alerts'
 import service from '@/api/axios'
@@ -733,6 +724,7 @@ import { formatDateTime, formatDateTimeWithOffset } from '@/utils/dateTime'
 
 const { t } = useI18n()
 const toast = useToast()
+const router = useRouter()
 
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
@@ -805,6 +797,66 @@ const alertContentTextarea = ref(null)
 const alertId = computed(() => selectedAlert.value?.alert_id || selectedAlert.value?.id || '')
 const alertSubject = computed(() => selectedAlert.value?.title || '')
 const contentFormatMode = ref('json') // 'json' or 'richtext'
+
+// Match status configuration - centralized configuration for reuse
+const MATCH_STATUS_CONFIG = {
+  TT: {
+    dbValue: 'TT',
+    filterValue: 'TT',
+    chartName: 'TT',
+    color: '#10b981',
+    i18nKey: 'aiPlayground.matchFilter.TT'
+  },
+  FP: {
+    dbValue: 'FP',
+    filterValue: 'FP',
+    chartName: 'FP',
+    color: '#ef4444',
+    i18nKey: 'aiPlayground.matchFilter.FP'
+  },
+  FN: {
+    dbValue: 'FN',
+    filterValue: 'FN',
+    chartName: 'FN',
+    color: '#f59e0b',
+    i18nKey: 'aiPlayground.matchFilter.FN'
+  },
+  Empty: {
+    dbValue: null,
+    filterValue: 'empty',
+    chartName: 'Empty',
+    color: '#94a3b8',
+    i18nKey: 'aiPlayground.matchFilter.empty'
+  }
+}
+
+// Helper function to get match status config
+const getMatchStatusConfig = (status) => {
+  if (!status) return MATCH_STATUS_CONFIG.Empty
+  const upperStatus = String(status).toUpperCase()
+  if (upperStatus === 'TT' || upperStatus === 'FP' || upperStatus === 'FN') {
+    return MATCH_STATUS_CONFIG[upperStatus]
+  }
+  return MATCH_STATUS_CONFIG.Empty
+}
+
+// Map chart data name to filter value
+const chartNameToFilterValue = (chartName) => {
+  const config = Object.values(MATCH_STATUS_CONFIG).find(c => c.chartName === chartName)
+  return config ? config.filterValue : null
+}
+
+// Open alert detail in new window
+const openAlertDetailInNewWindow = () => {
+  if (!alertId.value) return
+  const route = router.resolve({ path: `/alerts/${alertId.value}` })
+  const raw = import.meta.env.VITE_WEB_BASE_PATH
+  const basePath = raw && raw !== '/' 
+    ? (raw.startsWith('/') ? raw : `/${raw}`).replace(/\/$/, '')
+    : ''
+  const url = `${window.location.origin}${basePath}${route.href}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 // Helper function to auto-resize textarea
 const autoResizeTextarea = (textarea, minHeight = 44, addExtraSpace = false) => {
@@ -1237,7 +1289,8 @@ const loadAiAccuracyStatistics = async () => {
   aiAccuracyLoading.value = true
   try {
     const { start, end } = computeSelectedRange()
-    const response = await getAiAccuracyByModel(start, end, 10)
+    const conditions = buildConditions()
+    const response = await getAiAccuracyByModel(start, end, 10, conditions)
     aiAccuracyData.value = (response?.data || []).map((item) => ({
       name: item.model_name || item.model || 'Unknown',
       accuracy: Number(item.accuracy) || 0,
@@ -1260,20 +1313,15 @@ const updateAiDecisionChart = () => {
   
   aiDecisionChartInstance.value.clear()
 
-  // Decision type config
-  const decisionConfig = {
-    'TT': { label: t('aiPlayground.matchFilter.TT'), color: '#10b981' },
-    'FP': { label: t('aiPlayground.matchFilter.FP'), color: '#ef4444' },
-    'FN': { label: t('aiPlayground.matchFilter.FN'), color: '#f59e0b' },
-    'Empty': { label: t('aiPlayground.matchFilter.empty'), color: '#94a3b8' }
-  }
-
+  // Build pie data using centralized config
   const pieData = aiDecisionData.value.map((item) => {
-    const config = decisionConfig[item.name] || { label: item.name, color: '#94a3b8' }
+    const statusConfig = getMatchStatusConfig(item.name)
     return {
-      name: config.label,
+      name: t(statusConfig.i18nKey),
       value: item.value,
-      itemStyle: { color: config.color }
+      itemStyle: { color: statusConfig.color },
+      // Store original name for click event
+      originalName: item.name
     }
   })
 
@@ -1339,13 +1387,27 @@ const updateAiDecisionChart = () => {
 
   aiDecisionChartInstance.value.setOption(option, true)
   setTimeout(() => aiDecisionChartInstance.value?.resize(), 0)
+
+  // Bind click to filter alerts by match status
+  aiDecisionChartInstance.value.off('click')
+  aiDecisionChartInstance.value.on('click', (params) => {
+    if (!params?.data?.originalName) return
+    
+    const filterValue = chartNameToFilterValue(params.data.originalName)
+    if (filterValue) {
+      // Set match filter and trigger filter
+      matchFilter.value = filterValue
+      handleFilter()
+    }
+  })
 }
 
 const loadAiDecisionAnalysis = async () => {
   aiDecisionLoading.value = true
   try {
     const { start, end } = computeSelectedRange()
-    const response = await getAiDecisionAnalysis(start, end)
+    const conditions = buildConditions()
+    const response = await getAiDecisionAnalysis(start, end, conditions)
     aiDecisionData.value = response?.data || []
   } catch (error) {
     console.error('Failed to load AI decision analysis:', error)
@@ -1421,6 +1483,37 @@ const getMatchStatus = (item) => {
   return ''
 }
 
+// Get match status display info (icon, color class, title)
+const getMatchStatusDisplay = (status) => {
+  const config = getMatchStatusConfig(status)
+  const statusUpper = status ? String(status).toUpperCase() : ''
+  
+  const displayMap = {
+    'TT': {
+      icon: 'check_circle',
+      colorClass: 'text-green-500 dark:text-green-400',
+      title: t(config.i18nKey)
+    },
+    'FP': {
+      icon: 'cancel',
+      colorClass: 'text-red-500 dark:text-red-400',
+      title: t(config.i18nKey)
+    },
+    'FN': {
+      icon: 'warning',
+      colorClass: 'text-orange-500 dark:text-orange-400',
+      title: t(config.i18nKey)
+    },
+    '': {
+      icon: 'remove',
+      colorClass: 'text-gray-400 dark:text-gray-500',
+      title: t(MATCH_STATUS_CONFIG.Empty.i18nKey)
+    }
+  }
+  
+  return displayMap[statusUpper] || displayMap['']
+}
+
 const handleSearchContainerClick = () => {
   if (currentField.value) {
     nextTick(() => {
@@ -1444,6 +1537,9 @@ const addKeywordIfMissing = (field, value) => {
   currentSearchInput.value = ''
   currentPage.value = 1
   loadAlerts()
+  // Also reload charts with updated conditions
+  loadAiAccuracyStatistics()
+  loadAiDecisionAnalysis()
 }
 
 const addKeyword = () => {
@@ -1464,6 +1560,9 @@ const addKeyword = () => {
       showFieldMenu.value = false
       currentPage.value = 1
       loadAlerts()
+      // Also reload charts with updated conditions
+      loadAiAccuracyStatistics()
+      loadAiDecisionAnalysis()
     }
   }
 }
@@ -1472,6 +1571,9 @@ const removeKeyword = (index) => {
   searchKeywords.value.splice(index, 1)
   currentPage.value = 1
   loadAlerts()
+  // Also reload charts with updated conditions
+  loadAiAccuracyStatistics()
+  loadAiDecisionAnalysis()
 }
 
 const handleKeywordDeleteKey = (event) => {
@@ -1844,6 +1946,9 @@ const isDarkMode = () => document.documentElement.classList.contains('dark')
 const handleFilter = () => {
   currentPage.value = 1
   loadAlerts()
+  // Also reload charts with updated conditions
+  loadAiAccuracyStatistics()
+  loadAiDecisionAnalysis()
 }
 
 // AI Judgment filter state
@@ -1857,6 +1962,9 @@ const toggleAiJudgmentFilter = () => {
   isAiJudgmentFilterActive.value = !isAiJudgmentFilterActive.value
   currentPage.value = 1
   loadAlerts()
+  // Also reload charts with updated conditions
+  loadAiAccuracyStatistics()
+  loadAiDecisionAnalysis()
 }
 
 // Track word wrap state - DataTable stores it in localStorage with the storage key
