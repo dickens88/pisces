@@ -626,12 +626,20 @@
               "owner": "Owner",
               "startTime": "Start Time",
               "planEndTime": "Plan End Time",
+              "endTime": "End Time",
               "priority": "Priority",
               "status": "Status",
               "warroom": "Warroom",
               "tag": "Tag",
-              "noTag": "No Tag"
-            }
+              "noTag": "No Tag",
+              "viewDetail": "View Detail",
+              "noPriority": "None"
+            },
+            "status": {
+              "finished": "Finished",
+              "unfinished": "Unfinished"
+            },
+            "editTask": "Edit Task"
           },
           "incidentBrief": {
             "title": "Incident Brief",

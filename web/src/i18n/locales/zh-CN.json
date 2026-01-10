@@ -621,12 +621,20 @@
               "owner": "责任人",
               "startTime": "开始时间",
               "planEndTime": "计划结束时间",
+              "endTime": "结束时间",
               "priority": "优先级",
               "status": "状态",
               "warroom": "Warroom",
               "tag": "标签",
-              "noTag": "无标签"
-            }
+              "noTag": "无标签",
+              "viewDetail": "查看详情",
+              "noPriority": "无"
+            },
+            "status": {
+              "finished": "已完成",
+              "unfinished": "未完成"
+            },
+            "editTask": "编辑任务"
           },
           "incidentBrief": {
             "title": "事件简报",
