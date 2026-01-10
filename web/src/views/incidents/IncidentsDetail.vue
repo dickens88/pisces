@@ -1504,13 +1504,22 @@
                         </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
                         <td class="px-4 py-3">
-                          <button
-                            @click="editService(index)"
-                            class="text-primary hover:text-primary-hover transition-colors"
-                            title="编辑"
-                          >
-                            <span class="material-symbols-outlined text-base">edit</span>
-                          </button>
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click="editService(index)"
+                              class="text-primary hover:text-primary-hover transition-colors"
+                              title="编辑"
+                            >
+                              <span class="material-symbols-outlined text-base">edit</span>
+                            </button>
+                            <button
+                              @click="deleteService(index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')"
+                            >
+                              <span class="material-symbols-outlined text-base">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </template>
@@ -1560,16 +1569,8 @@
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
               </button>
               <button 
-                @click="progressSyncFilterType = 'other'"
-                :class="[
-                  'px-4 py-1.5 text-sm rounded transition-colors',
-                  progressSyncFilterType === 'other'
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 dark:bg-surface-hover-dark text-slate-700 dark:text-slate-300 border border-gray-200 dark:border-border-dark hover:bg-gray-200 dark:hover:bg-surface-hover-dark'
-                ]">
-                {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.other', '其他进展') }}
-              </button>
-              <button class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                @click="createNewTask"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.createInstruction', '创建指令') }}
               </button>
             </div>
@@ -1708,13 +1709,22 @@
                         </td>
                         <!-- 操作 -->
                         <td class="px-4 py-3 whitespace-nowrap">
-                          <button
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
-                            :title="$t('common.edit')"
-                          >
-                            <span class="material-symbols-outlined text-sm">edit</span>
-                          </button>
+                          <div class="flex items-center gap-2">
+                            <button
+                              @click="openTaskEditDialog(task, index)"
+                              class="text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
+                              :title="$t('common.edit')"
+                            >
+                              <span class="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                            <button
+                              @click="deleteProgressSyncTask(task, index)"
+                              class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                              :title="$t('common.delete')"
+                            >
+                              <span class="material-symbols-outlined text-sm">delete</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </template>
@@ -1872,7 +1882,7 @@
       <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-slate-900 dark:text-white">
-            {{ translateOr('incidents.detail.evidenceResponse.progressSync.editTask', '编辑任务') }}
+            {{ editingTask ? translateOr('incidents.detail.evidenceResponse.progressSync.editTask', '编辑任务') : translateOr('incidents.detail.evidenceResponse.progressSync.createTask', '创建任务') }}
           </h3>
           <button
             @click="closeTaskEditDialog"
@@ -4226,7 +4236,7 @@ const leftPaneActiveTab = ref('taskManagement')
 // 证据与响应卡片切换：默认显示影响服务
 const activeCardTab = ref('impactedServices')
 // 进展同步指令筛选类型
-const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
+const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4372,13 +4382,6 @@ const filteredProgressSyncTasks = computed(() => {
     case 'all':
       // 全部指令
       filtered = tasksWithTags
-      break
-    case 'other':
-      // 其他进展：排除指令类型的任务（需要根据实际数据结构调整）
-      filtered = tasksWithTags.filter(task => {
-        const taskType = task.type || task.task_type || ''
-        return taskType !== 'instruction' && taskType !== '指令'
-      })
       break
     default:
       filtered = tasksWithTags
@@ -4651,37 +4654,152 @@ const closeTaskEditDialog = () => {
   }
 }
 
+// 创建新任务
+const createNewTask = () => {
+  editingTask.value = null
+  editingTaskIdx.value = -1
+  taskEditForm.value = {
+    task_name: '',
+    owner: '',
+    start_time: '',
+    end_time: '',
+    priority: '',
+    isDone: false
+  }
+  showTaskEditDialog.value = true
+}
+
 // 保存任务编辑
 const saveTaskEdit = () => {
-  if (!editingTask.value) return
+  if (!taskEditForm.value.task_name) {
+    toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') + ' ' + t('common.warning'))
+    return
+  }
   
-  const taskUniqueId = getTaskUniqueId(editingTask.value, editingTaskIdx.value)
-  
-  // 更新任务数据
-  const updatedTask = {
-    ...editingTask.value,
+  // 构建任务数据
+  const taskData = {
     task_name: taskEditForm.value.task_name,
-    owner: taskEditForm.value.owner,
+    owner: taskEditForm.value.owner || '',
     start_time: taskEditForm.value.start_time ? new Date(taskEditForm.value.start_time).toISOString() : null,
     end_time: taskEditForm.value.end_time ? new Date(taskEditForm.value.end_time).toISOString() : null,
-    priority: taskEditForm.value.priority,
-    isDone: taskEditForm.value.isDone
+    priority: taskEditForm.value.priority !== '' ? taskEditForm.value.priority : null,
+    isDone: taskEditForm.value.isDone || false
   }
   
-  // 更新到 filteredProgressSyncTasks（这会触发响应式更新）
-  const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
-  if (taskIndex !== -1) {
-    Object.assign(filteredProgressSyncTasks.value[taskIndex], updatedTask)
+  if (editingTask.value) {
+    // 编辑现有任务
+    const taskUniqueId = getTaskUniqueId(editingTask.value, editingTaskIdx.value)
+    
+    // 更新任务数据
+    const updatedTask = {
+      ...editingTask.value,
+      ...taskData
+    }
+    
+    // 更新到 filteredProgressSyncTasks（这会触发响应式更新）
+    const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
+    if (taskIndex !== -1) {
+      Object.assign(filteredProgressSyncTasks.value[taskIndex], updatedTask)
+    }
+    
+    // 同步更新到groupedTaskDetails
+    updateTaskInGroupedDetails(updatedTask)
+  } else {
+    // 创建新任务
+    // 获取第一个 warroom 或默认 warroom
+    const warroomIds = Object.keys(groupedTaskDetails.value)
+    if (warroomIds.length === 0) {
+      toast.error('请先绑定 Warroom')
+      return
+    }
+    
+    const defaultWarroomId = warroomIds[0]
+    const warroomName = getWarroomName(defaultWarroomId)
+    
+    // 创建新任务对象
+    const newTask = {
+      ...taskData,
+      warroomId: defaultWarroomId,
+      warroomName: warroomName,
+      uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    // 添加到 filteredProgressSyncTasks
+    filteredProgressSyncTasks.value.push(newTask)
+    
+    // 添加到 groupedTaskDetails
+    if (!groupedTaskDetails.value[defaultWarroomId]) {
+      groupedTaskDetails.value[defaultWarroomId] = []
+    }
+    
+    const warroomDetail = groupedTaskDetails.value[defaultWarroomId]
+    if (Array.isArray(warroomDetail)) {
+      warroomDetail.push(newTask)
+    } else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+      warroomDetail.task_list.push(newTask)
+    } else {
+      groupedTaskDetails.value[defaultWarroomId] = [newTask]
+    }
+    
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API创建
   }
-  
-  // 同步更新到groupedTaskDetails
-  updateTaskInGroupedDetails(updatedTask)
   
   // 重新计算指标
   calculateMetricsFromTasks(filteredProgressSyncTasks.value)
   
   // 关闭对话框
   closeTaskEditDialog()
+}
+
+// 删除进展同步任务
+const deleteProgressSyncTask = (task, index) => {
+  if (!task) return
+  
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    const taskUniqueId = getTaskUniqueId(task, index)
+    
+    // 从 filteredProgressSyncTasks 中删除
+    const taskIndex = filteredProgressSyncTasks.value.findIndex(t => {
+      const tId = getTaskUniqueId(t, filteredProgressSyncTasks.value.indexOf(t))
+      return tId === taskUniqueId
+    })
+    if (taskIndex !== -1) {
+      filteredProgressSyncTasks.value.splice(taskIndex, 1)
+    }
+    
+    // 从 groupedTaskDetails 中删除
+    if (task.warroomId && groupedTaskDetails.value[task.warroomId]) {
+      const warroomDetail = groupedTaskDetails.value[task.warroomId]
+      
+      // 处理数组格式
+      if (Array.isArray(warroomDetail)) {
+        const indexInWarroom = warroomDetail.findIndex(t => {
+          const tId = getTaskUniqueId(t, warroomDetail.indexOf(t))
+          return tId === taskUniqueId
+        })
+        if (indexInWarroom !== -1) {
+          warroomDetail.splice(indexInWarroom, 1)
+        }
+      }
+      // 处理对象格式，包含 task_list 数组
+      else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
+        const indexInWarroom = warroomDetail.task_list.findIndex(t => {
+          const tId = getTaskUniqueId(t, warroomDetail.task_list.indexOf(t))
+          return tId === taskUniqueId
+        })
+        if (indexInWarroom !== -1) {
+          warroomDetail.task_list.splice(indexInWarroom, 1)
+        }
+      }
+    }
+    
+    // 重新计算指标
+    calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+    
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
 }
 
 // 获取warroom名称
@@ -5328,6 +5446,17 @@ const editService = (index) => {
   }
   
   showAddServiceDialog.value = true
+}
+
+// 删除影响服务
+const deleteService = (index) => {
+  if (index < 0 || index >= impactedServices.value.length) return
+  
+  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    impactedServices.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+    // TODO: 调用后端API删除
+  }
 }
 
 // 取消新增/编辑影响服务
