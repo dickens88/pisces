@@ -2379,7 +2379,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
-import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
+import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask, getImpactedServices, createImpactedService, updateImpactedService, deleteImpactedService, getIncidentBriefs, createIncidentBrief, updateIncidentBrief, deleteIncidentBrief } from '@/api/incidents'
 import { updateComment, deleteComment } from '@/api/comments'
 import { getProjectList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
@@ -4327,6 +4327,7 @@ const notificationForm = ref({
 const impactedServices = ref([]) // 影响服务列表
 const showAddServiceDialog = ref(false) // 显示新增影响服务对话框
 const editingServiceIndex = ref(-1) // 正在编辑的服务索引，-1表示新增
+const editingServiceId = ref(null) // 正在编辑的服务ID（用于更新API调用）
 const serviceForm = ref({
   service: '',
   measure: '',
@@ -5033,6 +5034,16 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       }
     }
     loadGraphData(graphPayload)
+    
+    // 加载影响服务数据（异步加载，不阻塞主流程）
+    loadImpactedServices().catch((err) => {
+      console.error('Failed to load impacted services:', err)
+    })
+    
+    // 加载事件简报数据（异步加载，不阻塞主流程）
+    loadIncidentBriefs().catch((err) => {
+      console.error('Failed to load incident briefs:', err)
+    })
   } catch (error) {
     console.error('Failed to load incident detail:', error)
     router.push('/incidents')
@@ -5348,8 +5359,12 @@ const getNotificationTypeLabel = (type) => {
 
 // 编辑通报
 const editNotification = (index) => {
-  editingNotificationIndex.value = index
+  if (index < 0 || index >= incidentNotifications.value.length) return
+  
   const notification = incidentNotifications.value[index]
+  editingNotificationIndex.value = index
+  editingNotificationId.value = notification.id || null
+  
   notificationForm.value = {
     event: notification.event || '',
     type: notification.type || 'firstNotification',
@@ -5362,35 +5377,89 @@ const editNotification = (index) => {
 }
 
 // 删除通报
-const deleteNotification = (index) => {
-  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+const deleteNotification = async (index) => {
+  if (index < 0 || index >= incidentNotifications.value.length) return
+  
+  const notification = incidentNotifications.value[index]
+  const notificationId = notification.id
+  
+  if (!notificationId) {
+    // 如果没有ID，说明是本地数据，直接删除
     incidentNotifications.value.splice(index, 1)
     toast.success(t('common.operationSuccess'))
-    // TODO: 调用后端API删除
+    return
+  }
+  
+  if (!window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    return
+  }
+  
+  const incidentId = route.params.id
+  if (!incidentId) {
+    toast.error('事件ID不存在')
+    return
+  }
+  
+  try {
+    await deleteIncidentBrief(incidentId, notificationId)
+    incidentNotifications.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+  } catch (error) {
+    console.error('Failed to delete notification:', error)
+    const errorMessage = error?.response?.data?.error_message || 
+                        error?.response?.data?.message || 
+                        error?.message || 
+                        '删除失败，请重试'
+    toast.error(errorMessage)
   }
 }
 
 // 保存通报（新增或编辑）
-const saveNotification = () => {
+const saveNotification = async () => {
   if (!notificationForm.value.event) {
     toast.error(t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') + ' ' + t('common.warning'))
     return
   }
   
-  const notification = { ...notificationForm.value }
-  
-  if (editingNotificationIndex.value >= 0) {
-    // 编辑
-    incidentNotifications.value[editingNotificationIndex.value] = notification
-  } else {
-    // 新增
-    incidentNotifications.value.push(notification)
+  const incidentId = route.params.id
+  if (!incidentId) {
+    toast.error('事件ID不存在')
+    return
   }
   
-  // 重置表单
-  resetNotificationForm()
-  showAddNotificationDialog.value = false
-  // TODO: 调用后端API保存
+  const notificationData = { ...notificationForm.value }
+  
+  try {
+    let savedNotification
+    if (editingNotificationId.value) {
+      // 更新现有通报
+      const response = await updateIncidentBrief(incidentId, editingNotificationId.value, notificationData)
+      savedNotification = response.data.data
+      // 更新本地列表
+      const index = incidentNotifications.value.findIndex(n => n.id === editingNotificationId.value)
+      if (index >= 0) {
+        incidentNotifications.value[index] = savedNotification
+      }
+    } else {
+      // 创建新通报
+      const response = await createIncidentBrief(incidentId, notificationData)
+      savedNotification = response.data.data
+      // 添加到本地列表
+      incidentNotifications.value.push(savedNotification)
+    }
+    
+    // 重置表单
+    resetNotificationForm()
+    showAddNotificationDialog.value = false
+    toast.success(t('common.operationSuccess'))
+  } catch (error) {
+    console.error('Failed to save notification:', error)
+    const errorMessage = error?.response?.data?.error_message || 
+                        error?.response?.data?.message || 
+                        error?.message || 
+                        '保存失败，请重试'
+    toast.error(errorMessage)
+  }
 }
 
 // 重置通报表单
@@ -5404,6 +5473,7 @@ const resetNotificationForm = () => {
     remark: ''
   }
   editingNotificationIndex.value = -1
+  editingNotificationId.value = null
 }
 
 // 取消新增/编辑通报
@@ -5413,22 +5483,28 @@ const cancelNotification = () => {
 }
 
 // 保存影响服务（新增或编辑）
-const saveService = () => {
+const saveService = async () => {
   if (!serviceForm.value.service) {
     toast.error(t('incidents.detail.evidenceResponse.services.columns.service') + ' ' + t('common.warning'))
     return
   }
   
-  const service = { ...serviceForm.value }
+  const incidentId = route.params.id
+  if (!incidentId) {
+    toast.error('事件ID不存在')
+    return
+  }
+  
+  const serviceData = { ...serviceForm.value }
   
   // 如果计划完成时间是datetime-local格式，转换为标准格式
-  if (service.plannedCompletionTime) {
+  if (serviceData.plannedCompletionTime) {
     try {
       // 检查是否是datetime-local格式 (YYYY-MM-DDTHH:mm)
-      if (service.plannedCompletionTime.includes('T')) {
-        const date = new Date(service.plannedCompletionTime)
+      if (serviceData.plannedCompletionTime.includes('T')) {
+        const date = new Date(serviceData.plannedCompletionTime)
         if (!isNaN(date.getTime())) {
-          service.plannedCompletionTime = date.toISOString()
+          serviceData.plannedCompletionTime = date.toISOString()
         }
       }
     } catch (e) {
@@ -5436,19 +5512,37 @@ const saveService = () => {
     }
   }
   
-  if (editingServiceIndex.value >= 0) {
-    // 编辑
-    impactedServices.value[editingServiceIndex.value] = service
-  } else {
-    // 新增
-    impactedServices.value.push(service)
+  try {
+    let savedService
+    if (editingServiceId.value) {
+      // 更新现有服务
+      const response = await updateImpactedService(incidentId, editingServiceId.value, serviceData)
+      savedService = response.data.data
+      // 更新本地列表
+      const index = impactedServices.value.findIndex(s => s.id === editingServiceId.value)
+      if (index >= 0) {
+        impactedServices.value[index] = savedService
+      }
+    } else {
+      // 创建新服务
+      const response = await createImpactedService(incidentId, serviceData)
+      savedService = response.data.data
+      // 添加到本地列表
+      impactedServices.value.push(savedService)
+    }
+    
+    // 重置表单
+    resetServiceForm()
+    showAddServiceDialog.value = false
+    toast.success(t('common.operationSuccess'))
+  } catch (error) {
+    console.error('Failed to save impacted service:', error)
+    const errorMessage = error?.response?.data?.error_message || 
+                        error?.response?.data?.message || 
+                        error?.message || 
+                        '保存失败，请重试'
+    toast.error(errorMessage)
   }
-  
-  // 重置表单
-  resetServiceForm()
-  showAddServiceDialog.value = false
-  toast.success(t('common.operationSuccess'))
-  // TODO: 调用后端API保存
 }
 
 // 重置影响服务表单
@@ -5463,6 +5557,7 @@ const resetServiceForm = () => {
     remark: ''
   }
   editingServiceIndex.value = -1
+  editingServiceId.value = null
 }
 
 // 编辑影响服务
@@ -5471,6 +5566,7 @@ const editService = (index) => {
   
   const service = impactedServices.value[index]
   editingServiceIndex.value = index
+  editingServiceId.value = service.id || null
   
   // 格式化计划完成时间为datetime-local格式
   let formattedTime = ''
@@ -5504,14 +5600,75 @@ const editService = (index) => {
   showAddServiceDialog.value = true
 }
 
+// 加载影响服务列表
+const loadImpactedServices = async () => {
+  const incidentId = route.params.id
+  if (!incidentId) {
+    return
+  }
+  
+  try {
+    const response = await getImpactedServices(incidentId)
+    impactedServices.value = response.data.data || []
+  } catch (error) {
+    console.error('Failed to load impacted services:', error)
+    // 如果加载失败，不影响页面显示，只打印错误
+    impactedServices.value = []
+  }
+}
+
+// 加载事件简报列表
+const loadIncidentBriefs = async () => {
+  const incidentId = route.params.id
+  if (!incidentId) {
+    return
+  }
+  
+  try {
+    const response = await getIncidentBriefs(incidentId)
+    incidentNotifications.value = response.data.data || []
+  } catch (error) {
+    console.error('Failed to load incident briefs:', error)
+    // 如果加载失败，不影响页面显示，只打印错误
+    incidentNotifications.value = []
+  }
+}
+
 // 删除影响服务
-const deleteService = (index) => {
+const deleteService = async (index) => {
   if (index < 0 || index >= impactedServices.value.length) return
   
-  if (window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+  const service = impactedServices.value[index]
+  const serviceId = service.id
+  
+  if (!serviceId) {
+    // 如果没有ID，说明是本地数据，直接删除
     impactedServices.value.splice(index, 1)
     toast.success(t('common.operationSuccess'))
-    // TODO: 调用后端API删除
+    return
+  }
+  
+  if (!window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+    return
+  }
+  
+  const incidentId = route.params.id
+  if (!incidentId) {
+    toast.error('事件ID不存在')
+    return
+  }
+  
+  try {
+    await deleteImpactedService(incidentId, serviceId)
+    impactedServices.value.splice(index, 1)
+    toast.success(t('common.operationSuccess'))
+  } catch (error) {
+    console.error('Failed to delete impacted service:', error)
+    const errorMessage = error?.response?.data?.error_message || 
+                        error?.response?.data?.message || 
+                        error?.message || 
+                        '删除失败，请重试'
+    toast.error(errorMessage)
   }
 }
 
