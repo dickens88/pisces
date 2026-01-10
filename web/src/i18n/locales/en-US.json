@@ -142,7 +142,10 @@
       "title": "AI Playground provides AI judgment alert tuning and accuracy statistics. Click on an alert to open the fine-tuning panel."
     },
     "retrievalTest": {
-      "selectWorkflow": "Select Workflow"
+      "selectWorkflow": "Select Workflow",
+      "runWorkflow": "Run Workflow",
+      "workflowResult": "Workflow Result",
+      "noResult": "No workflow result yet. Run a workflow to see the output."
     },
     "humanVerdict": "Human Verdict",
     "match": "Match",
@@ -622,7 +625,7 @@
             "title": "Progress Sync",
             "instructions": "Instructions",
             "progress": "Progress",
-            "status": "Status",
+            "statusLabel": "Status",
             "inProgress": "In Progress",
             "filters": {
               "myCreated": "My Created Instructions",
@@ -637,12 +640,25 @@
               "owner": "Owner",
               "startTime": "Start Time",
               "planEndTime": "Plan End Time",
+              "endTime": "End Time",
               "priority": "Priority",
               "status": "Status",
               "warroom": "Warroom",
               "tag": "Tag",
-              "noTag": "No Tag"
-            }
+              "noTag": "No Tag",
+              "viewDetail": "View Detail",
+              "noPriority": "None"
+            },
+            "status": {
+              "finished": "Finished",
+              "unfinished": "Unfinished"
+            },
+            "priority": {
+              "normal": "Normal",
+              "urgent": "Urgent",
+              "veryUrgent": "Very Urgent"
+            },
+            "editTask": "Edit Task"
           },
           "incidentBrief": {
             "title": "Incident Brief",

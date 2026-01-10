@@ -142,7 +142,10 @@
       "title": "AI实验场主要用于提供AI研判告警的调优和准确度统计，点击告警可以开启微调面板。"
     },
     "retrievalTest": {
-      "selectWorkflow": "选择工作流"
+      "selectWorkflow": "选择工作流",
+      "runWorkflow": "运行工作流",
+      "workflowResult": "工作流结果",
+      "noResult": "暂无工作流结果。运行工作流以查看输出。"
     },
     "humanVerdict": "人工判定",
     "match": "匹配",
@@ -617,7 +620,7 @@
             "title": "进展同步",
             "instructions": "指令",
             "progress": "进展",
-            "status": "状态",
+            "statusLabel": "状态",
             "inProgress": "进行中",
             "filters": {
               "myCreated": "我创建的指令",
@@ -632,12 +635,25 @@
               "owner": "责任人",
               "startTime": "开始时间",
               "planEndTime": "计划结束时间",
+              "endTime": "结束时间",
               "priority": "优先级",
               "status": "状态",
               "warroom": "Warroom",
               "tag": "标签",
-              "noTag": "无标签"
-            }
+              "noTag": "无标签",
+              "viewDetail": "查看详情",
+              "noPriority": "无"
+            },
+            "status": {
+              "finished": "已完成",
+              "unfinished": "未完成"
+            },
+            "priority": {
+              "normal": "普通",
+              "urgent": "紧急",
+              "veryUrgent": "非常紧急"
+            },
+            "editTask": "编辑任务"
           },
           "incidentBrief": {
             "title": "事件简报",

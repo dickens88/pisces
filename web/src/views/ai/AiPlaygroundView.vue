@@ -630,7 +630,7 @@
                         :disabled="loadingWorkflows"
                         class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                        <option value="" disabled>{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
                         <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
                         <option
                           v-for="workflow in workflows"
@@ -657,9 +657,56 @@
                         </span>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      @click="handleRunWorkflow"
+                      :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
+                      class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <span
+                        v-if="runningWorkflow"
+                        class="material-symbols-outlined animate-spin text-base"
+                      >
+                        sync
+                      </span>
+                      <span
+                        v-else
+                        class="material-symbols-outlined text-base"
+                      >
+                        play_arrow
+                      </span>
+                      {{ $t('aiPlayground.retrievalTest.runWorkflow') }}
+                    </button>
                   </div>
                 </div>
-                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822]"></div>
+                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822] p-4 flex flex-col space-y-4 overflow-y-auto custom-scrollbar min-h-0">
+                  <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.workflowResult') || 'Workflow Result' }}</h3>
+                  <div v-if="!workflowResult && !runningWorkflow" class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
+                    {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
+                  </div>
+                  <div v-else-if="runningWorkflow" class="flex items-center justify-center h-full">
+                    <div class="flex flex-col items-center gap-3">
+                      <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
+                        sync
+                      </span>
+                      <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
+                    </div>
+                  </div>
+                  <div v-else-if="workflowResult?.error" class="flex-1 overflow-y-auto">
+                    <div class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                      <p class="font-semibold mb-2">{{ workflowResult.message || 'Error' }}</p>
+                      <pre class="text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
+                    </div>
+                  </div>
+                  <div v-else-if="workflowResultText" class="flex-1 overflow-y-auto">
+                    <div class="text-sm text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">
+                      {{ workflowResultText }}
+                    </div>
+                  </div>
+                  <div v-else-if="workflowResult" class="flex-1 overflow-y-auto">
+                    <pre class="text-xs text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult, null, 2) }}</pre>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -690,6 +737,7 @@ const toast = useToast()
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
 const aiWorkflowApiKey = import.meta.env.VITE_PLAYGROUND_WORKFLOWS_KEY
+const aiWorkflowRunnerKey = import.meta.env.VITE_PLAYGROUND_RUNNER_KEY
 
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
@@ -735,6 +783,8 @@ const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
 const workflows = ref([])
 const loadingWorkflows = ref(false)
+const runningWorkflow = ref(false)
+const workflowResult = ref(null)
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
@@ -1690,7 +1740,68 @@ const handleFineTuneClick = () => {
   triggerAiWorkflow()
 }
 
+// Handle Run Workflow button click
+const handleRunWorkflow = async () => {
+  if (!selectedWorkflow.value || !aiWorkflowApi || !aiWorkflowRunnerKey || !selectedAlert.value) return
+
+  runningWorkflow.value = true
+
+  try {
+    const alertIdValue = selectedAlert.value?.alert_id || selectedAlert.value?.id || ''
+    const subjectValue = selectedAlert.value?.title || ''
+    const descriptionValue = getRawDescription()
+    
+    // Convert description to string - if it's an object, stringify it
+    const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
+      ? JSON.stringify(descriptionValue)
+      : String(descriptionValue || '')
+
+    const payload = {
+      inputs:{
+        appid: String(selectedWorkflow.value),
+        subject: String(subjectValue),
+        description: descriptionString,
+        alarm_id: String(alertIdValue)
+      },
+      response_mode: 'blocking',
+      user:'Pisces AI Playground'
+    }
+
+    const response = await fetch(aiWorkflowApi, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${aiWorkflowRunnerKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+    workflowResult.value = data
+  } catch (error) {
+    console.error('Failed to run workflow:', error)
+    workflowResult.value = {
+      error: true,
+      message: error?.message || 'Failed to run workflow',
+      details: error
+    }
+    toast.error('Failed to run workflow', 'ERROR')
+  } finally {
+    runningWorkflow.value = false
+  }
+}
+
 const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
+
+const workflowResultText = computed(() => {
+  if (!workflowResult.value) return null
+  if (workflowResult.value.error) return null
+  return workflowResult.value?.data?.outputs?.result?.text || null
+})
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
 
@@ -1870,6 +1981,7 @@ watch(showRetrievalOverlay, (isOpen) => {
     selectedWorkflow.value = ''
     workflows.value = []
     loadingWorkflows.value = false
+    workflowResult.value = null
   }
 })
 
@@ -1879,6 +1991,7 @@ watch(selectedAlert, () => {
   selectedWorkflow.value = ''
   workflows.value = []
   loadingWorkflows.value = false
+  workflowResult.value = null
   
   // Wait for layout to update, then constrain columns
   nextTick(() => {
