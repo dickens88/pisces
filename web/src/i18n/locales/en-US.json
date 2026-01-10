@@ -617,7 +617,7 @@
             "title": "Progress Sync",
             "instructions": "Instructions",
             "progress": "Progress",
-            "status": "Status",
+            "statusLabel": "Status",
             "inProgress": "In Progress",
             "filters": {
               "myCreated": "My Created Instructions",
@@ -644,6 +644,11 @@
             "status": {
               "finished": "Finished",
               "unfinished": "Unfinished"
+            },
+            "priority": {
+              "normal": "Normal",
+              "urgent": "Urgent",
+              "veryUrgent": "Very Urgent"
             },
             "editTask": "Edit Task"
           },

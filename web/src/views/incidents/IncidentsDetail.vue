@@ -1408,7 +1408,7 @@
                       : 'text-slate-900 dark:text-white'
                   ]">{{ $t('incidents.detail.evidenceResponse.cards.progressSync.title') }}</h3>
                   <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} 0 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} 5 | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.status') }}: {{ $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
+                    {{ $t('incidents.detail.evidenceResponse.cards.progressSync.instructions') }} {{ progressSyncMetrics.instructions || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.progress') }} {{ progressSyncMetrics.progress || 0 }} | {{ $t('incidents.detail.evidenceResponse.cards.progressSync.statusLabel') }}: {{ progressSyncMetrics.statusText || $t('incidents.detail.evidenceResponse.cards.progressSync.inProgress') }}
                   </p>
                 </div>
               </div>
@@ -1556,19 +1556,19 @@
             <!-- 进展同步表格 -->
             <div class="bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark rounded-lg overflow-hidden shadow-sm mb-6">
               <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left">
+                <table class="w-full text-sm text-left" style="table-layout: auto; min-width: 100%;">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</th>
-                      <th class="px-4 py-3 w-20">{{ $t('common.action') }}</th>
+                      <th class="px-4 py-3 w-28">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
+                      <th class="px-4 py-3 w-12">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
+                      <th class="px-4 py-3 w-24">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
+                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
+                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
+                      <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
+                      <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
+                      <th class="px-4 py-3 min-w-[120px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
+                      <th class="px-4 py-3 w-32 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</th>
+                      <th class="px-4 py-3 w-24 whitespace-nowrap">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
@@ -1583,8 +1583,8 @@
                         <td class="px-4 py-3">
                           <span
                             @click="openTaskEditDialog(task, index)"
-                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
+                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal"
+                            :title="task.task_name || '--'"
                           >{{ task.task_name || '--' }}</span>
                         </td>
                         <!-- 责任人 -->
@@ -1612,51 +1612,57 @@
                           >{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
                         </td>
                         <!-- 优先级 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
                           <span
-                            v-if="task.priority"
+                            v-if="getPriorityConfig(task.priority)"
                             @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
-                              task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                              task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                              task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                              'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                              getPriorityConfig(task.priority)?.bgClass,
+                              getPriorityConfig(task.priority)?.textClass
                             ]"
                             :title="$t('common.edit')"
                           >
-                            {{ task.priority }}
+                            <span 
+                              class="material-symbols-outlined text-sm flex-shrink-0"
+                              :class="getPriorityConfig(task.priority)?.iconClass"
+                              style="font-size: 14px;"
+                            >
+                              {{ getPriorityConfig(task.priority)?.icon }}
+                            </span>
+                            <span class="whitespace-nowrap">{{ getPriorityConfig(task.priority)?.label }}</span>
                           </span>
                           <span
                             v-else
                             @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary whitespace-nowrap"
                             :title="$t('common.edit')"
                           >--</span>
                         </td>
                         <!-- 状态 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
                           <span
                             @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
-                              task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
+                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80 whitespace-nowrap',
+                              isTaskCompleted(task)
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                             ]"
                             :title="$t('common.edit')"
                           >
-                            {{ task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed' 
+                            {{ isTaskCompleted(task)
                               ? $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') 
                               : $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}
                           </span>
                         </td>
                         <!-- 标签（可编辑） -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap min-w-[120px]">
                           <select
                             v-model="task.tag"
                             @change="saveTaskField(getTaskUniqueId(task, index), 'tag', task.tag)"
-                            class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white whitespace-nowrap"
+                            :title="task.tag ? $t(`common.commentTypes.${task.tag}`, task.tag) : $t('incidents.detail.evidenceResponse.progressSync.columns.noTag', '无标签')"
                           >
                             <option value="">{{ $t('incidents.detail.evidenceResponse.progressSync.columns.noTag', '无标签') }}</option>
                             <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
@@ -1666,24 +1672,24 @@
                           </select>
                         </td>
                         <!-- 查看详情 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
                           <a
                             v-if="task.detail_url"
                             :href="task.detail_url"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="text-primary hover:text-primary/80 hover:underline inline-flex items-center gap-1 text-xs"
+                            class="text-primary hover:text-primary/80 hover:underline inline-flex items-center gap-1 text-xs whitespace-nowrap"
                           >
-                            <span class="material-symbols-outlined text-sm">open_in_new</span>
-                            {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}
+                            <span class="material-symbols-outlined text-sm flex-shrink-0">open_in_new</span>
+                            <span class="whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</span>
                           </a>
-                          <span v-else class="text-slate-400 dark:text-slate-500 text-xs">--</span>
+                          <span v-else class="text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">--</span>
                         </td>
                         <!-- 操作 -->
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 whitespace-nowrap">
                           <button
                             @click="openTaskEditDialog(task, index)"
-                            class="text-primary hover:text-primary/80 transition-colors"
+                            class="text-primary hover:text-primary/80 transition-colors whitespace-nowrap"
                             :title="$t('common.edit')"
                           >
                             <span class="material-symbols-outlined text-sm">edit</span>
@@ -1916,14 +1922,9 @@
               class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
             >
               <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.noPriority', '无') }}</option>
-              <option value="低">低</option>
-              <option value="中">中</option>
-              <option value="高">高</option>
-              <option value="紧急">紧急</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Urgent">Urgent</option>
+              <option :value="0">{{ translateOr('incidents.detail.evidenceResponse.progressSync.priority.normal', '普通') }}</option>
+              <option :value="1">{{ translateOr('incidents.detail.evidenceResponse.progressSync.priority.urgent', '紧急') }}</option>
+              <option :value="2">{{ translateOr('incidents.detail.evidenceResponse.progressSync.priority.veryUrgent', '非常紧急') }}</option>
             </select>
           </div>
           
@@ -4383,10 +4384,69 @@ watch([filteredProgressSyncTasks, taskTags], () => {
   calculateMetricsFromTasks(filteredProgressSyncTasks.value)
 }, { deep: true, immediate: true })
 
+// 进展同步卡片指标
+const progressSyncMetrics = computed(() => {
+  const tasks = filteredProgressSyncTasks.value
+  const instructions = tasks.filter(task => task.type === 'instruction' || task.task_type === 'instruction').length
+  const progress = tasks.length
+  const completedCount = tasks.filter(task => isTaskCompleted(task)).length
+  const statusText = completedCount === progress && progress > 0 
+    ? t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成')
+    : t('incidents.detail.evidenceResponse.cards.progressSync.inProgress', '进行中')
+  
+  return {
+    instructions,
+    progress,
+    completedCount,
+    statusText
+  }
+})
+
 // 获取任务唯一ID
 const getTaskUniqueId = (task, index) => {
   // 使用warroomId + task_name + index 作为唯一标识
   return `${task.warroomId || 'unknown'}_${task.task_name || 'task'}_${index}`
+}
+
+// 判断任务是否已完成（支持多种状态字段和格式）
+const isTaskCompleted = (task) => {
+  if (!task) return false
+  
+  // 检查 isDone 字段（支持多种格式）
+  if (task.isDone === true || task.isDone === 1 || task.isDone === '1' || 
+      task.isDone === '已完成' || task.isDone === 'Completed' || 
+      task.isDone === 'completed' || task.isDone === 'true') {
+    return true
+  }
+  
+  // 检查 status 字段
+  if (task.status) {
+    const status = String(task.status).toLowerCase()
+    if (status === 'completed' || status === '已完成' || status === 'finished' || 
+        status === 'done' || status === 'closed' || status === '已关闭') {
+      return true
+    }
+  }
+  
+  // 检查 stageName 字段
+  if (task.stageName) {
+    const stage = String(task.stageName).toLowerCase()
+    if (stage === '已完成' || stage === 'completed' || stage === 'finished' || 
+        stage === 'done' || stage === '已关闭' || stage === 'closed') {
+      return true
+    }
+  }
+  
+  // 检查 stage 字段
+  if (task.stage) {
+    const stage = String(task.stage).toLowerCase()
+    if (stage === '已完成' || stage === 'completed' || stage === 'finished' || 
+        stage === 'done' || stage === '已关闭' || stage === 'closed') {
+      return true
+    }
+  }
+  
+  return false
 }
 
 // 开始编辑任务字段
@@ -4484,6 +4544,99 @@ const formatTaskDateTimeForInput = (dateTime) => {
   const hours = String(date.getHours()).padStart(2, '0')
   const minutes = String(date.getMinutes()).padStart(2, '0')
   return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+// 打开任务编辑对话框
+const openTaskEditDialog = (task, index) => {
+  if (!task) return
+  
+  editingTask.value = task
+  editingTaskIdx.value = index
+  
+  // 转换优先级为数字值（0=普通，1=紧急，2=非常紧急）
+  let priorityValue = ''
+  if (task.priority !== null && task.priority !== undefined && task.priority !== '') {
+    // 如果是数字，直接使用
+    if (typeof task.priority === 'number' && task.priority >= 0 && task.priority <= 2) {
+      priorityValue = task.priority
+    } else {
+      // 尝试解析为数字
+      const num = parseInt(task.priority, 10)
+      if (!isNaN(num) && num >= 0 && num <= 2) {
+        priorityValue = num
+      } else {
+        // 根据文本内容判断
+        const priorityStr = String(task.priority).toLowerCase()
+        if (priorityStr === '普通' || priorityStr === 'normal' || priorityStr === 'low') {
+          priorityValue = 0
+        } else if (priorityStr === '紧急' || priorityStr === 'urgent' || priorityStr === 'high') {
+          priorityValue = 1
+        } else if (priorityStr === '非常紧急' || priorityStr === 'very urgent' || priorityStr === 'critical') {
+          priorityValue = 2
+        }
+      }
+    }
+  }
+  
+  // 填充表单数据
+  taskEditForm.value = {
+    task_name: task.task_name || '',
+    owner: task.owner || '',
+    start_time: formatTaskDateTimeForInput(task.start_time),
+    end_time: formatTaskDateTimeForInput(task.end_time),
+    priority: priorityValue,
+    isDone: isTaskCompleted(task)
+  }
+  
+  showTaskEditDialog.value = true
+}
+
+// 关闭任务编辑对话框
+const closeTaskEditDialog = () => {
+  showTaskEditDialog.value = false
+  editingTask.value = null
+  editingTaskIdx.value = -1
+  taskEditForm.value = {
+    task_name: '',
+    owner: '',
+    start_time: '',
+    end_time: '',
+    priority: '',
+    isDone: false
+  }
+}
+
+// 保存任务编辑
+const saveTaskEdit = () => {
+  if (!editingTask.value) return
+  
+  const taskUniqueId = getTaskUniqueId(editingTask.value, editingTaskIdx.value)
+  
+  // 更新任务数据
+  const updatedTask = {
+    ...editingTask.value,
+    task_name: taskEditForm.value.task_name,
+    owner: taskEditForm.value.owner,
+    start_time: taskEditForm.value.start_time ? new Date(taskEditForm.value.start_time).toISOString() : null,
+    end_time: taskEditForm.value.end_time ? new Date(taskEditForm.value.end_time).toISOString() : null,
+    priority: taskEditForm.value.priority,
+    isDone: taskEditForm.value.isDone
+  }
+  
+  // 更新到 filteredProgressSyncTasks（这会触发响应式更新）
+  const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
+  if (taskIndex !== -1) {
+    Object.assign(filteredProgressSyncTasks.value[taskIndex], updatedTask)
+  }
+  
+  // 同步更新到groupedTaskDetails
+  updateTaskInGroupedDetails(updatedTask)
+  
+  // 重新计算指标
+  calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+  
+  // 关闭对话框
+  closeTaskEditDialog()
 }
 
 // 获取warroom名称
@@ -5122,6 +5275,69 @@ const getRiskLevelClass = (level) => {
     tips: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
   }
   return classes[level] || classes.low
+}
+
+// 获取优先级配置（数字值：0=普通，1=紧急，2=非常紧急）
+const getPriorityConfig = (priority) => {
+  // 将优先级转换为数字
+  let priorityNum = null
+  
+  // 明确检查 null、undefined 和空字符串
+  if (priority === null || priority === undefined || priority === '') {
+    return null
+  }
+  
+  // 如果是数字（包括0）
+  if (typeof priority === 'number') {
+    priorityNum = priority
+  } else if (typeof priority === 'string') {
+    // 尝试解析数字（包括'0'）
+    const num = parseInt(priority, 10)
+    if (!isNaN(num) && num >= 0 && num <= 2) {
+      priorityNum = num
+    } else {
+      // 处理文本格式的优先级
+      const lowerPriority = priority.toLowerCase().trim()
+      if (lowerPriority === '普通' || lowerPriority === 'normal' || lowerPriority === 'low') {
+        priorityNum = 0
+      } else if (lowerPriority === '紧急' || lowerPriority === 'urgent' || lowerPriority === 'high') {
+        priorityNum = 1
+      } else if (lowerPriority === '非常紧急' || lowerPriority === 'very urgent' || lowerPriority === 'critical') {
+        priorityNum = 2
+      }
+    }
+  }
+  
+  // 如果无法确定优先级值，返回null
+  if (priorityNum === null || priorityNum < 0 || priorityNum > 2) {
+    return null
+  }
+  
+  const configs = {
+    0: {
+      label: t('incidents.detail.evidenceResponse.progressSync.priority.normal', '普通'),
+      icon: 'circle',
+      iconClass: 'text-blue-500 dark:text-blue-400',
+      bgClass: 'bg-blue-50 dark:bg-blue-900/20',
+      textClass: 'text-blue-700 dark:text-blue-300'
+    },
+    1: {
+      label: t('incidents.detail.evidenceResponse.progressSync.priority.urgent', '紧急'),
+      icon: 'flag',
+      iconClass: 'text-orange-500 dark:text-orange-400',
+      bgClass: 'bg-orange-50 dark:bg-orange-900/20',
+      textClass: 'text-orange-700 dark:text-orange-300'
+    },
+    2: {
+      label: t('incidents.detail.evidenceResponse.progressSync.priority.veryUrgent', '非常紧急'),
+      icon: 'flag',
+      iconClass: 'text-red-500 dark:text-red-400',
+      bgClass: 'bg-red-50 dark:bg-red-900/20',
+      textClass: 'text-red-700 dark:text-red-300'
+    }
+  }
+  
+  return configs[priorityNum] || null
 }
 
 // 将事件 severity 映射为告警的 risk level（用于复用颜色样式）

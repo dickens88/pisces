@@ -612,7 +612,7 @@
             "title": "进展同步",
             "instructions": "指令",
             "progress": "进展",
-            "status": "状态",
+            "statusLabel": "状态",
             "inProgress": "进行中",
             "filters": {
               "myCreated": "我创建的指令",
@@ -639,6 +639,11 @@
             "status": {
               "finished": "已完成",
               "unfinished": "未完成"
+            },
+            "priority": {
+              "normal": "普通",
+              "urgent": "紧急",
+              "veryUrgent": "非常紧急"
             },
             "editTask": "编辑任务"
           },
