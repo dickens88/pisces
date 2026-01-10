@@ -445,6 +445,31 @@ export const getAiAccuracyByModel = (startDate, endDate, limit = 10) => {
   return service.get('/stats/alerts', { params })
 }
 
+/**
+ * @brief 获取AI研判分析统计（按is_ai_decision_correct字段分组）
+ * @param {string|Date} startDate - 开始时间（ISO字符串或Date对象）
+ * @param {string|Date} endDate - 结束时间（ISO字符串或Date对象）
+ * @returns {Promise} AI研判分析数据数组，格式为 [{name: string, value: number}, ...]
+ */
+export const getAiDecisionAnalysis = (startDate, endDate) => {
+  if (!startDate || !endDate) {
+    throw new Error('startDate and endDate are required for AI decision analysis')
+  }
+
+  const params = {
+    chart: 'ai-decision-analysis'
+  }
+
+  setDateParam(params, 'start_date', startDate)
+  setDateParam(params, 'end_date', endDate)
+
+  if (!params.start_date || !params.end_date) {
+    throw new Error('Invalid startDate or endDate format')
+  }
+
+  return service.get('/stats/alerts', { params })
+}
+
 // 关闭单个告警
 export const closeAlert = (alertId, params) => {
   // 将 category 映射到 close_reason

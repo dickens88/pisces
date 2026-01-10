@@ -154,8 +154,16 @@
       "mismatch": "Mismatch"
     },
     "matchFilter": {
-      "all": "All Match Status",
+      "all": "Match Status",
+      "TT": "TT True Positive",
+      "FP": "FP False Positive",
+      "FN": "FN False Negative",
       "empty": "No Match"
+    },
+    "aiDecisionAnalysis": "AI Decision Analysis",
+    "totalDecisions": "Total Decisions",
+    "humanJudgeFilter": {
+      "all": "Human Judge"
     },
     "selectVerdict": "Select Verdict",
     "updateVerdict": "Update Verdict",

@@ -251,6 +251,26 @@ class AlertCountBySourceView(Resource):
                     "data": data,
                     "description": "Accuracy of each AI model in the selected time range.",
                 }, 200
+            elif chart_name_normalized in (
+                "ai-decision-analysis",
+                "ai_decision_analysis",
+                "aidecisionanalysis",
+            ):
+                if not end_date_str:
+                    return {"error_message": "end_date is required for ai-decision-analysis chart"}, 400
+
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+
+                data = StatisticsService.get_ai_decision_analysis(start_date, end_date)
+                return {
+                    "data": data,
+                    "description": "AI decision analysis grouped by is_ai_decision_correct field.",
+                }, 200
             elif chart_name_normalized == "alert-status-by-severity":
                 if not end_date_str:
                     return {"error_message": "end_date is required for alert-status-by-severity chart"}, 400
