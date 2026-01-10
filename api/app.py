@@ -11,7 +11,7 @@ from utils.app_config import config
 from utils.auth_util import parse_w3_token, TokenCache
 from utils.common_utils import scheduler
 from utils.logger_init import logger
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view, impacted_service_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -81,6 +81,8 @@ api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
 api.add_resource(incident_view.IncidentTask, '/incidents/<incident_id>/task')
 api.add_resource(incident_view.IncidentRelations, '/incidents/<incident_id>/relations')
 api.add_resource(incident_view.IncidentGraphView, '/incidents/<incident_id>/graph')
+api.add_resource(impacted_service_view.ImpactedServiceView, '/incidents/<incident_id>/impacted-services', '/incidents/<incident_id>/impacted-services/<service_id>')
+api.add_resource(impacted_service_view.IncidentBriefView, '/incidents/<incident_id>/incident-briefs', '/incidents/<incident_id>/incident-briefs/<notification_id>')
 api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident_id>')
 api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabilities/<incident_id>', endpoint='vulnerabilityview')
 
