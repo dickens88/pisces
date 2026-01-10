@@ -7,6 +7,8 @@ from utils.app_config import config
 from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
 from utils.mysql_conn import Session
+from utils.common_utils import parse_datetime_with_timezone, format_utc_datetime_to_db_string
+from sqlalchemy import or_
 
 
 class AlertService:
@@ -83,15 +85,22 @@ class AlertService:
         List alerts from local DB (t_alerts) with simple field-based filtering.
         Supported condition keys: title (contains), creator, actor, model_name/model,
         handle_status, severity.
-        """
+        """        
         session = Session()
         try:
             query = session.query(Alert)
 
+            # Parse and normalize time strings to UTC format for comparison
             if start_time:
-                query = query.filter(Alert.create_time >= start_time)
+                start_dt = parse_datetime_with_timezone(start_time)
+                if start_dt:
+                    start_time_str = format_utc_datetime_to_db_string(start_dt)
+                    query = query.filter(Alert.create_time >= start_time_str)
             if end_time:
-                query = query.filter(Alert.create_time <= end_time)
+                end_dt = parse_datetime_with_timezone(end_time)
+                if end_dt:
+                    end_time_str = format_utc_datetime_to_db_string(end_dt)
+                    query = query.filter(Alert.create_time <= end_time_str)
 
             for cond in conditions or []:
                 if not isinstance(cond, dict):
@@ -115,6 +124,23 @@ class AlertService:
                         query = query.filter(Alert.severity == val_str)
                     elif key_lower == 'id':
                         query = query.filter(Alert.alert_id == val_str)
+                    elif key_lower == 'verification_state':
+                        query = query.filter(Alert.verification_state == val_str)
+                    elif key_lower == 'verification_state!=':
+                        # Support != condition for verification_state
+                        query = query.filter(Alert.verification_state != val_str)
+                    elif key_lower == 'is_ai_decision_correct':
+                        if val_str == '':
+                            query = query.filter(
+                                or_(
+                                    Alert.is_ai_decision_correct == None,
+                                    Alert.is_ai_decision_correct == ''
+                                )
+                            )
+                        else:
+                            query = query.filter(Alert.is_ai_decision_correct == val_str)
+                    elif key_lower == 'close_reason':
+                        query = query.filter(Alert.close_reason == val_str)
 
             total = query.count()
             rows = (
@@ -127,8 +153,6 @@ class AlertService:
 
             result = []
             for item in rows:
-                risk_level = (item.severity or '').lower() if item.severity else 'medium'
-                status = (item.handle_status or '').lower() if item.handle_status else 'open'
                 result.append({
                     "id": item.id,
                     "alert_id": item.alert_id,
@@ -136,9 +160,7 @@ class AlertService:
                     "close_time": item.close_time,
                     "title": item.title,
                     "severity": item.severity,
-                    "riskLevel": risk_level,
                     "handle_status": item.handle_status,
-                    "status": status,
                     "owner": item.owner,
                     "creator": item.creator,
                     "actor": item.actor,

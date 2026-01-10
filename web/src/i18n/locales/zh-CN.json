@@ -151,8 +151,16 @@
       "mismatch": "不匹配"
     },
     "matchFilter": {
-      "all": "全部匹配状态",
+      "all": "匹配状态",
+      "TT": "TT真阳",
+      "FP": "FP假阳",
+      "FN": "FN假阴",
       "empty": "无匹配"
+    },
+    "aiDecisionAnalysis": "AI 研判分析",
+    "totalDecisions": "总决策数",
+    "humanJudgeFilter": {
+      "all": "人工研判"
     },
     "selectVerdict": "选择判定",
     "updateVerdict": "更新判定",

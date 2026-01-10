@@ -1,4 +1,4 @@
-from sqlalchemy import cast, DateTime, func, case
+from sqlalchemy import cast, DateTime, func, case, or_
 from datetime import datetime, timedelta, timezone
 
 from models.alert import Alert
@@ -792,7 +792,7 @@ class StatisticsService:
                     func.count(Alert.id).label('total'),
                     func.sum(
                         case(
-                            (Alert.is_ai_decision_correct == True, 1),
+                            (Alert.is_ai_decision_correct == 'TT', 1),
                             else_=0
                         )
                     ).label('correct')
@@ -828,6 +828,79 @@ class StatisticsService:
 
         stats.sort(key=lambda item: item['accuracy'], reverse=True)
         return stats[:max(0, limit or 10)]
+
+    @classmethod
+    def get_ai_decision_analysis(cls, start_date, end_date):
+        """
+        Get AI decision analysis statistics by grouping is_ai_decision_correct field.
+        Returns count for each value: TT, FP, FN, and empty/null.
+        
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            
+        Returns:
+            List of dicts with keys: name (TT/FP/FN/Empty), value (count)
+        """
+        if not start_date or not end_date:
+            raise ValueError("start_date and end_date are required")
+
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+
+        with Session() as session:
+            # Query to count alerts grouped by is_ai_decision_correct
+            query = (
+                session.query(
+                    Alert.is_ai_decision_correct.label('decision_correct'),
+                    func.count(Alert.id).label('count')
+                )
+                .filter(
+                    Alert.create_time >= start_date_str,
+                    Alert.create_time <= end_date_str
+                )
+                .group_by(Alert.is_ai_decision_correct)
+            )
+
+            results = query.all()
+
+        # Build statistics
+        stats = []
+        total_count = 0
+        
+        # Map to store counts for each category
+        category_counts = {
+            'TT': 0,
+            'FP': 0,
+            'FN': 0,
+            'Empty': 0
+        }
+        
+        for row in results:
+            decision_value = row.decision_correct
+            count = int(row.count or 0)
+            total_count += count
+            
+            if decision_value == 'TT':
+                category_counts['TT'] = count
+            elif decision_value == 'FP':
+                category_counts['FP'] = count
+            elif decision_value == 'FN':
+                category_counts['FN'] = count
+            else:
+                # Empty, null, or any other value
+                category_counts['Empty'] += count
+        
+        # Build result list
+        for name, value in category_counts.items():
+            if value > 0 or name == 'Empty':  # Always include Empty even if 0
+                stats.append({
+                    'name': name,
+                    'value': value
+                })
+        
+        return stats
 
     @classmethod
     def get_automation_closure_rate(cls, start_date, end_date):
@@ -878,8 +951,8 @@ class StatisticsService:
         Get AI judgment coverage rate statistics between start_date and end_date.
         Returns:
             dict with keys:
-                - total_alerts: total number of alerts
-                - covered_alerts: number of alerts with verification_state != 'Unknown'
+                - total_alerts: total number of alerts (excluding is_auto_closed='AutoClosed')
+                - covered_alerts: number of alerts with verification_state != 'Unknown' (excluding is_auto_closed='AutoClosed')
                 - coverage_rate: coverage rate percentage (covered_alerts / total_alerts * 100)
         """
         # Normalize and format datetime for database query
@@ -887,19 +960,21 @@ class StatisticsService:
         _, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         with Session() as session:
-            # Count total alerts within date range
+            # Count total alerts within date range (excluding is_auto_closed='AutoClosed')
             query_total = session.query(func.count(Alert.id)).filter(
                 Alert.create_time >= start_date_str,
-                Alert.create_time <= end_date_str
+                Alert.create_time <= end_date_str,
+                or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
             total_alerts = query_total.scalar() or 0
             
-            # Count covered alerts (verification_state != 'Unknown')
+            # Count covered alerts (verification_state != 'Unknown', excluding is_auto_closed='AutoClosed')
             query_covered = session.query(func.count(Alert.id)).filter(
                 Alert.create_time >= start_date_str,
                 Alert.create_time <= end_date_str,
                 Alert.verification_state != 'Unknown',
-                Alert.verification_state.isnot(None)
+                Alert.verification_state.isnot(None),
+                or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
             covered_alerts = query_covered.scalar() or 0
             
@@ -920,8 +995,8 @@ class StatisticsService:
         Get AI judgment accuracy rate statistics between start_date and end_date.
         Returns:
             dict with keys:
-                - total_judgments: total number of judgments (verification_state != 'Unknown')
-                - correct_judgments: number of correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = True)
+                - total_judgments: total number of judgments (verification_state != 'Unknown', excluding is_auto_closed='AutoClosed')
+                - correct_judgments: number of correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TT', excluding is_auto_closed='AutoClosed')
                 - accuracy_rate: accuracy rate percentage (correct_judgments / total_judgments * 100)
         """
         # Normalize and format datetime for database query
@@ -929,22 +1004,24 @@ class StatisticsService:
         _, end_date_str = cls._prepare_datetime_for_query(end_date)
         
         with Session() as session:
-            # Count total judgments (verification_state != 'Unknown')
+            # Count total judgments (verification_state != 'Unknown', excluding is_auto_closed='AutoClosed')
             query_total = session.query(func.count(Alert.id)).filter(
                 Alert.create_time >= start_date_str,
                 Alert.create_time <= end_date_str,
                 Alert.verification_state != 'Unknown',
-                Alert.verification_state.isnot(None)
+                Alert.verification_state.isnot(None),
+                or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
             total_judgments = query_total.scalar() or 0
             
-            # Count correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = True)
+            # Count correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TT', excluding is_auto_closed='AutoClosed')
             query_correct = session.query(func.count(Alert.id)).filter(
                 Alert.create_time >= start_date_str,
                 Alert.create_time <= end_date_str,
                 Alert.verification_state != 'Unknown',
                 Alert.verification_state.isnot(None),
-                Alert.is_ai_decision_correct == True
+                Alert.is_ai_decision_correct == 'TT',
+                or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
             correct_judgments = query_correct.scalar() or 0
             

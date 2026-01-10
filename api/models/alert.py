@@ -37,7 +37,7 @@ class Alert(Base):
 
     model_name = Column(String(50))
 
-    is_ai_decision_correct = Column(Boolean(), default = None)
+    is_ai_decision_correct = Column(String(10), default = None)
 
     tta = Column(Integer(), default=0)
 

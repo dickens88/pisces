@@ -13,13 +13,13 @@
       <div class="flex items-center gap-4">
         <button
           @click="handleRefresh"
-          :disabled="loadingAlerts || aiAccuracyLoading"
+          :disabled="loadingAlerts || aiAccuracyLoading || aiDecisionLoading"
           class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
             class="material-symbols-outlined text-base"
-            :class="{ 'animate-spin': loadingAlerts || aiAccuracyLoading }"
+            :class="{ 'animate-spin': loadingAlerts || aiAccuracyLoading || aiDecisionLoading }"
           >
             refresh
           </span>
@@ -37,7 +37,7 @@
     <!-- Charts -->
     <section
       v-if="showCharts"
-      class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6"
+      class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
     >
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center p-3 pt-2">
@@ -73,6 +73,41 @@
           ></div>
         </div>
       </div>
+      
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+        <div class="flex justify-between items-center p-3 pt-2">
+          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('aiPlayground.aiDecisionAnalysis') }}</p>
+          <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
+        </div>
+        <div class="flex flex-col gap-1 px-3 pb-2">
+          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
+            {{ $t('aiPlayground.totalDecisions') || 'Total Decisions' }}
+          </span>
+          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+            {{ aiDecisionTotal }}
+          </span>
+        </div>
+        <div class="relative h-52">
+          <div
+            v-if="aiDecisionLoading"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
+            {{ $t('common.loading') }}
+          </div>
+          <div
+            v-else-if="aiDecisionData.length === 0"
+            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
+          >
+            {{ $t('dashboard.charts.noData') }}
+          </div>
+          <div
+            v-show="!aiDecisionLoading && aiDecisionData.length > 0"
+            ref="aiDecisionChartRef"
+            class="absolute inset-0"
+            style="margin: 0; padding: 0;"
+          ></div>
+        </div>
+      </div>
     </section>
 
     <!-- Alert list table -->
@@ -92,6 +127,38 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 p-4 border-b border-gray-200 dark:border-[#324867]">
+          <!-- AI Judgment Filter Switch - moved before search box -->
+          <div class="flex-shrink-0">
+            <div class="flex items-center bg-gray-100 dark:bg-[#233348] p-0.5 rounded-lg h-10">
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap px-2">
+                {{ $t('aiPlayground.aiJudgment') }}
+              </span>
+              <button
+                @click="toggleAiJudgmentFilter"
+                :class="[
+                  'group relative px-2.5 py-1 rounded-md transition-all duration-300 h-full flex items-center justify-center',
+                  isAiJudgmentFilterActive
+                    ? 'text-white bg-primary hover:bg-primary/90 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                ]"
+                :title="aiJudgmentFilterText"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  :class="isAiJudgmentFilterActive ? '' : 'text-primary'"
+                  style="font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                >
+                  smart_toy
+                </span>
+                <div class="absolute top-[-28px] left-1/2 -translate-x-1/2 w-max pointer-events-none z-10">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap bg-white dark:bg-[#111822] px-2 py-1 rounded shadow-sm border border-gray-200 dark:border-[#324867]">
+                    {{ aiJudgmentFilterText }}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div class="relative w-full max-w-xl" ref="searchContainerRef">
             <div
               class="flex items-start gap-2 rounded-lg border-0 bg-gray-100 dark:bg-[#233348] px-3 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-primary"
@@ -116,16 +183,17 @@
                     <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
                   </button>
                 </div>
-                <input
-                  v-model="displaySearchInput"
-                  @keydown.enter.prevent="addKeyword"
-                  @keydown.backspace="handleKeywordDeleteKey"
-                  @focus="showFieldMenu = !currentField.value"
-                  class="flex-1 min-w-[160px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
-                  :placeholder="getSearchPlaceholder()"
-                  type="text"
-                  ref="searchInputRef"
-                />
+              <input
+                v-model="displaySearchInput"
+                @keydown.enter.prevent="addKeyword"
+                @keydown.backspace="handleKeywordDeleteKey"
+                @focus="showFieldMenu = !currentField.value"
+                @blur="handleSearchBlur"
+                class="flex-1 min-w-[160px] border-0 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none sm:text-sm"
+                :placeholder="getSearchPlaceholder()"
+                type="text"
+                ref="searchInputRef"
+              />
               </div>
             </div>
             <div
@@ -158,31 +226,59 @@
             </ClearableSelect>
           </div>
 
-          <div class="relative">
-            <select
-              v-model="matchFilter"
+          <div class="relative min-w-[120px] max-w-[12rem]">
+            <ClearableSelect
+              v-model="humanJudgeFilter"
+              clear-value="all"
               @change="handleFilter"
-              class="pl-4 pr-9 appearance-none block w-full rounded-lg border-0 bg-gray-100 dark:bg-[#233348] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm"
             >
-              <option value="all">{{ $t('aiPlayground.matchFilter.all') }}</option>
-              <option value="match">{{ $t('aiPlayground.matchStatus.match') }}</option>
-              <option value="mismatch">{{ $t('aiPlayground.matchStatus.mismatch') }}</option>
-              <option value="empty">{{ $t('aiPlayground.matchFilter.empty') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-            </div>
+              <option value="all">{{ $t('aiPlayground.humanJudgeFilter.all') }}</option>
+              <option value="False detection">{{ $t('aiPlayground.closeReason.falsePositive') }}</option>
+              <option value="Resolved">{{ $t('aiPlayground.closeReason.resolved') }}</option>
+              <option value="Repeated">{{ $t('aiPlayground.closeReason.repeated') }}</option>
+              <option value="Other">{{ $t('aiPlayground.closeReason.other') }}</option>
+            </ClearableSelect>
           </div>
 
-          <button
-            @click="handleToggleWordWrap"
-            class="flex items-center justify-center gap-2 rounded-lg h-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white text-sm font-medium px-4 hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
-            :title="isWordWrapEnabled ? 'Disable word wrap' : 'Enable word wrap'"
-          >
-            <span class="material-symbols-outlined text-base">
-              {{ isWordWrapEnabled ? 'text_fields' : 'wrap_text' }}
-            </span>
-          </button>
+          <div class="relative min-w-[120px] max-w-[12rem]">
+            <ClearableSelect
+              v-model="matchFilter"
+              clear-value="all"
+              @change="handleFilter"
+            >
+              <option value="all">{{ $t('aiPlayground.matchFilter.all') }}</option>
+              <option value="TT">{{ $t('aiPlayground.matchFilter.TT') }}</option>
+              <option value="FP">{{ $t('aiPlayground.matchFilter.FP') }}</option>
+              <option value="FN">{{ $t('aiPlayground.matchFilter.FN') }}</option>
+              <option value="empty">{{ $t('aiPlayground.matchFilter.empty') }}</option>
+            </ClearableSelect>
+          </div>
+
+          <!-- More actions button -->
+          <div class="relative">
+            <button
+              @click="showMoreMenu = !showMoreMenu"
+              class="more-menu-button flex items-center justify-center rounded-lg h-10 w-10 bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867] transition-colors"
+              :title="$t('common.more')"
+            >
+              <span class="material-symbols-outlined text-base">more_vert</span>
+            </button>
+            <!-- Dropdown menu -->
+            <div
+              v-if="showMoreMenu"
+              class="more-menu-dropdown absolute right-0 top-full mt-2 bg-white dark:bg-[#233348] border border-gray-200 dark:border-[#324867] rounded-lg shadow-lg z-50 min-w-[180px]"
+            >
+              <button
+                @click="handleToggleWordWrap"
+                class="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors text-left text-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-[#324867]"
+              >
+                <span class="material-symbols-outlined text-base">
+                  {{ isWordWrapEnabled ? 'wrap_text' : 'text_fields' }}
+                </span>
+                <span>{{ isWordWrapEnabled ? $t('common.wordWrap') : $t('common.singleLine') }}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <DataTable
@@ -254,26 +350,36 @@
           <template #cell-match="{ item }">
             <div class="flex items-center justify-center">
               <span
-                v-if="getMatchStatus(item) === 'match'"
-                class="material-symbols-outlined text-green-600 dark:text-green-400"
+                v-if="getMatchStatus(item) === 'TT'"
+                class="material-symbols-outlined text-green-500 dark:text-green-400 flex-shrink-0"
                 style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                :title="$t('aiPlayground.matchStatus.match')"
+                :title="$t('aiPlayground.matchFilter.TT')"
               >
                 check_circle
               </span>
               <span
-                v-else-if="getMatchStatus(item) === 'mismatch'"
-                class="material-symbols-outlined text-red-600 dark:text-red-400"
+                v-else-if="getMatchStatus(item) === 'FP'"
+                class="material-symbols-outlined text-red-500 dark:text-red-400 flex-shrink-0"
                 style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
-                :title="$t('aiPlayground.matchStatus.mismatch')"
+                :title="$t('aiPlayground.matchFilter.FP')"
               >
                 cancel
               </span>
               <span
-                v-else
-                class="text-sm text-gray-400 dark:text-gray-500"
+                v-else-if="getMatchStatus(item) === 'FN'"
+                class="material-symbols-outlined text-orange-500 dark:text-orange-400 flex-shrink-0"
+                style="font-size: 20px; font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 200, 'opsz' 24;"
+                :title="$t('aiPlayground.matchFilter.FN')"
               >
-                -
+                warning
+              </span>
+              <span
+                v-else
+                class="material-symbols-outlined text-gray-400 dark:text-gray-500 flex-shrink-0"
+                style="font-size: 20px; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;"
+                :title="$t('aiPlayground.matchFilter.empty')"
+              >
+                remove
               </span>
             </div>
           </template>
@@ -572,7 +678,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAlertDetail, updateAlert } from '@/api/alerts'
+import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert } from '@/api/alerts'
 import service from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -593,14 +699,23 @@ const showCharts = ref(true)
 const aiAccuracyChartRef = ref(null)
 const aiAccuracyData = ref([])
 const aiAccuracyLoading = ref(false)
-let aiAccuracyChartInstance = null
-let aiAccuracyResizeListenerBound = false
+const aiAccuracyChartInstance = { value: null }
+const aiAccuracyResizeListenerBound = { value: false }
 const aiAccuracyAverage = computed(() => {
-  if (!aiAccuracyData.value.length) {
-    return '0.0'
-  }
+  if (!aiAccuracyData.value.length) return '0.0'
   const sum = aiAccuracyData.value.reduce((total, item) => total + (Number(item.accuracy) || 0), 0)
   return (sum / aiAccuracyData.value.length).toFixed(1)
+})
+
+// AI decision analysis chart state
+const aiDecisionChartRef = ref(null)
+const aiDecisionData = ref([])
+const aiDecisionLoading = ref(false)
+const aiDecisionChartInstance = { value: null }
+const aiDecisionResizeListenerBound = { value: false }
+const aiDecisionTotal = computed(() => {
+  if (!aiDecisionData.value.length) return 0
+  return aiDecisionData.value.reduce((total, item) => total + (Number(item.value) || 0), 0)
 })
 
 // Alert list state
@@ -621,6 +736,7 @@ const selectedWorkflow = ref('')
 const workflows = ref([])
 const loadingWorkflows = ref(false)
 const aiJudgeFilter = ref('all')
+const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
 const humanVerdictValue = ref('')
 const humanConclusionValue = ref('')
@@ -628,6 +744,8 @@ const isUpdatingVerdict = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const showMoreMenu = ref(false)
+const isAiJudgmentFilterActive = ref(true) // Default to enabled
 
 // Textarea refs for auto-resize
 const alertIdTextarea = ref(null)
@@ -884,40 +1002,51 @@ const wrapAxisLabel = (label) => {
   return segments ? segments.join('\n') : normalized
 }
 
-const ensureAiAccuracyChart = () => {
-  if (!aiAccuracyChartInstance && aiAccuracyChartRef.value) {
-    aiAccuracyChartInstance = echarts.init(aiAccuracyChartRef.value)
-    if (!aiAccuracyResizeListenerBound) {
-      window.addEventListener('resize', handleAiAccuracyResize)
-      aiAccuracyResizeListenerBound = true
+// Chart management helper
+const useChartManager = (chartRef, chartInstance, resizeListenerBound) => {
+  const ensure = () => {
+    if (!chartInstance.value && chartRef.value) {
+      chartInstance.value = echarts.init(chartRef.value)
+      if (!resizeListenerBound.value) {
+        const resizeHandler = () => chartInstance.value?.resize()
+        window.addEventListener('resize', resizeHandler)
+        resizeListenerBound.value = true
+        chartInstance.value._resizeHandler = resizeHandler
+      }
     }
   }
+  
+  const dispose = () => {
+    if (chartInstance.value) {
+      if (chartInstance.value._resizeHandler) {
+        window.removeEventListener('resize', chartInstance.value._resizeHandler)
+      }
+      chartInstance.value.dispose()
+      chartInstance.value = null
+    }
+    resizeListenerBound.value = false
+  }
+  
+  return { ensure, dispose }
 }
 
-const handleAiAccuracyResize = () => {
-  if (aiAccuracyChartInstance) {
-    aiAccuracyChartInstance.resize()
-  }
-}
+const aiAccuracyChartManager = useChartManager(
+  aiAccuracyChartRef,
+  aiAccuracyChartInstance,
+  aiAccuracyResizeListenerBound
+)
 
-const disposeAiAccuracyChart = () => {
-  if (aiAccuracyChartInstance) {
-    aiAccuracyChartInstance.dispose()
-    aiAccuracyChartInstance = null
-  }
-  if (aiAccuracyResizeListenerBound) {
-    window.removeEventListener('resize', handleAiAccuracyResize)
-    aiAccuracyResizeListenerBound = false
-  }
-}
+const aiDecisionChartManager = useChartManager(
+  aiDecisionChartRef,
+  aiDecisionChartInstance,
+  aiDecisionResizeListenerBound
+)
 
 const updateAiAccuracyChart = () => {
-  ensureAiAccuracyChart()
-  if (!aiAccuracyChartInstance) {
-    return
-  }
-
-  aiAccuracyChartInstance.clear()
+  aiAccuracyChartManager.ensure()
+  if (!aiAccuracyChartInstance.value) return
+  
+  aiAccuracyChartInstance.value.clear()
 
   const categories = aiAccuracyData.value.map((item) => item.name)
   const accuracies = aiAccuracyData.value.map((item) => item.accuracy)
@@ -940,13 +1069,11 @@ const updateAiAccuracyChart = () => {
         if (!dataPoint) {
           return `${params[0].name}: ${params[0].value}%`
         }
-        return `
-          <div style="min-width:140px">
-            <div style="font-weight:600;margin-bottom:4px;">${dataPoint.name}</div>
-            <div>Accuracy: ${dataPoint.accuracy}%</div>
-            <div>Correct: ${dataPoint.correct}/${dataPoint.total}</div>
-          </div>
-        `
+        return `<div style="min-width:140px">
+          <div style="font-weight:600;margin-bottom:4px;">${dataPoint.name}</div>
+          <div>Accuracy: ${dataPoint.accuracy}%</div>
+          <div>Correct: ${dataPoint.correct}/${dataPoint.total}</div>
+        </div>`
       }
     },
     grid: {
@@ -1006,14 +1133,12 @@ const updateAiAccuracyChart = () => {
     ]
   }
 
-  aiAccuracyChartInstance.setOption(option, true)
-  setTimeout(() => {
-    aiAccuracyChartInstance?.resize()
-  }, 0)
+  aiAccuracyChartInstance.value.setOption(option, true)
+  setTimeout(() => aiAccuracyChartInstance.value?.resize(), 0)
 
   // Bind click to filter alerts by model name
-  aiAccuracyChartInstance.off('click')
-  aiAccuracyChartInstance.on('click', (params) => {
+  aiAccuracyChartInstance.value.off('click')
+  aiAccuracyChartInstance.value.on('click', (params) => {
     if (!params?.name) return
     // Remove existing model/model_name filters before adding the new one
     searchKeywords.value = searchKeywords.value.filter(
@@ -1063,8 +1188,7 @@ const loadAiAccuracyStatistics = async () => {
   try {
     const { start, end } = computeSelectedRange()
     const response = await getAiAccuracyByModel(start, end, 10)
-    const data = response?.data || []
-    aiAccuracyData.value = data.map((item) => ({
+    aiAccuracyData.value = (response?.data || []).map((item) => ({
       name: item.model_name || item.model || 'Unknown',
       accuracy: Number(item.accuracy) || 0,
       correct: item.correct || 0,
@@ -1077,6 +1201,109 @@ const loadAiAccuracyStatistics = async () => {
     aiAccuracyLoading.value = false
     await nextTick()
     updateAiAccuracyChart()
+  }
+}
+
+const updateAiDecisionChart = () => {
+  aiDecisionChartManager.ensure()
+  if (!aiDecisionChartInstance.value) return
+  
+  aiDecisionChartInstance.value.clear()
+
+  // Decision type config
+  const decisionConfig = {
+    'TT': { label: t('aiPlayground.matchFilter.TT'), color: '#10b981' },
+    'FP': { label: t('aiPlayground.matchFilter.FP'), color: '#ef4444' },
+    'FN': { label: t('aiPlayground.matchFilter.FN'), color: '#f59e0b' },
+    'Empty': { label: t('aiPlayground.matchFilter.empty'), color: '#94a3b8' }
+  }
+
+  const pieData = aiDecisionData.value.map((item) => {
+    const config = decisionConfig[item.name] || { label: item.name, color: '#94a3b8' }
+    return {
+      name: config.label,
+      value: item.value,
+      itemStyle: { color: config.color }
+    }
+  })
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12],
+      formatter: (params) => {
+        if (!params) return ''
+        const total = aiDecisionTotal.value
+        const percent = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0'
+        return `<div style="min-width:140px">
+          <div style="font-weight:600;margin-bottom:4px;">${params.name}</div>
+          <div>Count: ${params.value}</div>
+          <div>Percentage: ${percent}%</div>
+        </div>`
+      }
+    },
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'center',
+      textStyle: {
+        color: '#cbd5f5',
+        fontSize: 11
+      },
+      itemGap: 8
+    },
+    series: [
+      {
+        name: t('aiPlayground.aiDecisionAnalysis'),
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: '#19222c',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: '#e2e8f0'
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: pieData
+      }
+    ]
+  }
+
+  aiDecisionChartInstance.value.setOption(option, true)
+  setTimeout(() => aiDecisionChartInstance.value?.resize(), 0)
+}
+
+const loadAiDecisionAnalysis = async () => {
+  aiDecisionLoading.value = true
+  try {
+    const { start, end } = computeSelectedRange()
+    const response = await getAiDecisionAnalysis(start, end)
+    aiDecisionData.value = response?.data || []
+  } catch (error) {
+    console.error('Failed to load AI decision analysis:', error)
+    aiDecisionData.value = []
+  } finally {
+    aiDecisionLoading.value = false
+    await nextTick()
+    updateAiDecisionChart()
   }
 }
 
@@ -1123,46 +1350,38 @@ const getHumanVerdictText = (alert) => {
   return displayMap[normalized] || closeReason
 }
 
-// Determine match status between AI Verdict and Human Verdict
-// Match: (AI = False_Positive AND Human = "False Detection") OR (AI = True_Positive AND Human = "Resolved")
-// Mismatch: (AI = False_Positive AND Human = "Resolved") OR (AI = True_Positive AND Human = "False Detection")
-// Empty: Any other combination
+// Determine match status based on is_ai_decision_correct field
+// Returns: 'TT' (True Positive), 'FP' (False Positive), 'FN' (False Negative), or '' (empty)
 const getMatchStatus = (item) => {
-  const aiVerdict = item.verification_state
-  const humanVerdict = item.close_reason || item.closeReason || ''
+  const aiDecisionCorrect = item.is_ai_decision_correct
   
-  // Normalize values (case-insensitive)
-  const aiNormalized = aiVerdict ? String(aiVerdict).trim() : ''
-  const humanNormalized = humanVerdict ? String(humanVerdict).trim() : ''
-  
-  // Check if values are in the expected set
-  const isAiLow = aiNormalized === 'False_Positive'
-  const isAiHigh = aiNormalized === 'True_Positive'
-  const isHumanFalseDetection = humanNormalized.toLowerCase() === 'false detection'
-  const isHumanResolved = humanNormalized.toLowerCase() === 'resolved'
-  
-  // If either value is not in the expected set, return empty
-  if (!isAiLow && !isAiHigh) return ''
-  if (!isHumanFalseDetection && !isHumanResolved) return ''
-  
-  // Check match conditions
-  if ((isAiLow && isHumanFalseDetection) || (isAiHigh && isHumanResolved)) {
-    return 'match'
+  // If field is missing or null/undefined, return empty
+  if (!aiDecisionCorrect) {
+    return ''
   }
   
-  // Check mismatch conditions
-  if ((isAiLow && isHumanResolved) || (isAiHigh && isHumanFalseDetection)) {
-    return 'mismatch'
+  const value = String(aiDecisionCorrect).trim()
+  
+  // Return the value directly if it's TT, FP, or FN
+  if (value === 'TT' || value === 'FP' || value === 'FN') {
+    return value
   }
   
-  // Default to empty for any other combination
+  // Default to empty for any other value
   return ''
 }
 
 const handleSearchContainerClick = () => {
-  if (searchInputRef.value) {
-    searchInputRef.value.focus()
+  if (currentField.value) {
+    nextTick(() => {
+      searchInputRef.value?.focus()
+    })
+    return
   }
+  showFieldMenu.value = true
+  nextTick(() => {
+    searchInputRef.value?.focus()
+  })
 }
 
 const addKeywordIfMissing = (field, value) => {
@@ -1179,9 +1398,23 @@ const addKeywordIfMissing = (field, value) => {
 
 const addKeyword = () => {
   const keyword = currentSearchInput.value.trim()
-  if (keyword && currentField.value) {
-    addKeywordIfMissing(currentField.value, keyword)
-    showFieldMenu.value = false
+  if (keyword) {
+    // If no field selected, default to 'title'
+    const field = currentField.value || 'title'
+    
+    // Check if this exact field:value combination already exists
+    const exists = searchKeywords.value.some(
+      k => k.field === field && k.value === keyword
+    )
+    
+    if (!exists) {
+      searchKeywords.value.push({ field, value: keyword })
+      currentSearchInput.value = ''
+      currentField.value = ''
+      showFieldMenu.value = false
+      currentPage.value = 1
+      loadAlerts()
+    }
   }
 }
 
@@ -1192,23 +1425,62 @@ const removeKeyword = (index) => {
 }
 
 const handleKeywordDeleteKey = (event) => {
-  if (!currentSearchInput.value && searchKeywords.value.length > 0 && event.key === 'Backspace') {
-    searchKeywords.value.pop()
-    currentPage.value = 1
-    loadAlerts()
+  if (event.key === 'Backspace') {
+    if (!currentSearchInput.value && searchKeywords.value.length > 0) {
+      event.preventDefault()
+      removeKeyword(searchKeywords.value.length - 1)
+    } else if (!currentSearchInput.value && currentField.value) {
+      event.preventDefault()
+      currentField.value = ''
+    } else if (currentField.value && currentSearchInput.value) {
+      const fieldObj = searchFields.value.find(f => f.value === currentField.value)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${currentField.value}: `
+      const cursorPos = event.target.selectionStart || 0
+      if (cursorPos <= prefix.length) {
+        event.preventDefault()
+        currentField.value = ''
+        currentSearchInput.value = ''
+      }
+    }
   }
 }
 
 const selectField = (field) => {
   currentField.value = field
+  currentSearchInput.value = ''
   showFieldMenu.value = false
+  // Focus the input after selecting field
   nextTick(() => {
-    searchInputRef.value?.focus()
+    if (searchInputRef.value) {
+      searchInputRef.value.focus()
+      // Set cursor position after the prefix
+      const fieldObj = searchFields.value.find(f => f.value === field)
+      const prefix = fieldObj ? `${fieldObj.label}: ` : `${field}: `
+      const input = searchInputRef.value
+      if (input.setSelectionRange) {
+        input.setSelectionRange(prefix.length, prefix.length)
+      }
+    }
   })
+}
+
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    if (!currentField.value && !currentSearchInput.value) {
+      showFieldMenu.value = false
+    }
+  }, 200)
 }
 
 const handleClickOutside = (event) => {
   const target = event.target
+  // Handle more menu dropdown
+  const dropdown = event.target.closest('.more-menu-dropdown')
+  const button = event.target.closest('.more-menu-button')
+  if (!dropdown && !button) {
+    showMoreMenu.value = false
+  }
+  // Handle search field menu
   if (!searchContainerRef.value) return
   if (!searchContainerRef.value.contains(target)) {
     showFieldMenu.value = false
@@ -1427,6 +1699,19 @@ const handleFilter = () => {
   loadAlerts()
 }
 
+// AI Judgment filter state
+const aiJudgmentFilterText = computed(() =>
+  isAiJudgmentFilterActive.value
+    ? (t('common.clearFilter') || 'Clear Filter')
+    : (t('aiPlayground.aiJudgment') || 'AI Judgment')
+)
+
+const toggleAiJudgmentFilter = () => {
+  isAiJudgmentFilterActive.value = !isAiJudgmentFilterActive.value
+  currentPage.value = 1
+  loadAlerts()
+}
+
 // Track word wrap state - DataTable stores it in localStorage with the storage key
 const getWordWrapState = () => {
   const stored = localStorage.getItem('datatable-wordwrap-ai-playground-alerts-table-columns')
@@ -1442,6 +1727,7 @@ const handleToggleWordWrap = () => {
     // Update local state immediately
     wordWrapState.value = !wordWrapState.value
   }
+  showMoreMenu.value = false
 }
 
 const handlePageChange = (page) => {
@@ -1456,9 +1742,43 @@ const handlePageSizeChange = (newSize) => {
 }
 
 const buildConditions = () => {
-  return searchKeywords.value
+  const conditions = []
+  
+  // Add search keywords
+  searchKeywords.value
     .filter(k => k.field && k.value)
-    .map(k => ({ [k.field]: k.value }))
+    .forEach(k => {
+      conditions.push({ [k.field]: k.value })
+    })
+  
+  // Add AI judgment filter (exclude Unknown when filter is active)
+  if (isAiJudgmentFilterActive.value) {
+    // Exclude Unknown verification_state
+    conditions.push({ 'verification_state!=': 'Unknown' })
+  }
+  
+  // Add AI judge filter (verification_state)
+  if (aiJudgeFilter.value && aiJudgeFilter.value !== 'all') {
+    conditions.push({ verification_state: aiJudgeFilter.value })
+  }
+  
+  // Add human judge filter (close_reason)
+  if (humanJudgeFilter.value && humanJudgeFilter.value !== 'all') {
+    conditions.push({ close_reason: humanJudgeFilter.value })
+  }
+  
+  // Add match filter (is_ai_decision_correct)
+  if (matchFilter.value && matchFilter.value !== 'all') {
+    if (matchFilter.value === 'empty') {
+      // For empty filter, we need to handle null/empty values
+      // This will be handled in backend by checking for null or empty string
+      conditions.push({ is_ai_decision_correct: '' })
+    } else {
+      conditions.push({ is_ai_decision_correct: matchFilter.value })
+    }
+  }
+  
+  return conditions
 }
 
 const loadAlerts = async () => {
@@ -1502,32 +1822,10 @@ const loadAlerts = async () => {
       close_reason: item.close_reason || item.closeReason || item?.data_object?.close_reason || null
     }))
 
-    // Client-side filters
-    let filtered = normalized
-    
-    const modelKeyword = searchKeywords.value.find(k => k.field === 'model_name' || k.field === 'model')
-    if (modelKeyword) {
-      filtered = filtered.filter(a => {
-        const val = a.model_name || a.model || a?.extend_properties?.model_name || a?.extend_properties?.model
-        return val && String(val).toLowerCase() === String(modelKeyword.value).toLowerCase()
-      })
-    }
-
-    if (aiJudgeFilter.value !== 'all') {
-      filtered = filtered.filter(a => 
-        (a.verification_state || a.verificationState) === aiJudgeFilter.value
-      )
-    }
-
-    if (matchFilter.value !== 'all') {
-      filtered = filtered.filter(a => {
-        const matchStatus = getMatchStatus(a)
-        return matchFilter.value === 'empty' ? matchStatus === '' : matchStatus === matchFilter.value
-      })
-    }
-
-    alerts.value = filtered
-    total.value = response.total || filtered.length || 0
+    // Client-side filters are now handled server-side via conditions
+    // Only keep data normalization here
+    alerts.value = normalized
+    total.value = response.total || 0
   } catch (error) {
     console.error('Failed to load alerts:', error)
     alerts.value = []
@@ -1554,6 +1852,7 @@ const handleCustomRangeChange = (range) => {
 const handleRefresh = async () => {
   await Promise.all([
     loadAiAccuracyStatistics(),
+    loadAiDecisionAnalysis(),
     loadAlerts()
   ])
 }
@@ -1592,15 +1891,16 @@ watch(selectedAlert, () => {
 })
 
 onMounted(() => {
-  ensureAiAccuracyChart()
+  aiAccuracyChartManager.ensure()
+  aiDecisionChartManager.ensure()
   document.addEventListener('click', handleClickOutside)
-  // Sync word wrap state with DataTable
   wordWrapState.value = getWordWrapState()
   handleRefresh()
 })
 
 onBeforeUnmount(() => {
-  disposeAiAccuracyChart()
+  aiAccuracyChartManager.dispose()
+  aiDecisionChartManager.dispose()
   document.removeEventListener('click', handleClickOutside)
   document.body.style.overflow = ''
 })
