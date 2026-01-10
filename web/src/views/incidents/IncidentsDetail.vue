@@ -198,16 +198,13 @@
                       </label>
                     </div>
                     <div class="relative" ref="taskIdDropdownRef">
+                      <!-- 搜索输入框和已选标签容器 -->
                       <div
-                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 cursor-pointer min-h-[2.5rem] flex items-center flex-wrap gap-1"
-                        @click="showTaskIdDropdown = taskIdOptions.length > 0"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus-within:ring-2 focus-within:ring-primary/60 focus-within:border-primary/60 min-h-[2.5rem] flex items-center flex-wrap gap-1"
+                        @click="toggleTaskIdDropdown"
                       >
-                        <template v-if="selectedWarroomIds.length === 0">
-                          <span class="text-gray-400 dark:text-slate-500">
-                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
-                          </span>
-                        </template>
-                        <template v-else>
+                        <!-- 已选中的warroom标签 -->
+                        <template v-if="selectedWarroomIds.length > 0">
                           <span
                             v-for="warroomId in selectedWarroomIds"
                             :key="warroomId"
@@ -222,15 +219,45 @@
                             </button>
                           </span>
                         </template>
+                        <!-- 搜索输入框 -->
+                        <input
+                          v-if="showTaskIdDropdown"
+                          v-model="warroomSearchKeyword"
+                          @input="handleWarroomSearch"
+                          @click.stop
+                          @keydown.escape="showTaskIdDropdown = false"
+                          type="text"
+                          :placeholder="translateOr('incidents.detail.eventGraph.searchWarroomPlaceholder', '输入关键字搜索WR...')"
+                          class="flex-1 min-w-[120px] outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500"
+                        />
+                        <!-- 未选中且未展开时的占位符 -->
+                        <template v-else-if="selectedWarroomIds.length === 0">
+                          <span class="text-gray-400 dark:text-slate-500">
+                            {{ translateOr('incidents.detail.eventGraph.warroomPlaceholder', '请从下拉框选择') }}
+                          </span>
+                        </template>
+                        <!-- 下拉箭头图标 -->
+                        <span class="material-symbols-outlined text-sm text-gray-400 dark:text-slate-500 ml-auto">
+                          {{ showTaskIdDropdown ? 'expand_less' : 'expand_more' }}
+                        </span>
                       </div>
                       <!-- 下拉选择列表（多选） -->
                       <div
-                        v-if="showTaskIdDropdown && taskIdOptions.length > 0"
+                        v-if="showTaskIdDropdown"
                         class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                         @mousedown.prevent
                       >
+                        <!-- 加载状态 -->
+                        <div v-if="loadingProjectList" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.loading', '加载中...') }}
+                        </div>
+                        <!-- 无结果提示 -->
+                        <div v-else-if="!loadingProjectList && projectOptions.length === 0" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                          {{ translateOr('incidents.detail.eventGraph.noWarroomFound', '未找到匹配的WR') }}
+                        </div>
+                        <!-- 选项列表 -->
                         <div
-                          v-for="option in taskIdOptions"
+                          v-for="option in projectOptions"
                           :key="option.value"
                           @click.stop="toggleWarroomSelection(option.value)"
                           :class="[
@@ -315,11 +342,23 @@
                                   {{ task.stageName }}
                                 </span>
                               </div>
-                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
-                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                              </div>
+                              <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                              </div>
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              </div>
+                              <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
+                                <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                  {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.finished', 'Finished') : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
+                                </span>
                               </div>
                               <div v-if="task.detail_url" class="mt-2">
                                 <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -353,11 +392,23 @@
                                   {{ task.stageName }}
                                 </span>
                               </div>
-                              <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                              <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
-                              <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                              <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                              </div>
+                              <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                              </div>
+                              <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                              </div>
+                              <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Status') }}: </span>
+                                <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                  {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.finished', 'Finished') : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
+                                </span>
                               </div>
                               <div v-if="task.detail_url" class="mt-2">
                                 <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -418,11 +469,23 @@
                                     {{ task.stageName }}
                                   </span>
                                 </div>
-                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                                 </div>
-                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                                </div>
+                                <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                                </div>
+                                <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                                </div>
+                                <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Is Done') }}: </span>
+                                  <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                    {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.yes', 'Yes') : translateOr('incidents.detail.eventGraph.no', 'No') }}
+                                  </span>
                                 </div>
                                 <div v-if="task.detail_url" class="mt-2">
                                   <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -459,11 +522,23 @@
                                     {{ task.stageName }}
                                   </span>
                                 </div>
-                                <div v-if="task.employeeAccount" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.employeeAccount }}
+                                <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                                 </div>
-                                <div v-if="task.plan_end_time" class="text-xs text-gray-600 dark:text-slate-400">
-                                  {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}: {{ formatTaskDateTime(task.plan_end_time) }}
+                                <div v-if="task.start_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}: {{ formatTaskDateTime(task.start_time) }}
+                                </div>
+                                <div v-if="task.end_time" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}: {{ formatTaskDateTime(task.end_time) }}
+                                </div>
+                                <div v-if="task.priority !== undefined && task.priority !== null" class="text-xs text-gray-600 dark:text-slate-400">
+                                  {{ translateOr('incidents.detail.eventGraph.priority', 'Priority') }}: {{ getPriorityLabel(task.priority) }}
+                                </div>
+                                <div v-if="task.isDone !== undefined && task.isDone !== null" class="text-xs">
+                                  <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.isDone', 'Is Done') }}: </span>
+                                  <span :class="task.isDone === 'true' || task.isDone === true ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-slate-400'">
+                                    {{ task.isDone === 'true' || task.isDone === true ? translateOr('incidents.detail.eventGraph.yes', 'Yes') : translateOr('incidents.detail.eventGraph.no', 'No') }}
+                                  </span>
                                 </div>
                                 <div v-if="task.detail_url" class="mt-2">
                                   <a :href="task.detail_url" target="_blank" rel="noopener noreferrer" class="text-xs text-primary hover:underline">
@@ -503,21 +578,30 @@
                               </span>
                             </div>
                             <!-- 员工账号 -->
-                            <div v-if="taskDetail.employeeAccount" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                            <div v-if="taskDetail.owner" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}
                               </div>
                               <div class="text-xs text-gray-700 dark:text-slate-300">
-                                {{ taskDetail.employeeAccount }}
+                                {{ taskDetail.owner }}
                               </div>
                             </div>
-                            <!-- 计划结束时间 -->
-                            <div v-if="taskDetail.plan_end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                            <!-- 开始时间 -->
+                            <div v-if="taskDetail.start_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
                               <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
-                                {{ translateOr('incidents.detail.eventGraph.planEndTime', 'Plan End Time') }}
+                                {{ translateOr('incidents.detail.eventGraph.startTime', 'Start Time') }}
                               </div>
                               <div class="text-xs text-gray-700 dark:text-slate-300">
-                                {{ formatTaskDateTime(taskDetail.plan_end_time) }}
+                                {{ formatTaskDateTime(taskDetail.start_time) }}
+                              </div>
+                            </div>
+                            <!-- 结束时间 -->
+                            <div v-if="taskDetail.end_time" class="py-2 border-b border-gray-200 dark:border-slate-700">
+                              <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                {{ translateOr('incidents.detail.eventGraph.endTime', 'End Time') }}
+                              </div>
+                              <div class="text-xs text-gray-700 dark:text-slate-300">
+                                {{ formatTaskDateTime(taskDetail.end_time) }}
                               </div>
                             </div>
                             <!-- 优先级 -->
@@ -543,8 +627,8 @@
                                 ]"
                               >
                                 {{ taskDetail.isDone === 'true' || taskDetail.isDone === true 
-                                  ? translateOr('incidents.detail.eventGraph.completed', 'Completed')
-                                  : translateOr('incidents.detail.eventGraph.inProgress', 'In Progress') }}
+                                  ? translateOr('incidents.detail.eventGraph.finished', 'Finished')
+                                  : translateOr('incidents.detail.eventGraph.unfinished', 'Unfinished') }}
                               </span>
                             </div>
                             <!-- 详情链接 -->
@@ -1184,7 +1268,7 @@
 
       <!-- Evidence & Response 标签页：响应流程 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col">
+        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
           <!-- 顶部Header -->
           <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
             <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1198,94 +1282,104 @@
               <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
               </button>
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.maturityAssessment') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.rlReview') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-white rounded transition-colors shadow-sm">
-                {{ $t('incidents.detail.evidenceResponse.gocReview') }}
-              </button>
               <div class="relative group">
                 <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
                   {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                  <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                  <span class="material-symbols-outlined text-sm">refresh</span>
                 </button>
               </div>
             </div>
           </header>
 
           <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
-          <!-- 响应流程区域 -->
+          <!-- 响应指标区域 -->
           <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
-            <!-- 响应流程步骤条 -->
-            <div class="mb-8 overflow-x-auto pb-4">
-            <div class="flex items-center justify-between min-w-[1000px] relative px-4">
-              <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 dark:bg-border-dark -z-10 transform -translate-y-1/2"></div>
-              
-              <!-- Step 1: Detection -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">1</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:01</span>
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">响应指标</h2>
+            <!-- 指标卡片网格 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <!-- 指标1: 平均攻击溯源时间 -->
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-primary dark:text-blue-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackTracingTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttTracing') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">search</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.detection') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 2: Response -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">2</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:23</span>
+              <!-- 指标2: 平均攻击源拦截时间 -->
+              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-emerald-700 dark:text-emerald-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackBlockingTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttBlocking') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10 dark:bg-green-500/20">
+                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">shield</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.response') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 3: Mitigation -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-primary font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-primary bg-blue-50 dark:bg-blue-900/20 text-sm">3</span>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">09:41</span>
+              <!-- 指标3: 平均风险消减时间 -->
+              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-orange-700 dark:text-orange-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageRiskMitigationTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttr') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
+                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">trending_down</span>
+                  </div>
                 </div>
-                <span class="text-sm font-semibold text-primary">{{ $t('incidents.detail.evidenceResponse.steps.mitigation') }}</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                </div>
               </div>
 
-              <!-- Step 4: Reporting -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">4</span>
+              <!-- 指标4: 平均漏洞入口定位时间 -->
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="font-bold text-lg text-indigo-700 dark:text-indigo-400 mb-1">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.averageVulnerabilityEntryTime') }}
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                      {{ $t('incidents.detail.evidenceResponse.metrics.mttVulnerabilityEntry') }}
+                    </p>
+                  </div>
+                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
+                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-2xl">bug_report</span>
+                  </div>
                 </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.reporting') }}</span>
-              </div>
-
-              <!-- Step 5: Recovery -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">5</span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
+                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.recovery') }}</span>
               </div>
-
-              <!-- Step 6: Remediation -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">6</span>
-                </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.remediation') }}</span>
-              </div>
-
-              <!-- Step 7: Lessons learned -->
-              <div class="flex flex-col items-center gap-2 bg-transparent px-2 z-0">
-                <div class="flex items-center gap-2 text-slate-400 dark:text-slate-500 font-medium">
-                  <span class="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-slate-600 bg-white dark:bg-surface-dark text-sm">7</span>
-                </div>
-                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.steps.lessonsLearned') }}</span>
-              </div>
-            </div>
-            <!-- 进度条 -->
-            <div class="mt-4 w-full h-2 bg-gray-200 dark:bg-border-dark rounded-full overflow-hidden">
-              <div class="h-full bg-primary w-[40%] rounded-full"></div>
             </div>
           </div>
 
@@ -1344,7 +1438,7 @@
                   </p>
                 </div>
               </div>
-              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-emerald-900/20 border-r border-b border-emerald-500 transform rotate-45"></div>
+              <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-[#152342] border-r border-b border-emerald-500 transform rotate-45"></div>
             </button>
 
             <!-- 事件简报卡片 -->
@@ -1372,7 +1466,7 @@
                   </p>
                 </div>
               </div>
-              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-indigo-900/20 border-r border-b border-indigo-500 transform rotate-45"></div>
+              <div v-if="activeCardTab === 'incidentBrief'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-indigo-50 dark:bg-[#152342] border-r border-b border-indigo-500 transform rotate-45"></div>
             </button>
           </div>
 
@@ -1385,7 +1479,9 @@
           <template v-if="activeCardTab === 'impactedServices'">
             <!-- 操作按钮 -->
             <div class="flex gap-2 mb-4">
-              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
+              <button 
+                @click="showAddServiceDialog = true"
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.services.add') }}
               </button>
               <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
@@ -1409,14 +1505,24 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
-                    <tr class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
-                      <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">Tianmen</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
-                      <td class="px-4 py-3 text-slate-500 dark:text-slate-400">--</td>
+                    <template v-if="impactedServices.length > 0">
+                      <tr 
+                        v-for="(service, index) in impactedServices" 
+                        :key="index"
+                        class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ service.service || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.measure || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.sla || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.plannedCompletionTime || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.owner || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.progress || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
+                      </tr>
+                    </template>
+                    <tr v-else class="bg-white dark:bg-surface-dark">
+                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                        {{ $t('common.noData') }}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -1479,64 +1585,230 @@
                 <table class="w-full text-sm text-left">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.stageName', '阶段') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.planEndTime', '计划结束时间') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
                       <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
-                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
+                      <th class="px-4 py-3">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
+                      <th class="px-4 py-3 w-20">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
                     <template v-if="filteredProgressSyncTasks.length > 0">
                       <tr 
                         v-for="(task, index) in filteredProgressSyncTasks" 
-                        :key="index"
+                        :key="getTaskUniqueId(task, index)"
                         class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ task.task_name || '--' }}</td>
+                        <!-- WR名字 -->
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
+                        <!-- 任务名称（可编辑） -->
                         <td class="px-4 py-3">
-                          <span 
+                          <input
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'task_name'"
+                            v-model="editingTaskValue"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'task_name', editingTaskValue)"
+                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'task_name', editingTaskValue)"
+                            @keyup.esc="cancelEditTask"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          />
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'task_name', task.task_name || '')"
+                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary"
+                            :title="$t('common.edit')"
+                          >{{ task.task_name || '--' }}</span>
+                        </td>
+                        <!-- 阶段（可编辑） -->
+                        <td class="px-4 py-3">
+                          <select
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'stageName'"
+                            v-model="editingTaskValue"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'stageName', editingTaskValue)"
+                            @change="saveTaskField(getTaskUniqueId(task, index), 'stageName', editingTaskValue)"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          >
+                            <option value="待处理">待处理</option>
+                            <option value="进行中">进行中</option>
+                            <option value="已完成">已完成</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                          </select>
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'stageName', task.stageName || '')"
                             :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs',
+                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
                               task.stageName === '待处理' || task.stageName === 'Pending'
                                 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                            ]">
+                            ]"
+                            :title="$t('common.edit')"
+                          >
                             {{ task.stageName || '--' }}
                           </span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.employeeAccount || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.plan_end_time ? formatTaskDateTime(task.plan_end_time) : '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
-                          <span v-if="task.priority" :class="[
-                            'inline-block px-2 py-0.5 rounded text-xs',
-                            task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                            task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                            'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                          ]">
-                            {{ task.priority }}
-                          </span>
-                          <span v-else>--</span>
+                        <!-- 责任人（可编辑） -->
+                        <td class="px-4 py-3">
+                          <input
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'owner'"
+                            v-model="editingTaskValue"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'owner', editingTaskValue)"
+                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'owner', editingTaskValue)"
+                            @keyup.esc="cancelEditTask"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          />
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'owner', task.owner || '')"
+                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                            :title="$t('common.edit')"
+                          >{{ task.owner || '--' }}</span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
-                          <span :class="[
-                            'inline-block px-2 py-0.5 rounded text-xs',
-                            task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                          ]">
+                        <!-- 开始时间（可编辑） -->
+                        <td class="px-4 py-3">
+                          <input
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'start_time'"
+                            v-model="editingTaskValue"
+                            type="datetime-local"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'start_time', editingTaskValue)"
+                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'start_time', editingTaskValue)"
+                            @keyup.esc="cancelEditTask"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          />
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'start_time', task.start_time ? formatTaskDateTimeForInput(task.start_time) : '')"
+                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                            :title="$t('common.edit')"
+                          >{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
+                        </td>
+                        <!-- 计划结束时间（可编辑） -->
+                        <td class="px-4 py-3">
+                          <input
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'end_time'"
+                            v-model="editingTaskValue"
+                            type="datetime-local"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'end_time', editingTaskValue)"
+                            @keyup.enter="saveTaskField(getTaskUniqueId(task, index), 'end_time', editingTaskValue)"
+                            @keyup.esc="cancelEditTask"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          />
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'end_time', task.end_time ? formatTaskDateTimeForInput(task.end_time) : '')"
+                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                            :title="$t('common.edit')"
+                          >{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
+                        </td>
+                        <!-- 优先级（可编辑） -->
+                        <td class="px-4 py-3">
+                          <select
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'priority'"
+                            v-model="editingTaskValue"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'priority', editingTaskValue)"
+                            @change="saveTaskField(getTaskUniqueId(task, index), 'priority', editingTaskValue)"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          >
+                            <option value="低">低</option>
+                            <option value="中">中</option>
+                            <option value="高">高</option>
+                            <option value="紧急">紧急</option>
+                            <option value="Low">Low</option>
+                            <option value="Medium">Medium</option>
+                            <option value="High">High</option>
+                            <option value="Urgent">Urgent</option>
+                          </select>
+                          <template v-else>
+                            <span
+                              v-if="task.priority"
+                              @dblclick="startEditTask(getTaskUniqueId(task, index), 'priority', task.priority || '')"
+                              :class="[
+                                'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                                task.priority === '紧急' || task.priority === 'Urgent' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                                task.priority === '高' || task.priority === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
+                                task.priority === '中' || task.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                              ]"
+                              :title="$t('common.edit')"
+                            >
+                              {{ task.priority }}
+                            </span>
+                            <span
+                              v-else
+                              @dblclick="startEditTask(getTaskUniqueId(task, index), 'priority', '')"
+                              class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
+                              :title="$t('common.edit')"
+                            >--</span>
+                          </template>
+                        </td>
+                        <!-- 状态（可编辑） -->
+                        <td class="px-4 py-3">
+                          <select
+                            v-if="editingTaskIndex === getTaskUniqueId(task, index) && editingTaskField === 'isDone'"
+                            v-model="editingTaskValue"
+                            @blur="saveTaskField(getTaskUniqueId(task, index), 'isDone', editingTaskValue)"
+                            @change="saveTaskField(getTaskUniqueId(task, index), 'isDone', editingTaskValue)"
+                            class="w-full px-2 py-1 text-sm border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                            autofocus
+                          >
+                            <option :value="false">{{ $t('incidents.detail.eventGraph.inProgress') }}</option>
+                            <option :value="true">{{ $t('incidents.detail.eventGraph.completed') }}</option>
+                          </select>
+                          <span
+                            v-else
+                            @dblclick="startEditTask(getTaskUniqueId(task, index), 'isDone', task.isDone)"
+                            :class="[
+                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                              task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                            ]"
+                            :title="$t('common.edit')"
+                          >
                             {{ task.isDone === true || task.isDone === 1 || task.isDone === '已完成' || task.isDone === 'Completed' 
                               ? $t('incidents.detail.eventGraph.completed') 
                               : $t('incidents.detail.eventGraph.inProgress') }}
                           </span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
+                        <!-- 标签（可编辑） -->
+                        <td class="px-4 py-3">
+                          <select
+                            v-model="task.tag"
+                            @change="saveTaskField(getTaskUniqueId(task, index), 'tag', task.tag)"
+                            class="w-full px-2 py-1 text-xs border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                          >
+                            <option value="">{{ $t('incidents.detail.evidenceResponse.progressSync.columns.noTag', '无标签') }}</option>
+                            <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
+                            <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
+                            <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
+                            <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
+                          </select>
+                        </td>
+                        <!-- 操作 -->
+                        <td class="px-4 py-3">
+                          <button
+                            @click="startEditTask(getTaskUniqueId(task, index), 'task_name', task.task_name || '')"
+                            class="text-primary hover:text-primary/80 transition-colors"
+                            :title="$t('common.edit')"
+                          >
+                            <span class="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                        </td>
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>
@@ -1626,7 +1898,6 @@
               </div>
             </div>
           </template>
-          </div>
 
           </main>
         </div>
@@ -1747,6 +2018,138 @@
       :alert-id="route.params.id"
       @close="showAISidebar = false"
     />
+
+    <!-- 新增/编辑影响服务对话框 -->
+    <div
+      v-if="showAddServiceDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelService"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ editingServiceIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.services.add') }}
+          </h2>
+          <button
+            @click="cancelService"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveService" class="space-y-4">
+          <!-- 服务 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.service') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="serviceForm.service"
+              type="text"
+              required
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.service')"
+            />
+          </div>
+
+          <!-- 措施 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}
+            </label>
+            <textarea
+              v-model="serviceForm.measure"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.measure')"
+            ></textarea>
+          </div>
+
+          <!-- SLA -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}
+            </label>
+            <input
+              v-model="serviceForm.sla"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.sla')"
+            />
+          </div>
+
+          <!-- 计划完成时间 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}
+            </label>
+            <input
+              v-model="serviceForm.plannedCompletionTime"
+              type="datetime-local"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+
+          <!-- 责任人 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}
+            </label>
+            <input
+              v-model="serviceForm.owner"
+              type="text"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.owner')"
+            />
+          </div>
+
+          <!-- 进展 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}
+            </label>
+            <textarea
+              v-model="serviceForm.progress"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.progress')"
+            ></textarea>
+          </div>
+
+          <!-- 备注 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}
+            </label>
+            <textarea
+              v-model="serviceForm.remark"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-md bg-white dark:bg-surface-dark text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              :placeholder="$t('incidents.detail.evidenceResponse.services.columns.remark')"
+            ></textarea>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-border-dark">
+            <button
+              type="button"
+              @click="cancelService"
+              class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+            >
+              {{ $t('common.cancel') }}
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm text-white bg-primary rounded-md hover:bg-primary-hover transition-colors"
+            >
+              {{ $t('common.save') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- 新增/编辑通报对话框 -->
     <div
@@ -1881,7 +2284,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask } from '@/api/incidents'
 import { updateComment, deleteComment } from '@/api/comments'
-import { getGroupList, getTaskDetail } from '@/api/securityAgent'
+import { getProjectList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -2023,6 +2426,13 @@ const incident = ref(null)
 const loadingIncident = ref(false)
 // 默认进入 Alert story 视图
 const activeTab = ref('alertStory')
+// 响应指标数据
+const metricsData = ref({
+  mttTracing: null, // 平均攻击溯源时间
+  mttBlocking: null, // 平均攻击源拦截时间
+  mttr: null, // 平均风险消减时间
+  mttVulnerabilityEntry: null // 平均漏洞入口定位时间
+})
 const newComment = ref('')
 const selectedAlertId = ref(null)
 const showShareSuccess = ref(false)
@@ -3468,6 +3878,10 @@ onBeforeUnmount(() => {
   if (legendFlashTimer.value) {
     clearTimeout(legendFlashTimer.value)
   }
+  // 清理WR搜索防抖定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
   if (typeof document !== 'undefined') {
     fullscreenEventNames.forEach((eventName) => document.removeEventListener(eventName, syncGraphFullscreenState))
     // 移除点击外部区域关闭下拉框的事件监听
@@ -3756,6 +4170,12 @@ const leftPaneActiveTab = ref('taskManagement')
 const activeCardTab = ref('impactedServices')
 // 进展同步指令筛选类型
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all', 'other'
+// 任务编辑相关状态
+const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
+const editingTaskField = ref(null) // 正在编辑的字段名
+const editingTaskValue = ref('') // 正在编辑的字段值
+// 任务标签映射（用于存储每个任务的标签）
+const taskTags = ref({}) // { taskUniqueId: tag }
 // 事件通报/简报相关状态
 const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
@@ -3768,11 +4188,24 @@ const notificationForm = ref({
   nextPlan: '',
   remark: ''
 })
+// 影响服务相关状态
+const impactedServices = ref([]) // 影响服务列表
+const showAddServiceDialog = ref(false) // 显示新增影响服务对话框
+const editingServiceIndex = ref(-1) // 正在编辑的服务索引，-1表示新增
+const serviceForm = ref({
+  service: '',
+  measure: '',
+  sla: '',
+  plannedCompletionTime: '',
+  owner: '',
+  progress: '',
+  remark: ''
+})
 // 任务管理相关状态
 const selectedTaskId = ref('') // 保留用于向后兼容
 const selectedWarroomIds = ref([]) // 选中的warroom ID数组
-const taskIdOptions = ref([]) // 任务ID选项列表，格式：{ label: "groupname", value: "groupid" }
-const loadingTaskIdList = ref(false)
+const projectOptions = ref([]) // 项目选项列表，格式：{ label: "project_name", value: "project_uuid" }
+const loadingProjectList = ref(false)
 const taskDetail = ref(null) // 保留用于向后兼容
 const groupedTaskDetails = ref({}) // 按warroom ID分组存储的任务详情 { warroomId: taskDetail }
 const loadingTaskDetail = ref(false)
@@ -3782,13 +4215,15 @@ const showTaskIdDropdown = ref(false)
 const isEditingTaskId = ref(false)
 const isRightPaneCollapsed = ref(false)
 const taskIdDropdownRef = ref(null)
+const warroomSearchKeyword = ref('') // WR搜索关键字
+const warroomSearchTimer = ref(null) // 防抖定时器
 
-// 根据选中的 taskId 获取对应的 groupname 用于显示（向后兼容）
+// 根据选中的 taskId 获取对应的 project_name 用于显示（向后兼容）
 const selectedTaskName = computed(() => {
-  if (!selectedTaskId.value || !taskIdOptions.value.length) {
+  if (!selectedTaskId.value || !projectOptions.value.length) {
     return ''
   }
-  const selectedOption = taskIdOptions.value.find(option => option.value === selectedTaskId.value)
+  const selectedOption = projectOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
 })
 
@@ -3834,44 +4269,210 @@ const filteredProgressSyncTasks = computed(() => {
   const tasks = allProgressSyncTasks.value
   if (!tasks.length) return []
   
+  // 为每个任务添加标签和唯一ID
+  const tasksWithTags = tasks.map((task, index) => {
+    const uniqueId = getTaskUniqueId(task, index)
+    return {
+      ...task,
+      uniqueId: uniqueId,
+      tag: taskTags.value[uniqueId] || task.tag || '' // 优先使用存储的标签，其次使用任务本身的标签
+    }
+  })
+  
   // 获取当前用户信息
   const currentUser = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
   
+  let filtered = []
   switch (progressSyncFilterType.value) {
     case 'myCreated':
       // 我创建的指令：根据创建者字段筛选（需要根据实际数据结构调整）
-      return tasks.filter(task => {
+      filtered = tasksWithTags.filter(task => {
         const creator = task.creator || task.create_by || task.created_by
         return creator === currentUser
       })
+      break
     case 'myPending':
       // 待我处理的指令：状态为待处理且责任人为当前用户
-      return tasks.filter(task => {
+      filtered = tasksWithTags.filter(task => {
         const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
-        const owner = task.employeeAccount || task.owner || task.assignee
+        const owner = task.owner || task.employeeAccount || task.assignee
         const isMyTask = owner === currentUser
         return isPending && isMyTask
       })
+      break
     case 'all':
       // 全部指令
-      return tasks
+      filtered = tasksWithTags
+      break
     case 'other':
       // 其他进展：排除指令类型的任务（需要根据实际数据结构调整）
-      return tasks.filter(task => {
+      filtered = tasksWithTags.filter(task => {
         const taskType = task.type || task.task_type || ''
         return taskType !== 'instruction' && taskType !== '指令'
       })
+      break
     default:
-      return tasks
+      filtered = tasksWithTags
   }
+  
+  return filtered
 })
+
+// 根据任务标签计算指标
+const calculateMetricsFromTasks = (tasks) => {
+  // 初始化指标数据
+  const metrics = {
+    mttTracing: null,
+    mttBlocking: null,
+    mttr: null,
+    mttVulnerabilityEntry: null
+  }
+  
+  // 按标签分组任务
+  const tracingTasks = tasks.filter(t => t.tag === 'attackTracing' && t.start_time && t.end_time)
+  const blockingTasks = tasks.filter(t => t.tag === 'attackBlocking' && t.start_time && t.end_time)
+  const mitigationTasks = tasks.filter(t => t.tag === 'riskMitigation' && t.start_time && t.end_time)
+  const vulnerabilityTasks = tasks.filter(t => t.tag === 'vulnerabilityIdentification' && t.start_time && t.end_time)
+  
+  // 计算平均时间（小时）
+  const calculateAverageTime = (taskList) => {
+    if (!taskList || taskList.length === 0) return null
+    
+    const totalHours = taskList.reduce((sum, task) => {
+      const start = new Date(task.start_time).getTime()
+      const end = new Date(task.end_time).getTime()
+      if (isNaN(start) || isNaN(end) || end <= start) return sum
+      const hours = (end - start) / (1000 * 60 * 60) // 转换为小时
+      return sum + hours
+    }, 0)
+    
+    const average = totalHours / taskList.length
+    return Math.round(average * 100) / 100 // 保留两位小数
+  }
+  
+  metrics.mttTracing = calculateAverageTime(tracingTasks)
+  metrics.mttBlocking = calculateAverageTime(blockingTasks)
+  metrics.mttr = calculateAverageTime(mitigationTasks)
+  metrics.mttVulnerabilityEntry = calculateAverageTime(vulnerabilityTasks)
+  
+  // 更新指标数据
+  metricsData.value = metrics
+}
+
+// 监听任务变化，自动计算指标
+watch([filteredProgressSyncTasks, taskTags], () => {
+  calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+}, { deep: true, immediate: true })
+
+// 获取任务唯一ID
+const getTaskUniqueId = (task, index) => {
+  // 使用warroomId + task_name + index 作为唯一标识
+  return `${task.warroomId || 'unknown'}_${task.task_name || 'task'}_${index}`
+}
+
+// 开始编辑任务字段
+const startEditTask = (taskUniqueId, field, currentValue) => {
+  editingTaskIndex.value = taskUniqueId
+  editingTaskField.value = field
+  if (field === 'isDone') {
+    editingTaskValue.value = currentValue === true || currentValue === 1 || currentValue === '已完成' || currentValue === 'Completed'
+  } else {
+    editingTaskValue.value = currentValue
+  }
+}
+
+// 取消编辑
+const cancelEditTask = () => {
+  editingTaskIndex.value = null
+  editingTaskField.value = null
+  editingTaskValue.value = ''
+}
+
+// 保存任务字段
+const saveTaskField = (taskUniqueId, field, value) => {
+  // 找到对应的任务并更新
+  const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
+  if (taskIndex === -1) return
+  
+  const task = filteredProgressSyncTasks.value[taskIndex]
+  
+  // 更新任务数据
+  if (field === 'isDone') {
+    task.isDone = value === true || value === 'true' || value === 1
+  } else if (field === 'start_time' || field === 'end_time') {
+    // 将datetime-local格式转换为ISO格式
+    if (value) {
+      const date = new Date(value)
+      task[field] = date.toISOString()
+    } else {
+      task[field] = null
+    }
+  } else if (field === 'tag') {
+    // 保存标签
+    taskTags.value[taskUniqueId] = value || ''
+    task.tag = value || ''
+    // 重新计算指标
+    calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+  } else {
+    task[field] = value
+  }
+  
+  // 同步更新到groupedTaskDetails
+  updateTaskInGroupedDetails(task)
+  
+  // 取消编辑状态
+  cancelEditTask()
+}
+
+// 更新groupedTaskDetails中的任务数据
+const updateTaskInGroupedDetails = (updatedTask) => {
+  if (!groupedTaskDetails.value || !updatedTask.warroomId) return
+  
+  const warroomDetail = groupedTaskDetails.value[updatedTask.warroomId]
+  if (!warroomDetail) return
+  
+  // 处理数组格式
+  if (Array.isArray(warroomDetail)) {
+    const taskIndex = warroomDetail.findIndex(t => 
+      t.task_name === updatedTask.task_name || 
+      (t.task_name === updatedTask.task_name && t.owner === updatedTask.owner)
+    )
+    if (taskIndex !== -1) {
+      warroomDetail[taskIndex] = { ...warroomDetail[taskIndex], ...updatedTask }
+    }
+  } 
+  // 处理对象格式，包含task_list数组
+  else if (warroomDetail.task_list && Array.isArray(warroomDetail.task_list)) {
+    const taskIndex = warroomDetail.task_list.findIndex(t => 
+      t.task_name === updatedTask.task_name || 
+      (t.task_name === updatedTask.task_name && t.owner === updatedTask.owner)
+    )
+    if (taskIndex !== -1) {
+      warroomDetail.task_list[taskIndex] = { ...warroomDetail.task_list[taskIndex], ...updatedTask }
+    }
+  }
+}
+
+// 格式化时间为datetime-local输入格式
+const formatTaskDateTimeForInput = (dateTime) => {
+  if (!dateTime) return ''
+  const date = new Date(dateTime)
+  if (isNaN(date.getTime())) return ''
+  // 转换为本地时间，格式为 YYYY-MM-DDTHH:mm
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
 
 // 获取warroom名称
 const getWarroomName = (warroomId) => {
-  if (!warroomId || !taskIdOptions.value.length) {
+  if (!warroomId || !projectOptions.value.length) {
     return warroomId || ''
   }
-  const option = taskIdOptions.value.find(opt => opt.value === String(warroomId))
+  const option = projectOptions.value.find(opt => opt.value === String(warroomId))
   return option ? option.label : warroomId
 }
 
@@ -3891,12 +4492,50 @@ const toggleWarroomSelection = (warroomId) => {
   }
 }
 
-// 移除warroom（从选中列表中移除）
-const removeWarroom = (warroomId) => {
+// 移除warroom（从选中列表中移除，并执行解绑操作）
+const removeWarroom = async (warroomId) => {
   const id = String(warroomId)
   const index = selectedWarroomIds.value.indexOf(id)
-  if (index > -1) {
+  if (index === -1) {
+    return // 如果不在选中列表中，直接返回
+  }
+
+  // 如果事件ID不存在，只从本地状态移除（用于未保存的情况）
+  if (!incident.value?.id) {
     selectedWarroomIds.value.splice(index, 1)
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+    return
+  }
+
+  try {
+    // 1. 从选中列表中移除
+    selectedWarroomIds.value.splice(index, 1)
+
+    // 2. 从分组任务详情中移除
+    const newGrouped = { ...groupedTaskDetails.value }
+    delete newGrouped[id]
+    groupedTaskDetails.value = newGrouped
+
+    // 3. 更新数据库
+    await saveWarroomIdsForIncident(selectedWarroomIds.value)
+
+    // 如果所有warroom都解绑了，重置状态
+    if (selectedWarroomIds.value.length === 0) {
+      taskDetailLoaded.value = false
+    }
+  } catch (error) {
+    console.error('Failed to remove warroom:', error)
+    // 如果操作失败，恢复选中状态
+    if (!selectedWarroomIds.value.includes(id)) {
+      selectedWarroomIds.value.push(id)
+    }
+    // 显示错误提示
+    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
   }
 }
 
@@ -3970,25 +4609,27 @@ const loadIncidentDetail = async ({ silent = false } = {}) => {
       graphGeneratedAt,
       lastUpdateTime: data.last_update_time || data.update_time
     }
-    // 自动获取任务列表（后台静默调用，不显示加载提示）
-    loadTaskIdList().catch((err) => {
-      console.error('Failed to auto load task list:', err)
+    // 自动获取项目列表（后台静默调用，不显示加载提示）
+    loadProjectList().catch((err) => {
+      console.error('Failed to auto load project list:', err)
     })
-    // 如果后端已存储 task_id 或 warroom_ids，则自动填充并尝试加载任务详情
-    if (data.task_id) {
-      // 兼容旧格式：单个task_id
-      if (typeof data.task_id === 'string') {
-        selectedTaskId.value = data.task_id
-        selectedWarroomIds.value = [data.task_id]
+    // 如果后端已存储 project_uuid 或 warroom_ids，则自动填充并尝试加载任务详情
+    // 兼容旧字段名task_id（向后兼容）
+    const projectUuid = data.project_uuid || data.task_id
+    if (projectUuid) {
+      // 兼容旧格式：单个project_uuid
+      if (typeof projectUuid === 'string') {
+        selectedTaskId.value = projectUuid
+        selectedWarroomIds.value = [projectUuid]
         // 初次进入时默认不展开编辑区域
         isEditingTaskId.value = false
         // 异步加载任务详情（失败时只在控制台打印）
         loadTaskDetail().catch((err) => {
           console.error('Failed to auto load task detail:', err)
         })
-      } else if (Array.isArray(data.task_id) && data.task_id.length > 0) {
-        // 新格式：多个warroom IDs
-        selectedWarroomIds.value = data.task_id.map(id => String(id))
+      } else if (Array.isArray(projectUuid) && projectUuid.length > 0) {
+        // 新格式：多个project UUIDs
+        selectedWarroomIds.value = projectUuid.map(id => String(id))
         // 初次进入时默认不展开编辑区域
         isEditingTaskId.value = false
         // 自动加载所有warroom的任务详情（不保存到数据库，因为已经保存过了）
@@ -4044,9 +4685,8 @@ const formatComments = (comments) => {
       content: comment.content || comment.message,
       create_time: comment.create_time,
       file: comment.file || null,  // 保留文件信息
-      // 评论类型（后端可能返回 comment_type 或 type）
-      type: comment.comment_type || comment.type || 'comment',
-      comment_type: comment.comment_type || comment.type || 'comment',
+      type: comment.comment_type || comment.type || null,
+      comment_type: comment.comment_type || comment.type || null,
       // 标记评论是否存在于数据库中
       exists_in_db: comment.exists_in_db !== false  // 默认为true，如果明确标记为false则为false
     }
@@ -4367,6 +5007,50 @@ const cancelNotification = () => {
   showAddNotificationDialog.value = false
 }
 
+// 保存影响服务（新增或编辑）
+const saveService = () => {
+  if (!serviceForm.value.service) {
+    toast.error(t('incidents.detail.evidenceResponse.services.columns.service') + ' ' + t('common.warning'))
+    return
+  }
+  
+  const service = { ...serviceForm.value }
+  
+  if (editingServiceIndex.value >= 0) {
+    // 编辑
+    impactedServices.value[editingServiceIndex.value] = service
+  } else {
+    // 新增
+    impactedServices.value.push(service)
+  }
+  
+  // 重置表单
+  resetServiceForm()
+  showAddServiceDialog.value = false
+  toast.success(t('common.operationSuccess'))
+  // TODO: 调用后端API保存
+}
+
+// 重置影响服务表单
+const resetServiceForm = () => {
+  serviceForm.value = {
+    service: '',
+    measure: '',
+    sla: '',
+    plannedCompletionTime: '',
+    owner: '',
+    progress: '',
+    remark: ''
+  }
+  editingServiceIndex.value = -1
+}
+
+// 取消新增/编辑影响服务
+const cancelService = () => {
+  resetServiceForm()
+  showAddServiceDialog.value = false
+}
+
 // 获取优先级标签
 const getPriorityLabel = (priority) => {
   if (priority === undefined || priority === null) return ''
@@ -4562,42 +5246,68 @@ const handleRefresh = async () => {
   await loadIncidentDetail()
 }
 
-// 自动获取组列表并格式化显示
-const loadTaskIdList = async () => {
-  loadingTaskIdList.value = true
+const loadProjectList = async (keyword = '') => {
+  loadingProjectList.value = true
   try {
-    const groupList = await getGroupList()
+    // 如果有关键字，使用关键字作为project_name进行模糊搜索；否则使用默认值'warroom'
+    const project_name = keyword.trim() || 'warroom'
+    const projectList = await getProjectList({ project_name })
     
-    if (!Array.isArray(groupList)) {
-      taskIdOptions.value = []
+    if (!Array.isArray(projectList)) {
+      projectOptions.value = []
       return
     }
     
-    // 存储格式化的选项：{ label: "groupname", value: "groupid" }，只显示 groupname
-    taskIdOptions.value = groupList
-      .map(item => {
-        if (typeof item === 'string' || typeof item === 'number') {
-          return { label: String(item), value: String(item) }
-        }
-        const groupId = String(item.group_id || item.id || item.task_id || item)
-        const groupName = item.group_name || item.name || ''
-        // 只显示 groupname，如果没有 groupname 则显示 groupId 作为后备
-        const label = groupName || groupId
-        return { label, value: groupId }
-      })
+    projectOptions.value = projectList
+      .map(item => ({
+        label: item.projectName || item.projectUuid,
+        value: item.projectUuid
+      }))
       .filter(item => item.value)
   } catch (error) {
-    console.error('Failed to load group list:', error)
-    taskIdOptions.value = []
+    console.error('Failed to load project list:', error)
+    projectOptions.value = []
   } finally {
-    loadingTaskIdList.value = false
+    loadingProjectList.value = false
   }
+}
+
+// 处理WR搜索输入（带防抖）
+const handleWarroomSearch = () => {
+  // 清除之前的定时器
+  if (warroomSearchTimer.value) {
+    clearTimeout(warroomSearchTimer.value)
+  }
+  
+  // 设置新的防抖定时器（500ms）
+  warroomSearchTimer.value = setTimeout(() => {
+    const keyword = warroomSearchKeyword.value.trim()
+    loadProjectList(keyword)
+  }, 500)
 }
 
 // 选择任务ID（向后兼容）
 const selectTaskId = (taskId) => {
   selectedTaskId.value = taskId
   showTaskIdDropdown.value = false
+}
+
+const toggleTaskIdDropdown = () => {
+  showTaskIdDropdown.value = !showTaskIdDropdown.value
+  // 当打开下拉框时，如果没有选项，加载默认列表
+  if (showTaskIdDropdown.value) {
+    if (projectOptions.value.length === 0) {
+      // 如果没有选项，重置搜索关键字并加载默认列表
+      warroomSearchKeyword.value = ''
+      loadProjectList()
+    } else if (warroomSearchKeyword.value.trim()) {
+      // 如果有关键字，使用关键字重新搜索
+      loadProjectList(warroomSearchKeyword.value.trim())
+    }
+  } else {
+    // 关闭下拉框时，清空搜索关键字
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 关闭任务ID下拉框
@@ -4607,6 +5317,8 @@ const closeTaskIdDropdown = (event) => {
     return
   }
   showTaskIdDropdown.value = false
+  // 关闭下拉框时，清空搜索关键字
+  warroomSearchKeyword.value = ''
 }
 
 // 将当前warroom IDs写入本地数据库（与事件绑定）
@@ -4650,7 +5362,8 @@ const loadWarroomDetailsOnly = async () => {
     // 并行获取所有warroom的任务详情
     const taskDetailPromises = selectedWarroomIds.value.map(async (warroomId) => {
       try {
-        const result = await getTaskDetail({ groupId: String(warroomId).trim() })
+        // 使用project_uuid作为参数
+        const result = await getTaskDetail({ project_uuid: String(warroomId).trim() })
         return { warroomId, taskDetail: result }
       } catch (error) {
         console.error(`Failed to load task detail for warroom ${warroomId}:`, error)
@@ -4710,32 +5423,9 @@ const bindWarrooms = async () => {
   }
 }
 
-// 解绑warroom：从数据库和本地状态中移除
+// 解绑warroom：从数据库和本地状态中移除（调用removeWarroom执行完整解绑操作）
 const unbindWarroom = async (warroomId) => {
-  if (!incident.value?.id) {
-    return
-  }
-
-  try {
-    // 1. 从选中列表中移除
-    removeWarroom(warroomId)
-
-    // 2. 从分组任务详情中移除
-    const newGrouped = { ...groupedTaskDetails.value }
-    delete newGrouped[warroomId]
-    groupedTaskDetails.value = newGrouped
-
-    // 3. 更新数据库
-    await saveWarroomIdsForIncident(selectedWarroomIds.value)
-
-    // 如果所有warroom都解绑了，重置状态
-    if (selectedWarroomIds.value.length === 0) {
-      taskDetailLoaded.value = false
-    }
-  } catch (error) {
-    console.error('Failed to unbind warroom:', error)
-    toast.error(error?.message || translateOr('incidents.detail.eventGraph.unbindError', '解绑失败'), 'Error')
-  }
+  await removeWarroom(warroomId)
 }
 
 // 加载任务详情（向后兼容，保留原有逻辑）
@@ -4751,7 +5441,8 @@ const loadTaskDetail = async () => {
   taskDetail.value = null
 
   try {
-    const result = await getTaskDetail({ groupId: selectedTaskId.value.trim() })
+    // 使用project_uuid作为参数
+    const result = await getTaskDetail({ project_uuid: selectedTaskId.value.trim() })
     
     // 处理返回结果
     taskDetail.value = result

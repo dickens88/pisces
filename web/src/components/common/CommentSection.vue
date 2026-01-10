@@ -28,56 +28,49 @@
         
         <!-- 评论内容 -->
         <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between">
-            <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
-            <div class="flex items-center gap-2">
-              <p class="text-xs shrink-0 text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
-              <!-- 编辑和删除按钮 -->
-              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  v-if="existsInDatabase(comment)"
-                  @click="handleEditComment(comment)"
-                  class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                  :title="$t('incidents.detail.comments.editComment')"
-                >
-                  <span class="material-symbols-outlined text-sm">edit</span>
-                </button>
-                <button
-                  @click="handleDeleteComment(comment)"
-                  class="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                  :title="existsInDatabase(comment) ? $t('incidents.detail.comments.deleteComment') : $t('incidents.detail.comments.removeComment')"
-                >
-                  <span class="material-symbols-outlined text-sm">delete</span>
-                </button>
-              </div>
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
+               <div class="flex items-center gap-2 mt-0.5">
+                 <p class="text-xs text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
+                 <template v-if="comment.type && isActionType(comment.type)">
+                   <span class="h-3 w-px bg-gray-300 dark:bg-gray-600"></span>
+                   <span class="text-xs text-gray-500 dark:text-slate-400">{{ $t('common.action') }}:</span>
+                   <span
+                     :class="[
+                       'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+                       getActionTypeClass(comment.type)
+                     ]"
+                   >
+                     {{ getActionTypeLabel(comment.type) }}
+                   </span>
+                 </template>
+               </div>
+            </div>
+            <!-- 编辑和删除按钮 -->
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+              <button
+                v-if="existsInDatabase(comment)"
+                @click="handleEditComment(comment)"
+                class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                :title="$t('incidents.detail.comments.editComment')"
+              >
+                <span class="material-symbols-outlined text-sm">edit</span>
+              </button>
+              <button
+                @click="handleDeleteComment(comment)"
+                class="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                :title="existsInDatabase(comment) ? $t('incidents.detail.comments.deleteComment') : $t('incidents.detail.comments.removeComment')"
+              >
+                <span class="material-symbols-outlined text-sm">delete</span>
+              </button>
             </div>
           </div>
-          <div class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
-            <!-- 内容 + 右侧类型标签 -->
-            <div
-              v-if="comment.type"
-              class="flex items-start justify-between gap-3"
-            >
-              <div
-                v-html="sanitizeHtml(comment.content)"
-                class="comment-content flex-1"
-              ></div>
-              <span
-                :class="[
-                  'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium shrink-0 ml-1',
-                  getCommentTypeClass(comment.type)
-                ]"
-              >
-                {{ getCommentTypeLabel(comment.type) }}
-              </span>
-            </div>
-
-            <!-- 无类型时正常显示 -->
-            <div
-              v-else
-              v-html="sanitizeHtml(comment.content)"
-              class="comment-content"
-            ></div>
+           <div class="mt-2 text-sm leading-relaxed text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
+             <div
+               v-html="sanitizeHtml(comment.content)"
+               class="comment-content"
+             ></div>
             
             <!-- Display file attachments from backend -->
             <div v-if="comment.file" class="mt-3">
@@ -324,6 +317,34 @@ const getCommentTypeClass = (rawType) => {
   }
 
   return map[key] || map.comment
+}
+
+// 判断是否为动作类型（非评论类型）
+const isActionType = (rawType) => {
+  if (!rawType) return false
+  const value = String(rawType).toLowerCase()
+  const actionTypes = ['changeowner', 'close', 'changeseverity', 'changehandlestatus', 'note', 'create', 'relatetodataobject', 'pisces']
+  return actionTypes.includes(value)
+}
+
+// 获取动作类型标签
+const getActionTypeLabel = (rawType) => {
+  if (!rawType) return ''
+  const key = String(rawType).toLowerCase()
+  return t(`common.actionTypes.${key}`) || rawType
+}
+
+// 获取动作类型样式
+const getActionTypeClass = (rawType) => {
+  if (!rawType) return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
+  const key = String(rawType).toLowerCase()
+  
+  // close 类型使用红色，其他使用蓝色
+  if (key === 'close') {
+    return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
+  }
+  
+  return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
 }
 
 // 当前登录用户名称（用于输入框左侧头像）

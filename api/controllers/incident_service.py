@@ -172,37 +172,37 @@ class IncidentService:
         row["comments"] = cls._extract_info_from_comment(CommentService.retrieve_comments(incident_id, workspace_id=ws_id))
 
         # Persist or update the incident snapshot locally so we can attach graph metadata,
-        # and reuse any locally stored fields (e.g. task_id).
+        # and reuse any locally stored fields (e.g. project_uuid).
         if sync_local:
             try:
-                # Query locally stored task_id before upsert (to preserve it)
-                # Note: upsert_incident updates many fields but doesn't update task_id,
+                # Query locally stored project_uuid before upsert (to preserve it)
+                # Note: upsert_incident updates many fields but doesn't update project_uuid,
                 # so we need to explicitly preserve it
                 local_record = Incident.get_by_incident_id(incident_id)
-                stored_task_id_raw = local_record.task_id if local_record else None
+                stored_project_uuid_raw = local_record.project_uuid if local_record else None
                 
-                # Parse stored_task_id if it's a JSON string
-                stored_task_id = stored_task_id_raw
-                if stored_task_id_raw:
+                # Parse stored_project_uuid if it's a JSON string
+                stored_project_uuid = stored_project_uuid_raw
+                if stored_project_uuid_raw:
                     try:
-                        parsed = json.loads(stored_task_id_raw)
+                        parsed = json.loads(stored_project_uuid_raw)
                         if isinstance(parsed, list):
-                            stored_task_id = parsed
+                            stored_project_uuid = parsed
                     except (json.JSONDecodeError, TypeError):
                         # Not JSON format, keep as is (single string)
                         pass
                 
                 # Sync incident snapshot from upstream to local DB
-                # This updates most fields but preserves task_id (since it's not in the update list)
+                # This updates most fields but preserves project_uuid (since it's not in the update list)
                 local_snapshot = Incident.upsert_incident(row)
                 
-                # Propagate locally stored task_id back to API response
-                # The task_id is preserved during upsert, so we can get it from the snapshot
-                if isinstance(local_snapshot, dict) and local_snapshot.get("task_id") is not None:
-                    row["task_id"] = local_snapshot.get("task_id")
-                elif stored_task_id is not None:
+                # Propagate locally stored project_uuid back to API response
+                # The project_uuid is preserved during upsert, so we can get it from the snapshot
+                if isinstance(local_snapshot, dict) and local_snapshot.get("project_uuid") is not None:
+                    row["project_uuid"] = local_snapshot.get("project_uuid")
+                elif stored_project_uuid is not None:
                     # Fallback: if snapshot doesn't have it but we queried it, use the stored value
-                    row["task_id"] = stored_task_id
+                    row["project_uuid"] = stored_project_uuid
             except Exception as exc:
                 logger.warning("[Incident] Failed to sync incident %s locally: %s", incident_id, exc)
 
@@ -368,7 +368,8 @@ class IncidentService:
                 "id": item.get('id'),
                 "author": item['content']['come_from'],
                 "create_time": item['content']['occurred_time'],
-                "content": item["content"]["value"]
+                "content": item["content"]["value"],
+                "type": item["note_type"]
             }
             owner = CommentService.extract_owner_from_content(row["content"])
             row["author"] = owner if owner else row["author"]

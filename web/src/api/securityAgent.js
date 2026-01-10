@@ -165,11 +165,7 @@ export const sendSecurityAgentMessage = async ({
   return lastEvent
 }
 
-/**
- * 调用dify workflow获取组列表
- * @returns {Promise<any>} 组列表数据
- */
-export const getGroupList = async () => {
+export const getProjectList = async ({ project_name = 'warroom' } = {}) => {
   const baseEndpoint = config.wetaskAgentApi
   if (!baseEndpoint) {
     throw new Error('wetask Agent API endpoint is not configured (VITE_WETASK_AGENT_API)')
@@ -182,14 +178,14 @@ export const getGroupList = async () => {
   const authStore = useAuthStore()
   const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
 
-  // 移除 baseEndpoint 中可能存在的 /v1 或 /v1/ 及其后续路径
   let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
   const isDev = import.meta.env.DEV
   const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
 
   const requestBody = {
     inputs: {
-      action: 'get group list'
+      action: 'get project list',
+      project_name: project_name
     },
     response_mode: 'blocking',
     user: resolvedUserName
@@ -227,40 +223,26 @@ export const getGroupList = async () => {
     return { answer: text, data: null }
   })
 
-  if (data.data?.outputs?.group_list) {
-    return data.data.outputs.group_list
-  }
-
-  return data.data?.outputs || []
+  return data.data?.outputs?.group_list || []
 }
 
-/**
- * 获取组ID列表
- * @returns {Promise<string[]>} 组ID列表
- */
-export const getGroupIdList = async () => {
-  const result = await getGroupList()
+export const getProjectUuidList = async ({ project_name = 'warroom' } = {}) => {
+  const result = await getProjectList({ project_name })
   
   if (!Array.isArray(result)) {
     return []
   }
   
-  const groupIds = result
-    .map(item => String(item.group_id))
+  const projectUuids = result
+    .map(item => String(item.projectUuid || ''))
     .filter(id => id)
   
-  return [...new Set(groupIds)].sort()
+  return [...new Set(projectUuids)].sort()
 }
 
-/**
- * 调用dify workflow获取任务详情
- * @param {Object} params
- * @param {string|number} params.groupId - 组ID（必需）
- * @returns {Promise<any>} 任务详情数据
- */
-export const getTaskDetail = async ({ groupId }) => {
-  if (!groupId) {
-    throw new Error('Group ID is required')
+export const getTaskDetail = async ({ project_uuid }) => {
+  if (!project_uuid) {
+    throw new Error('Project UUID is required')
   }
 
   const baseEndpoint = config.wetaskAgentApi
@@ -275,7 +257,6 @@ export const getTaskDetail = async ({ groupId }) => {
   const authStore = useAuthStore()
   const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
 
-  // 移除 baseEndpoint 中可能存在的 /v1 或 /v1/ 及其后续路径
   let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
   const isDev = import.meta.env.DEV
   const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
@@ -283,7 +264,7 @@ export const getTaskDetail = async ({ groupId }) => {
   const requestBody = {
     inputs: {
       action: 'get task detail',
-      group_id: String(groupId).trim()
+      project_uuid: String(project_uuid).trim()
     },
     response_mode: 'blocking',
     user: resolvedUserName
@@ -321,11 +302,7 @@ export const getTaskDetail = async ({ groupId }) => {
     return { answer: text, data: null }
   })
 
-  if (data.data?.outputs?.task_detail) {
-    return data.data.outputs.task_detail
-  }
-
-  return data.data?.outputs || []
+  return data.data?.outputs?.task_detail || []
 }
 
 

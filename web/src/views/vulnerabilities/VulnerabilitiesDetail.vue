@@ -520,7 +520,9 @@ const formatComments = (comments) => {
       time: formatDateTime(comment.create_time),
       content: comment.content || comment.comment || '',
       create_time: comment.create_time,
-      file: comment.file || null
+      file: comment.file || null,
+      // 评论类型（后端可能返回 comment_type 或 type），用于显示动作标签
+      type: comment.comment_type || comment.type || null
     }
   })
 }
@@ -550,12 +552,12 @@ const handlePostComment = async ({ comment, files }) => {
 }
 
 const getStatusText = (status) => {
-  if (!status) return t('vulnerabilities.detail.status.open') || 'Open'
+  if (!status) return t('incidents.list.open')
   const statusLower = status.toLowerCase()
   const statusMap = {
-    'open': t('vulnerabilities.detail.status.open') || 'Open',
-    'block': t('vulnerabilities.detail.status.inProgress') || 'In Progress',
-    'closed': t('vulnerabilities.detail.status.patched') || 'Patched'
+    'open': t('incidents.list.open'),
+    'block': t('incidents.list.block'),
+    'closed': t('incidents.list.closed')
   }
   return statusMap[statusLower] || status
 }

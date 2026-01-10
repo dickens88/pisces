@@ -24,6 +24,17 @@
       "riskMitigation": "风险消减",
       "vulnerabilityIdentification": "漏洞定位"
     },
+    "action": "动作",
+    "actionTypes": {
+      "changeowner": "修改责任人",
+      "close": "关闭",
+      "changeseverity": "修改告警等级",
+      "changehandlestatus": "修改处理状态",
+      "note": "评论",
+      "create": "创建",
+      "relatetodataobject": "关联事件",
+      "pisces": "评论"
+    },
     "noData": "暂无数据",
     "warning": "警告",
     "login": {
@@ -235,7 +246,7 @@
       "alertId": "告警ID",
       "phase": "转事件的告警",
       "phaseToIncident": "已转事件",
-      "phaseAll": "全部",
+      "phaseAll": "是否转事件",
       "autoClose": {
         "all": "关闭方式",
         "autoClosed": "自动关闭",
@@ -522,6 +533,7 @@
       "rootCauseUnauthorizedApi": "未授权接口",
       "rootCausePenetrationTest": "渗透测试",
       "rootCauseVulnerabilityExploit": "漏洞利用",
+      "rootCauseInfringementComplaint": "侵权投诉",
       "selectSeverity": "请选择严重程度",
       "currentStatus": "当前状态",
       "description": "事件描述",
@@ -573,19 +585,21 @@
       "evidenceResponse": {
         "title": "响应流程",
         "welinkGroup": "welink 群组",
-        "emergencyReport": "应急报告",
+        "emergencyReport": "生成报告",
         "maturityAssessment": "成熟度评估",
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
-        "steps": {
-          "detection": "Detection",
-          "response": "Response",
-          "mitigation": "Mitigation",
-          "reporting": "Reporting",
-          "recovery": "Recovery",
-          "remediation": "Remediation",
-          "lessonsLearned": "Lessons learned"
+        "metrics": {
+          "averageAttackTracingTime": "平均攻击溯源时间",
+          "mttTracing": "MTT溯源",
+          "averageAttackBlockingTime": "平均攻击源拦截时间",
+          "mttBlocking": "MTT拦截",
+          "averageRiskMitigationTime": "平均风险消减时间",
+          "mttr": "MTTR",
+          "averageVulnerabilityEntryTime": "平均漏洞入口定位时间",
+          "mttVulnerabilityEntry": "MTT漏洞入口定位",
+          "unit": "小时"
         },
         "cards": {
           "impactedServices": {
@@ -611,10 +625,13 @@
               "taskName": "任务名称",
               "stageName": "阶段",
               "owner": "责任人",
+              "startTime": "开始时间",
               "planEndTime": "计划结束时间",
               "priority": "优先级",
               "status": "状态",
-              "warroom": "Warroom"
+              "warroom": "Warroom",
+              "tag": "标签",
+              "noTag": "无标签"
             }
           },
           "incidentBrief": {
@@ -778,6 +795,9 @@
         "selectWarroom": "选择Warroom",
         "warroomPlaceholder": "请从下拉框选择",
         "warroomHint": "点击输入框从 {count} 个Warroom中选择",
+        "searchWarroomPlaceholder": "输入关键字搜索WR...",
+        "loading": "加载中...",
+        "noWarroomFound": "未找到匹配的WR",
         "bindWarroom": "绑定Warroom",
         "bindingWarroom": "绑定中...",
         "unbindWarroom": "解绑",
@@ -789,13 +809,16 @@
         "taskName": "任务名称",
         "stageName": "阶段",
         "employeeAccount": "责任人",
-        "planEndTime": "计划结束时间",
+        "startTime": "开始时间",
+        "endTime": "结束时间",
         "priority": "优先级",
         "priorityLow": "低",
         "priorityMedium": "中",
         "priorityHigh": "高",
         "priorityUrgent": "紧急",
-        "isDone": "状态",
+        "isDone": "完成状态",
+        "finished": "已完成",
+        "unfinished": "未完成",
         "completed": "已完成",
         "inProgress": "进行中",
         "viewDetail": "查看详情",
@@ -851,6 +874,7 @@
         "confirmMessage": "请确认是否解关联 {count} 条告警？"
       },
       "comments": {
+        "title": "评论",
         "addComment": "添加评论...",
         "post": "发布",
         "attachFile": "附件",

@@ -24,6 +24,17 @@
       "riskMitigation": "Risk mitigation",
       "vulnerabilityIdentification": "Vulnerability identification"
     },
+    "action": "Action",
+    "actionTypes": {
+      "changeowner": "Change Owner",
+      "close": "Close",
+      "changeseverity": "Change Severity",
+      "changehandlestatus": "Change Handle Status",
+      "note": "Comment",
+      "create": "Create",
+      "relatetodataobject": "Relate to Incident",
+      "pisces": "Comment"
+    },
     "noData": "No data available",
     "warning": "Warning",
     "login": {
@@ -235,7 +246,7 @@
       "alertId": "Alert ID",
       "phase": "To Incident",
       "phaseToIncident": "Show To Incident Alerts",
-      "phaseAll": "All",
+      "phaseAll": "To Incident",
       "autoClose": {
         "all": "Closing Modes",
         "autoClosed": "Auto Closed",
@@ -527,6 +538,7 @@
       "rootCauseUnauthorizedApi": "Unauthorized API",
       "rootCausePenetrationTest": "Penetration Test",
       "rootCauseVulnerabilityExploit": "Vulnerability Exploit",
+      "rootCauseInfringementComplaint": "Infringement Complaint",
       "selectSeverity": "Please select severity",
       "currentStatus": "Current Status",
       "description": "Description",
@@ -578,19 +590,21 @@
       "evidenceResponse": {
         "title": "Response Process",
         "welinkGroup": "Welink Group",
-        "emergencyReport": "Emergency Report",
+        "emergencyReport": "Generate Report",
         "maturityAssessment": "Maturity Assessment",
         "rlReview": "RL Review",
         "gocReview": "GOC Review",
         "updateStatus": "Update Status",
-        "steps": {
-          "detection": "Detection",
-          "response": "Response",
-          "mitigation": "Mitigation",
-          "reporting": "Reporting",
-          "recovery": "Recovery",
-          "remediation": "Remediation",
-          "lessonsLearned": "Lessons learned"
+        "metrics": {
+          "averageAttackTracingTime": "Average Attack Tracing Time",
+          "mttTracing": "MTT Tracing",
+          "averageAttackBlockingTime": "Average Attack Blocking Time",
+          "mttBlocking": "MTT Blocking",
+          "averageRiskMitigationTime": "Average Risk Mitigation Time",
+          "mttr": "MTTR",
+          "averageVulnerabilityEntryTime": "Average Vulnerability Entry Location Time",
+          "mttVulnerabilityEntry": "MTT Vulnerability Entry",
+          "unit": "hours"
         },
         "cards": {
           "impactedServices": {
@@ -616,10 +630,13 @@
               "taskName": "Task Name",
               "stageName": "Stage",
               "owner": "Owner",
+              "startTime": "Start Time",
               "planEndTime": "Plan End Time",
               "priority": "Priority",
               "status": "Status",
-              "warroom": "Warroom"
+              "warroom": "Warroom",
+              "tag": "Tag",
+              "noTag": "No Tag"
             }
           },
           "incidentBrief": {
@@ -788,6 +805,9 @@
         "selectWarroom": "Select Warroom",
         "warroomPlaceholder": "Please select from dropdown",
         "warroomHint": "Click input to select from {count} warrooms",
+        "searchWarroomPlaceholder": "Enter keyword to search WR...",
+        "loading": "Loading...",
+        "noWarroomFound": "No matching WR found",
         "bindWarroom": "Bind Warroom",
         "bindingWarroom": "Binding...",
         "unbindWarroom": "Unbind",
@@ -799,13 +819,16 @@
         "taskName": "Task Name",
         "stageName": "Stage",
         "employeeAccount": "Owner",
-        "planEndTime": "Plan End Time",
+        "startTime": "Start Time",
+        "endTime": "End Time",
         "priority": "Priority",
         "priorityLow": "Low",
         "priorityMedium": "Medium",
         "priorityHigh": "High",
         "priorityUrgent": "Urgent",
         "isDone": "Status",
+        "finished": "Finished",
+        "unfinished": "Unfinished",
         "completed": "Completed",
         "inProgress": "In Progress",
         "viewDetail": "View Detail",
@@ -845,6 +868,7 @@
         "confirmMessage": "Are you sure you want to disassociate {count} alert(s)?"
       },
       "comments": {
+        "title": "Comments",
         "addComment": "Add a comment...",
         "post": "Post",
         "attachFile": "Attach File",
