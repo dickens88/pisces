@@ -145,8 +145,17 @@
       "selectWorkflow": "选择工作流",
       "runWorkflow": "运行工作流",
       "workflowResult": "工作流结果",
-      "noResult": "暂无工作流结果。运行工作流以查看输出。"
+      "noResult": "暂无工作流结果。运行工作流以查看输出。",
+      "inputAlertInfo": "输入告警信息",
+      "runAnalysis": "运行分析",
+      "comments": "评论",
+      "aiAgentWorkspace": "AI代理工作区",
+      "inputsForCurrentRun": "当前运行的输入",
+      "allInputsIncluded": "左侧面板的所有输入都包含在AI分析中。",
+      "modelSelection": "模型选择",
+      "aiResponseFeed": "AI响应反馈"
     },
+    "fineTuneSubtitle": "训练和调试AI模型",
     "humanVerdict": "人工判定",
     "match": "匹配",
     "matchStatus": {

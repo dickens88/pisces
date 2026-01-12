@@ -553,10 +553,13 @@
             <!-- Header -->
             <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
               <div class="flex items-center justify-between px-6 py-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <span class="material-symbols-outlined text-base">travel_explore</span>
-                  Retrieval Test
-                </h3>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">tune</span>
+                    {{ $t('aiPlayground.fineTuneAI') }}
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $t('aiPlayground.fineTuneSubtitle') || 'Train and debug AI models' }}</p>
+                </div>
                 <button
                   class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
                   @click="showRetrievalOverlay = false"
@@ -569,133 +572,199 @@
             
             <!-- Content -->
             <div class="flex-1 p-6 min-h-0 overflow-hidden flex flex-col">
-              <div class="flex-1 flex gap-4 min-h-0">
-                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822] p-4 flex flex-col space-y-4 overflow-y-auto custom-scrollbar min-h-0">
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.id') }}</label>
-                    <textarea
-                      ref="alertIdTextarea"
-                      class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden"
-                      :value="alertId"
-                      readonly
-                    ></textarea>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.list.alertTitle') }}</label>
-                    <textarea
-                      ref="alertSubjectTextarea"
-                      class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden"
-                      :value="alertSubject"
-                      readonly
-                    ></textarea>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('alerts.detail.alertContent') }}</label>
-                      <button
-                        @click="toggleContentFormat"
-                        class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md transition-colors bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-white hover:bg-gray-200 dark:hover:bg-[#324867]"
-                        :title="contentFormatMode === 'json' ? 'Switch to rich text format' : 'Switch to JSON format'"
-                      >
-                        <span class="material-symbols-outlined text-sm">
-                          {{ contentFormatMode === 'json' ? 'text_fields' : 'code' }}
-                        </span>
-                        <span>{{ contentFormatMode === 'json' ? 'Rich Text' : 'JSON' }}</span>
-                      </button>
-                    </div>
-                    <textarea
-                      ref="alertContentTextarea"
-                      :class="[
-                        'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-hidden',
-                        contentFormatMode === 'json' ? 'font-mono' : ''
-                      ]"
-                      :value="formattedAlertContent"
-                      readonly
-                    ></textarea>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</label>
-                    <div class="relative">
-                      <select
-                        v-model="selectedWorkflow"
-                        :disabled="loadingWorkflows"
-                        class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        <option value="" disabled>{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
-                        <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
-                        <option
-                          v-for="workflow in workflows"
-                          :key="workflow.id"
-                          :value="workflow.id"
-                        >
-                          {{ workflow.name }}
-                        </option>
-                      </select>
-                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-                        <span
-                          v-if="loadingWorkflows"
-                          class="material-symbols-outlined animate-spin"
-                          style="font-size: 20px;"
-                        >
-                          sync
-                        </span>
-                        <span
-                          v-else
-                          class="material-symbols-outlined"
-                          style="font-size: 20px;"
-                        >
-                          arrow_drop_down
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      @click="handleRunWorkflow"
-                      :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
-                      class="w-full mt-2 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              <div class="flex-1 flex gap-6 min-h-0">
+                <!-- Left Panel: Input Alert Information -->
+                <div class="w-full lg:w-1/2 flex flex-col min-h-0">
+                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.inputAlertInfo') || 'Input Alert Information' }}</h4>
+                  
+                  <!-- Run Analysis Button at Top -->
+                  <button
+                    type="button"
+                    @click="handleRunWorkflow"
+                    :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
+                    class="w-full mb-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <span
+                      v-if="runningWorkflow"
+                      class="material-symbols-outlined animate-spin text-base"
                     >
-                      <span
-                        v-if="runningWorkflow"
-                        class="material-symbols-outlined animate-spin text-base"
-                      >
-                        sync
-                      </span>
-                      <span
-                        v-else
-                        class="material-symbols-outlined text-base"
-                      >
-                        play_arrow
-                      </span>
-                      {{ $t('aiPlayground.retrievalTest.runWorkflow') }}
-                    </button>
+                      sync
+                    </span>
+                    <span
+                      v-else
+                      class="material-symbols-outlined text-base"
+                    >
+                      play_arrow
+                    </span>
+                    {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
+                  </button>
+
+                  <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
+                    <!-- Alert ID -->
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.detail.id') }}</label>
+                      <input
+                        type="text"
+                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2"
+                        :value="alertId"
+                        readonly
+                      />
+                    </div>
+
+                    <!-- Title -->
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.list.alertTitle') }}</label>
+                      <input
+                        type="text"
+                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2"
+                        :value="alertSubject"
+                        readonly
+                      />
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.comments') || 'Comments' }}</label>
+                      <textarea
+                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none min-h-[100px]"
+                        :value="humanConclusionValue || ''"
+                        readonly
+                      ></textarea>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.detail.alertContent') }}</label>
+                      <div class="flex gap-2 mb-2">
+                        <button
+                          @click="contentFormatMode = 'json'"
+                          :class="[
+                            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                            contentFormatMode === 'json'
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
+                          ]"
+                        >
+                          Raw JSON
+                        </button>
+                        <button
+                          @click="contentFormatMode = 'richtext'"
+                          :class="[
+                            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                            contentFormatMode === 'richtext'
+                              ? 'bg-primary text-white'
+                              : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
+                          ]"
+                        >
+                          Rendered View
+                        </button>
+                      </div>
+                      <textarea
+                        ref="alertContentTextarea"
+                        :class="[
+                          'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-y-auto h-[300px]',
+                          contentFormatMode === 'json' ? 'font-mono' : ''
+                        ]"
+                        :value="formattedAlertContent"
+                        readonly
+                      ></textarea>
+                    </div>
                   </div>
                 </div>
-                <div class="w-full lg:w-1/2 border border-dashed border-gray-300 dark:border-[#324867] rounded-xl bg-gray-50 dark:bg-[#111822] p-4 flex flex-col space-y-4 overflow-y-auto custom-scrollbar min-h-0">
-                  <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.workflowResult') || 'Workflow Result' }}</h3>
-                  <div v-if="!workflowResult && !runningWorkflow" class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400 text-sm">
-                    {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
-                  </div>
-                  <div v-else-if="runningWorkflow" class="flex items-center justify-center h-full">
-                    <div class="flex flex-col items-center gap-3">
-                      <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
-                        sync
-                      </span>
-                      <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
+
+                <!-- Right Panel: AI Agent Workspace -->
+                <div class="w-full lg:w-1/2 flex flex-col min-h-0">
+                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
+                  
+                  <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
+                    <!-- Inputs for Current Run -->
+                    <div class="flex flex-col gap-2">
+                      <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.inputsForCurrentRun') || 'Inputs for Current Run' }}</h5>
+                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">{{ $t('aiPlayground.retrievalTest.allInputsIncluded') || 'All inputs from the left panel are included for AI analysis.' }}</p>
+                      <div class="bg-gray-100 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 min-h-[80px] flex items-center justify-center">
+                          <div class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                            <div class="mb-1">{{ $t('alerts.detail.id') }}: {{ alertId }}</div>
+                            <div class="mb-1">{{ $t('alerts.list.alertTitle') }}: {{ alertSubject }}</div>
+                            <div>{{ $t('alerts.detail.alertContent') }}: Included</div>
+                          </div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else-if="workflowResult?.error" class="flex-1 overflow-y-auto">
-                    <div class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
-                      <p class="font-semibold mb-2">{{ workflowResult.message || 'Error' }}</p>
-                      <pre class="text-xs whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
+
+                    <!-- Model Selection -->
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.modelSelection') || 'Model Selection' }}</label>
+                      <div class="relative">
+                        <select
+                          v-model="selectedWorkflow"
+                          :disabled="loadingWorkflows"
+                          class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <option value="" disabled>{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                          <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
+                          <option
+                            v-for="workflow in workflows"
+                            :key="workflow.id"
+                            :value="workflow.id"
+                          >
+                            {{ workflow.name }}
+                          </option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+                          <span
+                            v-if="loadingWorkflows"
+                            class="material-symbols-outlined animate-spin"
+                            style="font-size: 20px;"
+                          >
+                            sync
+                          </span>
+                          <span
+                            v-else
+                            class="material-symbols-outlined"
+                            style="font-size: 20px;"
+                          >
+                            arrow_drop_down
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else-if="workflowResultText" class="flex-1 overflow-y-auto">
-                    <div class="text-sm text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">
-                      {{ workflowResultText }}
+
+                    <!-- AI Response Feed -->
+                    <div class="flex flex-col gap-2">
+                      <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
+                      <div class="flex-1 overflow-y-auto">
+                        <div v-if="!workflowResult && !runningWorkflow" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
+                        </div>
+                        <div v-else-if="runningWorkflow" class="flex items-center justify-center py-8">
+                          <div class="flex flex-col items-center gap-3">
+                            <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
+                              sync
+                            </span>
+                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
+                          </div>
+                        </div>
+                        <div v-else-if="workflowResult?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                          <p class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">{{ workflowResult.message || 'Error' }}</p>
+                          <pre class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
+                        </div>
+                        <div v-else-if="workflowResultText" class="space-y-3">
+                          <div class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                              <div class="flex items-center gap-2">
+                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ selectedWorkflow ? workflows.find(w => w.id === selectedWorkflow)?.name || 'Model' : 'Model' }}</span>
+                              </div>
+                              <span class="text-xs text-gray-500 dark:text-gray-400">{{ new Date().toLocaleString() }}</span>
+                            </div>
+                            <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                              {{ workflowResultText }}
+                            </div>
+                          </div>
+                        </div>
+                        <div v-else-if="workflowResult" class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+                          <pre class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult, null, 2) }}</pre>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div v-else-if="workflowResult" class="flex-1 overflow-y-auto">
-                    <pre class="text-xs text-gray-900 dark:text-white bg-white dark:bg-[#1c2533] p-4 rounded-lg border border-gray-200 dark:border-[#324867] whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult, null, 2) }}</pre>
                   </div>
                 </div>
               </div>
