@@ -732,10 +732,7 @@
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
                       <div class="flex-1 overflow-y-auto">
-                        <div v-if="!workflowResult && !runningWorkflow" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
-                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
-                        </div>
-                        <div v-else-if="runningWorkflow" class="flex items-center justify-center py-8">
+                        <div v-if="runningWorkflow" class="flex items-center justify-center py-8">
                           <div class="flex flex-col items-center gap-3">
                             <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
                               sync
@@ -747,66 +744,93 @@
                           <p class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">{{ workflowResult.message || 'Error' }}</p>
                           <pre class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
                         </div>
-                        <div v-else-if="workflowResultText" class="space-y-3">
-                          <div class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-2">
-                              <div class="flex items-center gap-2">
-                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ selectedWorkflow ? workflows.find(w => w.id === selectedWorkflow)?.name || 'Model' : 'Model' }}</span>
+                        <div v-else-if="workflowRuns.length === 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
+                        </div>
+                        <div v-else class="space-y-3">
+                          <div
+                            v-for="run in workflowRuns.slice().reverse()"
+                            :key="run.id"
+                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 cursor-pointer transition hover:border-primary/60"
+                            @click="toggleRunExpanded(run.id)"
+                          >
+                            <div class="flex items-start justify-between gap-3">
+                              <div class="flex flex-col gap-1">
+                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ run.modelName || 'Model' }}</span>
+                                <div class="flex items-center gap-2">
+                                  <span class="text-xs uppercase text-gray-500 dark:text-gray-400">Verdict:</span>
+                                  <span class="text-sm font-semibold" :class="run.parsed?.isThreat ? 'text-primary' : 'text-gray-700 dark:text-gray-200'">
+                                    {{ run.parsed?.isThreat || (run.text ? 'View details' : 'No verdict') }}
+                                  </span>
+                                </div>
+                                <div v-if="run.parsed?.confidence" class="text-xs text-gray-500 dark:text-gray-400">
+                                  Confidence Score: {{ run.parsed.confidence }}
+                                </div>
                               </div>
-                              <span class="text-xs text-gray-500 dark:text-gray-400">{{ new Date().toLocaleString() }}</span>
+                              <div class="flex flex-col items-end gap-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatRunTimestamp(run.timestamp) }}</span>
+                                <span
+                                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform"
+                                  :class="run.expanded ? 'rotate-180' : ''"
+                                >
+                                  expand_more
+                                </span>
+                              </div>
                             </div>
 
-                            <!-- Structured view when we can parse Is Threat / Confidence / Reason -->
-                            <div v-if="parsedWorkflowResult?.hasAny" class="space-y-3">
+                            <div
+                              v-if="run.expanded"
+                              class="mt-3 space-y-2 border-t border-gray-200 dark:border-[#324867] pt-3"
+                            >
                               <div
-                                v-if="parsedWorkflowResult.isThreat"
+                                v-if="run.parsed?.isThreat"
                                 class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
                               >
                                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
                                   [Is Threat]
                                 </div>
                                 <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ parsedWorkflowResult.isThreat }}
+                                  {{ run.parsed.isThreat }}
                                 </div>
                               </div>
+
                               <div
-                                v-if="parsedWorkflowResult.confidence"
+                                v-if="run.parsed?.confidence"
                                 class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
                               >
                                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
                                   [Confidence Score]
                                 </div>
                                 <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ parsedWorkflowResult.confidence }}
+                                  {{ run.parsed.confidence }}
                                 </div>
                               </div>
+
                               <div
-                                v-if="parsedWorkflowResult.reason"
+                                v-if="run.parsed?.reason"
                                 class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
                               >
                                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
                                   [Reason]
                                 </div>
                                 <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ parsedWorkflowResult.reason }}
+                                  {{ run.parsed.reason }}
                                 </div>
                               </div>
-                            </div>
 
-                            <!-- Fallback to raw combined text when we cannot parse structured blocks -->
-                            <div v-else class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                              {{ workflowResultText }}
+                              <div
+                                v-if="!run.parsed?.hasAny && run.text"
+                                class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words"
+                              >
+                                {{ run.text }}
+                              </div>
+
+                              <div class="bg-gray-50 dark:bg-[#111822] border border-dashed border-gray-200 dark:border-[#324867] rounded-lg p-3">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Raw result</p>
+                                <pre class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{{ JSON.stringify(run.raw, null, 2) }}</pre>
+                              </div>
                             </div>
                           </div>
-
-                          <!-- Raw JSON result block as secondary view -->
-                          <div class="bg-gray-50 dark:bg-[#111822] border border-dashed border-gray-200 dark:border-[#324867] rounded-lg p-3">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Raw result</p>
-                            <pre class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.data?.outputs?.result, null, 2) }}</pre>
-                          </div>
-                        </div>
-                        <div v-else-if="workflowResult" class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-                          <pre class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult, null, 2) }}</pre>
                         </div>
                       </div>
                     </div>
@@ -894,6 +918,7 @@ const workflows = ref([])
 const loadingWorkflows = ref(false)
 const runningWorkflow = ref(false)
 const workflowResult = ref(null)
+const workflowRuns = ref([]) // store last 3 runs while overlay is open
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
@@ -2024,6 +2049,7 @@ const handleRunWorkflow = async () => {
 
     const data = await response.json()
     workflowResult.value = data
+    addWorkflowRun(data)
   } catch (error) {
     console.error('Failed to run workflow:', error)
     workflowResult.value = {
@@ -2065,21 +2091,18 @@ const extractAllTextValues = (obj, depth = 0) => {
   return textValues
 }
 
-const workflowResultText = computed(() => {
-  if (!workflowResult.value) return null
-  if (workflowResult.value.error) return null
-  
-  const resultObject = workflowResult.value?.data?.outputs?.result
+const getWorkflowTextFromData = (data) => {
+  if (!data || data.error) return null
+
+  const resultObject = data?.data?.outputs?.result
   if (!resultObject) return null
-  
-  // Extract all text values from the result object
+
   const textValues = extractAllTextValues(resultObject)
-  
-  // Filter out empty strings and join with newlines
   const filtered = textValues.filter(text => text && text.trim().length > 0)
-  
   return filtered.length > 0 ? filtered.join('\n\n') : null
-})
+}
+
+const workflowResultText = computed(() => getWorkflowTextFromData(workflowResult.value))
 
 // Parse structured blocks like:
 // [Is Threat]: ...
@@ -2135,6 +2158,41 @@ const parsedWorkflowResult = computed(() => {
   }
   return parseWorkflowBlocks(text)
 })
+
+const formatRunTimestamp = (ts) => {
+  const date = ts instanceof Date ? ts : new Date(ts)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString()
+}
+
+const toggleRunExpanded = (id) => {
+  const run = workflowRuns.value.find(r => r.id === id)
+  if (run) {
+    run.expanded = !run.expanded
+  }
+}
+
+const addWorkflowRun = (data) => {
+  const text = getWorkflowTextFromData(data)
+  const parsed = parseWorkflowBlocks(text || '')
+  const modelName = selectedWorkflow.value
+    ? (workflows.value.find(w => w.id === selectedWorkflow.value)?.name || 'Model')
+    : 'Model'
+
+  const newRun = {
+    id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    modelName,
+    timestamp: new Date().toISOString(),
+    parsed,
+    text,
+    raw: data?.data?.outputs?.result,
+    expanded: false
+  }
+
+  // Keep only the last 3 runs
+  const runs = [...workflowRuns.value, newRun]
+  workflowRuns.value = runs.slice(-3)
+}
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
 
@@ -2321,6 +2379,7 @@ watch(showRetrievalOverlay, (isOpen) => {
     workflows.value = []
     loadingWorkflows.value = false
     workflowResult.value = null
+    workflowRuns.value = []
   }
 })
 
