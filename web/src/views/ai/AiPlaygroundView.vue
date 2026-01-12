@@ -732,7 +732,12 @@
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
                       <div class="flex-1 overflow-y-auto">
-                        <div v-if="runningWorkflow" class="flex items-center justify-center py-8">
+                        <div v-if="workflowResult?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-3">
+                          <p class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">{{ workflowResult.message || 'Error' }}</p>
+                          <pre class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
+                        </div>
+
+                        <div v-if="runningWorkflow" class="flex items-center justify-center py-4">
                           <div class="flex flex-col items-center gap-3">
                             <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
                               sync
@@ -740,14 +745,12 @@
                             <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
                           </div>
                         </div>
-                        <div v-else-if="workflowResult?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                          <p class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">{{ workflowResult.message || 'Error' }}</p>
-                          <pre class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
-                        </div>
-                        <div v-else-if="workflowRuns.length === 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+
+                        <div v-if="workflowRuns.length === 0 && !runningWorkflow" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
                           {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
                         </div>
-                        <div v-else class="space-y-3">
+
+                        <div v-if="workflowRuns.length > 0" class="space-y-3">
                           <div
                             v-for="run in workflowRuns.slice().reverse()"
                             :key="run.id"
