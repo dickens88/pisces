@@ -614,17 +614,17 @@
                     <!-- Title -->
                     <div class="flex flex-col gap-2">
                       <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.list.alertTitle') }}</label>
-                      <input
-                        type="text"
-                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2"
+                      <textarea
+                        ref="overlayAlertTitleTextarea"
+                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2 resize-none overflow-y-hidden"
                         :value="alertSubject"
                         readonly
-                      />
+                      ></textarea>
                     </div>
 
-                    <!-- Comments -->
+                    <!-- Close Comment -->
                     <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.comments') || 'Comments' }}</label>
+                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.comments') || 'Close Comment' }}</label>
                       <textarea
                         class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none min-h-[100px]"
                         :value="humanConclusionValue || ''"
@@ -755,9 +755,54 @@
                               </div>
                               <span class="text-xs text-gray-500 dark:text-gray-400">{{ new Date().toLocaleString() }}</span>
                             </div>
-                            <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+
+                            <!-- Structured view when we can parse Is Threat / Confidence / Reason -->
+                            <div v-if="parsedWorkflowResult?.hasAny" class="space-y-3">
+                              <div
+                                v-if="parsedWorkflowResult.isThreat"
+                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
+                              >
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Is Threat]
+                                </div>
+                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ parsedWorkflowResult.isThreat }}
+                                </div>
+                              </div>
+                              <div
+                                v-if="parsedWorkflowResult.confidence"
+                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
+                              >
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Confidence]
+                                </div>
+                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ parsedWorkflowResult.confidence }}
+                                </div>
+                              </div>
+                              <div
+                                v-if="parsedWorkflowResult.reason"
+                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
+                              >
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Reason]
+                                </div>
+                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ parsedWorkflowResult.reason }}
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Fallback to raw combined text when we cannot parse structured blocks -->
+                            <div v-else class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
                               {{ workflowResultText }}
                             </div>
+                          </div>
+
+                          <!-- Raw JSON result block as secondary view -->
+                          <div class="bg-gray-50 dark:bg-[#111822] border border-dashed border-gray-200 dark:border-[#324867] rounded-lg p-3">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Raw result</p>
+                            <pre class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.data?.outputs?.result, null, 2) }}</pre>
                           </div>
                         </div>
                         <div v-else-if="workflowResult" class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
@@ -865,6 +910,7 @@ const isAiJudgmentFilterActive = ref(true) // Default to enabled
 const alertIdTextarea = ref(null)
 const alertSubjectTextarea = ref(null)
 const alertContentTextarea = ref(null)
+const overlayAlertTitleTextarea = ref(null)
 
 const alertId = computed(() => selectedAlert.value?.alert_id || selectedAlert.value?.id || '')
 const alertSubject = computed(() => selectedAlert.value?.title || '')
@@ -1090,6 +1136,16 @@ watch([formattedAlertContent, alertContentTextarea, contentFormatMode], () => {
       })
     })
   }
+}, { immediate: true })
+
+// Auto-resize Fine-tune panel alert title textarea
+watch([alertSubject, overlayAlertTitleTextarea], () => {
+  nextTick(() => {
+    if (overlayAlertTitleTextarea.value) {
+      // Slightly larger minimum height so it can grow to two lines comfortably
+      autoResizeTextarea(overlayAlertTitleTextarea.value, 40)
+    }
+  })
 }, { immediate: true })
 
 const columns = computed(() => [
@@ -1986,26 +2042,26 @@ const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
 // Recursively extract all string values from an object
 const extractAllTextValues = (obj, depth = 0) => {
   if (obj === null || obj === undefined) return []
-  
+
   const textValues = []
-  
+
   if (typeof obj === 'string') {
     // If it's a string, add it directly
     textValues.push(obj)
   } else if (Array.isArray(obj)) {
     // If it's an array, process each element
-    obj.forEach((item, index) => {
+    obj.forEach((item) => {
       const extracted = extractAllTextValues(item, depth + 1)
       textValues.push(...extracted)
     })
   } else if (typeof obj === 'object') {
     // If it's an object, process each property
-    Object.entries(obj).forEach(([key, value]) => {
+    Object.entries(obj).forEach(([, value]) => {
       const extracted = extractAllTextValues(value, depth + 1)
       textValues.push(...extracted)
     })
   }
-  
+
   return textValues
 }
 
@@ -2023,6 +2079,61 @@ const workflowResultText = computed(() => {
   const filtered = textValues.filter(text => text && text.trim().length > 0)
   
   return filtered.length > 0 ? filtered.join('\n\n') : null
+})
+
+// Parse structured blocks like:
+// [Is Threat]: ...
+// [Confidence]: ...
+// [Reason]: ...
+// in any order. If parsing fails, we fall back to workflowResultText.
+const parseWorkflowBlocks = (text) => {
+  if (!text || typeof text !== 'string') {
+    return {
+      isThreat: null,
+      confidence: null,
+      reason: null,
+      hasAny: false,
+      raw: text || ''
+    }
+  }
+
+  const patterns = {
+    isThreat: /\[\s*Is\s*Threat\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Confidence\s*\]|\[\s*Reason\s*\]|$)/i,
+    confidence: /\[\s*Confidence\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Reason\s*\]|$)/i,
+    reason: /\[\s*Reason\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Confidence\s*\]|$)/i
+  }
+
+  const result = {
+    isThreat: null,
+    confidence: null,
+    reason: null,
+    hasAny: false,
+    raw: text
+  }
+
+  Object.entries(patterns).forEach(([key, regex]) => {
+    const match = text.match(regex)
+    if (match && match[1]) {
+      result[key] = match[1].trim()
+    }
+  })
+
+  result.hasAny = !!(result.isThreat || result.confidence || result.reason)
+  return result
+}
+
+const parsedWorkflowResult = computed(() => {
+  const text = workflowResultText.value
+  if (!text) {
+    return {
+      isThreat: null,
+      confidence: null,
+      reason: null,
+      hasAny: false,
+      raw: ''
+    }
+  }
+  return parseWorkflowBlocks(text)
 })
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')

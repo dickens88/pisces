@@ -148,7 +148,7 @@
       "noResult": "暂无工作流结果。运行工作流以查看输出。",
       "inputAlertInfo": "输入告警信息",
       "runAnalysis": "运行分析",
-      "comments": "评论",
+      "comments": "关闭备注",
       "aiAgentWorkspace": "AI代理工作区",
       "inputsForCurrentRun": "当前运行的输入",
       "allInputsIncluded": "左侧面板的所有输入都包含在AI分析中。",

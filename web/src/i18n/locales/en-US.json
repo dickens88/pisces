@@ -148,7 +148,7 @@
       "noResult": "No workflow result yet. Run a workflow to see the output.",
       "inputAlertInfo": "Input Alert Information",
       "runAnalysis": "Run Analysis",
-      "comments": "Comments",
+      "comments": "Close Comment",
       "aiAgentWorkspace": "AI Agent Workspace",
       "inputsForCurrentRun": "Inputs for Current Run",
       "allInputsIncluded": "All inputs from the left panel are included for AI analysis.",
