@@ -111,6 +111,34 @@ class CommentService:
 
         return None
 
+    @classmethod
+    def delete_comment(cls, comment_id, workspace_id=None):
+        """
+        删除评论（调用云脑删除评论接口）
+        
+        Args:
+            comment_id: 评论ID（云脑返回的note_id）
+            workspace_id: 工作空间ID（可选）
+            
+        Returns:
+            dict: 删除结果，包含success_ids和error_ids
+        """
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+        
+        # 根据云脑接口文档，需要在请求Body中传递batch_ids数组
+        body = {
+            "batch_ids": [comment_id]
+        }
+        body = json.dumps(body)
+        
+        resp = request_with_auth("DELETE", url=base_url, data=body, headers=headers)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+        
+        return json.loads(resp.text) if resp.text else {}
+
     @staticmethod
     def get_comment_file_info(comment_id: str) -> dict:
         """

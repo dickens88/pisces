@@ -202,6 +202,30 @@ class CommentView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
+    @auth_required
+    def delete(self, username=None, event_id=None, comment_id=None):
+        """
+        删除评论（调用云脑删除评论接口）
+        DELETE /comments/<event_id>/<comment_id>
+        """
+        try:
+            if not event_id or not comment_id:
+                return {"error_message": "event_id and comment_id are required"}, 400
+            
+            workspace_id = get_workspace_id(request.args.get('workspace'))
+            
+            # 调用云脑删除评论接口
+            result = CommentService.delete_comment(
+                comment_id=comment_id,
+                workspace_id=workspace_id
+            )
+            
+            return {"data": result}, 200
+            
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
 
 class CommentDownloadView(Resource):
     """For attachment download"""
