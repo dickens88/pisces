@@ -577,28 +577,6 @@
                 <div class="w-full lg:w-1/2 flex flex-col min-h-0">
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.inputAlertInfo') || 'Input Alert Information' }}</h4>
                   
-                  <!-- Run Analysis Button at Top -->
-                  <button
-                    type="button"
-                    @click="handleRunWorkflow"
-                    :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
-                    class="w-full mb-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <span
-                      v-if="runningWorkflow"
-                      class="material-symbols-outlined animate-spin text-base"
-                    >
-                      sync
-                    </span>
-                    <span
-                      v-else
-                      class="material-symbols-outlined text-base"
-                    >
-                      play_arrow
-                    </span>
-                    {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
-                  </button>
-
                   <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
                     <!-- Alert ID -->
                     <div class="flex flex-col gap-2">
@@ -728,6 +706,28 @@
                       </div>
                     </div>
 
+                    <!-- Run Analysis Button -->
+                    <button
+                      type="button"
+                      @click="handleRunWorkflow"
+                      :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
+                      class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <span
+                        v-if="runningWorkflow"
+                        class="material-symbols-outlined animate-spin text-base"
+                      >
+                        sync
+                      </span>
+                      <span
+                        v-else
+                        class="material-symbols-outlined text-base"
+                      >
+                        play_arrow
+                      </span>
+                      {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
+                    </button>
+
                     <!-- AI Response Feed -->
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
@@ -774,7 +774,7 @@
                                 class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
                               >
                                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Confidence]
+                                  [Confidence Score]
                                 </div>
                                 <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
                                   {{ parsedWorkflowResult.confidence }}
@@ -2083,7 +2083,7 @@ const workflowResultText = computed(() => {
 
 // Parse structured blocks like:
 // [Is Threat]: ...
-// [Confidence]: ...
+// [Confidence Score]: ...
 // [Reason]: ...
 // in any order. If parsing fails, we fall back to workflowResultText.
 const parseWorkflowBlocks = (text) => {
@@ -2098,9 +2098,9 @@ const parseWorkflowBlocks = (text) => {
   }
 
   const patterns = {
-    isThreat: /\[\s*Is\s*Threat\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Confidence\s*\]|\[\s*Reason\s*\]|$)/i,
-    confidence: /\[\s*Confidence\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Reason\s*\]|$)/i,
-    reason: /\[\s*Reason\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Confidence\s*\]|$)/i
+    isThreat: /\[\s*Is\s*Threat\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Confidence\s*Score\s*\]|\[\s*Reason\s*\]|$)/i,
+    confidence: /\[\s*Confidence\s*Score\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Reason\s*\]|$)/i,
+    reason: /\[\s*Reason\s*\]\s*:\s*([\s\S]*?)(?=\[\s*Is\s*Threat\s*\]|\[\s*Confidence\s*Score\s*\]|$)/i
   }
 
   const result = {
