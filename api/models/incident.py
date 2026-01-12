@@ -276,16 +276,6 @@ class Incident(Base):
         handle_status = payload.get("handle_status")
         close_reason = payload.get("close_reason")
 
-        close_reason_choices = set(Incident.__table__.columns['close_reason'].type.enums)
-        if close_reason not in close_reason_choices:
-            if close_reason:
-                logger.warning(
-                    "Unsupported close_reason '%s' received for incident %s, storing as NULL",
-                    close_reason,
-                    payload.get("id"),
-                )
-            close_reason = None
-
         description = to_json_string(payload.get("description"))
         extend_properties = to_json_string(payload.get("extend_properties"))
 

@@ -226,16 +226,6 @@ class Alert(Base):
         handle_status = payload.get("handle_status")
         close_reason = payload.get("close_reason")
 
-        close_reason_choices = set(Alert.__table__.columns['close_reason'].type.enums)
-        if close_reason not in close_reason_choices:
-            if close_reason:
-                logger.warning(
-                    "Unsupported close_reason '%s' received for alert %s, storing as NULL",
-                    close_reason,
-                    payload.get("id"),
-                )
-            close_reason = None
-
         description = payload.get("description")
         model_name = description.get("model_name") if description else "UNKNOWN"
         logger.debug("The value of model_name is: %s", model_name)
