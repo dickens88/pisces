@@ -175,6 +175,7 @@ class AlertService:
                     "tta": item.tta,
                     "verification_state": item.verification_state,
                     "ipdrr_phase": item.ipdrr_phase,
+                    "agent_name": item.agent_name,
                 })
 
             return result, total
