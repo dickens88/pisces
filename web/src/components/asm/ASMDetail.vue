@@ -115,7 +115,6 @@
 
           <!-- Content area -->
           <div class="flex flex-1 overflow-hidden relative">
-            <!-- Loading animation - shown when loading or when closing if still loading -->
             <Transition name="fade">
               <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-[#111822]/90 z-10">
                 <div class="flex flex-col items-center gap-4">
@@ -684,7 +683,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getASMDetail, openASMItem, closeASMItem } from '@/api/asm'
+import { getASMDetail, getASMCommentsExtension, openASMItem, closeASMItem } from '@/api/asm'
 import { postComment } from '@/api/comments'
 import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
@@ -720,6 +719,7 @@ const toast = useToast()
 const visible = ref(false)
 const alert = ref(null)
 const isLoading = ref(false)
+const isLoadingExtension = ref(false)
 
 // 获取告警ID：优先使用props，如果没有则从路由参数获取
 const currentAlertId = computed(() => {
@@ -982,6 +982,81 @@ const getASMUrl = () => {
   return `${window.location.origin}${basePath}/asm/${currentAlertId.value}`
 }
 
+// 加载扩展数据（评论、时间线等）的独立函数
+const loadASMCommentsExtension = async () => {
+  if (!currentAlertId.value) return
+  
+  isLoadingExtension.value = true
+  try {
+    const response = await getASMCommentsExtension(currentAlertId.value)
+    const extensionData = response.data
+    
+    if (extensionData && alert.value) {
+      // 合并评论数据
+      if (extensionData.comments) {
+        const comments = extensionData.comments.map(comment => ({
+          id: comment.id || Date.now(),
+          author: comment.author || 'Unknown',
+          authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
+          time: formatDateTime(comment.create_time || comment.time),
+          content: comment.content || '',
+          file: comment.file || null,
+          type: comment.type || null
+        }))
+        alert.value.comments = comments
+      }
+      
+      // 合并时间线数据
+      if (extensionData.timeline) {
+        const timeline = extensionData.timeline.map(event => {
+          const rawTime = event.time || event.timestamp
+          const formattedTime = formatDateTime(rawTime)
+          return {
+            time: formattedTime !== '-' ? formattedTime : (rawTime || '-'),
+            event: event.event || '',
+            author: event.author || '',
+            content: event.content || '',
+            rawTime: rawTime || ''
+          }
+        })
+        alert.value.timeline = timeline
+      }
+      
+      // 合并威胁情报数据
+      if (extensionData.intelligence) {
+        const intelligence = extensionData.intelligence.map(item => ({
+          id: item.id || Date.now(),
+          author: item.author || 'Unknown',
+          time: item.create_time || item.time || '-',
+          content: item.content || ''
+        }))
+        alert.value.intelligence = intelligence
+      }
+      
+      // 合并AI响应数据
+      if (extensionData.ai) {
+        const ai = extensionData.ai.map(item => ({
+          id: item.id || Date.now(),
+          author: item.author || 'AI Agent',
+          time: item.create_time || item.time || '-',
+          content: item.content || ''
+        }))
+        alert.value.ai = ai
+      }
+      
+      // 合并关联告警数据（historic）
+      if (extensionData.historic) {
+        alert.value.historic = extensionData.historic
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load ASM comments extension:', error)
+    // 扩展数据加载失败不影响主流程，只记录错误
+  } finally {
+    isLoadingExtension.value = false
+  }
+}
+
 const loadAlertDetail = async (showLoading = true) => {
   if (!currentAlertId.value) return
   
@@ -994,11 +1069,75 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const response = await getASMDetail(currentAlertId.value)
-    alert.value = transformAlertDetailData(response.data)
+    const detailPromise = getASMDetail(currentAlertId.value)
+    const extensionPromise = getASMCommentsExtension(currentAlertId.value)
+    
+    isLoadingExtension.value = true
+    const detailResponse = await detailPromise
+    alert.value = transformAlertDetailData(detailResponse.data)
     loadToolkits()
     loadToolkitRecords()
-    // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
+    
+    extensionPromise
+      .then(response => {
+        const extensionData = response.data
+        if (extensionData && alert.value) {
+          if (extensionData.comments) {
+            const comments = extensionData.comments.map(comment => ({
+              id: comment.id || Date.now(),
+              author: comment.author || 'Unknown',
+              authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
+              time: formatDateTime(comment.create_time || comment.time),
+              content: comment.content || '',
+              file: comment.file || null,
+              type: comment.type || null
+            }))
+            alert.value.comments = comments
+          }
+          if (extensionData.timeline) {
+            const timeline = extensionData.timeline.map(event => {
+              const rawTime = event.time || event.timestamp
+              const formattedTime = formatDateTime(rawTime)
+              return {
+                time: formattedTime !== '-' ? formattedTime : (rawTime || '-'),
+                event: event.event || '',
+                author: event.author || '',
+                content: event.content || '',
+                rawTime: rawTime || ''
+              }
+            })
+            alert.value.timeline = timeline
+          }
+          if (extensionData.intelligence) {
+            const intelligence = extensionData.intelligence.map(item => ({
+              id: item.id || Date.now(),
+              author: item.author || 'Unknown',
+              time: item.create_time || item.time || '-',
+              content: item.content || ''
+            }))
+            alert.value.intelligence = intelligence
+          }
+          if (extensionData.ai) {
+            const ai = extensionData.ai.map(item => ({
+              id: item.id || Date.now(),
+              author: item.author || 'AI Agent',
+              time: item.create_time || item.time || '-',
+              content: item.content || ''
+            }))
+            alert.value.ai = ai
+          }
+          if (extensionData.historic) {
+            alert.value.historic = extensionData.historic
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load ASM comments extension:', error)
+      })
+      .finally(() => {
+        isLoadingExtension.value = false
+      })
+    
     hasAutoOpenedAiSidebar.value = false
   } catch (error) {
     console.error('Failed to load alert detail:', error)
@@ -1378,7 +1517,8 @@ const handleAddComment = async ({ comment, files }) => {
   try {
     await postComment(currentAlertId.value, commentText, files || [], 'asm')
     newComment.value = ''
-    await loadAlertDetail(false)
+    // 只重新加载扩展数据（评论部分），不需要重新加载整个详情
+    await loadASMCommentsExtension()
     toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)

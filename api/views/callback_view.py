@@ -20,7 +20,7 @@ class CallbackMessageHandler(Resource):
         
         Looks for patterns like [Created by]: or [{any text} by]: and returns the value after it.
         """
-        if "【Dify AI Investigation】" not in comment_content:
+        if "【Dify AI Investigation】" not in comment_content and "智能体" not in comment_content:
             return None
         
         # Pattern to match [anything by]: followed by the agent name

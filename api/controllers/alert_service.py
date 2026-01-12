@@ -6,9 +6,6 @@ from models.alert import Alert
 from utils.app_config import config
 from utils.http_util import build_conditions_and_logics, SECMASTER_ALERT_TEMPLATE, request_with_auth
 from utils.logger_init import logger
-from utils.mysql_conn import Session
-from utils.common_utils import parse_datetime_with_timezone, format_utc_datetime_to_db_string
-from sqlalchemy import or_
 
 
 class AlertService:
@@ -80,109 +77,6 @@ class AlertService:
         return result, total
 
     @classmethod
-    def list_local_alerts(cls, conditions: List, limit=50, offset=0, start_time=None, end_time=None):
-        """
-        List alerts from local DB (t_alerts) with simple field-based filtering.
-        Supported condition keys: title (contains), creator, actor, model_name/model,
-        handle_status, severity.
-        """        
-        session = Session()
-        try:
-            query = session.query(Alert)
-
-            # Parse and normalize time strings to UTC format for comparison
-            if start_time:
-                start_dt = parse_datetime_with_timezone(start_time)
-                if start_dt:
-                    start_time_str = format_utc_datetime_to_db_string(start_dt)
-                    query = query.filter(Alert.create_time >= start_time_str)
-            if end_time:
-                end_dt = parse_datetime_with_timezone(end_time)
-                if end_dt:
-                    end_time_str = format_utc_datetime_to_db_string(end_dt)
-                    query = query.filter(Alert.create_time <= end_time_str)
-
-            for cond in conditions or []:
-                if not isinstance(cond, dict):
-                    continue
-                for key, value in cond.items():
-                    if value is None:
-                        continue
-                    val_str = str(value)
-                    key_lower = key.lower()
-                    if key_lower == 'title':
-                        query = query.filter(Alert.title.ilike(f"%{val_str}%"))
-                    elif key_lower == 'creator':
-                        query = query.filter(Alert.creator.ilike(f"%{val_str}%"))
-                    elif key_lower == 'actor':
-                        query = query.filter(Alert.actor.ilike(f"%{val_str}%"))
-                    elif key_lower in ('model', 'model_name'):
-                        query = query.filter(Alert.model_name == val_str)
-                    elif key_lower in ('handle_status', 'status'):
-                        query = query.filter(Alert.handle_status == val_str)
-                    elif key_lower == 'severity':
-                        query = query.filter(Alert.severity == val_str)
-                    elif key_lower == 'id':
-                        query = query.filter(Alert.alert_id == val_str)
-                    elif key_lower == 'verification_state':
-                        query = query.filter(Alert.verification_state == val_str)
-                    elif key_lower == 'verification_state!=':
-                        # Support != condition for verification_state
-                        query = query.filter(Alert.verification_state != val_str)
-                    elif key_lower == 'ipdrr_phase':
-                        query = query.filter(Alert.ipdrr_phase == val_str)
-                    elif key_lower == 'is_ai_decision_correct':
-                        if val_str == '':
-                            query = query.filter(
-                                or_(
-                                    Alert.is_ai_decision_correct == None,
-                                    Alert.is_ai_decision_correct == ''
-                                )
-                            )
-                        else:
-                            query = query.filter(Alert.is_ai_decision_correct == val_str)
-                    elif key_lower == 'close_reason':
-                        query = query.filter(Alert.close_reason == val_str)
-
-            total = query.count()
-            rows = (
-                query
-                .order_by(Alert.create_time.desc())
-                .offset(offset)
-                .limit(limit)
-                .all()
-            )
-
-            result = []
-            for item in rows:
-                result.append({
-                    "id": item.id,
-                    "alert_id": item.alert_id,
-                    "create_time": item.create_time,
-                    "close_time": item.close_time,
-                    "title": item.title,
-                    "severity": item.severity,
-                    "handle_status": item.handle_status,
-                    "owner": item.owner,
-                    "creator": item.creator,
-                    "actor": item.actor,
-                    "close_reason": item.close_reason,
-                    "close_comment": item.close_comment,
-                    "is_auto_closed": item.is_auto_closed,
-                    "data_source_product_name": item.data_source_product_name,
-                    "model_name": item.model_name,
-                    "is_ai_decision_correct": item.is_ai_decision_correct,
-                    "tta": item.tta,
-                    "verification_state": item.verification_state,
-                    "ipdrr_phase": item.ipdrr_phase,
-                    "agent_name": item.agent_name,
-                })
-
-            return result, total
-        finally:
-            session.close()
-
-    @classmethod
     def retrieve_alert_by_id(cls, alert_id, workspace_id=None):
         """Get alert details by ID."""
         ws_id = workspace_id or cls.workspace_id
@@ -229,20 +123,25 @@ class AlertService:
         return alert_content
 
     @classmethod
-    def retrieve_alert_and_comments(cls, alert_id, workspace_id=None):
-        """Get alert with comments, entities, and timeline."""
+    def retrieve_alert_and_entities(cls, alert_id, workspace_id=None):
+        """Get alert with comments, entities."""
         alert = cls.retrieve_alert_by_id(alert_id, workspace_id=workspace_id)
+        # extract IOC from alert description
+        alert["entities"] = cls._extract_entities_from_alert(alert["description"])
+        return alert
 
+    @classmethod
+    def retrieve_comments_and_timeline(cls, alert_id, workspace_id=None):
+        """Get comments, and timeline."""
         # retrieve comments by current alert ID
         comment = CommentService.retrieve_comments(alert_id, workspace_id)
 
         # extract key data objects from comment
-        alert.update(cls._extract_info_from_comment(comment))
+        comment_info = cls._extract_info_from_comment(comment)
 
-        # extract key data object from alert description
-        alert["entities"] = cls._extract_entities_from_alert(alert["description"])
-        alert["timeline"] = cls._extract_timeline_from_alert(alert)
-        return alert
+        alert = cls.retrieve_alert_by_id(alert_id, workspace_id=workspace_id)
+        comment_info["timeline"] = cls._collect_timeline(alert, comment_info)
+        return comment_info
 
     @classmethod
     def close_alert(cls, alert_id, close_reason, comment, actor=None, workspace_id=None):
@@ -420,14 +319,14 @@ class AlertService:
         return entities
 
     @staticmethod
-    def _extract_timeline_from_alert(alert: dict):
+    def _collect_timeline(alert: dict, comment: dict):
         """Extract timeline from alert description."""
         events = [
             {"time": alert["create_time"], "event": "Alert Triggered"},
             {"time": alert["close_time"], "event": "Close Alert", "author": alert.get("actor") or "-"},
         ]
 
-        for intel in alert["intelligence"]:
+        for intel in comment["intelligence"]:
             events.append({
                 "time": intel["create_time"],
                 "event": "Add Intelligence",
@@ -435,7 +334,7 @@ class AlertService:
                 "content": intel["content"]
             })
 
-        for ai in alert["ai"]:
+        for ai in comment["ai"]:
             events.append({
                 "time": ai["create_time"],
                 "event": "AI Analysis",
@@ -443,7 +342,7 @@ class AlertService:
                 "content": ai["content"]
             })
 
-        for his in alert["historic"]:
+        for his in comment["historic"]:
             events.append({
                 "time": his["create_time"],
                 "event": "Find Similar Alerts",
@@ -452,7 +351,7 @@ class AlertService:
             })
 
 
-        for com in alert["comments"]:
+        for com in comment["comments"]:
             if "Associate alerts to incident" in com["content"] or "告警转为事件" in com["content"]:
                 events.append({
                     "time": com["create_time"],

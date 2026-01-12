@@ -2,6 +2,7 @@ from flask import request
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
+from models.alert import Alert
 from utils.auth_util import auth_required
 from utils.logger_init import logger
 from utils.common_utils import get_workspace_id
@@ -40,7 +41,7 @@ class AlertView(Resource):
                 )
                 return {"data": data, "total": total}, 200
             elif action == 'list_local':
-                data, total = AlertService.list_local_alerts(
+                data, total = Alert.list_alerts(
                     conditions,
                     limit=limit,
                     offset=offset,
@@ -61,8 +62,12 @@ class AlertView(Resource):
     @auth_required
     def get(self, username=None, alert_id=None):
         try:
+            action = request.args.get('action')
             workspace_id = get_workspace_id(request.args.get('workspace'))
-            data = AlertService.retrieve_alert_and_comments(alert_id, workspace_id=workspace_id)
+            if action == "comments_extension":
+                data = AlertService.retrieve_comments_and_timeline(alert_id, workspace_id=workspace_id)
+            else:
+                data = AlertService.retrieve_alert_and_entities(alert_id, workspace_id=workspace_id)
             return {"data": data}, 200
         except Exception as ex:
             logger.exception(ex)

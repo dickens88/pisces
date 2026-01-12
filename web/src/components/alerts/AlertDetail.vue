@@ -148,7 +148,6 @@
 
           <!-- Content area -->
           <div class="flex flex-1 overflow-hidden relative">
-            <!-- Loading animation - shown when loading or when closing if still loading -->
             <Transition name="fade">
               <div v-if="isLoading" class="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-[#111822]/90 z-10">
                 <div class="flex flex-col items-center gap-4">
@@ -696,7 +695,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
-import { getAlertDetail, getAlertRelations, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
+import { getAlertDetail, getAlertCommentsExtension, getAlertRelations, batchCloseAlerts, openAlert, closeAlert, updateAlert } from '@/api/alerts'
 import { useAuthStore } from '@/stores/auth'
 import { postComment } from '@/api/comments'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
@@ -723,7 +722,6 @@ const props = defineProps({
     required: false,
     default: null
   },
-  // 可选 workspace，用于在特定页面（如 ASM 漏洞详情）下带上 workspace 查询参数
   workspace: {
     type: String,
     required: false,
@@ -742,6 +740,7 @@ const authStore = useAuthStore()
 const visible = ref(false)
 const alert = ref(null)
 const isLoading = ref(false)
+const isLoadingExtension = ref(false)
 const relatedIncidentId = ref(null)
 
 const currentAlertId = computed(() => {
@@ -892,6 +891,42 @@ const transformAssociatedAlertsResponse = (data = []) => {
   })
 }
 
+const transformComment = (comment) => ({
+  id: comment.id || Date.now(),
+  author: comment.author || 'Unknown',
+  authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
+  time: formatDateTime(comment.create_time || comment.time),
+  content: comment.content || '',
+  file: comment.file || null,
+  type: comment.type || null
+})
+
+const transformTimeline = (event) => {
+  const rawTime = event.time || event.timestamp
+  const formattedTime = formatDateTime(rawTime)
+  return {
+    time: formattedTime !== '-' ? formattedTime : (rawTime || '-'),
+    event: event.event || '',
+    author: event.author || '',
+    content: event.content || '',
+    rawTime: rawTime || ''
+  }
+}
+
+const transformIntelligence = (item) => ({
+  id: item.id || Date.now(),
+  author: item.author || 'Unknown',
+  time: item.create_time || item.time || '-',
+  content: item.content || ''
+})
+
+const transformAI = (item) => ({
+  id: item.id || Date.now(),
+  author: item.author || 'AI Agent',
+  time: item.create_time || item.time || '-',
+  content: item.content || ''
+})
+
 const transformAlertDetailData = (apiData) => {
   if (!apiData) return null
 
@@ -920,47 +955,11 @@ const transformAlertDetailData = (apiData) => {
   )
   const normalizedTtr = computedTtr === '-' && apiData.ttr ? apiData.ttr : computedTtr
 
-  const comments = (apiData.comments || []).map(comment => ({
-    id: comment.id || Date.now(),
-    author: comment.author || 'Unknown',
-    authorInitials: (comment.author || 'U').substring(0, 2).toUpperCase(),
-    time: formatDateTime(comment.create_time || comment.time),
-    content: comment.content || '',
-    file: comment.file || null,
-    type: comment.type || null
-  }))
-
-  const intelligence = (apiData.intelligence || []).map(item => ({
-    id: item.id || Date.now(),
-    author: item.author || 'Unknown',
-    time: item.create_time || item.time || '-',
-    content: item.content || ''
-  }))
-
-  const ai = (apiData.ai || []).map(item => ({
-    id: item.id || Date.now(),
-    author: item.author || 'AI Agent',
-    time: item.create_time || item.time || '-',
-    content: item.content || ''
-  }))
-
   const entities = (apiData.entities || []).map(entity => ({
     type: entity.type || 'unknown',
     name: entity.name || '',
     label: entity.from || entity.label || ''
   }))
-
-  const timeline = (apiData.timeline || []).map(event => {
-    const rawTime = event.time || event.timestamp
-    const formattedTime = formatDateTime(rawTime)
-    return {
-      time: formattedTime !== '-' ? formattedTime : (rawTime || '-'),
-      event: event.event || '',
-      author: event.author || '',
-      content: event.content || '',
-      rawTime: rawTime || ''
-    }
-  })
 
   const descriptionObj = typeof description === 'object' && description !== null ? description : {}
   const sourceIp = descriptionObj.srcip || descriptionObj.sourceIp || descriptionObj.src_ip
@@ -996,17 +995,16 @@ const transformAlertDetailData = (apiData) => {
     sourceIp: sourceIp,
     userName: userName,
     destinationHostname: destinationHostname,
-    comments: comments,
-    intelligence: intelligence,
-    ai: ai,
     associatedEntities: entities,
     entities: entities,
-    timeline: timeline,
-    historic: apiData.historic || []
+    comments: [],
+    intelligence: [],
+    ai: [],
+    timeline: [],
+    historic: []
   }
 }
 
-// 提取HTML标签和实体字符的工具函数
 const stripHtmlAndEntities = (html) => {
   if (typeof html !== 'string') return String(html || '')
   return html
@@ -1025,10 +1023,8 @@ const findInvestigationContent = () => {
   return stripHtmlAndEntities(firstContent)
 }
 
-// 记录是否已因 AI Investigation 自动展开过，避免重复展开
 const hasAutoOpenedAiSidebar = ref(false)
 
-// 打开AI侧边栏并设置investigation内容
 const openAISidebarWithInvestigation = async () => {
   if (!alert.value) return
   const investigationContent = findInvestigationContent()
@@ -1036,6 +1032,43 @@ const openAISidebarWithInvestigation = async () => {
   showFindingSummary.value = !!investigationContent
   showAISidebar.value = true
   await nextTick()
+}
+
+const loadAlertCommentsExtension = async () => {
+  if (!currentAlertId.value) return
+  
+  isLoadingExtension.value = true
+  try {
+    const response = await getAlertCommentsExtension(currentAlertId.value, props.workspace)
+    const extensionData = response.data
+    
+    if (extensionData && alert.value) {
+      if (extensionData.comments) {
+        alert.value.comments = extensionData.comments.map(transformComment)
+      }
+      
+      if (extensionData.timeline) {
+        alert.value.timeline = extensionData.timeline.map(transformTimeline)
+      }
+      
+      if (extensionData.intelligence) {
+        alert.value.intelligence = extensionData.intelligence.map(transformIntelligence)
+      }
+      
+      if (extensionData.ai) {
+        alert.value.ai = extensionData.ai.map(transformAI)
+      }
+      
+      if (extensionData.historic) {
+        alert.value.historic = extensionData.historic
+        loadAssociatedAlerts()
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load alert comments extension:', error)
+  } finally {
+    isLoadingExtension.value = false
+  }
 }
 
 const loadAlertDetail = async (showLoading = true) => {
@@ -1049,28 +1082,52 @@ const loadAlertDetail = async (showLoading = true) => {
   await new Promise(resolve => setTimeout(resolve, 50))
   
   try {
-    const [detailResponse, relationsResponse] = await Promise.allSettled([
-      getAlertDetail(currentAlertId.value, props.workspace),
-      getAlertRelations(currentAlertId.value, props.workspace)
-    ])
+    const detailPromise = getAlertDetail(currentAlertId.value, props.workspace)
+    const extensionPromise = getAlertCommentsExtension(currentAlertId.value, props.workspace)
+    const relationsPromise = getAlertRelations(currentAlertId.value, props.workspace)
     
-    // 处理告警详情响应
-    if (detailResponse.status === 'fulfilled') {
-      alert.value = transformAlertDetailData(detailResponse.value.data)
-      loadAssociatedAlerts()
-    } else {
-      throw detailResponse.reason
-    }
+    isLoadingExtension.value = true
+    const detailResponse = await detailPromise
+    alert.value = transformAlertDetailData(detailResponse.data)
     
-    // 处理关系响应（即使失败也不影响主流程）
-    if (relationsResponse.status === 'fulfilled') {
-      relatedIncidentId.value = relationsResponse.value.data?.incident_id || null
-    } else {
-      console.error('Failed to load alert relations:', relationsResponse.reason)
-      relatedIncidentId.value = null
-    }
+    extensionPromise
+      .then(response => {
+        const extensionData = response.data
+        if (extensionData && alert.value) {
+          if (extensionData.comments) {
+            alert.value.comments = extensionData.comments.map(transformComment)
+          }
+          if (extensionData.timeline) {
+            alert.value.timeline = extensionData.timeline.map(transformTimeline)
+          }
+          if (extensionData.intelligence) {
+            alert.value.intelligence = extensionData.intelligence.map(transformIntelligence)
+          }
+          if (extensionData.ai) {
+            alert.value.ai = extensionData.ai.map(transformAI)
+          }
+          if (extensionData.historic) {
+            alert.value.historic = extensionData.historic
+            loadAssociatedAlerts()
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load alert comments extension:', error)
+      })
+      .finally(() => {
+        isLoadingExtension.value = false
+      })
     
-    // 重置自动展开标记，交由 watcher 根据 AI Investigation 决定是否展开
+    relationsPromise
+      .then(response => {
+        relatedIncidentId.value = response.data?.incident_id || null
+      })
+      .catch(error => {
+        console.error('Failed to load alert relations:', error)
+        relatedIncidentId.value = null
+      })
+    
     hasAutoOpenedAiSidebar.value = false
   } catch (error) {
     console.error('Failed to load alert detail:', error)
@@ -1416,7 +1473,7 @@ const handleAddComment = async ({ comment, files }) => {
   try {
     await postComment(currentAlertId.value, commentText, files || [])
     newComment.value = ''
-    await loadAlertDetail(false)
+    await loadAlertCommentsExtension()
     toast.success(t('alerts.detail.comments.postSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
@@ -1572,7 +1629,6 @@ const isFieldMatchedWithEntity = (key, value) => {
   })
 }
 
-// 向AI侧边栏发送消息的通用函数
 const sendMessageToAISidebar = (message) => {
   if (!message) return
   showAISidebar.value = true
@@ -1639,13 +1695,8 @@ const handleAIOpenInNew = () => {
   }
 }
 
-const handleAISendMessage = (message) => {
-  // AI消息发送由AISidebar组件内部处理
-}
-
-const handleAIToolAction = (tool) => {
-  // 工具操作由AISidebar组件内部处理
-}
+const handleAISendMessage = () => {}
+const handleAIToolAction = () => {}
 
 const handleOpenAiPlayground = () => {
   if (!currentAlertId.value) return
@@ -1673,7 +1724,6 @@ const handleShare = async () => {
     showShareSuccessMessage()
   } catch (err) {
     console.error('Failed to copy to clipboard:', err)
-    // 降级方案：使用传统方法
     const textArea = document.createElement('textarea')
     Object.assign(textArea.style, {
       position: 'fixed',
@@ -1744,7 +1794,7 @@ watch(currentAlertId, async (newId, oldId) => {
 }, { immediate: true })
 
 watch(activeTab, (newTab) => {
-  if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value) {
+  if (newTab === 'associatedAlerts' && associatedAlerts.value.length === 0 && !loadingAssociatedAlerts.value && alert.value?.historic) {
     loadAssociatedAlerts()
   }
 })
@@ -1758,7 +1808,6 @@ const handleClickOutside = (event) => {
   }
 }
 
-// 监听 AI 数据，满足触发条件时自动展开 AI 侧边栏
 watch(
   () => alert.value?.ai,
   async (newAi) => {
@@ -1766,7 +1815,6 @@ watch(
     const investigationContent = findInvestigationContent()
     const hasAnyAi = Array.isArray(newAi) && newAi.length > 0
 
-    // 触发条件：有 investigation 文本，或至少有一条 AI 消息
     if (investigationContent || hasAnyAi) {
       hasAutoOpenedAiSidebar.value = true
       await openAISidebarWithInvestigation()
@@ -1775,7 +1823,6 @@ watch(
   { deep: true }
 )
 
-// 当 alert 变化时，重置自动展开标记
 watch(
   () => alert.value?.id,
   () => {
@@ -1820,14 +1867,11 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-/* 自定义滚动条样式 */
 .custom-scrollbar {
-  /* Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
 }
 
-/* WebKit 浏览器 (Chrome, Safari, Edge) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -1846,7 +1890,6 @@ onUnmounted(() => {
   background-color: rgba(59, 130, 246, 0.5);
 }
 
-/* 拖拽区域动画 */
 @keyframes dragPulse {
   0%, 100% {
     opacity: 1;

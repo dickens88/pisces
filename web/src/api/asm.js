@@ -216,6 +216,20 @@ export const getASMDetail = (id) => {
   })
 }
 
+/**
+ * @brief 获取ASM漏洞扩展数据（评论和时间线等）
+ * @param {string|number} id - 告警ID
+ * @returns {Promise} 返回ASM漏洞扩展数据（评论、时间线等）
+ */
+export const getASMCommentsExtension = (id) => {
+  return service.get(`/alerts/${id}`, {
+    params: {
+      action: 'comments_extension',
+      workspace: 'asm'
+    }
+  })
+}
+
 // 关闭单个告警
 export const closeASMItem = (alertId, params) => {
   // 将 category 映射到 close_reason

@@ -210,14 +210,29 @@ export const getAlerts = async (params = {}) => {
 }
 
 /**
- * @brief 获取告警详情
+ * @brief 获取告警详情（描述和entities部分）
  * @param {string|number} id - 告警ID
  * @param {string} [workspace] - 可选 workspace 标识，例如 'asm'
- * @returns {Promise} 返回告警详情数据
+ * @returns {Promise} 返回告警详情数据（描述和entities）
  */
 export const getAlertDetail = (id, workspace) => {
   // 如果传入 workspace，则在路径后追加 query 参数，仅在特定场景（如 ASM 漏洞详情页）使用
   const url = workspace ? `/alerts/${id}?workspace=${workspace}` : `/alerts/${id}`
+  return service.get(url)
+}
+
+/**
+ * @brief 获取告警扩展数据（评论和时间线等）
+ * @param {string|number} id - 告警ID
+ * @param {string} [workspace] - 可选 workspace 标识，例如 'asm'
+ * @returns {Promise} 返回告警扩展数据（评论、时间线等）
+ */
+export const getAlertCommentsExtension = (id, workspace) => {
+  // 构建URL，添加 action=comments_extension 参数
+  let url = `/alerts/${id}?action=comments_extension`
+  if (workspace) {
+    url += `&workspace=${workspace}`
+  }
   return service.get(url)
 }
 

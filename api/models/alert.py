@@ -1,11 +1,13 @@
 import json
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP, Boolean
+from typing import List, Tuple
+from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP, Boolean, or_
 from sqlalchemy.sql import func
 
 from controllers.ai_decision_service import AiDecisionService
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
+from utils.common_utils import parse_datetime_with_timezone, format_utc_datetime_to_db_string
 
 
 class Alert(Base):
@@ -28,23 +30,17 @@ class Alert(Base):
     creator = Column(Text())
     actor = Column(Text())
 
-    close_reason = Column(Enum('False detection', 'Resolved', 'Repeated', 'Other', name='close_reason_enum'))
+    close_reason = Column()
     close_comment = Column(Text())
 
     is_auto_closed = Column(String(50))
-
     data_source_product_name = Column(Text())
-
     model_name = Column(String(50))
-
     is_ai_decision_correct = Column(String(10), default = None)
-
     tta = Column(Integer(), default=0)
 
     verification_state = Column(String(50))
     ipdrr_phase = Column(String(100))
-
-    agent_name = Column(String(100))
 
     def to_dict(self):
         return {
@@ -63,10 +59,11 @@ class Alert(Base):
             "close_comment": self.close_comment,
             "is_auto_closed": self.is_auto_closed,
             "data_source_product_name": self.data_source_product_name,
+            "model_name": self.model_name,
+            "is_ai_decision_correct": self.is_ai_decision_correct,
             "tta": self.tta,
             "verification_state": self.verification_state,
             "ipdrr_phase": self.ipdrr_phase,
-            "agent_name": self.agent_name
         }
 
     @classmethod
@@ -82,26 +79,8 @@ class Alert(Base):
             new_alert_entity = cls._build_alert_entity(payload)
             
             if alert:
-                # Update existing record
-                alert.create_time = new_alert_entity.create_time
-                alert.close_time = new_alert_entity.close_time
-                alert.title = new_alert_entity.title
-                alert.description = new_alert_entity.description
-                alert.severity = new_alert_entity.severity
-                alert.handle_status = new_alert_entity.handle_status
-                alert.owner = new_alert_entity.owner
-                alert.creator = new_alert_entity.creator
-                alert.actor = new_alert_entity.actor
-                alert.close_reason = new_alert_entity.close_reason
-                alert.close_comment = new_alert_entity.close_comment
-                alert.is_auto_closed = new_alert_entity.is_auto_closed
-                alert.data_source_product_name = new_alert_entity.data_source_product_name
-                alert.model_name = new_alert_entity.model_name
-                alert.is_ai_decision_correct = new_alert_entity.is_ai_decision_correct
-                alert.tta = new_alert_entity.tta
-                alert.verification_state = new_alert_entity.verification_state
-                alert.ipdrr_phase = new_alert_entity.ipdrr_phase
-                alert.agent_name = new_alert_entity.agent_name
+                for column in cls.__table__.columns:
+                    setattr(alert, column.name, getattr(new_alert_entity, column.name))
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -144,6 +123,85 @@ class Alert(Base):
             session.close()
 
     @classmethod
+    def list_alerts(cls, conditions: List = None, limit: int = 50, offset: int = 0, 
+                    start_time: str = None, end_time: str = None) -> Tuple[List[dict], int]:
+
+        session = Session()
+        try:
+            query = session.query(cls)
+
+            # Parse and normalize time strings to UTC format for comparison
+            if start_time:
+                start_dt = parse_datetime_with_timezone(start_time)
+                if start_dt:
+                    start_time_str = format_utc_datetime_to_db_string(start_dt)
+                    query = query.filter(cls.create_time >= start_time_str)
+            if end_time:
+                end_dt = parse_datetime_with_timezone(end_time)
+                if end_dt:
+                    end_time_str = format_utc_datetime_to_db_string(end_dt)
+                    query = query.filter(cls.create_time <= end_time_str)
+
+            # Apply conditions
+            for cond in conditions or []:
+                if not isinstance(cond, dict):
+                    continue
+                for key, value in cond.items():
+                    if value is None:
+                        continue
+                    val_str = str(value)
+                    key_lower = key.lower()
+                    if key_lower == 'title':
+                        query = query.filter(cls.title.ilike(f"%{val_str}%"))
+                    elif key_lower == 'creator':
+                        query = query.filter(cls.creator.ilike(f"%{val_str}%"))
+                    elif key_lower == 'actor':
+                        query = query.filter(cls.actor.ilike(f"%{val_str}%"))
+                    elif key_lower in ('model', 'model_name'):
+                        query = query.filter(cls.model_name == val_str)
+                    elif key_lower in ('handle_status', 'status'):
+                        query = query.filter(cls.handle_status == val_str)
+                    elif key_lower == 'severity':
+                        query = query.filter(cls.severity == val_str)
+                    elif key_lower == 'id':
+                        query = query.filter(cls.alert_id == val_str)
+                    elif key_lower == 'verification_state':
+                        query = query.filter(cls.verification_state == val_str)
+                    elif key_lower == 'verification_state!=':
+                        query = query.filter(cls.verification_state != val_str)
+                    elif key_lower == 'ipdrr_phase':
+                        query = query.filter(cls.ipdrr_phase == val_str)
+                    elif key_lower == 'is_ai_decision_correct':
+                        if val_str == '':
+                            query = query.filter(
+                                or_(
+                                    cls.is_ai_decision_correct == None,
+                                    cls.is_ai_decision_correct == ''
+                                )
+                            )
+                        else:
+                            query = query.filter(cls.is_ai_decision_correct == val_str)
+                    elif key_lower == 'close_reason':
+                        query = query.filter(cls.close_reason == val_str)
+
+            total = query.count()
+            rows = (
+                query
+                .order_by(cls.create_time.desc())
+                .offset(offset)
+                .limit(limit)
+                .all()
+            )
+
+            result = [item.to_dict() for item in rows]
+            return result, total
+        except Exception as ex:
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
+    @classmethod
     def delete_alerts(cls, alert_ids):
         """Delete alerts from local DB by their alert_ids."""
         if not alert_ids:
@@ -154,27 +212,6 @@ class Alert(Base):
             session.commit()
             logger.debug("Deleted %s alerts from local DB", deleted)
             return deleted
-        except Exception as ex:
-            session.rollback()
-            logger.exception(ex)
-            raise
-        finally:
-            session.close()
-
-    @classmethod
-    def update_agent_name(cls, alert_id: str, agent_name: str):
-        """Update agent_name for an alert by alert_id."""
-        session = Session()
-        try:
-            alert = session.query(cls).filter_by(alert_id=alert_id).first()
-            if alert:
-                alert.agent_name = agent_name
-                session.commit()
-                logger.debug(f"Updated agent_name for alert_id={alert_id}: {agent_name}")
-                return True
-            else:
-                logger.warning(f"Alert not found for alert_id={alert_id}, cannot update agent_name")
-                return False
         except Exception as ex:
             session.rollback()
             logger.exception(ex)
@@ -253,5 +290,4 @@ class Alert(Base):
             tta=tta,
             verification_state=payload.get("verification_state"),
             ipdrr_phase=payload.get("ipdrr_phase"),
-            agent_name=payload.get("agent_name"),
         )
