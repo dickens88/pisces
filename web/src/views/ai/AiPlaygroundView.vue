@@ -365,6 +365,13 @@
               </template>
             </div>
           </template>
+          <template #cell-agentName="{ item }">
+            <div class="flex items-center justify-center">
+              <span class="text-sm text-gray-900 dark:text-white">
+                {{ item.agent_name || '-' }}
+              </span>
+            </div>
+          </template>
         </DataTable>
       </div>
 
@@ -1169,7 +1176,8 @@ const columns = computed(() => [
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'humanVerdict', label: t('aiPlayground.humanVerdict') },
-  { key: 'match', label: t('aiPlayground.match') }
+  { key: 'match', label: t('aiPlayground.match') },
+  { key: 'agentName', label: 'Agent Name' }
 ])
 
 const defaultWidths = {
@@ -1178,7 +1186,8 @@ const defaultWidths = {
   riskLevel: 120,
   aiJudge: 120,
   humanVerdict: 150,
-  match: 120
+  match: 120,
+  agentName: 150
 }
 
 const searchFields = computed(() => [

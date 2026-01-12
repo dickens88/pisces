@@ -44,6 +44,8 @@ class Alert(Base):
     verification_state = Column(String(50))
     ipdrr_phase = Column(String(100))
 
+    agent_name = Column(String(100))
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -64,6 +66,7 @@ class Alert(Base):
             "tta": self.tta,
             "verification_state": self.verification_state,
             "ipdrr_phase": self.ipdrr_phase,
+            "agent_name": self.agent_name
         }
 
     @classmethod
@@ -98,6 +101,7 @@ class Alert(Base):
                 alert.tta = new_alert_entity.tta
                 alert.verification_state = new_alert_entity.verification_state
                 alert.ipdrr_phase = new_alert_entity.ipdrr_phase
+                alert.agent_name = new_alert_entity.agent_name
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -150,6 +154,27 @@ class Alert(Base):
             session.commit()
             logger.debug("Deleted %s alerts from local DB", deleted)
             return deleted
+        except Exception as ex:
+            session.rollback()
+            logger.exception(ex)
+            raise
+        finally:
+            session.close()
+
+    @classmethod
+    def update_agent_name(cls, alert_id: str, agent_name: str):
+        """Update agent_name for an alert by alert_id."""
+        session = Session()
+        try:
+            alert = session.query(cls).filter_by(alert_id=alert_id).first()
+            if alert:
+                alert.agent_name = agent_name
+                session.commit()
+                logger.debug(f"Updated agent_name for alert_id={alert_id}: {agent_name}")
+                return True
+            else:
+                logger.warning(f"Alert not found for alert_id={alert_id}, cannot update agent_name")
+                return False
         except Exception as ex:
             session.rollback()
             logger.exception(ex)
@@ -228,4 +253,5 @@ class Alert(Base):
             tta=tta,
             verification_state=payload.get("verification_state"),
             ipdrr_phase=payload.get("ipdrr_phase"),
+            agent_name=payload.get("agent_name"),
         )
