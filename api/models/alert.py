@@ -80,7 +80,8 @@ class Alert(Base):
             
             if alert:
                 for column in cls.__table__.columns:
-                    setattr(alert, column.name, getattr(new_alert_entity, column.name))
+                    if column.name not in ('id', 'last_update_time'):
+                        setattr(alert, column.name, getattr(new_alert_entity, column.name))
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
