@@ -655,19 +655,6 @@
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
                   
                   <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <!-- Inputs for Current Run -->
-                    <div class="flex flex-col gap-2">
-                      <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.inputsForCurrentRun') || 'Inputs for Current Run' }}</h5>
-                      <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">{{ $t('aiPlayground.retrievalTest.allInputsIncluded') || 'All inputs from the left panel are included for AI analysis.' }}</p>
-                      <div class="bg-gray-100 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 min-h-[80px] flex items-center justify-center">
-                          <div class="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            <div class="mb-1">{{ $t('alerts.detail.id') }}: {{ alertId }}</div>
-                            <div class="mb-1">{{ $t('alerts.list.alertTitle') }}: {{ alertSubject }}</div>
-                            <div>{{ $t('alerts.detail.alertContent') }}: Included</div>
-                          </div>
-                      </div>
-                    </div>
-
                     <!-- Model Selection -->
                     <div class="flex flex-col gap-2">
                       <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.modelSelection') || 'Model Selection' }}</label>
