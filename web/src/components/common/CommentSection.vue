@@ -30,39 +30,33 @@
         <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
-              <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
-               <div class="flex items-center gap-2 mt-0.5">
-                 <p class="text-xs text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
-                 <template v-if="comment.type">
-                   <span class="h-3 w-px bg-gray-300 dark:bg-gray-600"></span>
-                   <span class="text-xs text-gray-500 dark:text-slate-400">{{ $t('common.action') }}:</span>
-                   <span
-                     :class="[
-                       'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
-                       getActionTypeClass(comment.type)
-                     ]"
-                   >
-                     {{ getActionTypeLabel(comment.type) }}
-                   </span>
-                 </template>
-               </div>
+              <div class="flex items-center justify-between gap-2">
+                <p class="font-semibold text-gray-900 dark:text-white">{{ comment.author }}</p>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <template v-if="comment.type">
+                    <span class="text-xs text-gray-500 dark:text-slate-400">{{ $t('common.action') }}:</span>
+                    <span
+                      :class="[
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+                        getActionTypeClass(comment.type)
+                      ]"
+                    >
+                      {{ getActionTypeLabel(comment.type) }}
+                    </span>
+                    <span class="h-3 w-px bg-gray-300 dark:bg-gray-600"></span>
+                  </template>
+                  <p class="text-xs text-gray-500 dark:text-slate-400">{{ comment.time }}</p>
+                </div>
+              </div>
             </div>
-            <!-- 编辑和删除按钮 -->
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-              <button
-                v-if="existsInDatabase(comment)"
-                @click="handleEditComment(comment)"
-                class="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                :title="$t('incidents.detail.comments.editComment')"
-              >
-                <span class="material-symbols-outlined text-sm">edit</span>
-              </button>
+            <!-- 删除按钮（仅作者可见） -->
+            <div v-if="isCommentAuthor(comment)" class="hidden group-hover:flex items-center ml-2">
               <button
                 @click="handleDeleteComment(comment)"
-                class="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                class="p-0 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                 :title="existsInDatabase(comment) ? $t('incidents.detail.comments.deleteComment') : $t('incidents.detail.comments.removeComment')"
               >
-                <span class="material-symbols-outlined text-sm">delete</span>
+                <span class="material-symbols-outlined text-sm leading-none">delete</span>
               </button>
             </div>
           </div>
@@ -203,6 +197,67 @@
         </div>
       </div>
     </div>
+
+    <!-- 删除评论确认对话框 -->
+    <div
+      v-if="showDeleteCommentDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="closeDeleteCommentDialog"
+    >
+      <div class="bg-[#111822] border border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-white">
+            {{ $t('incidents.detail.comments.deleteDialog.title') }}
+          </h2>
+          <button
+            @click="closeDeleteCommentDialog"
+            class="text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-400">
+            {{ deletingComment && existsInDatabase(deletingComment) ? $t('incidents.detail.comments.confirmDeleteMessage') : $t('incidents.detail.comments.confirmRemoveMessage') }}
+          </p>
+        </div>
+
+        <!-- Confirmation input -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-white mb-2">
+            {{ $t('incidents.detail.comments.deleteDialog.confirmInputLabel') }}
+          </label>
+          <input
+            v-model="deleteConfirmInput"
+            @keydown.enter.prevent="confirmDeleteComment"
+            type="text"
+            class="w-full bg-[#1e293b] text-white border border-[#324867] rounded-md px-4 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+            :placeholder="$t('incidents.detail.comments.deleteDialog.confirmInputPlaceholder')"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="closeDeleteCommentDialog"
+            class="px-4 py-2 text-sm text-gray-400 bg-[#1e293b] rounded-md hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="confirmDeleteComment"
+            :disabled="!isDeleteConfirmValid || isDeletingComment"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isDeletingComment" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -248,7 +303,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['submit', 'update', 'delete', 'remove'])
+const emit = defineEmits(['submit', 'update', 'delete'])
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -260,6 +315,12 @@ const editingComment = ref(null)
 const editCommentText = ref('')
 const editCommentType = ref('comment')
 const savingEdit = ref(false)
+
+// 删除相关状态
+const showDeleteCommentDialog = ref(false)
+const deleteConfirmInput = ref('')
+const deletingComment = ref(null)
+const isDeletingComment = ref(false)
 
 // 评论类型选项
 const commentTypeOptions = computed(() => [
@@ -345,6 +406,15 @@ const currentUserName = computed(() => {
   if (!user) return ''
   return user.username
 })
+
+// 检查当前用户是否是评论作者
+const isCommentAuthor = (comment) => {
+  if (!comment || !comment.author) return false
+  const currentUser = currentUserName.value
+  if (!currentUser) return false
+  // 比较用户名（不区分大小写）
+  return currentUser.toLowerCase() === comment.author.toLowerCase()
+}
 
 onMounted(() => {
   // 确保已获取到当前用户信息（内部有缓存，不会重复请求）
@@ -492,34 +562,54 @@ const saveEdit = async () => {
   }
 }
 
-// 处理删除评论
-const handleDeleteComment = async (comment) => {
-  // 如果评论不存在于数据库中，直接从前端移除
-  if (!existsInDatabase(comment)) {
-    if (!confirm(t('incidents.detail.comments.confirmRemoveMessage') || '确定要从列表中移除这条评论吗？')) {
-      return
-    }
-    // 通过 emit 传递移除事件（不调用后端API）
-    emit('remove', {
-      commentId: comment.id || comment.comment_id
-    })
+// 删除确认验证
+const isDeleteConfirmValid = computed(() => {
+  return deleteConfirmInput.value.toLowerCase() === 'delete'
+})
+
+// 打开删除确认对话框
+const openDeleteCommentDialog = (comment) => {
+  deletingComment.value = comment
+  showDeleteCommentDialog.value = true
+  deleteConfirmInput.value = ''
+}
+
+// 关闭删除确认对话框
+const closeDeleteCommentDialog = () => {
+  showDeleteCommentDialog.value = false
+  deleteConfirmInput.value = ''
+  deletingComment.value = null
+}
+
+// 确认删除评论
+const confirmDeleteComment = async () => {
+  if (!isDeleteConfirmValid.value || isDeletingComment.value || !deletingComment.value) {
     return
   }
 
-  // 评论存在于数据库中，需要调用后端API删除
-  if (!confirm(t('incidents.detail.comments.confirmDeleteMessage'))) {
-    return
-  }
+  const comment = deletingComment.value
+  isDeletingComment.value = true
 
   try {
-    // 通过 emit 传递删除事件，由父组件处理
+    const existsInDb = existsInDatabase(comment)
+    // 统一使用 delete 事件，包含评论信息和是否存在于数据库的标志
     emit('delete', {
-      commentId: comment.id || comment.comment_id
+      commentId: comment.id || comment.comment_id,
+      comment: comment,
+      existsInDatabase: existsInDb
     })
+    closeDeleteCommentDialog()
   } catch (error) {
     console.error('Failed to delete comment:', error)
-    toast.error(t('incidents.detail.comments.deleteError'), 'ERROR')
+    toast.error(t('incidents.detail.comments.deleteError') || '评论删除失败，请稍后重试', 'ERROR')
+  } finally {
+    isDeletingComment.value = false
   }
+}
+
+// 处理删除评论（打开确认对话框）
+const handleDeleteComment = (comment) => {
+  openDeleteCommentDialog(comment)
 }
 
 // 暴露清空方法

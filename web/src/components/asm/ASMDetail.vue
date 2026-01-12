@@ -268,6 +268,7 @@
                     use-avatar-component
                     :loading="isSubmittingComment"
                     @submit="handleAddComment"
+                    @delete="handleDeleteComment"
                   />
                   
                   <!-- 分割线 -->
@@ -684,7 +685,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter, useRoute } from 'vue-router'
 import { getASMDetail, getASMCommentsExtension, openASMItem, closeASMItem } from '@/api/asm'
-import { postComment } from '@/api/comments'
+import { postComment, deleteComment } from '@/api/comments'
 import { getToolkits, getToolkitRecords, executeToolkit } from '@/api/toolkits'
 import EditAlertDialog from '@/components/alerts/EditAlertDialog.vue'
 import CreateVulnerabilityDialog from '@/components/vulnerabilities/CreateVulnerabilityDialog.vue'
@@ -1526,6 +1527,38 @@ const handleAddComment = async ({ comment, files }) => {
     toast.error(errorMessage, 'ERROR')
   } finally {
     isSubmittingComment.value = false
+  }
+}
+
+// 处理删除评论（统一处理，根据 existsInDatabase 标志决定是否调用API）
+const handleDeleteComment = async ({ commentId, existsInDatabase }) => {
+  // 如果评论不存在于数据库中，直接从前端移除
+  if (!existsInDatabase) {
+    if (!alert.value?.comments) {
+      return
+    }
+    alert.value.comments = alert.value.comments.filter(
+      comment => (comment.id || comment.comment_id) !== commentId
+    )
+    toast.success(t('alerts.detail.comments.removeSuccess') || '评论已从列表中移除', 'SUCCESS')
+    return
+  }
+
+  // 评论存在于数据库中，需要调用后端API删除
+  if (!currentAlertId.value) {
+    toast.error(t('alerts.detail.comments.deleteError') || '无法删除评论：告警ID不存在', 'ERROR')
+    return
+  }
+  
+  try {
+    await deleteComment(currentAlertId.value, commentId)
+    // 重新加载扩展数据（评论部分）
+    await loadASMCommentsExtension()
+    toast.success(t('alerts.detail.comments.deleteSuccess') || '评论删除成功', 'SUCCESS')
+  } catch (error) {
+    console.error('Failed to delete comment:', error)
+    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('alerts.detail.comments.deleteError') || '评论删除失败，请稍后重试'
+    toast.error(errorMessage, 'ERROR')
   }
 }
 

@@ -26,5 +26,5 @@ CREATE TABLE IF NOT EXISTS `t_impacted_services` (
   KEY `idx_incident_id` (`incident_id`),
   KEY `idx_type` (`type`),
   KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='影响服务和事件简报统一表';
+) ENGINE=InnoDB COMMENT='影响服务和事件简报统一表';
 

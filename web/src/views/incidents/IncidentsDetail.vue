@@ -1894,7 +1894,6 @@
               @submit="handlePostComment"
               @update="handleUpdateComment"
               @delete="handleDeleteComment"
-              @remove="handleRemoveComment"
             />
           </div>
         </div>
@@ -5250,7 +5249,21 @@ const handleUpdateComment = async ({ commentId, comment, commentType }) => {
   }
 }
 
-const handleDeleteComment = async ({ commentId }) => {
+// 处理删除评论（统一处理，根据 existsInDatabase 标志决定是否调用API）
+const handleDeleteComment = async ({ commentId, existsInDatabase }) => {
+  // 如果评论不存在于数据库中，直接从前端移除
+  if (!existsInDatabase) {
+    if (!incident.value?.comments) {
+      return
+    }
+    incident.value.comments = incident.value.comments.filter(
+      comment => (comment.id || comment.comment_id) !== commentId
+    )
+    toast.success(t('incidents.detail.comments.removeSuccess') || '评论已从列表中移除', 'SUCCESS')
+    return
+  }
+
+  // 评论存在于数据库中，需要调用后端API删除
   if (!incident.value?.id) {
     toast.error(t('incidents.detail.comments.deleteError') || 'Failed to delete comment: Incident ID does not exist', 'ERROR')
     return
@@ -5269,20 +5282,6 @@ const handleDeleteComment = async ({ commentId }) => {
     const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('incidents.detail.comments.deleteError') || 'Failed to delete comment, please try again later'
     toast.error(errorMessage, 'ERROR')
   }
-}
-
-// 处理移除不存在于数据库的评论（仅从前端移除，不调用后端API）
-const handleRemoveComment = ({ commentId }) => {
-  if (!incident.value?.comments) {
-    return
-  }
-  
-  // 从前端评论列表中移除该评论
-  incident.value.comments = incident.value.comments.filter(
-    comment => (comment.id || comment.comment_id) !== commentId
-  )
-  
-  toast.success(t('incidents.detail.comments.removeSuccess') || '评论已从列表中移除', 'SUCCESS')
 }
 
 const sanitizeHtml = (html) => {
