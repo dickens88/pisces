@@ -22,6 +22,7 @@ CREATE TABLE `t_alerts` (
   `is_ai_decision_correct` varchar(10) DEFAULT NULL COMMENT 'AI决策正确性：TT(真阳性), FP(假阳性), FN(假阴性)',
   `tta` int DEFAULT 0 COMMENT 'Time To Acknowledge (seconds)',
   `verification_state` varchar(50) DEFAULT NULL COMMENT 'AI研判结果：True_Positive(可疑), False_Positive(误报), Unknown(未知)',
+  `ipdrr_phase` varchar(100) DEFAULT NULL COMMENT 'IPDRR阶段/处置状态',
   PRIMARY KEY (`id`),
   UNIQUE KEY `alert_id_UNIQUE` (`alert_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2002 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='告警表';

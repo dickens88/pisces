@@ -42,6 +42,7 @@ class Alert(Base):
     tta = Column(Integer(), default=0)
 
     verification_state = Column(String(50))
+    ipdrr_phase = Column(String(100))
 
     def to_dict(self):
         return {
@@ -61,7 +62,8 @@ class Alert(Base):
             "is_auto_closed": self.is_auto_closed,
             "data_source_product_name": self.data_source_product_name,
             "tta": self.tta,
-            "verification_state": self.verification_state
+            "verification_state": self.verification_state,
+            "ipdrr_phase": self.ipdrr_phase,
         }
 
     @classmethod
@@ -95,6 +97,7 @@ class Alert(Base):
                 alert.is_ai_decision_correct = new_alert_entity.is_ai_decision_correct
                 alert.tta = new_alert_entity.tta
                 alert.verification_state = new_alert_entity.verification_state
+                alert.ipdrr_phase = new_alert_entity.ipdrr_phase
                 logger.debug(f"Updating alert in local DB: alert_id={alert_id}")
             else:
                 # Create new record
@@ -224,4 +227,5 @@ class Alert(Base):
             is_ai_decision_correct = is_ai_decision_correct,
             tta=tta,
             verification_state=payload.get("verification_state"),
+            ipdrr_phase=payload.get("ipdrr_phase"),
         )

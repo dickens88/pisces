@@ -129,6 +129,8 @@ class AlertService:
                     elif key_lower == 'verification_state!=':
                         # Support != condition for verification_state
                         query = query.filter(Alert.verification_state != val_str)
+                    elif key_lower == 'ipdrr_phase':
+                        query = query.filter(Alert.ipdrr_phase == val_str)
                     elif key_lower == 'is_ai_decision_correct':
                         if val_str == '':
                             query = query.filter(
@@ -172,6 +174,7 @@ class AlertService:
                     "is_ai_decision_correct": item.is_ai_decision_correct,
                     "tta": item.tta,
                     "verification_state": item.verification_state,
+                    "ipdrr_phase": item.ipdrr_phase,
                 })
 
             return result, total
