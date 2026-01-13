@@ -60,3 +60,16 @@ export const deleteComment = (eventId, commentId) => {
   return service.delete(url)
 }
 
+/**
+ * @brief 获取评论列表
+ * @param {string|number} eventId - 事件ID或告警ID
+ * @param {string} workspace - 工作空间（可选，如 'asm'）
+ * @returns {Promise} 返回评论列表
+ */
+export const getComments = (eventId, workspace = null) => {
+  const url = workspace
+    ? `/comments/${eventId}?workspace=${encodeURIComponent(workspace)}`
+    : `/comments/${eventId}`
+  return service.get(url)
+}
+

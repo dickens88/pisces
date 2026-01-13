@@ -30,17 +30,17 @@ class CommentService:
         return json.loads(resp.text)
 
     @staticmethod
-    def _map_comment_type_to_note_type(comment_type):
+    def _normalize_note_type(note_type):
         """
-        将评论类型映射到云脑的note_type
+        将外部 note_type（或旧 comment_type）归一化到云脑的 note_type
         
         Args:
-            comment_type: 评论类型 (comment, attackTracing, attackBlocking, riskMitigation, vulnerabilityIdentification)
+            note_type: 动作类型 (comment, attackTracing, attackBlocking, riskMitigation, vulnerabilityIdentification)
             
         Returns:
             str: 对应的note_type
         """
-        if not comment_type:
+        if not note_type:
             return "pisces"
         
         # 映射关系：支持多种格式输入，统一映射到云脑的note_type格式
@@ -53,11 +53,11 @@ class CommentService:
             "vulnerabilityIdentification": "vulnerabilityIdentification"
         }
         
-        if comment_type in direct_mapping:
-            return direct_mapping[comment_type]
+        if note_type in direct_mapping:
+            return direct_mapping[note_type]
         
         # 统一转换为小写并移除下划线和连字符进行比较
-        normalized_type = comment_type.lower().replace("_", "").replace("-", "")
+        normalized_type = note_type.lower().replace("_", "").replace("-", "")
         
         # 标准化映射关系
         type_mapping = {
@@ -68,18 +68,18 @@ class CommentService:
             "vulnerabilityidentification": "vulnerabilityIdentification"
         }
         
-        return type_mapping.get(normalized_type, comment_type)
+        return type_mapping.get(normalized_type, note_type)
 
     @classmethod
-    def create_comment(cls, event_id, comment, owner, workspace_id=None, comment_type='comment'):
+    def create_comment(cls, event_id, comment, owner, workspace_id=None, note_type='comment'):
         ws_id = workspace_id or cls.workspace_id
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         comment_content = f"【@{owner}】: {comment}"
         
-        # 根据comment_type映射到对应的note_type
-        note_type = cls._map_comment_type_to_note_type(comment_type)
+        # 归一化 note_type
+        note_type = cls._normalize_note_type(note_type)
         
         body = {
             "type": "textMessage",

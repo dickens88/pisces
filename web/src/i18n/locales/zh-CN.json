@@ -17,7 +17,7 @@
     "noComments": "暂无评论",
     "addComment": "请输入文本，可以按crtl+v粘贴图片...",
     "commentTypes": {
-      "label": "评论类型",
+      "label": "动作",
       "comment": "评论",
       "attackTracing": "攻击溯源",
       "attackBlocking": "攻击拦截",
