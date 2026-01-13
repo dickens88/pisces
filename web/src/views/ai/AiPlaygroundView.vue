@@ -750,8 +750,11 @@
                           finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
                         ]"
                       >
-                      <!-- Alert Drawer Header -->
-                      <div class="p-4 border-b border-gray-200 dark:border-[#324867]">
+                      <!-- Alert Drawer Header (clickable to expand/collapse) -->
+                      <div 
+                        class="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#192233] transition-colors"
+                        @click="toggleFinetuneAlertDrawer(getAlertId(alertData?.alert) || alertData?.alertId)"
+                      >
                         <div class="flex items-center justify-between gap-3 mb-3">
                           <div class="flex-1 min-w-0">
                             <h5 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
@@ -761,10 +764,16 @@
                               {{ alertData?.alert?.title || '' }}
                             </p>
                           </div>
+                          <span
+                            class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
+                            :class="alertData.finetuneExpanded ? 'rotate-180' : ''"
+                          >
+                            expand_more
+                          </span>
                         </div>
                         
                         <!-- Workflow Selection -->
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2" @click.stop>
                           <label class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
                           <div class="relative">
                             <select
@@ -805,8 +814,8 @@
                         </div>
                       </div>
                       
-                      <!-- Alert Details (collapsed by default, can be expanded) -->
-                      <div class="p-4 space-y-3">
+                      <!-- Alert Details (expandable) -->
+                      <div v-if="alertData.finetuneExpanded" class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-3">
                         <!-- Alert ID -->
                         <div class="flex flex-col gap-1.5">
                           <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.detail.id') }}</label>
@@ -822,7 +831,7 @@
                         <div class="flex flex-col gap-1.5">
                           <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.list.alertTitle') }}</label>
                           <textarea
-                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5 resize-none overflow-y-hidden"
+                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5 resize-none overflow-y-auto min-h-[60px]"
                             :value="alertData.alert?.title || ''"
                             readonly
                           ></textarea>
@@ -2028,6 +2037,7 @@ const handleSelect = (items) => {
           detail: null,
           loading: true,
           expanded: false,
+          finetuneExpanded: false,
           aiItems: [],
           finetuneResults: [],
           finetuneLoading: false,
@@ -2122,6 +2132,22 @@ const toggleAlertDrawer = (alertId) => {
   })
   if (alertData) {
     alertData.expanded = !alertData.expanded
+  }
+}
+
+// Toggle fine-tune overlay alert drawer expanded state
+const toggleFinetuneAlertDrawer = (alertId) => {
+  // Find using the alert object's ID (since it comes from the table)
+  const alertData = selectedAlertsData.value.find(d => {
+    const dataAlertId = getAlertId(d.alert) || d.alertId
+    return String(dataAlertId) === String(alertId)
+  })
+  if (alertData) {
+    // Initialize finetuneExpanded if it doesn't exist
+    if (alertData.finetuneExpanded === undefined) {
+      alertData.finetuneExpanded = false
+    }
+    alertData.finetuneExpanded = !alertData.finetuneExpanded
   }
 }
 
@@ -2397,6 +2423,10 @@ const handleFineTuneClick = async () => {
       const alertId = getAlertId(alertData.alert) || alertData.alertId
       if (alertId) {
         finetuneWorkflowSelections.value[alertId] = ''
+      }
+      // Initialize finetuneExpanded if it doesn't exist
+      if (alertData.finetuneExpanded === undefined) {
+        alertData.finetuneExpanded = false
       }
     }
   })
