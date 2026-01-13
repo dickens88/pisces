@@ -111,8 +111,8 @@
     </section>
 
     <!-- Alert list table -->
-    <section :class="['grid grid-cols-1 gap-4', selectedAlert ? 'lg:grid-cols-3' : 'lg:grid-cols-1']">
-      <div :class="['bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative', selectedAlert ? 'lg:col-span-2' : 'lg:col-span-1']">
+    <section :class="['grid grid-cols-1 gap-4', selectedAlerts.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-1']">
+      <div :class="['bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl relative', selectedAlerts.length > 0 ? 'lg:col-span-2' : 'lg:col-span-1']">
         <div
           v-if="loadingAlerts"
           class="absolute inset-0 bg-white/80 dark:bg-[#111822]/80 backdrop-blur-sm z-50 flex items-center justify-center rounded-xl"
@@ -285,8 +285,9 @@
           ref="dataTableRef"
           :columns="columns"
           :items="alerts"
-          :selectable="false"
+          :selectable="true"
           :resizable="true"
+          :row-key="(item) => item.alert_id || item.id"
           storage-key="ai-playground-alerts-table-columns"
           :default-widths="defaultWidths"
           :current-page="currentPage"
@@ -294,7 +295,8 @@
           :total="total"
           @update:current-page="handlePageChange"
           @update:page-size="handlePageSizeChange"
-          @row-click="handleRowClick"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
         >
           <template #cell-createTime="{ value, item }">
             {{ formatDateTime(value || item?.create_time) }}
@@ -365,6 +367,34 @@
               </template>
             </div>
           </template>
+          <template #cell-aiJudgeFineTune="{ item }">
+            <div class="flex items-center justify-center">
+              <span
+                v-if="getFineTuneVerificationState(item) === 'True_Positive'"
+                class="text-sm font-medium text-red-600 dark:text-red-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.truePositive') }}
+              </span>
+              <span
+                v-else-if="getFineTuneVerificationState(item) === 'False_Positive'"
+                class="text-sm font-medium text-green-600 dark:text-green-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.falsePositive') }}
+              </span>
+              <span
+                v-else-if="getFineTuneVerificationState(item) === 'Unknown'"
+                class="text-sm font-medium text-gray-400 dark:text-gray-500"
+              >
+                {{ $t('alerts.list.aiJudgeResult.unknown') }}
+              </span>
+              <span
+                v-else
+                class="text-sm font-medium text-gray-400 dark:text-gray-500"
+              >
+                -
+              </span>
+            </div>
+          </template>
           <template #cell-agentName="{ item }">
             <div class="flex items-center justify-center">
               <span class="text-sm text-gray-900 dark:text-white">
@@ -375,164 +405,291 @@
         </DataTable>
       </div>
 
-      <div v-if="selectedAlert" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl min-h-[300px] flex flex-col">
-        <!-- Header with title and close button -->
+      <div v-if="selectedAlerts.length > 0" class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-xl min-h-[300px] flex flex-col">
+        <!-- Header -->
         <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867] gap-3">
-          <div class="flex items-center gap-2 flex-1 min-w-0">
-            <button
-              @click="openAlertDetailInNewWindow"
-              class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors flex-shrink-0"
-              :title="$t('common.openInNewWindow') || 'Open in new window'"
-            >
-              <span class="material-symbols-outlined text-lg">open_in_new</span>
-            </button>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white truncate">
-              {{ $t('alerts.detail.title') }} #{{ alertId }}
-            </h2>
-          </div>
-          <button
-            @click="selectedAlert = null"
-            class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors flex-shrink-0"
-            :aria-label="$t('common.close') || 'Close'"
-          >
-            <span class="material-symbols-outlined text-xl">close</span>
-          </button>
-        </div>
-        
-        <div class="flex-1 p-5 overflow-y-auto">
-          <!-- Judgment Comparison Section -->
-          <div class="grid grid-cols-2 gap-4 mb-6">
-          <!-- AI Judgment -->
-          <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <span class="material-symbols-outlined text-base">smart_toy</span>
-              {{ $t('aiPlayground.aiJudgment') }}
-            </h3>
-            <div class="flex items-center gap-2">
-              <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                <span class="material-symbols-outlined text-sm">gavel</span>
-                {{ $t('aiPlayground.verdict') }}:
-              </span>
-              <span
-                class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-              >
-                {{ getAiVerdictText(selectedAlert) }}
-              </span>
-            </div>
-          </div>
-          
-          <!-- Human Judgment -->
-          <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <span class="material-symbols-outlined text-base">person</span>
-              {{ $t('aiPlayground.humanJudgment') }}
-            </h3>
-            <div class="space-y-2">
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-sm">gavel</span>
-                  {{ $t('aiPlayground.verdict') }}:
-                </span>
-                <span
-                  class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
-                >
-                  {{ getHumanVerdictText(selectedAlert) }}
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-sm">badge</span>
-                  {{ $t('alerts.list.actor') }}:
-                </span>
-                <UserAvatar :name="selectedAlert?.actor || selectedAlert?.creator || ''" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Reasoning Comparison Section -->
-        <div class="space-y-4 mb-6">
-          <!-- AI Reasoning -->
-          <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <span class="material-symbols-outlined text-base">psychology</span>
-              {{ $t('aiPlayground.aiReasoning') }}
-            </h3>
-            <div v-if="selectedAlertLoading" class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-              <span class="material-symbols-outlined animate-spin text-base">refresh</span>
-              {{ $t('common.loading') }}
-            </div>
-            <div
-              v-else-if="aiItems.length"
-              :class="[
-                'bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 ai-agent__html',
-                { 'ai-agent__html--dark': isDarkMode() }
-              ]"
-            >
-              <div v-for="(aiItem, index) in aiItems" :key="`ai-${aiItem.id || index}`">
-                <div v-html="sanitizeHtml(aiItem.content || '')"></div>
-              </div>
-            </div>
-            <div v-else class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400">
-              {{ $t('alerts.detail.noAiResponse') }}
-            </div>
-          </div>
-
-          <!-- Human Reasoning -->
-          <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              <span class="material-symbols-outlined text-base">edit_note</span>
-              {{ $t('aiPlayground.humanReasoning') }}
-            </h3>
-            <div class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[80px]">
-              {{ humanConclusionValue || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Edit Human Verdict Section -->
-        <div class="border-t border-gray-200 dark:border-[#324867] pt-6">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <span class="material-symbols-outlined text-base">edit</span>
-            {{ $t('aiPlayground.editHumanVerdict') }}
-          </h3>
-          <div class="relative mb-4">
-            <select
-              v-model="humanVerdictValue"
-              class="w-full bg-white dark:bg-[#1c2533] text-gray-900 dark:text-white border border-gray-200 dark:border-[#324867] rounded-lg px-4 py-2.5 text-sm appearance-none cursor-pointer focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
-            >
-              <option value="">{{ $t('aiPlayground.selectVerdict') }}</option>
-              <option value="falsePositive">{{ $t('aiPlayground.closeReason.falsePositive') }}</option>
-              <option value="resolved">{{ $t('aiPlayground.closeReason.resolved') }}</option>
-              <option value="repeated">{{ $t('aiPlayground.closeReason.repeated') }}</option>
-              <option value="other">{{ $t('aiPlayground.closeReason.other') }}</option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-              <span class="material-symbols-outlined" style="font-size: 20px;">arrow_drop_down</span>
-            </div>
-          </div>
-          <div class="flex gap-3">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">
+            {{ $t('alerts.detail.title') }} ({{ selectedAlerts.length }})
+          </h2>
+          <div class="flex items-center gap-2">
             <button
               type="button"
-              @click="handleUpdateVerdict"
-              :disabled="!selectedAlert || isUpdatingVerdict"
-              class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <span v-if="isUpdatingVerdict" class="material-symbols-outlined animate-spin text-base">sync</span>
-              <span v-else class="material-symbols-outlined text-base">save</span>
-              {{ $t('aiPlayground.saveChanges') }}
-            </button>
-            <button
-              type="button"
-              class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-transparent border-2 border-gray-300 dark:border-[#324867] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-[#1c2533] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-              :disabled="!selectedAlert"
               @click="handleFineTuneClick"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
             >
               <span class="material-symbols-outlined text-base">tune</span>
               {{ $t('aiPlayground.fineTuneAI') }}
             </button>
+            <button
+              @click="selectedAlerts = []"
+              class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1c2533] rounded-md transition-colors flex-shrink-0"
+              :aria-label="$t('common.close') || 'Close'"
+            >
+              <span class="material-symbols-outlined text-xl">close</span>
+            </button>
           </div>
         </div>
+        
+        <!-- Scrollable content with alert drawers -->
+        <div class="flex-1 p-5 overflow-y-auto space-y-4">
+          <div
+            v-for="alertData in selectedAlertsData"
+            :key="alertData.alertId"
+            class="bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden"
+          >
+            <!-- Drawer Header (clickable to expand/collapse) -->
+            <div
+              class="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#192233] transition-colors"
+              @click="toggleAlertDrawer(alertData.alertId)"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                  <button
+                    @click.stop="openAlertDetailInNewWindow(alertData.alertId)"
+                    class="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex-shrink-0"
+                    :title="$t('common.openInNewWindow') || 'Open in new window'"
+                  >
+                    <span class="material-symbols-outlined text-base">open_in_new</span>
+                  </button>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      {{ $t('alerts.detail.title') }} #{{ alertData.alertId }}
+                    </h3>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                      {{ alertData.alert?.title || '' }}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
+                  :class="alertData.expanded ? 'rotate-180' : ''"
+                >
+                  expand_more
+                </span>
+              </div>
+            </div>
+
+            <!-- Drawer Content (expandable) -->
+            <div v-if="alertData.expanded" class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-6">
+              <!-- Judgment Comparison Section -->
+              <div class="grid grid-cols-2 gap-4">
+                <!-- AI Judgment -->
+                <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+                  <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">smart_toy</span>
+                    {{ $t('aiPlayground.aiJudgment') }}
+                  </h4>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                      <span class="material-symbols-outlined text-xs">gavel</span>
+                      {{ $t('aiPlayground.verdict') }}:
+                    </span>
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                    >
+                      {{ getAiVerdictText(alertData.alert) }}
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Human Judgment -->
+                <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-4">
+                  <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">person</span>
+                    {{ $t('aiPlayground.humanJudgment') }}
+                  </h4>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-xs">gavel</span>
+                        {{ $t('aiPlayground.verdict') }}:
+                      </span>
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300"
+                      >
+                        {{ getHumanVerdictText(alertData.alert) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-xs">badge</span>
+                        {{ $t('alerts.list.actor') }}:
+                      </span>
+                      <UserAvatar :name="alertData.alert?.actor || alertData.alert?.creator || ''" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Reasoning Comparison Section -->
+              <div class="space-y-4">
+                <!-- AI Reasoning -->
+                <div>
+                  <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">psychology</span>
+                    {{ $t('aiPlayground.aiReasoning') }}
+                  </h4>
+                  <div v-if="alertData.loading" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 py-2">
+                    <span class="material-symbols-outlined animate-spin text-sm">refresh</span>
+                    {{ $t('common.loading') }}
+                  </div>
+                  <div
+                    v-else-if="alertData.aiItems && alertData.aiItems.length"
+                    :class="[
+                      'bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 ai-agent__html',
+                      { 'ai-agent__html--dark': isDarkMode() }
+                    ]"
+                  >
+                    <div v-for="(aiItem, index) in alertData.aiItems" :key="`ai-${aiItem.id || index}`">
+                      <div v-html="sanitizeHtml(aiItem.content || '')"></div>
+                    </div>
+                  </div>
+                  <div v-else class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-500 dark:text-gray-400">
+                    {{ $t('alerts.detail.noAiResponse') }}
+                  </div>
+                </div>
+
+                <!-- Human Reasoning -->
+                <div>
+                  <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">edit_note</span>
+                    {{ $t('aiPlayground.humanReasoning') }}
+                  </h4>
+                  <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[60px]">
+                    {{ alertData.alert?.close_comment || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fine-tune Investigation Results -->
+              <div v-if="alertData.finetuneResults && alertData.finetuneResults.length > 0" class="space-y-3">
+                <h4 class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sm">tune</span>
+                  {{ $t('aiPlayground.fineTuneAI') }} Results
+                </h4>
+                <div
+                  v-for="(result, index) in alertData.finetuneResults"
+                  :key="`finetune-${result.id || index}`"
+                  class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-3 cursor-pointer transition hover:border-primary/60"
+                  @click="toggleFinetuneResult(alertData.alertId, index)"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex flex-col gap-1 flex-1">
+                      <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ result.agent_name || 'Model' }}</span>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs uppercase text-gray-500 dark:text-gray-400">Verdict:</span>
+                        <span class="text-xs font-semibold" :class="getFineTuneVerificationState({ ai_finetune_is_threat: result.is_threat }) === 'True_Positive' ? 'text-primary' : 'text-gray-700 dark:text-gray-200'">
+                          {{ formatFinetuneVerdict(result.is_threat) }}
+                        </span>
+                      </div>
+                      <div v-if="result.confidence_score" class="text-xs text-gray-500 dark:text-gray-400">
+                        Confidence Score: {{ result.confidence_score }}
+                      </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1">
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatRunTimestamp(result.updated_at) }}</span>
+                      <span
+                        class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform text-sm"
+                        :class="result.expanded ? 'rotate-180' : ''"
+                      >
+                        expand_more
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="result.expanded"
+                    class="mt-3 space-y-2 border-t border-gray-200 dark:border-[#324867] pt-3"
+                  >
+                    <div
+                      v-if="result.is_threat"
+                      class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]"
+                    >
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                        [Is Threat]
+                      </div>
+                      <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                        {{ result.is_threat }}
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="result.confidence_score"
+                      class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]"
+                    >
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                        [Confidence Score]
+                      </div>
+                      <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                        {{ result.confidence_score }}
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="result.reason"
+                      class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]"
+                    >
+                      <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                        [Reason]
+                      </div>
+                      <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                        {{ result.reason }}
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="!result.is_threat && !result.confidence_score && !result.reason && result.raw_text"
+                      class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words"
+                    >
+                      {{ result.raw_text }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else-if="alertData.finetuneLoading" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 py-2">
+                <span class="material-symbols-outlined animate-spin text-sm">refresh</span>
+                {{ $t('common.loading') }}
+              </div>
+              <div v-else class="text-xs text-gray-500 dark:text-gray-400 py-2">
+                {{ $t('aiPlayground.retrievalTest.noResult') || 'No fine-tune results available.' }}
+              </div>
+
+              <!-- Edit Human Verdict Section -->
+              <div class="border-t border-gray-200 dark:border-[#324867] pt-4">
+                <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-sm">edit</span>
+                  {{ $t('aiPlayground.editHumanVerdict') }}
+                </h4>
+                <div class="relative mb-3">
+                  <select
+                    v-model="alertData.humanVerdictValue"
+                    class="w-full bg-white dark:bg-[#1c2533] text-gray-900 dark:text-white border border-gray-200 dark:border-[#324867] rounded-lg px-3 py-2 text-xs appearance-none cursor-pointer focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                  >
+                    <option value="">{{ $t('aiPlayground.selectVerdict') }}</option>
+                    <option value="falsePositive">{{ $t('aiPlayground.closeReason.falsePositive') }}</option>
+                    <option value="resolved">{{ $t('aiPlayground.closeReason.resolved') }}</option>
+                    <option value="repeated">{{ $t('aiPlayground.closeReason.repeated') }}</option>
+                    <option value="other">{{ $t('aiPlayground.closeReason.other') }}</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+                    <span class="material-symbols-outlined text-sm">arrow_drop_down</span>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    @click="handleUpdateVerdictForAlert(alertData.alertId, alertData.humanVerdictValue)"
+                    :disabled="!alertData.humanVerdictValue || isUpdatingVerdict"
+                    class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <span v-if="isUpdatingVerdict" class="material-symbols-outlined animate-spin text-sm">sync</span>
+                    <span v-else class="material-symbols-outlined text-sm">save</span>
+                    {{ $t('aiPlayground.saveChanges') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -580,79 +737,144 @@
             <!-- Content -->
             <div class="flex-1 p-6 min-h-0 overflow-hidden flex flex-col">
               <div class="flex-1 flex gap-6 min-h-0">
-                <!-- Left Panel: Input Alert Information -->
+                <!-- Left Panel: All Selected Alerts with Workflow Selectors -->
                 <div class="w-full lg:w-1/2 flex flex-col min-h-0">
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.inputAlertInfo') || 'Input Alert Information' }}</h4>
                   
-                  <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <!-- Alert ID -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.detail.id') }}</label>
-                      <input
-                        type="text"
-                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2"
-                        :value="alertId"
-                        readonly
-                      />
-                    </div>
-
-                    <!-- Title -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.list.alertTitle') }}</label>
-                      <textarea
-                        ref="overlayAlertTitleTextarea"
-                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white px-3 py-2 resize-none overflow-y-hidden"
-                        :value="alertSubject"
-                        readonly
-                      ></textarea>
-                    </div>
-
-                    <!-- Close Comment -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.comments') || 'Close Comment' }}</label>
-                      <textarea
-                        class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none min-h-[100px]"
-                        :value="humanConclusionValue || ''"
-                        readonly
-                      ></textarea>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ $t('alerts.detail.alertContent') }}</label>
-                      <div class="flex gap-2 mb-2">
-                        <button
-                          @click="contentFormatMode = 'json'"
-                          :class="[
-                            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-                            contentFormatMode === 'json'
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
-                          ]"
-                        >
-                          Raw JSON
-                        </button>
-                        <button
-                          @click="contentFormatMode = 'richtext'"
-                          :class="[
-                            'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
-                            contentFormatMode === 'richtext'
-                              ? 'bg-primary text-white'
-                              : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
-                          ]"
-                        >
-                          Rendered View
-                        </button>
+                  <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 space-y-4">
+                    <div
+                      v-for="alertData in selectedAlertsData"
+                      :key="`finetune-${alertData.alertId}`"
+                      :class="[
+                        'bg-gray-50 dark:bg-[#1c2533] border rounded-lg overflow-hidden transition-colors',
+                        finetuneWorkflowSelections[alertData.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
+                      ]"
+                    >
+                      <!-- Alert Drawer Header -->
+                      <div class="p-4 border-b border-gray-200 dark:border-[#324867]">
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                          <div class="flex-1 min-w-0">
+                            <h5 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                              {{ $t('alerts.detail.title') }} #{{ alertData.alertId }}
+                            </h5>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
+                              {{ alertData.alert?.title || '' }}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <!-- Workflow Selection -->
+                        <div class="flex flex-col gap-2">
+                          <label class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
+                          <div class="relative">
+                            <select
+                              v-model="finetuneWorkflowSelections[alertData.alertId]"
+                              :disabled="loadingWorkflows"
+                              :class="[
+                                'pl-3 pr-8 appearance-none block w-full rounded-lg border h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+                                finetuneWorkflowSelections[alertData.alertId] 
+                                  ? 'border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533]' 
+                                  : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                              ]"
+                            >
+                              <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
+                              <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
+                              <option
+                                v-for="workflow in workflows"
+                                :key="workflow.id"
+                                :value="workflow.id"
+                              >
+                                {{ workflow.name }}
+                              </option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
+                              <span
+                                v-if="loadingWorkflows"
+                                class="material-symbols-outlined animate-spin text-sm"
+                              >
+                                sync
+                              </span>
+                              <span
+                                v-else
+                                class="material-symbols-outlined text-sm"
+                              >
+                                arrow_drop_down
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <textarea
-                        ref="alertContentTextarea"
-                        :class="[
-                          'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-sm text-gray-900 dark:text-white p-3 resize-none overflow-y-auto h-[300px]',
-                          contentFormatMode === 'json' ? 'font-mono' : ''
-                        ]"
-                        :value="formattedAlertContent"
-                        readonly
-                      ></textarea>
+                      
+                      <!-- Alert Details (collapsed by default, can be expanded) -->
+                      <div class="p-4 space-y-3">
+                        <!-- Alert ID -->
+                        <div class="flex flex-col gap-1.5">
+                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.detail.id') }}</label>
+                          <input
+                            type="text"
+                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5"
+                            :value="alertData.alertId"
+                            readonly
+                          />
+                        </div>
+
+                        <!-- Title -->
+                        <div class="flex flex-col gap-1.5">
+                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.list.alertTitle') }}</label>
+                          <textarea
+                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5 resize-none overflow-y-hidden"
+                            :value="alertData.alert?.title || ''"
+                            readonly
+                          ></textarea>
+                        </div>
+
+                        <!-- Close Comment -->
+                        <div class="flex flex-col gap-1.5">
+                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.comments') || 'Close Comment' }}</label>
+                          <textarea
+                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white p-2 resize-none min-h-[60px]"
+                            :value="alertData.alert?.close_comment || ''"
+                            readonly
+                          ></textarea>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="flex flex-col gap-1.5">
+                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.detail.alertContent') }}</label>
+                          <div class="flex gap-2 mb-1.5">
+                            <button
+                              @click="contentFormatMode = 'json'"
+                              :class="[
+                                'px-2 py-1 text-xs font-medium rounded-md transition-colors',
+                                contentFormatMode === 'json'
+                                  ? 'bg-primary text-white'
+                                  : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
+                              ]"
+                            >
+                              Raw JSON
+                            </button>
+                            <button
+                              @click="contentFormatMode = 'richtext'"
+                              :class="[
+                                'px-2 py-1 text-xs font-medium rounded-md transition-colors',
+                                contentFormatMode === 'richtext'
+                                  ? 'bg-primary text-white'
+                                  : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
+                              ]"
+                            >
+                              Rendered View
+                            </button>
+                          </div>
+                          <textarea
+                            :class="[
+                              'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white p-2 resize-none overflow-y-auto h-[200px]',
+                              contentFormatMode === 'json' ? 'font-mono' : ''
+                            ]"
+                            :value="getFormattedContentForAlert(alertData)"
+                            readonly
+                          ></textarea>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -662,49 +884,11 @@
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
                   
                   <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <!-- Model Selection -->
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.modelSelection') || 'Model Selection' }}</label>
-                      <div class="relative">
-                        <select
-                          v-model="selectedWorkflow"
-                          :disabled="loadingWorkflows"
-                          class="pl-4 pr-9 appearance-none block w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] h-10 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          <option value="" disabled>{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
-                          <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
-                          <option
-                            v-for="workflow in workflows"
-                            :key="workflow.id"
-                            :value="workflow.id"
-                          >
-                            {{ workflow.name }}
-                          </option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-                          <span
-                            v-if="loadingWorkflows"
-                            class="material-symbols-outlined animate-spin"
-                            style="font-size: 20px;"
-                          >
-                            sync
-                          </span>
-                          <span
-                            v-else
-                            class="material-symbols-outlined"
-                            style="font-size: 20px;"
-                          >
-                            arrow_drop_down
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
                     <!-- Run Analysis Button -->
                     <button
                       type="button"
-                      @click="handleRunWorkflow"
-                      :disabled="!selectedWorkflow || selectedWorkflow === '' || runningWorkflow"
+                      @click="handleRunAllWorkflows"
+                      :disabled="!canRunAllWorkflows || runningWorkflow"
                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       <span
@@ -722,16 +906,11 @@
                       {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
                     </button>
 
-                    <!-- AI Response Feed -->
+                    <!-- Workflow Results Feed -->
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
-                      <div class="flex-1 overflow-y-auto">
-                        <div v-if="workflowResult?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-3">
-                          <p class="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">{{ workflowResult.message || 'Error' }}</p>
-                          <pre class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words">{{ JSON.stringify(workflowResult.details, null, 2) }}</pre>
-                        </div>
-
-                        <div v-if="runningWorkflow" class="flex items-center justify-center py-4">
+                      <div class="flex-1 overflow-y-auto space-y-3">
+                        <div v-if="runningWorkflow" class="flex items-center justify-center py-8">
                           <div class="flex flex-col items-center gap-3">
                             <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
                               sync
@@ -740,93 +919,25 @@
                           </div>
                         </div>
 
-                        <div v-if="workflowRuns.length === 0 && !runningWorkflow" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
-                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run a workflow to see the output.' }}
+                        <div v-if="!runningWorkflow && Object.keys(finetuneWorkflowResults).length === 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run workflows to see the output.' }}
                         </div>
 
-                        <div v-if="workflowRuns.length > 0" class="space-y-3">
-                          <div
-                            v-for="run in workflowRuns.slice().reverse()"
-                            :key="run.id"
-                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4 cursor-pointer transition hover:border-primary/60"
-                            @click="toggleRunExpanded(run.id)"
-                          >
-                            <div class="flex items-start justify-between gap-3">
-                              <div class="flex flex-col gap-1">
-                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ run.modelName || 'Model' }}</span>
-                                <div class="flex items-center gap-2">
-                                  <span class="text-xs uppercase text-gray-500 dark:text-gray-400">Verdict:</span>
-                                  <span class="text-sm font-semibold" :class="run.parsed?.isThreat ? 'text-primary' : 'text-gray-700 dark:text-gray-200'">
-                                    {{ run.parsed?.isThreat || (run.text ? 'View details' : 'No verdict') }}
-                                  </span>
-                                </div>
-                                <div v-if="run.parsed?.confidence" class="text-xs text-gray-500 dark:text-gray-400">
-                                  Confidence Score: {{ run.parsed.confidence }}
-                                </div>
-                              </div>
-                              <div class="flex flex-col items-end gap-1">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatRunTimestamp(run.timestamp) }}</span>
-                                <span
-                                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform"
-                                  :class="run.expanded ? 'rotate-180' : ''"
-                                >
-                                  expand_more
-                                </span>
-                              </div>
-                            </div>
-
-                            <div
-                              v-if="run.expanded"
-                              class="mt-3 space-y-2 border-t border-gray-200 dark:border-[#324867] pt-3"
-                            >
-                              <div
-                                v-if="run.parsed?.isThreat"
-                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
-                              >
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Is Threat]
-                                </div>
-                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ run.parsed.isThreat }}
-                                </div>
-                              </div>
-
-                              <div
-                                v-if="run.parsed?.confidence"
-                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
-                              >
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Confidence Score]
-                                </div>
-                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ run.parsed.confidence }}
-                                </div>
-                              </div>
-
-                              <div
-                                v-if="run.parsed?.reason"
-                                class="border border-gray-200 dark:border-[#324867] rounded-lg p-3 bg-gray-50 dark:bg-[#192233]"
-                              >
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Reason]
-                                </div>
-                                <div class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ run.parsed.reason }}
-                                </div>
-                              </div>
-
-                              <div
-                                v-if="!run.parsed?.hasAny && run.text"
-                                class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap break-words"
-                              >
-                                {{ run.text }}
-                              </div>
-
-                              <div class="bg-gray-50 dark:bg-[#111822] border border-dashed border-gray-200 dark:border-[#324867] rounded-lg p-3">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Raw result</p>
-                                <pre class="text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{{ JSON.stringify(run.raw, null, 2) }}</pre>
-                              </div>
-                            </div>
+                        <div
+                          v-for="alertData in selectedAlertsData"
+                          :key="`result-${alertData.alertId}`"
+                          v-if="finetuneWorkflowResults[alertData.alertId]"
+                          class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4"
+                        >
+                          <div class="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+                            Alert #{{ alertData.alertId }}
+                          </div>
+                          <div v-if="finetuneWorkflowResults[alertData.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                            <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[alertData.alertId].error }}</p>
+                          </div>
+                          <div v-else-if="finetuneWorkflowResults[alertData.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
+                            <p class="text-green-600 dark:text-green-400 font-medium">✓ Workflow completed successfully</p>
+                            <p class="mt-2 text-gray-600 dark:text-gray-400">Results saved. Check the sidebar to view fine-tune investigation results.</p>
                           </div>
                         </div>
                       </div>
@@ -853,7 +964,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert } from '@/api/alerts'
+import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
 import service from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -906,9 +1017,13 @@ const currentField = ref('')
 const showFieldMenu = ref(false)
 const searchInputRef = ref(null)
 const searchContainerRef = ref(null)
-const selectedAlert = ref(null)
-const selectedAlertDetail = ref(null)
-const selectedAlertLoading = ref(false)
+// Multiple selected alerts (by checkbox)
+const selectedAlerts = ref([]) // Array of alert IDs
+// Track detailed data for each selected alert
+const selectedAlertsData = ref([]) // Array of { alertId, alert, detail, loading, expanded, aiItems, finetuneResults, finetuneLoading, humanVerdictValue }
+// Temporary alert for fine-tuning overlay (compatibility)
+const selectedAlertForFinetuning = ref(null)
+const selectedAlertDetailForFinetuning = ref(null)
 const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
 const workflows = ref([])
@@ -916,12 +1031,29 @@ const loadingWorkflows = ref(false)
 const runningWorkflow = ref(false)
 const workflowResult = ref(null)
 const workflowRuns = ref([]) // store last 3 runs while overlay is open
+// Track workflow selections for fine-tuning overlay
+const finetuneWorkflowSelections = ref({}) // { alertId: workflowId }
+// Track workflow results per alert in fine-tuning overlay
+const finetuneWorkflowResults = ref({}) // { alertId: { data, error, loading } }
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
 const humanVerdictValue = ref('')
 const humanConclusionValue = ref('')
 const isUpdatingVerdict = ref(false)
+
+// Computed properties for fine-tuning overlay
+const overlayAlertId = computed(() => selectedAlertForFinetuning.value?.alert_id || selectedAlertForFinetuning.value?.id || '')
+const overlayAlertSubject = computed(() => selectedAlertForFinetuning.value?.title || '')
+const overlayHumanConclusion = computed(() => selectedAlertForFinetuning.value?.close_comment || '')
+const overlayFormattedContent = computed(() => {
+  const desc = getRawDescription(selectedAlertDetailForFinetuning.value, selectedAlertForFinetuning.value)
+  if (contentFormatMode.value === 'json') {
+    return formatDescriptionAsJson(desc)
+  } else {
+    return formatDescriptionAsRichText(desc)
+  }
+})
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -934,8 +1066,7 @@ const alertSubjectTextarea = ref(null)
 const alertContentTextarea = ref(null)
 const overlayAlertTitleTextarea = ref(null)
 
-const alertId = computed(() => selectedAlert.value?.alert_id || selectedAlert.value?.id || '')
-const alertSubject = computed(() => selectedAlert.value?.title || '')
+// Removed - no longer needed with multiple selections
 const contentFormatMode = ref('json') // 'json' or 'richtext'
 
 // Match status configuration - centralized configuration for reuse
@@ -986,13 +1117,7 @@ const chartNameToFilterValue = (chartName) => {
   return config ? config.filterValue : null
 }
 
-// Open alert detail in new window
-const openAlertDetailInNewWindow = () => {
-  if (!alertId.value) return
-  const route = router.resolve({ path: `/alerts/${alertId.value}` })
-  const url = window.location.origin + route.href
-  window.open(url, '_blank')
-}
+// openAlertDetailInNewWindow is now defined above with alertId parameter
 
 // Helper function to auto-resize textarea
 const autoResizeTextarea = (textarea, minHeight = 44, addExtraSpace = false) => {
@@ -1081,27 +1206,20 @@ const formatObjectAsRichText = (obj, indent = 0) => {
   return String(obj)
 }
 
-const getRawDescription = () => {
-  const detail = selectedAlertDetail.value
-  const list = selectedAlert.value
+const getRawDescription = (detail = null, alert = null) => {
+  const detailData = detail || selectedAlertDetailForFinetuning.value
+  const alertData = alert || selectedAlertForFinetuning.value
   return (
-    detail?.description ??
-    detail?.data?.description ??
-    detail?.data_object?.description ??
-    list?.description ??
-    list?.data_object?.description ??
+    detailData?.description ??
+    detailData?.data?.description ??
+    detailData?.data_object?.description ??
+    alertData?.description ??
+    alertData?.data_object?.description ??
     ''
   )
 }
 
-const formattedAlertContent = computed(() => {
-  const desc = getRawDescription()
-  if (contentFormatMode.value === 'json') {
-    return formatDescriptionAsJson(desc)
-  } else {
-    return formatDescriptionAsRichText(desc)
-  }
-})
+// Removed - replaced by overlayFormattedContent
 
 const toggleContentFormat = () => {
   contentFormatMode.value = contentFormatMode.value === 'json' ? 'richtext' : 'json'
@@ -1123,18 +1241,16 @@ const toggleContentFormat = () => {
   }
 }
 
-// Watch content changes and auto-resize textareas
-watch([alertId, alertIdTextarea], () => {
+// Watch overlay alert ID for textarea resize (fine-tuning overlay)
+watch([overlayAlertId, alertIdTextarea], () => {
   nextTick(() => {
     if (alertIdTextarea.value) {
-      // Use a smaller minHeight that accounts for padding (p-3 = 12px top + 12px bottom = 24px)
-      // Plus minimal space for text, so around 28-30px total
       autoResizeTextarea(alertIdTextarea.value, 28)
     }
   })
 }, { immediate: true })
 
-watch([alertSubject, alertSubjectTextarea], () => {
+watch([overlayAlertSubject, alertSubjectTextarea], () => {
   nextTick(() => {
     if (alertSubjectTextarea.value) {
       autoResizeTextarea(alertSubjectTextarea.value, 64)
@@ -1142,7 +1258,8 @@ watch([alertSubject, alertSubjectTextarea], () => {
   })
 }, { immediate: true })
 
-watch([formattedAlertContent, alertContentTextarea, contentFormatMode], () => {
+// Watch overlay content for textarea resize
+watch([overlayFormattedContent, alertContentTextarea, contentFormatMode], () => {
   if (alertContentTextarea.value) {
     // Use double nextTick to ensure DOM is fully updated
     nextTick(() => {
@@ -1161,7 +1278,7 @@ watch([formattedAlertContent, alertContentTextarea, contentFormatMode], () => {
 }, { immediate: true })
 
 // Auto-resize Fine-tune panel alert title textarea
-watch([alertSubject, overlayAlertTitleTextarea], () => {
+watch([overlayAlertSubject, overlayAlertTitleTextarea], () => {
   nextTick(() => {
     if (overlayAlertTitleTextarea.value) {
       // Slightly larger minimum height so it can grow to two lines comfortably
@@ -1177,6 +1294,7 @@ const columns = computed(() => [
   { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'humanVerdict', label: t('aiPlayground.humanVerdict') },
   { key: 'match', label: t('aiPlayground.match') },
+  { key: 'aiJudgeFineTune', label: t('aiPlayground.aiJudgeFineTune') || 'AI Judge (Fine-tune)' },
   { key: 'agentName', label: 'Agent Name' }
 ])
 
@@ -1185,6 +1303,7 @@ const defaultWidths = {
   alertTitle: 360,
   riskLevel: 120,
   aiJudge: 120,
+  aiJudgeFineTune: 140,
   humanVerdict: 150,
   match: 120,
   agentName: 150
@@ -1607,6 +1726,37 @@ const getAiVerdictText = (alert) => {
   return t('alerts.list.aiJudgeResult.unknown')
 }
 
+// Map fine-tune is_threat text to verification_state-like values for display
+// Rules: true/yes → True_Positive, false/no → False_Positive, anything else (non-null) → Unknown, null → null (shows as "-")
+const getFineTuneVerificationState = (item) => {
+  const raw = item?.ai_finetune_is_threat
+  
+  // If null or undefined, return null (will show as "-")
+  if (raw === null || raw === undefined) {
+    return null
+  }
+
+  const v = String(raw).trim().toLowerCase()
+  
+  // Empty string after trimming is treated as null
+  if (!v) {
+    return null
+  }
+
+  // Check for true/yes → True_Positive
+  if (v === 'true' || v === 'yes') {
+    return 'True_Positive'
+  }
+
+  // Check for false/no → False_Positive
+  if (v === 'false' || v === 'no') {
+    return 'False_Positive'
+  }
+
+  // Anything else (non-null) → Unknown (cannot decide)
+  return 'Unknown'
+}
+
 // Get Human Verdict text
 const getHumanVerdictText = (alert) => {
   if (!alert) return '-'
@@ -1817,51 +1967,153 @@ const clearSearch = () => {
 
 const sanitizeHtml = (html = '') => DOMPurify.sanitize(html)
 
-const handleRowClick = async (item) => {
-  // Seed with list data (includes close_comment and close_reason) to avoid stale values
-  selectedAlert.value = {
-    ...item,
-    close_comment: item.close_comment || item.closeComment || item?.data_object?.close_comment || null,
-    close_reason: item.close_reason || item.closeReason || item?.data_object?.close_reason || null
-  }
-  selectedAlertDetail.value = null
-  selectedAlertLoading.value = true
+// Handle checkbox selection
+const handleSelect = (items) => {
+  const newSelectedIds = items.map(item => String(item.alert_id || item.id)).filter(Boolean)
+  const currentSelectedIds = selectedAlerts.value.map(id => String(id))
+  const removedIds = currentSelectedIds.filter(id => !newSelectedIds.includes(id))
+  const addedIds = newSelectedIds.filter(id => !currentSelectedIds.includes(id))
+  
+  // Remove alerts that were unchecked
+  selectedAlertsData.value = selectedAlertsData.value.filter(data => !removedIds.includes(String(data.alertId)))
+  
+  // Add new alerts
+  addedIds.forEach(alertId => {
+    const alert = items.find(item => String(item.alert_id || item.id) === alertId)
+    if (alert) {
+      selectedAlertsData.value.push({
+        alertId: String(alertId),
+        alert: { ...alert },
+        detail: null,
+        loading: true,
+        expanded: false,
+        aiItems: [],
+        finetuneResults: [],
+        finetuneLoading: false,
+        humanVerdictValue: mapCloseReasonToKey(alert.close_reason || alert.closeReason || '')
+      })
+      loadAlertDetails(alertId)
+      loadFinetuneResults(alertId)
+    }
+  })
+  
+  selectedAlerts.value = newSelectedIds
+}
+
+const handleSelectAll = (items) => {
+  handleSelect(items)
+}
+
+// Load alert details for a specific alert
+const loadAlertDetails = async (alertId) => {
+  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  if (!alertData) return
+  
+  alertData.loading = true
   try {
-    const detailId = item.alert_id || item.id
-    const response = await getAlertDetail(detailId)
-    const detail =
-      response?.data?.data ||
-      response?.data ||
-      response ||
-      null
-    selectedAlertDetail.value = detail || null
+    const response = await getAlertCommentsExtension(alertId)
+    const detail = response?.data?.data || response?.data || response || null
+    alertData.detail = detail
+    alertData.aiItems = detail?.ai || []
+    
+    // Update alert with latest close_comment and close_reason
+    const closeComment = detail?.close_comment || detail?.data?.close_comment || detail?.data_object?.close_comment || null
+    const closeReason = detail?.close_reason || detail?.data?.close_reason || detail?.data_object?.close_reason || null
+    
+    if (alertData.alert) {
+      alertData.alert.close_comment = closeComment ?? alertData.alert.close_comment ?? null
+      alertData.alert.close_reason = closeReason ?? alertData.alert.close_reason ?? null
+      alertData.humanVerdictValue = mapCloseReasonToKey(closeReason || '')
+    }
+  } catch (error) {
+    console.error(`Failed to load alert detail for ${alertId}:`, error)
+  } finally {
+    alertData.loading = false
+  }
+}
 
-    const closeComment =
-      detail?.close_comment ||
-      detail?.data?.close_comment ||
-      detail?.data_object?.close_comment ||
-      null
+// Load fine-tune results for a specific alert
+const loadFinetuneResults = async (alertId) => {
+  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  if (!alertData) return
+  
+  alertData.finetuneLoading = true
+  try {
+    const response = await getAlertAiFineTuneResults(alertId)
+    const results = response?.data?.data || []
+    alertData.finetuneResults = results.map(r => ({
+      ...r,
+      expanded: false
+    }))
+  } catch (error) {
+    console.error(`Failed to load fine-tune results for ${alertId}:`, error)
+    alertData.finetuneResults = []
+  } finally {
+    alertData.finetuneLoading = false
+  }
+}
 
-    const closeReason =
-      detail?.close_reason ||
-      detail?.data?.close_reason ||
-      detail?.data_object?.close_reason ||
-      null
+// Toggle alert drawer expanded state
+const toggleAlertDrawer = (alertId) => {
+  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  if (alertData) {
+    alertData.expanded = !alertData.expanded
+  }
+}
 
-    selectedAlert.value = {
-      ...selectedAlert.value,
-      close_comment: closeComment ?? selectedAlert.value.close_comment ?? null,
-      close_reason: closeReason ?? selectedAlert.value.close_reason ?? null
+// Toggle fine-tune result expanded state
+const toggleFinetuneResult = (alertId, index) => {
+  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  if (alertData && alertData.finetuneResults[index]) {
+    alertData.finetuneResults[index].expanded = !alertData.finetuneResults[index].expanded
+  }
+}
+
+// Format fine-tune verdict for display
+const formatFinetuneVerdict = (isThreat) => {
+  if (!isThreat) return '-'
+  const state = getFineTuneVerificationState({ ai_finetune_is_threat: isThreat })
+  if (state === 'True_Positive') return t('alerts.list.aiJudgeResult.truePositive')
+  if (state === 'False_Positive') return t('alerts.list.aiJudgeResult.falsePositive')
+  if (state === 'Unknown') return t('alerts.list.aiJudgeResult.unknown')
+  return '-'
+}
+
+// Open alert detail in new window
+const openAlertDetailInNewWindow = (alertId) => {
+  if (!alertId) return
+  const route = router.resolve({ path: `/alerts/${alertId}` })
+  const url = window.location.origin + route.href
+  window.open(url, '_blank')
+}
+
+// Removed - now handled by handleFineTuneClick for all alerts
+
+// Handle update verdict for specific alert
+const handleUpdateVerdictForAlert = async (alertId, closeReason) => {
+  if (!alertId || !closeReason || isUpdatingVerdict.value) return
+
+  try {
+    isUpdatingVerdict.value = true
+    const updateData = { close_reason: closeReason }
+    await updateAlert(alertId, updateData)
+
+    // Update local state
+    const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+    if (alertData && alertData.alert) {
+      alertData.alert.close_reason = closeReason
     }
 
-    // Update form values
-    const finalCloseReason = selectedAlert.value.close_reason || selectedAlert.value.closeReason || ''
-    humanVerdictValue.value = mapCloseReasonToKey(finalCloseReason)
-    humanConclusionValue.value = selectedAlert.value.close_comment || ''
+    // Refresh the alerts list
+    await loadAlerts()
+
+    toast.success(t('aiPlayground.updateVerdictSuccess') || 'Verdict updated successfully', 'SUCCESS')
   } catch (error) {
-    console.error('Failed to load alert detail:', error)
+    console.error('Failed to update verdict:', error)
+    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.edit.error') || 'Failed to update verdict'
+    toast.error(errorMessage, 'ERROR')
   } finally {
-    selectedAlertLoading.value = false
+    isUpdatingVerdict.value = false
   }
 }
 
@@ -1896,68 +2148,18 @@ const mapCloseReasonToKey = (closeReason) => {
   return displayToKey[normalized] || ''
 }
 
-// Watch selectedAlert to update form values
-watch(selectedAlert, (newAlert) => {
-  if (newAlert) {
-    const closeReason = newAlert.close_reason || newAlert.closeReason || ''
-    humanVerdictValue.value = mapCloseReasonToKey(closeReason)
-    humanConclusionValue.value = newAlert.close_comment || ''
-  } else {
-    humanVerdictValue.value = ''
-    humanConclusionValue.value = ''
-  }
-}, { immediate: true })
+// Removed - form values are now per-alert in selectedAlertsData
 
-// Handle update verdict
-const handleUpdateVerdict = async () => {
-  if (!selectedAlert.value || isUpdatingVerdict.value) return
+// Removed - replaced by handleUpdateVerdictForAlert
 
-  const alertId = selectedAlert.value.alert_id || selectedAlert.value.id
-  if (!alertId) {
-    toast.error(t('alerts.edit.error') || 'Invalid alert ID', 'ERROR')
-    return
-  }
-
-  try {
-    isUpdatingVerdict.value = true
-
-    const updateData = {}
-    if (humanVerdictValue.value) {
-      updateData.close_reason = humanVerdictValue.value
-    }
-
-    await updateAlert(alertId, updateData)
-
-    // Update local state
-    if (selectedAlert.value) {
-      selectedAlert.value.close_reason = humanVerdictValue.value
-    }
-
-    // Refresh the alerts list to reflect changes
-    await loadAlerts()
-
-    toast.success(t('aiPlayground.updateVerdictSuccess') || 'Verdict updated successfully', 'SUCCESS')
-  } catch (error) {
-    console.error('Failed to update verdict:', error)
-    const errorMessage = error?.response?.data?.message || error?.message || t('alerts.edit.error') || 'Failed to update verdict'
-    toast.error(errorMessage, 'ERROR')
-  } finally {
-    isUpdatingVerdict.value = false
-  }
-}
-
-// Trigger Dify workflow API for the selected alert
+// Trigger Dify workflow API to load workflows list
 const triggerAiWorkflow = async () => {
-  if (!selectedAlert.value || !aiWorkflowApi || !aiWorkflowApiKey) return
+  if (!aiWorkflowApi || !aiWorkflowApiKey) return
 
   loadingWorkflows.value = true
   workflows.value = []
-  selectedWorkflow.value = ''
 
   try {
-    const alertId = selectedAlert.value.alert_id || selectedAlert.value.id
-    if (!alertId) return
-
     const payload = {
       inputs:{},
       response_mode: 'blocking',
@@ -1970,8 +2172,6 @@ const triggerAiWorkflow = async () => {
         Authorization: `Bearer ${aiWorkflowApiKey}`,
         'Content-Type': 'application/json'
       },
-      // Note: In browsers, SSL certificate validation cannot be bypassed.
-      // If the certificate is invalid, the request will fail at the network layer.
       body: JSON.stringify(payload)
     })
 
@@ -1999,70 +2199,158 @@ const triggerAiWorkflow = async () => {
   }
 }
 
-// Handle Fine-tune AI button click
-const handleFineTuneClick = () => {
-  if (!selectedAlert.value) return
-  showRetrievalOverlay.value = true
-  triggerAiWorkflow()
+// Check if all alerts have workflows selected
+const canRunAllWorkflows = computed(() => {
+  if (selectedAlertsData.value.length === 0) return false
+  return selectedAlertsData.value.every(alertData => {
+    const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
+    return workflowId && workflowId !== '' && workflowId !== '__loading__'
+  })
+})
+
+// Get formatted content for an alert
+const getFormattedContentForAlert = (alertData) => {
+  const desc = getRawDescription(alertData.detail, alertData.alert)
+  if (contentFormatMode.value === 'json') {
+    return formatDescriptionAsJson(desc)
+  } else {
+    return formatDescriptionAsRichText(desc)
+  }
 }
 
-// Handle Run Workflow button click
-const handleRunWorkflow = async () => {
-  if (!selectedWorkflow.value || !aiWorkflowApi || !aiWorkflowRunnerKey || !selectedAlert.value) return
+// Handle running workflows for all selected alerts
+const handleRunAllWorkflows = async () => {
+  if (!canRunAllWorkflows.value || runningWorkflow.value) return
 
   runningWorkflow.value = true
+  const results = []
 
   try {
-    const alertIdValue = selectedAlert.value?.alert_id || selectedAlert.value?.id || ''
-    const subjectValue = selectedAlert.value?.title || ''
-    const descriptionValue = getRawDescription()
-    
-    // Convert description to string - if it's an object, stringify it
-    const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
-      ? JSON.stringify(descriptionValue)
-      : String(descriptionValue || '')
+    // Run workflow for each alert sequentially
+    for (const alertData of selectedAlertsData.value) {
+      const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
+      if (!workflowId || workflowId === '') continue
 
-    const payload = {
-      inputs:{
-        appid: String(selectedWorkflow.value),
-        subject: String(subjectValue),
-        description: descriptionString,
-        alarm_id: String(alertIdValue)
-      },
-      response_mode: 'blocking',
-      user:'Pisces AI Playground'
+      const alertIdValue = alertData.alertId
+      const subjectValue = alertData.alert?.title || ''
+      const descriptionValue = getRawDescription(alertData.detail, alertData.alert)
+      const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
+        ? JSON.stringify(descriptionValue)
+        : String(descriptionValue || '')
+
+      const payload = {
+        inputs: {
+          appid: String(workflowId),
+          subject: String(subjectValue),
+          description: descriptionString,
+          alarm_id: String(alertIdValue)
+        },
+        response_mode: 'blocking',
+        user: 'Pisces AI Playground'
+      }
+
+      try {
+        const response = await fetch(aiWorkflowApi, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${aiWorkflowRunnerKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        results.push({ alertId: alertIdValue, success: true, data })
+        
+        // Store result for display
+        finetuneWorkflowResults.value[alertIdValue] = { data, error: null, loading: false }
+        
+        // Save fine-tune result
+        const text = getWorkflowTextFromData(data)
+        const parsed = parseWorkflowBlocks(text || '')
+        const workflowName = workflows.value.find(w => w.id === workflowId)?.name || 'Model'
+        
+        const savePayload = {
+          workflow_id: String(workflowId),
+          agent_name: workflowName,
+          is_threat: parsed?.isThreat || null,
+          confidence_score: parsed?.confidence || null,
+          reason: parsed?.reason || null,
+          raw_text: text || ''
+        }
+        
+        await saveAlertAiFineTuneResult(alertIdValue, savePayload)
+        
+        // Refresh fine-tune results for this alert
+        await loadFinetuneResults(alertIdValue)
+      } catch (error) {
+        console.error(`Failed to run workflow for alert ${alertIdValue}:`, error)
+        results.push({ alertId: alertIdValue, success: false, error: error.message })
+        finetuneWorkflowResults.value[alertIdValue] = { 
+          data: null, 
+          error: error?.message || 'Failed to run workflow', 
+          loading: false 
+        }
+      }
     }
 
-    const response = await fetch(aiWorkflowApi, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${aiWorkflowRunnerKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    if (results.length > 0) {
+      const successCount = results.filter(r => r.success).length
+      toast.success(`Successfully ran workflows for ${successCount} of ${results.length} alerts`, 'SUCCESS')
     }
-
-    const data = await response.json()
-    workflowResult.value = data
-    addWorkflowRun(data)
   } catch (error) {
-    console.error('Failed to run workflow:', error)
-    workflowResult.value = {
-      error: true,
-      message: error?.message || 'Failed to run workflow',
-      details: error
-    }
-    toast.error('Failed to run workflow', 'ERROR')
+    console.error('Failed to run workflows:', error)
+    toast.error('Failed to run workflows', 'ERROR')
   } finally {
     runningWorkflow.value = false
   }
 }
 
-const aiItems = computed(() => selectedAlertDetail.value?.ai || [])
+// Handle Fine-tune AI button click - opens overlay with all selected alerts
+const handleFineTuneClick = async () => {
+  if (selectedAlertsData.value.length === 0) return
+  
+  // Initialize workflow selections and results for all selected alerts
+  finetuneWorkflowSelections.value = {}
+  finetuneWorkflowResults.value = {}
+  selectedAlertsData.value.forEach(alertData => {
+    finetuneWorkflowSelections.value[alertData.alertId] = ''
+  })
+  
+  // Open overlay (workflows should already be loaded from onMounted)
+  showRetrievalOverlay.value = true
+  
+  // Wait for workflows to finish loading if they're still loading
+  if (loadingWorkflows.value) {
+    // Wait for loading to complete
+    while (loadingWorkflows.value) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+  }
+  
+  // Auto-select workflows based on agent_name match (case-insensitive)
+  nextTick(() => {
+    selectedAlertsData.value.forEach(alertData => {
+      const agentName = alertData.alert?.agent_name
+      if (agentName && workflows.value.length > 0) {
+        const matchedWorkflow = workflows.value.find(w => 
+          w.name && agentName.toLowerCase() === w.name.toLowerCase()
+        )
+        if (matchedWorkflow) {
+          finetuneWorkflowSelections.value[alertData.alertId] = matchedWorkflow.id
+        }
+      }
+    })
+  })
+}
+
+// Removed - replaced by handleRunAllWorkflows
+
+// Removed - aiItems now per-alert in selectedAlertsData
 
 // Recursively extract all string values from an object
 const extractAllTextValues = (obj, depth = 0) => {
@@ -2174,23 +2462,48 @@ const toggleRunExpanded = (id) => {
 const addWorkflowRun = (data) => {
   const text = getWorkflowTextFromData(data)
   const parsed = parseWorkflowBlocks(text || '')
-  const modelName = selectedWorkflow.value
+  // Use the workflow name as the agent name for this run
+  const agentName = selectedWorkflow.value
     ? (workflows.value.find(w => w.id === selectedWorkflow.value)?.name || 'Model')
     : 'Model'
 
   const newRun = {
     id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    modelName,
+    agentName,
     timestamp: new Date().toISOString(),
     parsed,
     text,
-    raw: data?.data?.outputs?.result,
     expanded: false
   }
 
   // Keep only the last 3 runs
   const runs = [...workflowRuns.value, newRun]
   workflowRuns.value = runs.slice(-3)
+
+  // Also persist latest run to backend so it can be retrieved later
+  const alertIdValue = selectedAlertForFinetuning.value?.alert_id || selectedAlertForFinetuning.value?.id || ''
+  if (alertIdValue) {
+    const payload = {
+      workflow_id: String(selectedWorkflow.value || ''),
+      agent_name: newRun.agentName,
+      is_threat: newRun.parsed?.isThreat || null,
+      confidence_score: newRun.parsed?.confidence || null,
+      reason: newRun.parsed?.reason || null,
+      raw_text: newRun.text || ''
+    }
+    // Fire-and-forget; errors are logged in console/toast but don't break UI
+    saveAlertAiFineTuneResult(String(alertIdValue), payload)
+      .then(() => {
+        // Refresh fine-tune results for this alert in the sidebar if it's selected
+        const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertIdValue))
+        if (alertData) {
+          loadFinetuneResults(alertIdValue)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to save AI Fine-tune result', err)
+      })
+  }
 }
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')
@@ -2373,23 +2686,18 @@ watch(showRetrievalOverlay, (isOpen) => {
     document.body.style.overflow = 'hidden'
   } else {
     document.body.style.overflow = ''
-    // Reset workflow selection when overlay closes
+    // Reset workflow selection and results when overlay closes, but keep workflows loaded
     selectedWorkflow.value = ''
-    workflows.value = []
-    loadingWorkflows.value = false
     workflowResult.value = null
     workflowRuns.value = []
+    finetuneWorkflowSelections.value = {}
+    finetuneWorkflowResults.value = {}
   }
 })
 
 // Watch selectedAlert to constrain table columns when detail panel opens/closes
-watch(selectedAlert, () => {
-  // Reset workflow selection when a new alert is selected
-  selectedWorkflow.value = ''
-  workflows.value = []
-  loadingWorkflows.value = false
-  workflowResult.value = null
-  
+// Watch selectedAlerts to constrain columns when sidebar opens/closes
+watch(selectedAlerts, () => {
   // Wait for layout to update, then constrain columns
   nextTick(() => {
     setTimeout(() => {
@@ -2422,7 +2730,10 @@ onMounted(() => {
     }
   }
   
+  // Load initial data and workflows
   handleRefresh()
+  // Preload workflows for better UX when opening fine-tuning overlay
+  triggerAiWorkflow()
 })
 
 onBeforeUnmount(() => {
