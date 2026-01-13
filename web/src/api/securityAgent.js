@@ -223,7 +223,7 @@ export const getProjectList = async ({ project_name = 'warroom' } = {}) => {
     return { answer: text, data: null }
   })
 
-  return data.data?.outputs?.group_list || []
+  return data.data?.outputs?.project_list || []
 }
 
 export const getProjectUuidList = async ({ project_name = 'warroom' } = {}) => {
