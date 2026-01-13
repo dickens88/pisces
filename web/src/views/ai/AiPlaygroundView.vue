@@ -920,36 +920,42 @@
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
                       <div class="flex-1 overflow-y-auto space-y-3">
-                        <div v-if="runningWorkflow" class="flex items-center justify-center py-8">
-                          <div class="flex flex-col items-center gap-3">
-                            <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400" style="font-size: 32px;">
-                              sync
-                            </span>
-                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') }}</p>
-                          </div>
-                        </div>
-
-                        <div v-if="!runningWorkflow && Object.keys(finetuneWorkflowResults).length === 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
+                        <div v-if="!runningWorkflow && Object.keys(finetuneWorkflowResults).length === 0 && selectedAlertsData.length > 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
                           {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run workflows to see the output.' }}
                         </div>
 
-                        <div
+                        <template
                           v-for="alertData in selectedAlertsData"
-                          v-if="alertData && alertData.alertId && finetuneWorkflowResults[alertData.alertId]"
-                          :key="`result-${alertData.alertId}`"
-                          class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4"
+                          :key="`result-${getAlertId(alertData?.alert) || alertData?.alertId || 'unknown'}`"
                         >
-                          <div class="text-xs font-semibold text-gray-900 dark:text-white mb-2">
-                            Alert #{{ alertData?.alertId }}
+                          <div
+                            v-if="alertData && (getAlertId(alertData?.alert) || alertData?.alertId) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]"
+                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4"
+                          >
+                            <div class="text-xs font-semibold text-gray-900 dark:text-white mb-2">
+                              Alert #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
+                            </div>
+                            
+                            <!-- Loading state for this alert -->
+                            <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading" class="flex items-center gap-2 py-2">
+                              <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400 text-sm">
+                                sync
+                              </span>
+                              <p class="text-xs text-gray-600 dark:text-gray-400">{{ $t('common.loading') || 'Running workflow...' }}</p>
+                            </div>
+                            
+                            <!-- Error state -->
+                            <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                              <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error }}</p>
+                            </div>
+                            
+                            <!-- Success state -->
+                            <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
+                              <p class="text-green-600 dark:text-green-400 font-medium">✓ Workflow completed successfully</p>
+                              <p class="mt-2 text-gray-600 dark:text-gray-400">Results saved. Check the sidebar to view fine-tune investigation results.</p>
+                            </div>
                           </div>
-                          <div v-if="finetuneWorkflowResults[alertData?.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[alertData?.alertId].error }}</p>
-                          </div>
-                          <div v-else-if="finetuneWorkflowResults[alertData?.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
-                            <p class="text-green-600 dark:text-green-400 font-medium">✓ Workflow completed successfully</p>
-                            <p class="mt-2 text-gray-600 dark:text-gray-400">Results saved. Check the sidebar to view fine-tune investigation results.</p>
-                          </div>
-                        </div>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -2326,6 +2332,23 @@ const handleRunAllWorkflows = async () => {
   const results = []
 
   try {
+    // Initialize loading state for alerts that will be processed
+    selectedAlertsData.value.forEach(alertData => {
+      if (alertData && alertData.alert) {
+        const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
+        if (alertIdValue) {
+          const workflowId = finetuneWorkflowSelections.value[alertIdValue]
+          if (workflowId && workflowId !== '') {
+            finetuneWorkflowResults.value[alertIdValue] = { 
+              data: null, 
+              error: null, 
+              loading: true 
+            }
+          }
+        }
+      }
+    })
+
     // Run workflow for each alert sequentially
     for (const alertData of selectedAlertsData.value) {
       if (!alertData || !alertData.alert) continue
@@ -2367,7 +2390,7 @@ const handleRunAllWorkflows = async () => {
         const data = await response.json()
         results.push({ alertId: alertIdValue, success: true, data })
         
-        // Store result for display
+        // Store result for display immediately (results appear as they arrive)
         finetuneWorkflowResults.value[alertIdValue] = { data, error: null, loading: false }
         
         // Save fine-tune result
@@ -2408,6 +2431,12 @@ const handleRunAllWorkflows = async () => {
     toast.error('Failed to run workflows', 'ERROR')
   } finally {
     runningWorkflow.value = false
+    // Clear any remaining loading states
+    Object.keys(finetuneWorkflowResults.value).forEach(alertId => {
+      if (finetuneWorkflowResults.value[alertId]?.loading) {
+        finetuneWorkflowResults.value[alertId].loading = false
+      }
+    })
   }
 }
 
