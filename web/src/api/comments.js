@@ -17,7 +17,7 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
     formData.append('event_id', eventId)
     formData.append('comment', comment || '')
     if (workspace) formData.append('workspace', workspace)
-    if (commentType) formData.append('comment_type', commentType)
+    if (commentType) formData.append('note_type', commentType)
     formData.append('file', files[0])
     
     return service.post(url, formData, {
@@ -29,7 +29,7 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
     event_id: eventId,
     comment: comment,
     ...(workspace && { workspace }),
-    ...(commentType && { comment_type: commentType })
+    ...(commentType && { note_type: commentType })
   })
 }
 
@@ -45,7 +45,7 @@ export const updateComment = (eventId, commentId, comment, commentType = null) =
   const url = `/comments/${eventId}/${commentId}`
   return service.put(url, {
     comment: comment,
-    ...(commentType && { comment_type: commentType })
+    ...(commentType && { note_type: commentType })
   })
 }
 
