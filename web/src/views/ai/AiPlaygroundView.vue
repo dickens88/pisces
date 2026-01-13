@@ -342,6 +342,34 @@
               </span>
             </div>
           </template>
+          <template #cell-aiJudgeFineTune="{ item }">
+            <div class="flex items-center justify-center">
+              <span
+                v-if="getFineTuneVerificationState(item) === 'True_Positive'"
+                class="text-sm font-medium text-red-600 dark:text-red-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.truePositive') }}
+              </span>
+              <span
+                v-else-if="getFineTuneVerificationState(item) === 'False_Positive'"
+                class="text-sm font-medium text-green-600 dark:text-green-400"
+              >
+                {{ $t('alerts.list.aiJudgeResult.falsePositive') }}
+              </span>
+              <span
+                v-else-if="getFineTuneVerificationState(item) === 'Unknown'"
+                class="text-sm font-medium text-gray-400 dark:text-gray-500"
+              >
+                {{ $t('alerts.list.aiJudgeResult.unknown') }}
+              </span>
+              <span
+                v-else
+                class="text-sm font-medium text-gray-400 dark:text-gray-500"
+              >
+                -
+              </span>
+            </div>
+          </template>
           <template #cell-humanVerdict="{ item }">
             <div class="flex items-center justify-center">
               <span class="text-sm text-gray-900 dark:text-white">
@@ -662,9 +690,9 @@
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
                   
                   <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <!-- Model Selection -->
+                    <!-- Workflow Selection -->
                     <div class="flex flex-col gap-2">
-                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.modelSelection') || 'Model Selection' }}</label>
+                      <label class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
                       <div class="relative">
                         <select
                           v-model="selectedWorkflow"
@@ -753,7 +781,7 @@
                           >
                             <div class="flex items-start justify-between gap-3">
                               <div class="flex flex-col gap-1">
-                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ run.modelName || 'Model' }}</span>
+                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ run.agentName || 'Model' }}</span>
                                 <div class="flex items-center gap-2">
                                   <span class="text-xs uppercase text-gray-500 dark:text-gray-400">Verdict:</span>
                                   <span class="text-sm font-semibold" :class="run.parsed?.isThreat ? 'text-primary' : 'text-gray-700 dark:text-gray-200'">
@@ -853,7 +881,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert } from '@/api/alerts'
+import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert, saveAlertAiFineTuneResult } from '@/api/alerts'
 import service from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -1175,6 +1203,7 @@ const columns = computed(() => [
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'aiJudge', label: t('alerts.list.aiJudge') },
+  { key: 'aiJudgeFineTune', label: t('aiPlayground.aiJudgeFineTune') || 'AI Judge (Fine-tune)' },
   { key: 'humanVerdict', label: t('aiPlayground.humanVerdict') },
   { key: 'match', label: t('aiPlayground.match') },
   { key: 'agentName', label: 'Agent Name' }
@@ -1185,6 +1214,7 @@ const defaultWidths = {
   alertTitle: 360,
   riskLevel: 120,
   aiJudge: 120,
+  aiJudgeFineTune: 140,
   humanVerdict: 150,
   match: 120,
   agentName: 150
@@ -1605,6 +1635,37 @@ const getAiVerdictText = (alert) => {
     return t('alerts.list.aiJudgeResult.falsePositive')
   }
   return t('alerts.list.aiJudgeResult.unknown')
+}
+
+// Map fine-tune is_threat text to verification_state-like values for display
+// Rules: true/yes → True_Positive, false/no → False_Positive, anything else (non-null) → Unknown, null → null (shows as "-")
+const getFineTuneVerificationState = (item) => {
+  const raw = item?.ai_finetune_is_threat
+  
+  // If null or undefined, return null (will show as "-")
+  if (raw === null || raw === undefined) {
+    return null
+  }
+
+  const v = String(raw).trim().toLowerCase()
+  
+  // Empty string after trimming is treated as null
+  if (!v) {
+    return null
+  }
+
+  // Check for true/yes → True_Positive
+  if (v === 'true' || v === 'yes') {
+    return 'True_Positive'
+  }
+
+  // Check for false/no → False_Positive
+  if (v === 'false' || v === 'no') {
+    return 'False_Positive'
+  }
+
+  // Anything else (non-null) → Unknown (cannot decide)
+  return 'Unknown'
 }
 
 // Get Human Verdict text
@@ -2174,23 +2235,41 @@ const toggleRunExpanded = (id) => {
 const addWorkflowRun = (data) => {
   const text = getWorkflowTextFromData(data)
   const parsed = parseWorkflowBlocks(text || '')
-  const modelName = selectedWorkflow.value
+  // Use the workflow name as the agent name for this run
+  const agentName = selectedWorkflow.value
     ? (workflows.value.find(w => w.id === selectedWorkflow.value)?.name || 'Model')
     : 'Model'
 
   const newRun = {
     id: `run-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    modelName,
+    agentName,
     timestamp: new Date().toISOString(),
     parsed,
     text,
-    raw: data?.data?.outputs?.result,
     expanded: false
   }
 
   // Keep only the last 3 runs
   const runs = [...workflowRuns.value, newRun]
   workflowRuns.value = runs.slice(-3)
+
+  // Also persist latest run to backend so it can be retrieved later
+  const alertIdValue = alertId.value
+  if (alertIdValue) {
+    const payload = {
+      workflow_id: String(selectedWorkflow.value || ''),
+      agent_name: newRun.agentName,
+      is_threat: newRun.parsed?.isThreat || null,
+      confidence_score: newRun.parsed?.confidence || null,
+      reason: newRun.parsed?.reason || null,
+      raw_text: newRun.text || ''
+    }
+    // Fire-and-forget; errors are logged in console/toast but don't break UI
+    saveAlertAiFineTuneResult(String(alertIdValue), payload)
+      .catch((err) => {
+        console.error('Failed to save AI Fine-tune result', err)
+      })
+  }
 }
 
 const isDarkMode = () => document.documentElement.classList.contains('dark')

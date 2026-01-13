@@ -11,7 +11,7 @@ from utils.app_config import config
 from utils.auth_util import parse_w3_token, TokenCache
 from utils.common_utils import scheduler
 from utils.logger_init import logger
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view, impacted_service_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view, impacted_service_view, alert_ai_finetune_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -76,6 +76,7 @@ api.add_resource(auth_view.LoginRestToken, '/login/rest/token')
 api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
 api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
+api.add_resource(alert_ai_finetune_view.AlertAiFineTuneView, '/alerts/<alert_id>/ai-finetune')
 
 # Register more specific routes first to avoid route matching conflicts
 api.add_resource(incident_view.IncidentTask, '/incidents/<incident_id>/task')

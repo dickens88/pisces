@@ -46,7 +46,8 @@ class AlertView(Resource):
                     limit=limit,
                     offset=offset,
                     start_time=start_time,
-                    end_time=end_time
+                    end_time=end_time,
+                    include_finetune=True,
                 )
                 return {"data": data, "total": total}, 200
             elif action == 'create':

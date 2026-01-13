@@ -666,3 +666,13 @@ export const deleteAlerts = (alertIds) => {
   })
 }
 
+/**
+ * Save latest AI Fine-tune result for an alert.
+ * @param {string|number} alertId
+ * @param {Object} data
+ * @returns {Promise}
+ */
+export const saveAlertAiFineTuneResult = (alertId, data) => {
+  return service.post(`/alerts/${alertId}/ai-finetune`, data)
+}
+

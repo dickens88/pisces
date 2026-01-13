@@ -128,7 +128,8 @@ class Alert(Base):
 
     @classmethod
     def list_alerts(cls, conditions: List = None, limit: int = 50, offset: int = 0, 
-                    start_time: str = None, end_time: str = None) -> Tuple[List[dict], int]:
+                    start_time: str = None, end_time: str = None,
+                    include_finetune: bool = False) -> Tuple[List[dict], int]:
 
         session = Session()
         try:
@@ -199,7 +200,37 @@ class Alert(Base):
                 .all()
             )
 
-            result = [item.to_dict() for item in rows]
+            if include_finetune:
+                # Attach latest AI fine-tune result (is_threat) per alert if available
+                try:
+                    from models.alert_ai_finetune import AlertAiFineTuneResult
+
+                    alert_ids = [str(item.alert_id) for item in rows if item.alert_id]
+                    fine_tune_map = {}
+                    if alert_ids:
+                        ft_rows = (
+                            session.query(AlertAiFineTuneResult)
+                            .filter(AlertAiFineTuneResult.alert_id.in_(alert_ids))
+                            .order_by(AlertAiFineTuneResult.alert_id, AlertAiFineTuneResult.updated_at.desc())
+                            .all()
+                        )
+                        for r in ft_rows:
+                            # Keep only the latest per alert_id
+                            if r.alert_id not in fine_tune_map:
+                                fine_tune_map[r.alert_id] = r
+
+                    result = []
+                    for item in rows:
+                        data = item.to_dict()
+                        ft = fine_tune_map.get(str(item.alert_id))
+                        data["ai_finetune_is_threat"] = ft.is_threat if ft else None
+                        result.append(data)
+                except Exception as ex:
+                    logger.warning("Failed to attach AI fine-tune results to alerts list: %s", ex)
+                    result = [item.to_dict() for item in rows]
+            else:
+                result = [item.to_dict() for item in rows]
+
             return result, total
         except Exception as ex:
             logger.exception(ex)

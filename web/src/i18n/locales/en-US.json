@@ -143,6 +143,7 @@
     },
     "retrievalTest": {
       "selectWorkflow": "Select Workflow",
+      "workflowSelection": "Workflow Selection",
       "runWorkflow": "Run Workflow",
       "workflowResult": "Workflow Result",
       "noResult": "No workflow result yet. Run a workflow to see the output.",
@@ -152,11 +153,11 @@
       "aiAgentWorkspace": "AI Agent Workspace",
       "inputsForCurrentRun": "Inputs for Current Run",
       "allInputsIncluded": "All inputs from the left panel are included for AI analysis.",
-      "modelSelection": "Model Selection",
       "aiResponseFeed": "AI Response Feed"
     },
     "fineTuneSubtitle": "Train and debug AI models",
     "humanVerdict": "Human Verdict",
+    "aiJudgeFineTune": "AI Judge (Fine-tune)",
     "match": "Match",
     "matchStatus": {
       "match": "Match",
