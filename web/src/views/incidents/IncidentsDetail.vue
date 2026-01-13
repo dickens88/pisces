@@ -2379,7 +2379,7 @@ import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask, getImpactedServices, createImpactedService, updateImpactedService, deleteImpactedService, getIncidentBriefs, createIncidentBrief, updateIncidentBrief, deleteIncidentBrief } from '@/api/incidents'
-import { updateComment, deleteComment } from '@/api/comments'
+import { updateComment, deleteComment, getComments } from '@/api/comments'
 import { getProjectList, getTaskDetail } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
@@ -2519,6 +2519,72 @@ const translateOr = (key, fallback) => {
 const authStore = useAuthStore()
 
 const incident = ref(null)
+// 仅刷新评论列表和时间线，避免刷新其他数据块
+/**
+ * @brief 将云脑原始评论格式转换为前端期望的格式
+ */
+const transformCloudBrainComments = (cloudBrainData) => {
+  if (!cloudBrainData || !cloudBrainData.data || !Array.isArray(cloudBrainData.data)) {
+    return []
+  }
+  
+  return cloudBrainData.data.map((item) => {
+    const rawContent = item.content || {}
+    const contentValue = rawContent.value || ''
+    
+    // 从内容中提取 owner（格式：【@owner】: content）
+    let author = rawContent.come_from || 'Unknown'
+    const ownerMatch = contentValue.match(/【@([^】]+)】/)
+    if (ownerMatch) {
+      author = ownerMatch[1].trim()
+    }
+    
+    // 提取实际评论内容（去掉【@owner】前缀）
+    let content = contentValue
+    if (ownerMatch) {
+      content = contentValue.replace(/【@[^】]+】:\s*/, '').trim()
+    }
+    
+    return {
+      id: item.id,
+      comment_id: item.id,
+      author: author,
+      create_time: rawContent.occurred_time,
+      content: content,
+      type: item.note_type,
+      note_type: item.note_type,
+      file: null, // 文件信息需要单独查询，这里先设为 null
+      exists_in_db: true
+    }
+  })
+}
+
+const loadComments = async () => {
+  const incidentId = route.params.id
+  if (!incidentId) return
+  try {
+    const resp = await getComments(incidentId)
+    // 云脑返回的原始格式需要先转换
+    const rawData = resp.data?.data || resp.data || {}
+    const rawComments = Array.isArray(rawData) ? rawData : (rawData.data || [])
+    const transformedComments = Array.isArray(rawComments) && rawComments.length > 0 && rawComments[0].content
+      ? transformCloudBrainComments({ data: rawComments })
+      : rawComments
+    const comments = formatComments(transformedComments)
+    if (!incident.value) {
+      incident.value = { comments, timeline: [] }
+    } else {
+      incident.value.comments = comments
+      incident.value.timeline = generateTimeline({
+        ...(incident.value || {}),
+        comments
+      })
+    }
+  } catch (error) {
+    console.error('Failed to load comments:', error)
+  }
+}
+
 const loadingIncident = ref(false)
 // 默认进入 Alert story 视图
 const activeTab = ref('alertStory')
@@ -5086,8 +5152,9 @@ const formatComments = (comments) => {
       content: comment.content || comment.message,
       create_time: comment.create_time,
       file: comment.file || null,  // 保留文件信息
-      type: comment.comment_type || comment.type || null,
-      comment_type: comment.comment_type || comment.type || null,
+      // note_type 是后端返回的动作类型；兼容旧字段 type
+      type: comment.note_type || comment.type || null,
+      note_type: comment.note_type || comment.type || null,
       // 标记评论是否存在于数据库中
       exists_in_db: comment.exists_in_db !== false  // 默认为true，如果明确标记为false则为false
     }
@@ -5215,8 +5282,8 @@ const handlePostComment = async ({ comment, files, type }) => {
     // 清空输入框（组件会自动清空）
     newComment.value = ''
     
-    // 重新加载事件详情以获取最新评论
-    await loadIncidentDetail()
+    // 仅刷新评论列表和时间线，避免触发其他接口
+    await loadComments()
     
     // 显示成功提示
     toast.success(t('incidents.detail.comments.postSuccess') || 'Comment posted successfully', 'SUCCESS')
@@ -5228,17 +5295,17 @@ const handlePostComment = async ({ comment, files, type }) => {
   }
 }
 
-const handleUpdateComment = async ({ commentId, comment, commentType }) => {
+const handleUpdateComment = async ({ commentId, comment, noteType }) => {
   if (!incident.value?.id) {
     toast.error(t('incidents.detail.comments.updateError') || 'Failed to update comment: Incident ID does not exist', 'ERROR')
     return
   }
   
   try {
-    await updateComment(incident.value.id, commentId, comment, commentType)
+    await updateComment(incident.value.id, commentId, comment, noteType)
     
-    // 重新加载事件详情以获取最新评论
-    await loadIncidentDetail()
+    // 仅刷新评论列表和时间线
+    await loadComments()
     
     // 显示成功提示
     toast.success(t('incidents.detail.comments.updateSuccess') || 'Comment updated successfully', 'SUCCESS')
@@ -5272,8 +5339,8 @@ const handleDeleteComment = async ({ commentId, existsInDatabase }) => {
   try {
     await deleteComment(incident.value.id, commentId)
     
-    // 重新加载事件详情以获取最新评论
-    await loadIncidentDetail()
+    // 仅刷新评论列表和时间线
+    await loadComments()
     
     // 显示成功提示
     toast.success(t('incidents.detail.comments.deleteSuccess') || 'Comment deleted successfully', 'SUCCESS')
