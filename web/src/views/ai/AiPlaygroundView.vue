@@ -2207,7 +2207,16 @@ const toggleAlertDrawer = (alertId) => {
     return String(dataAlertId) === String(alertId)
   })
   if (alertData) {
+    const wasExpanded = alertData.expanded
     alertData.expanded = !alertData.expanded
+    
+    // If expanding, ensure fine-tune results are loaded (reload to get latest data)
+    if (!wasExpanded && alertData.expanded) {
+      // Only load if not currently loading
+      if (!alertData.finetuneLoading) {
+        loadFinetuneResults(alertId)
+      }
+    }
   }
 }
 
