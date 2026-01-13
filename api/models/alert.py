@@ -36,6 +36,8 @@ class Alert(Base):
     is_auto_closed = Column(String(50))
     data_source_product_name = Column(Text())
     model_name = Column(String(50))
+    # Latest AI agent name associated with this alert (from fine-tune workflow)
+    agent_name = Column(String(100))
     is_ai_decision_correct = Column(String(10), default = None)
     tta = Column(Integer(), default=0)
 
@@ -60,6 +62,7 @@ class Alert(Base):
             "is_auto_closed": self.is_auto_closed,
             "data_source_product_name": self.data_source_product_name,
             "model_name": self.model_name,
+            "agent_name": self.agent_name,
             "is_ai_decision_correct": self.is_ai_decision_correct,
             "tta": self.tta,
             "verification_state": self.verification_state,
@@ -160,6 +163,8 @@ class Alert(Base):
                         query = query.filter(cls.actor.ilike(f"%{val_str}%"))
                     elif key_lower in ('model', 'model_name'):
                         query = query.filter(cls.model_name == val_str)
+                    elif key_lower == 'agent_name':
+                        query = query.filter(cls.agent_name == val_str)
                     elif key_lower in ('handle_status', 'status'):
                         query = query.filter(cls.handle_status == val_str)
                     elif key_lower == 'severity':
@@ -220,6 +225,30 @@ class Alert(Base):
         finally:
             session.close()
 
+    @classmethod
+    def update_agent_name(cls, alert_id: str, agent_name: str) -> None:
+        """Update the agent_name for a given alert in the local DB."""
+        if not alert_id or not agent_name:
+            return
+
+        session = Session()
+        try:
+            alert = session.query(cls).filter_by(alert_id=str(alert_id)).first()
+            if not alert:
+                logger.warning("Attempted to update agent_name for non-existent alert_id=%s", alert_id)
+                return
+
+            alert.agent_name = agent_name
+            session.add(alert)
+            session.commit()
+            logger.debug("Updated agent_name for alert_id=%s to %s", alert_id, agent_name)
+        except Exception as ex:
+            session.rollback()
+            logger.exception("Failed to update agent_name for alert_id=%s: %s", alert_id, ex)
+            raise
+        finally:
+            session.close()
+
     @staticmethod
     def _build_alert_entity(payload: dict):
         """Build Alert ORM instance from payload without persisting."""
@@ -230,6 +259,11 @@ class Alert(Base):
         description = payload.get("description")
         model_name = description.get("model_name") if description else "UNKNOWN"
         logger.debug("The value of model_name is: %s", model_name)
+
+        # Prefer explicit agent_name from payload; fall back to description if present
+        agent_name = payload.get("agent_name")
+        if not agent_name and isinstance(description, dict):
+            agent_name = description.get("agent_name")
         is_ai_decision_correct = None
         if handle_status == "Closed":
             is_ai_decision_correct = AiDecisionService.evaluate_ai_decision(payload)
@@ -277,6 +311,7 @@ class Alert(Base):
             is_auto_closed=payload.get("is_auto_closed"),
             data_source_product_name=data_source_product_name,
             model_name=model_name,
+            agent_name=agent_name,
             is_ai_decision_correct = is_ai_decision_correct,
             tta=tta,
             verification_state=payload.get("verification_state"),
