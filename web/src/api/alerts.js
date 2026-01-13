@@ -676,3 +676,12 @@ export const saveAlertAiFineTuneResult = (alertId, data) => {
   return service.post(`/alerts/${alertId}/ai-finetune`, data)
 }
 
+/**
+ * Get AI Fine-tune results for an alert.
+ * @param {string|number} alertId
+ * @returns {Promise}
+ */
+export const getAlertAiFineTuneResults = (alertId) => {
+  return service.get(`/alerts/${alertId}/ai-finetune`)
+}
+

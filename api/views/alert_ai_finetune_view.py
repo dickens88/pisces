@@ -56,4 +56,38 @@ class AlertAiFineTuneView(Resource):
             logger.exception(ex)
             return {"error_message": str(ex)}, 500
 
+    @auth_required
+    def get(self, username=None, alert_id=None):
+        """
+        API endpoint to retrieve AI Fine-tune results for an alert.
+
+        URL: GET /alerts/<alert_id>/ai-finetune
+        Returns: List of fine-tune results for the alert (latest per workflow_id)
+        """
+        try:
+            from utils.mysql_conn import Session
+            
+            session = Session()
+            try:
+                results = (
+                    session.query(AlertAiFineTuneResult)
+                    .filter_by(alert_id=str(alert_id))
+                    .order_by(AlertAiFineTuneResult.updated_at.desc())
+                    .all()
+                )
+                
+                # Group by workflow_id and keep only the latest per workflow
+                latest_by_workflow = {}
+                for result in results:
+                    workflow_key = result.workflow_id or '__no_workflow__'
+                    if workflow_key not in latest_by_workflow:
+                        latest_by_workflow[workflow_key] = result.to_dict()
+                
+                return {"data": list(latest_by_workflow.values())}, 200
+            finally:
+                session.close()
+        except Exception as ex:
+            logger.exception(ex)
+            return {"error_message": str(ex)}, 500
+
 
