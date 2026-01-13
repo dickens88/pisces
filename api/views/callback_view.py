@@ -25,7 +25,7 @@ class CallbackMessageHandler(Resource):
         
         # Pattern to match [anything by]: followed by the agent name
         # Examples: [Created by]: AgentName, [Investigated by]: AgentName
-        pattern = r'\[([^\]]+)\s+by\]:\s*(.+)'
+        pattern = r'by\s+([0-9A-Za-z\u4e00-\u9fa5_ \-]+)$'
         match = re.search(pattern, comment_content, re.IGNORECASE)
         
         if match:
