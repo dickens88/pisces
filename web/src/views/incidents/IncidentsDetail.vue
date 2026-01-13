@@ -4380,6 +4380,7 @@ const taskEditForm = ref({
 const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
 const editingNotificationIndex = ref(-1) // 正在编辑的通报索引，-1表示新增
+const editingNotificationId = ref(null) // 正在编辑的通报ID（用于更新API调用）
 const notificationForm = ref({
   event: '',
   type: 'firstNotification',
