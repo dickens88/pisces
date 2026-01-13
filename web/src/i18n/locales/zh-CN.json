@@ -33,7 +33,11 @@
       "note": "评论",
       "create": "创建",
       "relatetodataobject": "关联事件",
-      "pisces": "评论"
+      "pisces": "评论",
+      "attacktracing": "攻击溯源",
+      "attackblocking": "攻击拦截",
+      "vulnerabilityidentification": "漏洞定位",
+      "riskmitigation": "风险消减"
     },
     "noData": "暂无数据",
     "warning": "警告",
@@ -613,6 +617,13 @@
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
+        "progressSync": {
+          "priority": {
+            "normal": "普通",
+            "urgent": "紧急",
+            "veryUrgent": "非常紧急"
+          }
+        },
         "metrics": {
           "averageAttackTracingTime": "平均攻击溯源时间",
           "mttTracing": "MTT溯源",
