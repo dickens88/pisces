@@ -1971,7 +1971,10 @@ const sanitizeHtml = (html = '') => DOMPurify.sanitize(html)
 const handleSelect = (items) => {
   const newSelectedIds = items.map(item => String(item.alert_id || item.id)).filter(Boolean)
   const currentSelectedIds = selectedAlerts.value.map(id => String(id))
+  
+  // Find IDs that are in current selection but not in new selection (unchecked)
   const removedIds = currentSelectedIds.filter(id => !newSelectedIds.includes(id))
+  // Find IDs that are in new selection but not in current selection (newly checked)
   const addedIds = newSelectedIds.filter(id => !currentSelectedIds.includes(id))
   
   // Remove alerts that were unchecked
@@ -1979,25 +1982,39 @@ const handleSelect = (items) => {
   
   // Add new alerts
   addedIds.forEach(alertId => {
-    const alert = items.find(item => String(item.alert_id || item.id) === alertId)
+    // Try to find alert in current alerts list first, then fallback to items passed in
+    const alert = alerts.value.find(item => String(item.alert_id || item.id) === alertId) || 
+                  items.find(item => String(item.alert_id || item.id) === alertId)
     if (alert) {
-      selectedAlertsData.value.push({
-        alertId: String(alertId),
-        alert: { ...alert },
-        detail: null,
-        loading: true,
-        expanded: false,
-        aiItems: [],
-        finetuneResults: [],
-        finetuneLoading: false,
-        humanVerdictValue: mapCloseReasonToKey(alert.close_reason || alert.closeReason || '')
-      })
-      loadAlertDetails(alertId)
-      loadFinetuneResults(alertId)
+      // Check if we already have this alert in selectedAlertsData (might happen during restore)
+      const existingData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+      if (!existingData) {
+        selectedAlertsData.value.push({
+          alertId: String(alertId),
+          alert: { ...alert },
+          detail: null,
+          loading: true,
+          expanded: false,
+          aiItems: [],
+          finetuneResults: [],
+          finetuneLoading: false,
+          humanVerdictValue: mapCloseReasonToKey(alert.close_reason || alert.closeReason || '')
+        })
+        loadAlertDetails(alertId)
+        loadFinetuneResults(alertId)
+      } else {
+        // Update alert data if it exists but might be stale
+        existingData.alert = { ...alert }
+      }
     }
   })
   
-  selectedAlerts.value = newSelectedIds
+  // Update selectedAlerts: remove unchecked ones, keep existing ones, add new ones
+  // This preserves selections from other pages/searches that aren't in current view
+  selectedAlerts.value = selectedAlerts.value
+    .filter(id => !removedIds.includes(id)) // Remove unchecked
+    .concat(addedIds) // Add newly checked
+    .filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
 }
 
 const handleSelectAll = (items) => {
@@ -2646,6 +2663,19 @@ const loadAlerts = async () => {
     // Only keep data normalization here
     alerts.value = normalized
     total.value = response.total || 0
+    
+    // Restore selections after alerts load - find selected alerts in the new list
+    nextTick(() => {
+      if (selectedAlerts.value.length > 0 && dataTableRef.value) {
+        const selectedItemsInNewList = alerts.value.filter(alert => 
+          selectedAlerts.value.includes(String(alert.alert_id || alert.id))
+        )
+        // Restore selection in DataTable (silent=true to prevent triggering handleSelect)
+        if (dataTableRef.value.setSelectedItems && selectedItemsInNewList.length > 0) {
+          dataTableRef.value.setSelectedItems(selectedItemsInNewList, true)
+        }
+      }
+    })
   } catch (error) {
     console.error('Failed to load alerts:', error)
     alerts.value = []
