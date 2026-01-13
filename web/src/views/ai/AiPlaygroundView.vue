@@ -744,10 +744,11 @@
                   <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 space-y-4">
                     <div
                       v-for="alertData in selectedAlertsData"
+                      v-if="alertData && alertData.alertId"
                       :key="`finetune-${alertData.alertId}`"
                       :class="[
                         'bg-gray-50 dark:bg-[#1c2533] border rounded-lg overflow-hidden transition-colors',
-                        finetuneWorkflowSelections[alertData.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
+                        finetuneWorkflowSelections[alertData?.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
                       ]"
                     >
                       <!-- Alert Drawer Header -->
@@ -755,10 +756,10 @@
                         <div class="flex items-center justify-between gap-3 mb-3">
                           <div class="flex-1 min-w-0">
                             <h5 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {{ $t('alerts.detail.title') }} #{{ alertData.alertId }}
+                              {{ $t('alerts.detail.title') }} #{{ alertData?.alertId }}
                             </h5>
                             <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
-                              {{ alertData.alert?.title || '' }}
+                              {{ alertData?.alert?.title || '' }}
                             </p>
                           </div>
                         </div>
@@ -768,11 +769,11 @@
                           <label class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
                           <div class="relative">
                             <select
-                              v-model="finetuneWorkflowSelections[alertData.alertId]"
+                              v-model="finetuneWorkflowSelections[alertData?.alertId]"
                               :disabled="loadingWorkflows"
                               :class="[
                                 'pl-3 pr-8 appearance-none block w-full rounded-lg border h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
-                                finetuneWorkflowSelections[alertData.alertId] 
+                                finetuneWorkflowSelections[alertData?.alertId] 
                                   ? 'border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533]' 
                                   : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                               ]"
@@ -813,7 +814,7 @@
                           <input
                             type="text"
                             class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5"
-                            :value="alertData.alertId"
+                            :value="alertData?.alertId || ''"
                             readonly
                           />
                         </div>
@@ -925,17 +926,17 @@
 
                         <div
                           v-for="alertData in selectedAlertsData"
+                          v-if="alertData && alertData.alertId && finetuneWorkflowResults[alertData.alertId]"
                           :key="`result-${alertData.alertId}`"
-                          v-if="finetuneWorkflowResults[alertData.alertId]"
                           class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4"
                         >
                           <div class="text-xs font-semibold text-gray-900 dark:text-white mb-2">
-                            Alert #{{ alertData.alertId }}
+                            Alert #{{ alertData?.alertId }}
                           </div>
-                          <div v-if="finetuneWorkflowResults[alertData.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[alertData.alertId].error }}</p>
+                          <div v-if="finetuneWorkflowResults[alertData?.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                            <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[alertData?.alertId].error }}</p>
                           </div>
-                          <div v-else-if="finetuneWorkflowResults[alertData.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
+                          <div v-else-if="finetuneWorkflowResults[alertData?.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
                             <p class="text-green-600 dark:text-green-400 font-medium">✓ Workflow completed successfully</p>
                             <p class="mt-2 text-gray-600 dark:text-gray-400">Results saved. Check the sidebar to view fine-tune investigation results.</p>
                           </div>
@@ -1967,6 +1968,11 @@ const clearSearch = () => {
 
 const sanitizeHtml = (html = '') => DOMPurify.sanitize(html)
 
+// Helper function to get alert ID from alert object (same format as table alerts)
+const getAlertId = (alert) => {
+  return String(alert?.alert_id || alert?.id || '').trim()
+}
+
 // Handle checkbox selection
 const handleSelect = (items) => {
   // items only contains items currently visible in the DataTable
@@ -1989,9 +1995,11 @@ const handleSelect = (items) => {
   )
   
   // Remove alerts that were unchecked (only for visible items)
-  selectedAlertsData.value = selectedAlertsData.value.filter(data => 
-    !visibleRemovedIds.includes(String(data.alertId))
-  )
+  // Compare using the alert object's ID (since it comes from the table)
+  selectedAlertsData.value = selectedAlertsData.value.filter(data => {
+    const dataAlertId = getAlertId(data.alert) || data.alertId
+    return !visibleRemovedIds.includes(String(dataAlertId))
+  })
   
   // Add new alerts (only for visible items)
   visibleAddedIds.forEach(alertId => {
@@ -1999,12 +2007,24 @@ const handleSelect = (items) => {
     const alert = alerts.value.find(item => String(item.alert_id || item.id) === alertId) || 
                   items.find(item => String(item.alert_id || item.id) === alertId)
     if (alert) {
-      // Check if we already have this alert in selectedAlertsData (might happen during restore)
-      const existingData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+      // Get ID using the same format as table alerts: alert_id || id
+      // Since alert comes from alerts.value (the table), use its ID format
+      const validAlertId = getAlertId(alert)
+      if (!validAlertId) {
+        console.warn('Skipping alert with no valid ID:', alert)
+        return
+      }
+      const existingData = selectedAlertsData.value.find(d => {
+        // Compare using the alert object's ID (since it comes from the table)
+        const dataAlertId = getAlertId(d.alert) || d.alertId
+        return String(dataAlertId) === validAlertId
+      })
       if (!existingData) {
+        // alertId should always match alert.alert_id || alert.id from the table
+        // Since alert comes from alerts.value, alertId is derived from it
         selectedAlertsData.value.push({
-          alertId: String(alertId),
-          alert: { ...alert },
+          alertId: validAlertId, // Derived from alert.alert_id || alert.id (from table)
+          alert: { ...alert }, // This comes directly from alerts.value (the table)
           detail: null,
           loading: true,
           expanded: false,
@@ -2013,11 +2033,13 @@ const handleSelect = (items) => {
           finetuneLoading: false,
           humanVerdictValue: mapCloseReasonToKey(alert.close_reason || alert.closeReason || '')
         })
-        loadAlertDetails(alertId)
-        loadFinetuneResults(alertId)
+        loadAlertDetails(validAlertId)
+        loadFinetuneResults(validAlertId)
       } else {
         // Update alert data if it exists but might be stale
         existingData.alert = { ...alert }
+        // Ensure alertId always matches the alert's ID format from the table
+        existingData.alertId = getAlertId(alert)
       }
     }
   })
@@ -2036,7 +2058,11 @@ const handleSelectAll = (items) => {
 
 // Load alert details for a specific alert
 const loadAlertDetails = async (alertId) => {
-  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  // Find using the alert object's ID (since it comes from the table)
+  const alertData = selectedAlertsData.value.find(d => {
+    const dataAlertId = getAlertId(d.alert) || d.alertId
+    return String(dataAlertId) === String(alertId)
+  })
   if (!alertData) return
   
   alertData.loading = true
@@ -2064,7 +2090,11 @@ const loadAlertDetails = async (alertId) => {
 
 // Load fine-tune results for a specific alert
 const loadFinetuneResults = async (alertId) => {
-  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  // Find using the alert object's ID (since it comes from the table)
+  const alertData = selectedAlertsData.value.find(d => {
+    const dataAlertId = getAlertId(d.alert) || d.alertId
+    return String(dataAlertId) === String(alertId)
+  })
   if (!alertData) return
   
   alertData.finetuneLoading = true
@@ -2085,7 +2115,11 @@ const loadFinetuneResults = async (alertId) => {
 
 // Toggle alert drawer expanded state
 const toggleAlertDrawer = (alertId) => {
-  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  // Find using the alert object's ID (since it comes from the table)
+  const alertData = selectedAlertsData.value.find(d => {
+    const dataAlertId = getAlertId(d.alert) || d.alertId
+    return String(dataAlertId) === String(alertId)
+  })
   if (alertData) {
     alertData.expanded = !alertData.expanded
   }
@@ -2093,7 +2127,11 @@ const toggleAlertDrawer = (alertId) => {
 
 // Toggle fine-tune result expanded state
 const toggleFinetuneResult = (alertId, index) => {
-  const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+  // Find using the alert object's ID (since it comes from the table)
+  const alertData = selectedAlertsData.value.find(d => {
+    const dataAlertId = getAlertId(d.alert) || d.alertId
+    return String(dataAlertId) === String(alertId)
+  })
   if (alertData && alertData.finetuneResults[index]) {
     alertData.finetuneResults[index].expanded = !alertData.finetuneResults[index].expanded
   }
@@ -2128,8 +2166,11 @@ const handleUpdateVerdictForAlert = async (alertId, closeReason) => {
     const updateData = { close_reason: closeReason }
     await updateAlert(alertId, updateData)
 
-    // Update local state
-    const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertId))
+    // Update local state - find using the alert object's ID (since it comes from the table)
+    const alertData = selectedAlertsData.value.find(d => {
+      const dataAlertId = getAlertId(d.alert) || d.alertId
+      return String(dataAlertId) === String(alertId)
+    })
     if (alertData && alertData.alert) {
       alertData.alert.close_reason = closeReason
     }
@@ -2530,7 +2571,11 @@ const addWorkflowRun = (data) => {
     saveAlertAiFineTuneResult(String(alertIdValue), payload)
       .then(() => {
         // Refresh fine-tune results for this alert in the sidebar if it's selected
-        const alertData = selectedAlertsData.value.find(d => d.alertId === String(alertIdValue))
+        // Find using the alert object's ID (since it comes from the table)
+        const alertData = selectedAlertsData.value.find(d => {
+          const dataAlertId = getAlertId(d.alert) || d.alertId
+          return String(dataAlertId) === String(alertIdValue)
+        })
         if (alertData) {
           loadFinetuneResults(alertIdValue)
         }
