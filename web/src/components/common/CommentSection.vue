@@ -380,23 +380,52 @@ const getCommentTypeClass = (rawType) => {
   return map[key] || map.comment
 }
 
-// 获取动作类型标签
+// 获取动作类型标签（优先使用系统动作，其次回退到响应流程类型）
 const getActionTypeLabel = (rawType) => {
   if (!rawType) return ''
   const key = String(rawType).toLowerCase()
-  return t(`common.actionTypes.${key}`) || rawType
+
+  // 1. 优先匹配系统动作（changeowner/close 等）
+  const actionLabel = t(`common.actionTypes.${key}`)
+  if (actionLabel && actionLabel !== `common.actionTypes.${key}`) {
+    return actionLabel
+  }
+
+  // 2. 回退匹配响应流程类型（comment/attackTracing/attackBlocking/...）
+  const commentKey = normalizeCommentType(rawType)
+  const commentLabel = t(`common.commentTypes.${commentKey}`)
+  if (commentLabel && commentLabel !== `common.commentTypes.${commentKey}`) {
+    return commentLabel
+  }
+
+  // 3. 再不匹配就直接回退原始值
+  return rawType
 }
 
 // 获取动作类型样式
 const getActionTypeClass = (rawType) => {
   if (!rawType) return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
-  const key = String(rawType).toLowerCase()
-  
-  // close 类型使用红色，其他使用蓝色
-  if (key === 'close') {
+
+  // 先尝试按响应流程类型上色
+  const key = normalizeCommentType(rawType)
+  const map = {
+    comment: 'bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-slate-100',
+    attackTracing: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    attackBlocking: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
+    riskMitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
+    vulnerabilityIdentification: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
+  }
+
+  if (map[key]) {
+    return map[key]
+  }
+
+  // 再按系统动作（close 等）上色
+  const actionKey = String(rawType).toLowerCase()
+  if (actionKey === 'close') {
     return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
   }
-  
+
   return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
 }
 
@@ -529,7 +558,7 @@ const handleSubmit = (data) => {
 const handleEditComment = (comment) => {
   editingComment.value = comment
   editCommentText.value = comment.content || ''
-  editCommentType.value = comment.type || comment.comment_type || 'comment'
+  editCommentType.value = comment.note_type || comment.type || 'comment'
 }
 
 // 取消编辑
@@ -551,7 +580,7 @@ const saveEdit = async () => {
     emit('update', {
       commentId: editingComment.value.id || editingComment.value.comment_id,
       comment: editCommentText.value.trim(),
-      commentType: editCommentType.value
+      noteType: editCommentType.value
     })
     cancelEdit()
   } catch (error) {

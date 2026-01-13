@@ -369,7 +369,9 @@ class IncidentService:
                 "author": item['content']['come_from'],
                 "create_time": item['content']['occurred_time'],
                 "content": item["content"]["value"],
-                "type": item["note_type"]
+                # 云脑返回的动作类型
+                "type": item["note_type"],
+                "note_type": item["note_type"]
             }
             owner = CommentService.extract_owner_from_content(row["content"])
             row["author"] = owner if owner else row["author"]
@@ -381,9 +383,8 @@ class IncidentService:
                 if file_info:
                     row["file"] = file_info
                 
-                # 直接使用云脑返回的note_type，不再从数据库读取comment_type
-                # 云脑返回的note_type已经在第372行赋值给row["type"]
-                row["comment_type"] = row["type"]  # 兼容前端可能使用的 comment_type 字段
+                # 直接使用云脑返回的note_type
+                row["note_type"] = row["type"]
             
             result.append(row)
         return result

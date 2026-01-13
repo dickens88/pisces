@@ -154,13 +154,13 @@ class CommentView(Resource):
                 _, sanitized_filename, _ = self._validate_filename(file.filename)
                 file_name = sanitized_filename
             
-            # Get comment_type from request
-            comment_type = None
+            # Get note_type from request
+            note_type = None
             if 'file' in request.files:
-                comment_type = request.form.get('comment_type', 'comment')
+                note_type = request.form.get('note_type', 'comment')
             else:
                 data = json.loads(request.data)
-                comment_type = data.get('comment_type', 'comment')
+                note_type = data.get('note_type', 'comment')
             
             # 直接调用云脑接口创建评论，不保存到数据库
             # 注意：文件上传功能暂时不支持，因为云脑接口可能需要不同的处理方式
@@ -172,7 +172,7 @@ class CommentView(Resource):
                 comment=comment, 
                 owner=username, 
                 workspace_id=workspace_id,
-                comment_type=comment_type
+                note_type=note_type
             )
             
             return {"data": result}, 201

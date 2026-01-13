@@ -17,7 +17,7 @@
     "noComments": "暂无评论",
     "addComment": "请输入文本，可以按crtl+v粘贴图片...",
     "commentTypes": {
-      "label": "评论类型",
+      "label": "动作",
       "comment": "评论",
       "attackTracing": "攻击溯源",
       "attackBlocking": "攻击拦截",
@@ -33,7 +33,11 @@
       "note": "评论",
       "create": "创建",
       "relatetodataobject": "关联事件",
-      "pisces": "评论"
+      "pisces": "评论",
+      "attacktracing": "攻击溯源",
+      "attackblocking": "攻击拦截",
+      "vulnerabilityidentification": "漏洞定位",
+      "riskmitigation": "风险消减"
     },
     "noData": "暂无数据",
     "warning": "警告",
@@ -143,6 +147,7 @@
     },
     "retrievalTest": {
       "selectWorkflow": "选择工作流",
+      "workflowSelection": "工作流选择",
       "runWorkflow": "运行工作流",
       "workflowResult": "工作流结果",
       "noResult": "暂无工作流结果。运行工作流以查看输出。",
@@ -152,11 +157,11 @@
       "aiAgentWorkspace": "AI代理工作区",
       "inputsForCurrentRun": "当前运行的输入",
       "allInputsIncluded": "左侧面板的所有输入都包含在AI分析中。",
-      "modelSelection": "模型选择",
       "aiResponseFeed": "AI响应反馈"
     },
     "fineTuneSubtitle": "训练和调试AI模型",
     "humanVerdict": "人工判定",
+    "aiJudgeFineTune": "AI研判（微调）",
     "match": "匹配",
     "matchStatus": {
       "match": "匹配",
@@ -612,6 +617,13 @@
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
+        "progressSync": {
+          "priority": {
+            "normal": "普通",
+            "urgent": "紧急",
+            "veryUrgent": "非常紧急"
+          }
+        },
         "metrics": {
           "averageAttackTracingTime": "平均攻击溯源时间",
           "mttTracing": "MTT溯源",

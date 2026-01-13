@@ -17,7 +17,7 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
     formData.append('event_id', eventId)
     formData.append('comment', comment || '')
     if (workspace) formData.append('workspace', workspace)
-    if (commentType) formData.append('comment_type', commentType)
+    if (commentType) formData.append('note_type', commentType)
     formData.append('file', files[0])
     
     return service.post(url, formData, {
@@ -29,7 +29,7 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
     event_id: eventId,
     comment: comment,
     ...(workspace && { workspace }),
-    ...(commentType && { comment_type: commentType })
+    ...(commentType && { note_type: commentType })
   })
 }
 
@@ -45,7 +45,7 @@ export const updateComment = (eventId, commentId, comment, commentType = null) =
   const url = `/comments/${eventId}/${commentId}`
   return service.put(url, {
     comment: comment,
-    ...(commentType && { comment_type: commentType })
+    ...(commentType && { note_type: commentType })
   })
 }
 
@@ -58,5 +58,18 @@ export const updateComment = (eventId, commentId, comment, commentType = null) =
 export const deleteComment = (eventId, commentId) => {
   const url = `/comments/${eventId}/${commentId}`
   return service.delete(url)
+}
+
+/**
+ * @brief 获取评论列表
+ * @param {string|number} eventId - 事件ID或告警ID
+ * @param {string} workspace - 工作空间（可选，如 'asm'）
+ * @returns {Promise} 返回评论列表
+ */
+export const getComments = (eventId, workspace = null) => {
+  const url = workspace
+    ? `/comments/${eventId}?workspace=${encodeURIComponent(workspace)}`
+    : `/comments/${eventId}`
+  return service.get(url)
 }
 

@@ -522,8 +522,8 @@ const formatComments = (comments) => {
       content: comment.content || comment.comment || '',
       create_time: comment.create_time,
       file: comment.file || null,
-      // 评论类型（后端可能返回 comment_type 或 type），用于显示动作标签
-      type: comment.comment_type || comment.type || null
+      // 动作类型，后端返回 note_type（兼容旧的 type）
+      type: comment.note_type || comment.type || null
     }
   })
 }
