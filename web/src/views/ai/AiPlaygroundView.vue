@@ -916,6 +916,17 @@
                       {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
                     </button>
 
+                    <!-- Cancel Button (shown when workflows are running) -->
+                    <button
+                      v-if="runningWorkflow"
+                      type="button"
+                      @click="handleCancelWorkflows"
+                      class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-200 dark:bg-[#2a3546] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-[#3c4a60] transition-colors"
+                    >
+                      <span class="material-symbols-outlined text-base">cancel</span>
+                      {{ $t('aiPlayground.retrievalTest.cancelRun') || 'Cancel Run' }}
+                    </button>
+
                     <!-- Workflow Results Feed -->
                     <div class="flex flex-col gap-2">
                       <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
@@ -932,10 +943,15 @@
                             v-if="alertData && (getAlertId(alertData?.alert) || alertData?.alertId) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]"
                             class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden"
                           >
-                            <!-- Card Header (clickable to expand/collapse) -->
+                            <!-- Card Header (clickable to expand/collapse only for completed results) -->
                             <div 
-                              class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#192233] transition-colors"
-                              @click="toggleFinetuneResultCard(getAlertId(alertData?.alert) || alertData?.alertId)"
+                              :class="[
+                                'p-4 transition-colors',
+                                (finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error'
+                                  ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-[#192233]'
+                                  : 'cursor-default'
+                              ]"
+                              @click="(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error' ? toggleFinetuneResultCard(getAlertId(alertData?.alert) || alertData?.alertId) : null"
                             >
                               <div class="flex items-center justify-between gap-3">
                                 <div class="flex-1 min-w-0">
@@ -943,33 +959,60 @@
                                     Alert #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
                                   </div>
                                   
-                                  <!-- Loading state -->
-                                  <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading" class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400 text-sm">
+                                  <!-- Waiting/In Queue state -->
+                                  <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'waiting'" class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
+                                      schedule
+                                    </span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.inQueue') || 'In Queue' }}</p>
+                                  </div>
+                                  
+                                  <!-- Running state (only for currently running alert) -->
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'running' && currentRunningAlertId === (getAlertId(alertData?.alert) || alertData?.alertId)" class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined animate-spin text-primary text-sm">
                                       sync
                                     </span>
-                                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $t('common.loading') || 'Running workflow...' }}</p>
+                                    <div class="flex items-center gap-2">
+                                      <p class="text-xs text-primary font-medium">{{ $t('common.loading') || 'Running workflow...' }}</p>
+                                      <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime || 0) }})
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  <!-- Cancelled state -->
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'cancelled'" class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
+                                      cancel
+                                    </span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.cancelled') || 'Cancelled' }}</p>
                                   </div>
                                   
                                   <!-- Error state -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="flex items-center gap-2">
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'error' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="flex items-center gap-2">
                                     <span class="text-xs font-semibold text-red-600 dark:text-red-400">
-                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error }}
+                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error || ($t('aiPlayground.retrievalTest.error') || 'Error') }}
+                                    </span>
+                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime" class="text-xs text-gray-500 dark:text-gray-400">
+                                      ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].elapsedTime) }})
                                     </span>
                                   </div>
                                   
-                                  <!-- Success state summary -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="flex items-center gap-2">
+                                  <!-- Success/Completed state -->
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="flex items-center gap-2">
                                     <span class="text-xs text-green-600 dark:text-green-400 font-medium">✓ Completed</span>
                                     <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.workflowName" class="text-xs text-gray-500 dark:text-gray-400">
                                       • {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].workflowName }}
                                     </span>
+                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime" class="text-xs text-gray-500 dark:text-gray-400">
+                                      • {{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].elapsedTime) }}
+                                    </span>
                                   </div>
                                 </div>
                                 
-                                <!-- Expand/collapse icon (only show if not loading and has data) -->
+                                <!-- Expand/collapse icon (only show if completed and has data) -->
                                 <span
-                                  v-if="!finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data"
+                                  v-if="(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error'"
                                   class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0 text-sm"
                                   :class="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded ? 'rotate-180' : ''"
                                 >
@@ -980,7 +1023,7 @@
                             
                             <!-- Card Content (expandable) -->
                             <div 
-                              v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data"
+                              v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded && (finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data)"
                               class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-3"
                             >
                               <!-- Is Threat -->
@@ -1120,7 +1163,11 @@ const workflowRuns = ref([]) // store last 3 runs while overlay is open
 // Track workflow selections for fine-tuning overlay
 const finetuneWorkflowSelections = ref({}) // { alertId: workflowId }
 // Track workflow results per alert in fine-tuning overlay
-const finetuneWorkflowResults = ref({}) // { alertId: { data, error, loading } }
+const finetuneWorkflowResults = ref({}) // { alertId: { data, error, loading, status, startTime, elapsedTime, timerInterval } }
+// Track currently running alert ID
+const currentRunningAlertId = ref(null)
+// Track cancellation flag
+const cancelWorkflows = ref(false)
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
@@ -2290,6 +2337,20 @@ const toggleFinetuneResultCard = (alertId) => {
   }
 }
 
+// Format elapsed time for display
+const formatElapsedTime = (milliseconds) => {
+  if (!milliseconds || milliseconds < 0) return '0s'
+  
+  const seconds = Math.floor(milliseconds / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`
+  }
+  return `${seconds}s`
+}
+
 // Format fine-tune verdict for display
 const formatFinetuneVerdict = (isThreat) => {
   if (!isThreat) return '-'
@@ -2450,10 +2511,12 @@ const handleRunAllWorkflows = async () => {
   if (!canRunAllWorkflows.value || runningWorkflow.value) return
 
   runningWorkflow.value = true
+  cancelWorkflows.value = false
+  currentRunningAlertId.value = null
   const results = []
 
   try {
-    // Initialize loading state for alerts that will be processed
+    // Initialize state for alerts that will be processed
     selectedAlertsData.value.forEach(alertData => {
       if (alertData && alertData.alert) {
         const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
@@ -2463,13 +2526,17 @@ const handleRunAllWorkflows = async () => {
             finetuneWorkflowResults.value[alertIdValue] = { 
               data: null, 
               error: null, 
-              loading: true,
+              loading: false,
+              status: 'waiting', // 'waiting', 'running', 'completed', 'error', 'cancelled'
               is_threat: null,
               confidence_score: null,
               reason: null,
               raw_text: null,
               workflowName: null,
-              expanded: false
+              expanded: false,
+              startTime: null,
+              elapsedTime: 0, // in milliseconds
+              timerInterval: null
             }
           }
         }
@@ -2478,11 +2545,52 @@ const handleRunAllWorkflows = async () => {
 
     // Run workflow for each alert sequentially
     for (const alertData of selectedAlertsData.value) {
+      // Check if cancellation was requested
+      if (cancelWorkflows.value) {
+        // Mark remaining alerts as cancelled
+        const remainingAlerts = selectedAlertsData.value.slice(
+          selectedAlertsData.value.indexOf(alertData)
+        )
+        remainingAlerts.forEach(remainingAlert => {
+          if (remainingAlert && remainingAlert.alert) {
+            const remainingAlertId = getAlertId(remainingAlert.alert) || remainingAlert.alertId
+            if (remainingAlertId && finetuneWorkflowResults.value[remainingAlertId]) {
+              if (finetuneWorkflowResults.value[remainingAlertId].status === 'waiting') {
+                finetuneWorkflowResults.value[remainingAlertId].status = 'cancelled'
+                finetuneWorkflowResults.value[remainingAlertId].loading = false
+                // Clean up any timer if it exists
+                if (finetuneWorkflowResults.value[remainingAlertId].timerInterval) {
+                  clearInterval(finetuneWorkflowResults.value[remainingAlertId].timerInterval)
+                  finetuneWorkflowResults.value[remainingAlertId].timerInterval = null
+                }
+              }
+            }
+          }
+        })
+        break
+      }
+
       if (!alertData || !alertData.alert) continue
       const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
       if (!alertIdValue) continue
       const workflowId = finetuneWorkflowSelections.value[alertIdValue]
       if (!workflowId || workflowId === '') continue
+
+      // Update status to running and start timer
+      if (finetuneWorkflowResults.value[alertIdValue]) {
+        finetuneWorkflowResults.value[alertIdValue].status = 'running'
+        finetuneWorkflowResults.value[alertIdValue].loading = true
+        finetuneWorkflowResults.value[alertIdValue].startTime = Date.now()
+        finetuneWorkflowResults.value[alertIdValue].elapsedTime = 0
+        
+        // Start timer interval to update elapsed time
+        finetuneWorkflowResults.value[alertIdValue].timerInterval = setInterval(() => {
+          if (finetuneWorkflowResults.value[alertIdValue] && finetuneWorkflowResults.value[alertIdValue].startTime) {
+            finetuneWorkflowResults.value[alertIdValue].elapsedTime = Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime
+          }
+        }, 100) // Update every 100ms for smooth display
+      }
+      currentRunningAlertId.value = alertIdValue
       const subjectValue = alertData.alert?.title || ''
       const descriptionValue = getRawDescription(alertData.detail, alertData.alert)
       const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
@@ -2527,18 +2635,35 @@ const handleRunAllWorkflows = async () => {
         const confidence_score = parsed?.confidence || null
         const reason = parsed?.reason || null
         
+        // Stop timer
+        if (finetuneWorkflowResults.value[alertIdValue]?.timerInterval) {
+          clearInterval(finetuneWorkflowResults.value[alertIdValue].timerInterval)
+        }
+        
+        // Calculate final elapsed time
+        const finalElapsedTime = finetuneWorkflowResults.value[alertIdValue]?.startTime 
+          ? Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime 
+          : 0
+        
         // Store result for display immediately (results appear as they arrive)
         finetuneWorkflowResults.value[alertIdValue] = { 
           data, 
           error: null, 
           loading: false,
+          status: 'completed',
           is_threat,
           confidence_score,
           reason,
           raw_text: text || '',
           workflowName,
-          expanded: false // Collapsed by default
+          expanded: false, // Collapsed by default
+          startTime: finetuneWorkflowResults.value[alertIdValue]?.startTime || null,
+          elapsedTime: finalElapsedTime,
+          timerInterval: null
         }
+        
+        // Clear current running alert
+        currentRunningAlertId.value = null
         
         // Save fine-tune result
         const savePayload = {
@@ -2557,17 +2682,35 @@ const handleRunAllWorkflows = async () => {
       } catch (error) {
         console.error(`Failed to run workflow for alert ${alertIdValue}:`, error)
         results.push({ alertId: alertIdValue, success: false, error: error.message })
+        
+        // Stop timer
+        if (finetuneWorkflowResults.value[alertIdValue]?.timerInterval) {
+          clearInterval(finetuneWorkflowResults.value[alertIdValue].timerInterval)
+        }
+        
+        // Calculate final elapsed time
+        const finalElapsedTime = finetuneWorkflowResults.value[alertIdValue]?.startTime 
+          ? Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime 
+          : 0
+        
         finetuneWorkflowResults.value[alertIdValue] = { 
           data: null, 
           error: error?.message || 'Failed to run workflow', 
           loading: false,
+          status: 'error',
           is_threat: null,
           confidence_score: null,
           reason: null,
           raw_text: null,
           workflowName: null,
-          expanded: false
+          expanded: false,
+          startTime: finetuneWorkflowResults.value[alertIdValue]?.startTime || null,
+          elapsedTime: finalElapsedTime,
+          timerInterval: null
         }
+        
+        // Clear current running alert
+        currentRunningAlertId.value = null
       }
     }
 
@@ -2580,13 +2723,37 @@ const handleRunAllWorkflows = async () => {
     toast.error('Failed to run workflows', 'ERROR')
   } finally {
     runningWorkflow.value = false
-    // Clear any remaining loading states
+    currentRunningAlertId.value = null
+    // Clear any remaining loading/running states and clean up timers
     Object.keys(finetuneWorkflowResults.value).forEach(alertId => {
       if (finetuneWorkflowResults.value[alertId]?.loading) {
         finetuneWorkflowResults.value[alertId].loading = false
       }
+      if (finetuneWorkflowResults.value[alertId]?.status === 'running') {
+        // Stop timer if still running
+        if (finetuneWorkflowResults.value[alertId].timerInterval) {
+          clearInterval(finetuneWorkflowResults.value[alertId].timerInterval)
+          finetuneWorkflowResults.value[alertId].timerInterval = null
+        }
+        // Calculate final elapsed time
+        if (finetuneWorkflowResults.value[alertId].startTime) {
+          finetuneWorkflowResults.value[alertId].elapsedTime = Date.now() - finetuneWorkflowResults.value[alertId].startTime
+        }
+        finetuneWorkflowResults.value[alertId].status = 'error'
+      }
+      // Clean up any orphaned timers
+      if (finetuneWorkflowResults.value[alertId]?.timerInterval) {
+        clearInterval(finetuneWorkflowResults.value[alertId].timerInterval)
+        finetuneWorkflowResults.value[alertId].timerInterval = null
+      }
     })
   }
+}
+
+// Handle canceling workflow execution
+const handleCancelWorkflows = () => {
+  cancelWorkflows.value = true
+  // Note: Currently running workflows will continue, but queued ones will be cancelled
 }
 
 // Handle Fine-tune AI button click - opens overlay with all selected alerts
