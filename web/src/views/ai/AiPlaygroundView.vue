@@ -930,29 +930,99 @@
                         >
                           <div
                             v-if="alertData && (getAlertId(alertData?.alert) || alertData?.alertId) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]"
-                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg p-4"
+                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden"
                           >
-                            <div class="text-xs font-semibold text-gray-900 dark:text-white mb-2">
-                              Alert #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
+                            <!-- Card Header (clickable to expand/collapse) -->
+                            <div 
+                              class="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#192233] transition-colors"
+                              @click="toggleFinetuneResultCard(getAlertId(alertData?.alert) || alertData?.alertId)"
+                            >
+                              <div class="flex items-center justify-between gap-3">
+                                <div class="flex-1 min-w-0">
+                                  <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
+                                    Alert #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
+                                  </div>
+                                  
+                                  <!-- Loading state -->
+                                  <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading" class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400 text-sm">
+                                      sync
+                                    </span>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ $t('common.loading') || 'Running workflow...' }}</p>
+                                  </div>
+                                  
+                                  <!-- Error state -->
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="flex items-center gap-2">
+                                    <span class="text-xs font-semibold text-red-600 dark:text-red-400">
+                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error }}
+                                    </span>
+                                  </div>
+                                  
+                                  <!-- Success state summary -->
+                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="flex items-center gap-2">
+                                    <span class="text-xs text-green-600 dark:text-green-400 font-medium">✓ Completed</span>
+                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.workflowName" class="text-xs text-gray-500 dark:text-gray-400">
+                                      • {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].workflowName }}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <!-- Expand/collapse icon (only show if not loading and has data) -->
+                                <span
+                                  v-if="!finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data"
+                                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0 text-sm"
+                                  :class="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded ? 'rotate-180' : ''"
+                                >
+                                  expand_more
+                                </span>
+                              </div>
                             </div>
                             
-                            <!-- Loading state for this alert -->
-                            <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.loading" class="flex items-center gap-2 py-2">
-                              <span class="material-symbols-outlined animate-spin text-gray-500 dark:text-gray-400 text-sm">
-                                sync
-                              </span>
-                              <p class="text-xs text-gray-600 dark:text-gray-400">{{ $t('common.loading') || 'Running workflow...' }}</p>
-                            </div>
-                            
-                            <!-- Error state -->
-                            <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                              <p class="text-xs font-semibold text-red-600 dark:text-red-400">{{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error }}</p>
-                            </div>
-                            
-                            <!-- Success state -->
-                            <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="text-xs text-gray-700 dark:text-gray-300">
-                              <p class="text-green-600 dark:text-green-400 font-medium">✓ Workflow completed successfully</p>
-                              <p class="mt-2 text-gray-600 dark:text-gray-400">Results saved. Check the sidebar to view fine-tune investigation results.</p>
+                            <!-- Card Content (expandable) -->
+                            <div 
+                              v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data"
+                              class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-3"
+                            >
+                              <!-- Is Threat -->
+                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.is_threat" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Is Threat]
+                                </div>
+                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].is_threat }}
+                                </div>
+                              </div>
+
+                              <!-- Confidence Score -->
+                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.confidence_score" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Confidence Score]
+                                </div>
+                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].confidence_score }}
+                                </div>
+                              </div>
+
+                              <!-- Reason -->
+                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.reason" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+                                  [Reason]
+                                </div>
+                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].reason }}
+                                </div>
+                              </div>
+
+                              <!-- Raw Text (fallback if no separated values) -->
+                              <div v-if="!finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.is_threat && !finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.confidence_score && !finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.reason && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.raw_text" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
+                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
+                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].raw_text }}
+                                </div>
+                              </div>
+                              
+                              <div class="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-[#324867]">
+                                Results saved. Check the sidebar to view fine-tune investigation results.
+                              </div>
                             </div>
                           </div>
                         </template>
@@ -2169,6 +2239,14 @@ const toggleFinetuneResult = (alertId, index) => {
   }
 }
 
+// Toggle fine-tune workflow result card expanded state
+const toggleFinetuneResultCard = (alertId) => {
+  const result = finetuneWorkflowResults.value[alertId]
+  if (result) {
+    result.expanded = !result.expanded
+  }
+}
+
 // Format fine-tune verdict for display
 const formatFinetuneVerdict = (isThreat) => {
   if (!isThreat) return '-'
@@ -2342,7 +2420,13 @@ const handleRunAllWorkflows = async () => {
             finetuneWorkflowResults.value[alertIdValue] = { 
               data: null, 
               error: null, 
-              loading: true 
+              loading: true,
+              is_threat: null,
+              confidence_score: null,
+              reason: null,
+              raw_text: null,
+              workflowName: null,
+              expanded: false
             }
           }
         }
@@ -2390,20 +2474,36 @@ const handleRunAllWorkflows = async () => {
         const data = await response.json()
         results.push({ alertId: alertIdValue, success: true, data })
         
-        // Store result for display immediately (results appear as they arrive)
-        finetuneWorkflowResults.value[alertIdValue] = { data, error: null, loading: false }
-        
-        // Save fine-tune result
+        // Parse workflow result
         const text = getWorkflowTextFromData(data)
         const parsed = parseWorkflowBlocks(text || '')
         const workflowName = workflows.value.find(w => w.id === workflowId)?.name || 'Model'
         
+        // Extract separated values (matching database structure)
+        const is_threat = parsed?.isThreat || null
+        const confidence_score = parsed?.confidence || null
+        const reason = parsed?.reason || null
+        
+        // Store result for display immediately (results appear as they arrive)
+        finetuneWorkflowResults.value[alertIdValue] = { 
+          data, 
+          error: null, 
+          loading: false,
+          is_threat,
+          confidence_score,
+          reason,
+          raw_text: text || '',
+          workflowName,
+          expanded: false // Collapsed by default
+        }
+        
+        // Save fine-tune result
         const savePayload = {
           workflow_id: String(workflowId),
           agent_name: workflowName,
-          is_threat: parsed?.isThreat || null,
-          confidence_score: parsed?.confidence || null,
-          reason: parsed?.reason || null,
+          is_threat,
+          confidence_score,
+          reason,
           raw_text: text || ''
         }
         
@@ -2417,7 +2517,13 @@ const handleRunAllWorkflows = async () => {
         finetuneWorkflowResults.value[alertIdValue] = { 
           data: null, 
           error: error?.message || 'Failed to run workflow', 
-          loading: false 
+          loading: false,
+          is_threat: null,
+          confidence_score: null,
+          reason: null,
+          raw_text: null,
+          workflowName: null,
+          expanded: false
         }
       }
     }
