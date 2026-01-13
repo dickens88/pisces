@@ -148,20 +148,34 @@ def parse_datetime_with_timezone(date_str):
     return utc_dt.replace(tzinfo=timezone.utc)
 
 
-def format_utc_datetime_to_db_string(dt):
+def normalize_time_to_utc(time_input):
     """
-    Format UTC datetime object to database string format.
+    Normalize time input (string or datetime) to UTC format for database storage.
     
-    Database format: YYYY-MM-DDTHH:mm:ss.SSSZ+0000 (UTC timezone)
+    This ensures all times stored in database are in UTC, making queries consistent.
     
     Args:
-        dt: datetime object (should be UTC)
+        time_input: Can be:
+            - Time string in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm or similar
+            - datetime object (will be converted to UTC)
+            - None or '-' (returns None)
         
     Returns:
-        String in format YYYY-MM-DDTHH:mm:ss.SSSZ+0000
+        String in UTC format YYYY-MM-DDTHH:mm:ss.SSSZ+0000, or None if invalid
+        If input is a string that cannot be parsed, returns original string (for backward compatibility)
     """
-    if dt is None:
+    if not time_input or time_input == '-':
         return None
+    
+    # If input is already a datetime object, format it directly
+    if isinstance(time_input, datetime):
+        dt = time_input
+    else:
+        # Parse the time string and convert to UTC
+        dt = parse_datetime_with_timezone(time_input)
+        if dt is None:
+            # If parsing fails, return original (for backward compatibility)
+            return time_input
     
     # Ensure it's UTC
     if dt.tzinfo is None:

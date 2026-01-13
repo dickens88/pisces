@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 from controllers.ai_decision_service import AiDecisionService
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
-from utils.common_utils import parse_datetime_with_timezone, format_utc_datetime_to_db_string
+from utils.common_utils import parse_datetime_with_timezone, normalize_time_to_utc
 
 
 class Alert(Base):
@@ -36,7 +36,6 @@ class Alert(Base):
     is_auto_closed = Column(String(50))
     data_source_product_name = Column(Text())
     model_name = Column(String(50))
-    # Latest AI agent name associated with this alert (from fine-tune workflow)
     agent_name = Column(String(100))
     is_ai_decision_correct = Column(String(10), default = None)
     tta = Column(Integer(), default=0)
@@ -136,14 +135,12 @@ class Alert(Base):
 
             # Parse and normalize time strings to UTC format for comparison
             if start_time:
-                start_dt = parse_datetime_with_timezone(start_time)
-                if start_dt:
-                    start_time_str = format_utc_datetime_to_db_string(start_dt)
+                start_time_str = normalize_time_to_utc(start_time)
+                if start_time_str:
                     query = query.filter(cls.create_time >= start_time_str)
             if end_time:
-                end_dt = parse_datetime_with_timezone(end_time)
-                if end_dt:
-                    end_time_str = format_utc_datetime_to_db_string(end_dt)
+                end_time_str = normalize_time_to_utc(end_time)
+                if end_time_str:
                     query = query.filter(cls.create_time <= end_time_str)
 
             # Apply conditions
@@ -277,28 +274,31 @@ class Alert(Base):
         elif "data_source_product_name" in payload:
             data_source_product_name = payload.get("data_source_product_name")
 
+        # Normalize time fields to UTC for consistent storage and querying
+        create_time_utc = normalize_time_to_utc(payload.get("create_time"))
+        close_time_raw = payload.get("close_time")
+        close_time_utc = normalize_time_to_utc(close_time_raw) if close_time_raw and close_time_raw != '-' else None
+
         # Calculate TTA (Time To Acknowledge): close_time - create_time
         tta = 0
-        close_time = payload.get("close_time")
-        create_time = payload.get("create_time")
-        # Only calculate TTA if close_time is not empty and not the default placeholder '-'
-        if close_time and create_time:
+        if close_time_utc and create_time_utc:
             try:
-                close_dt = datetime.fromisoformat(close_time.split('+')[0].split('Z')[0])
-                create_dt = datetime.fromisoformat(create_time.split('+')[0].split('Z')[0])
-                # Calculate difference in seconds
-                tta = int((close_dt - create_dt).total_seconds())
-                if tta < 0:
-                    logger.warning(f"TTA calculation resulted in negative value for alert {payload.get('id')}, setting to 0")
-                    tta = 0
+                close_dt = parse_datetime_with_timezone(close_time_utc)
+                create_dt = parse_datetime_with_timezone(create_time_utc)
+                if close_dt and create_dt:
+                    # Calculate difference in seconds
+                    tta = int((close_dt - create_dt).total_seconds())
+                    if tta < 0:
+                        logger.warning(f"TTA calculation resulted in negative value for alert {payload.get('id')}, setting to 0")
+                        tta = 0
             except Exception as e:
-                logger.warning(f"Failed to calculate TTA for alert {payload.get('id')}: {e}. close_time: {close_time}, create_time: {create_time}")
+                logger.warning(f"Failed to calculate TTA for alert {payload.get('id')}: {e}. close_time: {close_time_raw}, create_time: {payload.get('create_time')}")
                 tta = 0
 
         return Alert(
             alert_id=payload.get("id"),
-            create_time=payload.get("create_time"),
-            close_time=payload.get("close_time"),
+            create_time=create_time_utc,
+            close_time=close_time_utc,
             title=payload.get("title"),
             description=description,
             severity=severity,

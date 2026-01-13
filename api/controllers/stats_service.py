@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from models.alert import Alert
 from models.incident import Incident
 from utils.mysql_conn import Session
-from utils.common_utils import format_utc_datetime_to_db_string
+from utils.common_utils import normalize_time_to_utc
 
 
 class StatisticsService:
@@ -50,7 +50,7 @@ class StatisticsService:
         utc_naive = StatisticsService._normalize_datetime_to_utc(dt)
         
         # Format for database query (ensures UTC timezone in string format)
-        db_string = format_utc_datetime_to_db_string(utc_naive.replace(tzinfo=timezone.utc))
+        db_string = normalize_time_to_utc(dt)
         
         return utc_naive, db_string
     @classmethod

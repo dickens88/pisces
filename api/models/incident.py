@@ -6,6 +6,7 @@ from sqlalchemy.sql import func
 from utils.logger_init import logger
 from utils.mysql_conn import Base, Session
 from utils.json_utils import parse_json_field, to_json_string
+from utils.common_utils import normalize_time_to_utc
 
 
 class Incident(Base):
@@ -288,12 +289,18 @@ class Incident(Base):
 
         # Handle alert_list - convert list to JSON string
         alert_list = to_json_string(payload.get("alert_list"), wrap_string_in_array=True)
+        
+        # Normalize time fields to UTC for consistent storage and querying
+        create_time_utc = normalize_time_to_utc(payload.get("create_time"))
+        close_time_utc = normalize_time_to_utc(payload.get("close_time")) if payload.get("close_time") != '-' else None
+        arrive_time_utc = normalize_time_to_utc(payload.get("arrive_time"))
+        
         return Incident(
             incident_id=payload.get("id"),
-            create_time=payload.get("create_time"),
+            create_time=create_time_utc,
             # last_update_time is automatically set by database
-            close_time=payload.get("close_time") if payload.get("close_time") != '-' else None,
-            arrive_time=payload.get("arrive_time"),
+            close_time=close_time_utc,
+            arrive_time=arrive_time_utc,
             title=payload.get("title"),
             description=description,
             severity=severity,
