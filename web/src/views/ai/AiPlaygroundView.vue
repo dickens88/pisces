@@ -2176,23 +2176,57 @@ const loadAlertDetails = async (alertId) => {
 
 // Load fine-tune results for a specific alert
 const loadFinetuneResults = async (alertId) => {
+  // Ensure alertId is a string (backend expects string)
+  const alertIdStr = String(alertId).trim()
+  if (!alertIdStr) {
+    console.warn('loadFinetuneResults: Invalid alertId', alertId)
+    return
+  }
+  
   // Find using the alert object's ID (since it comes from the table)
   const alertData = selectedAlertsData.value.find(d => {
     const dataAlertId = getAlertId(d.alert) || d.alertId
-    return String(dataAlertId) === String(alertId)
+    return String(dataAlertId) === alertIdStr
   })
-  if (!alertData) return
+  if (!alertData) {
+    console.warn(`Alert data not found for alertId: ${alertIdStr}`)
+    return
+  }
   
   alertData.finetuneLoading = true
   try {
-    const response = await getAlertAiFineTuneResults(alertId)
-    const results = response?.data?.data || []
+    const response = await getAlertAiFineTuneResults(alertIdStr)
+    
+    // Backend returns: {"data": [...]}
+    // Axios wraps it, so response.data = {"data": [...]}
+    // Therefore response.data.data = [...]
+    let results = []
+    if (response?.data?.data && Array.isArray(response.data.data)) {
+      results = response.data.data
+    } else if (Array.isArray(response?.data)) {
+      // Fallback: if response.data is already an array
+      results = response.data
+    } else {
+      console.warn(`Unexpected response structure for alert ${alertIdStr}:`, response)
+      results = []
+    }
+    
     alertData.finetuneResults = results.map(r => ({
       ...r,
       expanded: false
     }))
+    
+    // Log for debugging
+    if (results.length > 0) {
+      console.log(`Loaded ${results.length} fine-tune result(s) for alert ${alertIdStr}:`, results)
+    } else {
+      console.log(`No fine-tune results found for alert ${alertIdStr} (API returned empty array)`)
+    }
   } catch (error) {
-    console.error(`Failed to load fine-tune results for ${alertId}:`, error)
+    console.error(`Failed to load fine-tune results for alert ${alertIdStr}:`, error)
+    if (error?.response) {
+      console.error('API Error Response:', error.response.data)
+    }
     alertData.finetuneResults = []
   } finally {
     alertData.finetuneLoading = false
