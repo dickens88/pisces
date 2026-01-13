@@ -2092,6 +2092,98 @@
       </div>
     </div>
 
+    <!-- 删除影响服务确认对话框 -->
+    <div
+      v-if="showDeleteServiceDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelDeleteService"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ $t('common.warning') }}
+          </h2>
+          <button
+            @click="cancelDeleteService"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-6 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            确认删除任务项？
+          </p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="cancelDeleteService"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="confirmDeleteService"
+            :disabled="isDeletingService"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isDeletingService" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除事件通报确认对话框 -->
+    <div
+      v-if="showDeleteNotificationDialog"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      @click.self="cancelDeleteNotification"
+    >
+      <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-md">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ $t('common.warning') }}
+          </h2>
+          <button
+            @click="cancelDeleteNotification"
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+          >
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Prompt message -->
+        <div class="mb-6 p-3 bg-gray-100 dark:bg-[#1e293b] rounded-md">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            确认删除任务项？
+          </p>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-end gap-3">
+          <button
+            @click="cancelDeleteNotification"
+            class="px-4 py-2 text-sm text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-[#1e293b] rounded-md hover:bg-gray-200 dark:hover:bg-primary/30 transition-colors"
+          >
+            {{ $t('common.cancel') }}
+          </button>
+          <button
+            @click="confirmDeleteNotification"
+            :disabled="isDeletingNotification"
+            class="px-4 py-2 text-sm text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="isDeletingNotification" class="material-symbols-outlined animate-spin text-base">sync</span>
+            {{ $t('common.delete') }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 分享成功提示 -->
     <Transition name="fade">
       <div
@@ -4381,6 +4473,9 @@ const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
 const editingNotificationIndex = ref(-1) // 正在编辑的通报索引，-1表示新增
 const editingNotificationId = ref(null) // 正在编辑的通报ID（用于更新API调用）
+const showDeleteNotificationDialog = ref(false) // 显示删除事件通报确认对话框
+const deletingNotificationIndex = ref(-1) // 要删除的事件通报索引
+const isDeletingNotification = ref(false) // 正在删除事件通报
 const notificationForm = ref({
   event: '',
   type: 'firstNotification',
@@ -4394,6 +4489,9 @@ const impactedServices = ref([]) // 影响服务列表
 const showAddServiceDialog = ref(false) // 显示新增影响服务对话框
 const editingServiceIndex = ref(-1) // 正在编辑的服务索引，-1表示新增
 const editingServiceId = ref(null) // 正在编辑的服务ID（用于更新API调用）
+const showDeleteServiceDialog = ref(false) // 显示删除影响服务确认对话框
+const deletingServiceIndex = ref(-1) // 要删除的影响服务索引
+const isDeletingService = ref(false) // 正在删除影响服务
 const serviceForm = ref({
   service: '',
   measure: '',
@@ -5457,20 +5555,41 @@ const deleteNotification = async (index) => {
     return
   }
   
-  if (!window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+  // 打开删除确认对话框
+  deletingNotificationIndex.value = index
+  showDeleteNotificationDialog.value = true
+}
+
+// 确认删除事件通报
+const confirmDeleteNotification = async () => {
+  const index = deletingNotificationIndex.value
+  if (index < 0 || index >= incidentNotifications.value.length) {
+    showDeleteNotificationDialog.value = false
+    return
+  }
+  
+  const notification = incidentNotifications.value[index]
+  const notificationId = notification.id
+  
+  if (!notificationId) {
+    showDeleteNotificationDialog.value = false
     return
   }
   
   const incidentId = route.params.id
   if (!incidentId) {
     toast.error('事件ID不存在')
+    showDeleteNotificationDialog.value = false
     return
   }
   
+  isDeletingNotification.value = true
   try {
     await deleteIncidentBrief(incidentId, notificationId)
     incidentNotifications.value.splice(index, 1)
     toast.success(t('common.operationSuccess'))
+    showDeleteNotificationDialog.value = false
+    deletingNotificationIndex.value = -1
   } catch (error) {
     console.error('Failed to delete notification:', error)
     const errorMessage = error?.response?.data?.error_message || 
@@ -5478,7 +5597,15 @@ const deleteNotification = async (index) => {
                         error?.message || 
                         '删除失败，请重试'
     toast.error(errorMessage)
+  } finally {
+    isDeletingNotification.value = false
   }
+}
+
+// 取消删除事件通报
+const cancelDeleteNotification = () => {
+  showDeleteNotificationDialog.value = false
+  deletingNotificationIndex.value = -1
 }
 
 // 保存通报（新增或编辑）
@@ -5717,20 +5844,41 @@ const deleteService = async (index) => {
     return
   }
   
-  if (!window.confirm(t('common.warning') + ': ' + t('common.delete') + '?')) {
+  // 打开删除确认对话框
+  deletingServiceIndex.value = index
+  showDeleteServiceDialog.value = true
+}
+
+// 确认删除影响服务
+const confirmDeleteService = async () => {
+  const index = deletingServiceIndex.value
+  if (index < 0 || index >= impactedServices.value.length) {
+    showDeleteServiceDialog.value = false
+    return
+  }
+  
+  const service = impactedServices.value[index]
+  const serviceId = service.id
+  
+  if (!serviceId) {
+    showDeleteServiceDialog.value = false
     return
   }
   
   const incidentId = route.params.id
   if (!incidentId) {
     toast.error('事件ID不存在')
+    showDeleteServiceDialog.value = false
     return
   }
   
+  isDeletingService.value = true
   try {
     await deleteImpactedService(incidentId, serviceId)
     impactedServices.value.splice(index, 1)
     toast.success(t('common.operationSuccess'))
+    showDeleteServiceDialog.value = false
+    deletingServiceIndex.value = -1
   } catch (error) {
     console.error('Failed to delete impacted service:', error)
     const errorMessage = error?.response?.data?.error_message || 
@@ -5738,7 +5886,15 @@ const deleteService = async (index) => {
                         error?.message || 
                         '删除失败，请重试'
     toast.error(errorMessage)
+  } finally {
+    isDeletingService.value = false
   }
+}
+
+// 取消删除影响服务
+const cancelDeleteService = () => {
+  showDeleteServiceDialog.value = false
+  deletingServiceIndex.value = -1
 }
 
 // 取消新增/编辑影响服务
