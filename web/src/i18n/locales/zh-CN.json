@@ -157,7 +157,12 @@
       "aiAgentWorkspace": "AI代理工作区",
       "inputsForCurrentRun": "当前运行的输入",
       "allInputsIncluded": "左侧面板的所有输入都包含在AI分析中。",
-      "aiResponseFeed": "AI响应反馈"
+      "aiResponseFeed": "AI响应反馈",
+      "running": "运行中",
+      "cancelRun": "取消运行",
+      "inQueue": "等待中",
+      "cancelled": "已取消",
+      "error": "错误"
     },
     "fineTuneSubtitle": "训练和调试AI模型",
     "humanVerdict": "人工判定",
