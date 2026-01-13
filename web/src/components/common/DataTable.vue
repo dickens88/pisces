@@ -486,6 +486,12 @@ defineExpose({
     selectedItems.value = [...props.items]
     emit('select-all', selectedItems.value)
   },
+  setSelectedItems: (items, silent = false) => {
+    selectedItems.value = items || []
+    if (!silent) {
+      emit('select', selectedItems.value)
+    }
+  },
   toggleWordWrap,
   wordWrap,
   constrainColumns: () => nextTick(applyConstraints)
