@@ -924,7 +924,7 @@
                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-200 dark:bg-[#2a3546] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-[#3c4a60] transition-colors"
                     >
                       <span class="material-symbols-outlined text-base">cancel</span>
-                      {{ $t('aiPlayground.retrievalTest.cancelRun') || 'Cancel Run' }}
+                      {{ $t('aiPlayground.retrievalTest.cancelRun') }}
                     </button>
 
                     <!-- Workflow Results Feed -->
@@ -964,7 +964,7 @@
                                     <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
                                       schedule
                                     </span>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.inQueue') || 'In Queue' }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.inQueue') }}</p>
                                   </div>
                                   
                                   <!-- Running state (only for currently running alert) -->
@@ -973,7 +973,7 @@
                                       sync
                                     </span>
                                     <div class="flex items-center gap-2">
-                                      <p class="text-xs text-primary font-medium">{{ $t('common.loading') || 'Running workflow...' }}</p>
+                                      <p class="text-xs text-primary font-medium">{{ $t('aiPlayground.retrievalTest.running') }}</p>
                                       <span class="text-xs text-gray-500 dark:text-gray-400">
                                         ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime || 0) }})
                                       </span>
@@ -985,13 +985,13 @@
                                     <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
                                       cancel
                                     </span>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.cancelled') || 'Cancelled' }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.cancelled') }}</p>
                                   </div>
                                   
                                   <!-- Error state -->
                                   <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'error' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="flex items-center gap-2">
                                     <span class="text-xs font-semibold text-red-600 dark:text-red-400">
-                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error || ($t('aiPlayground.retrievalTest.error') || 'Error') }}
+                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error || $t('aiPlayground.retrievalTest.error') }}
                                     </span>
                                     <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime" class="text-xs text-gray-500 dark:text-gray-400">
                                       ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].elapsedTime) }})

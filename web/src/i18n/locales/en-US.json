@@ -157,7 +157,12 @@
       "aiAgentWorkspace": "AI Agent Workspace",
       "inputsForCurrentRun": "Inputs for Current Run",
       "allInputsIncluded": "All inputs from the left panel are included for AI analysis.",
-      "aiResponseFeed": "AI Response Feed"
+      "aiResponseFeed": "AI Response Feed",
+      "running": "Running",
+      "cancelRun": "Cancel Run",
+      "inQueue": "In Queue",
+      "cancelled": "Cancelled",
+      "error": "Error"
     },
     "fineTuneSubtitle": "Train and debug AI models",
     "humanVerdict": "Human Verdict",
