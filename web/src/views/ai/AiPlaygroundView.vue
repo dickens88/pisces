@@ -881,7 +881,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertDetail, updateAlert, saveAlertAiFineTuneResult } from '@/api/alerts'
+import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult } from '@/api/alerts'
 import service from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -1889,7 +1889,7 @@ const handleRowClick = async (item) => {
   selectedAlertLoading.value = true
   try {
     const detailId = item.alert_id || item.id
-    const response = await getAlertDetail(detailId)
+    const response = await getAlertCommentsExtension(detailId)
     const detail =
       response?.data?.data ||
       response?.data ||
