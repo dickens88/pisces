@@ -5500,7 +5500,7 @@ const saveNotification = async () => {
     if (editingNotificationId.value) {
       // 更新现有通报
       const response = await updateIncidentBrief(incidentId, editingNotificationId.value, notificationData)
-      savedNotification = response.data.data
+      savedNotification = response.data
       // 更新本地列表
       const index = incidentNotifications.value.findIndex(n => n.id === editingNotificationId.value)
       if (index >= 0) {
@@ -5509,7 +5509,7 @@ const saveNotification = async () => {
     } else {
       // 创建新通报
       const response = await createIncidentBrief(incidentId, notificationData)
-      savedNotification = response.data.data
+      savedNotification = response.data
       // 添加到本地列表
       incidentNotifications.value.push(savedNotification)
     }
@@ -5583,7 +5583,7 @@ const saveService = async () => {
     if (editingServiceId.value) {
       // 更新现有服务
       const response = await updateImpactedService(incidentId, editingServiceId.value, serviceData)
-      savedService = response.data.data
+      savedService = response.data
       // 更新本地列表
       const index = impactedServices.value.findIndex(s => s.id === editingServiceId.value)
       if (index >= 0) {
@@ -5592,7 +5592,7 @@ const saveService = async () => {
     } else {
       // 创建新服务
       const response = await createImpactedService(incidentId, serviceData)
-      savedService = response.data.data
+      savedService = response.data
       // 添加到本地列表
       impactedServices.value.push(savedService)
     }
@@ -5675,7 +5675,8 @@ const loadImpactedServices = async () => {
   
   try {
     const response = await getImpactedServices(incidentId)
-    impactedServices.value = response.data.data || []
+    // 响应拦截器已经返回了 response.data，所以这里直接使用 response.data
+    impactedServices.value = response.data || []
   } catch (error) {
     console.error('Failed to load impacted services:', error)
     // 如果加载失败，不影响页面显示，只打印错误
@@ -5692,7 +5693,8 @@ const loadIncidentBriefs = async () => {
   
   try {
     const response = await getIncidentBriefs(incidentId)
-    incidentNotifications.value = response.data.data || []
+    // 响应拦截器已经返回了 response.data，所以这里直接使用 response.data
+    incidentNotifications.value = response.data || []
   } catch (error) {
     console.error('Failed to load incident briefs:', error)
     // 如果加载失败，不影响页面显示，只打印错误
