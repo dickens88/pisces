@@ -1969,19 +1969,32 @@ const sanitizeHtml = (html = '') => DOMPurify.sanitize(html)
 
 // Handle checkbox selection
 const handleSelect = (items) => {
+  // items only contains items currently visible in the DataTable
+  // We need to merge with existing selections, not replace them
   const newSelectedIds = items.map(item => String(item.alert_id || item.id)).filter(Boolean)
+  
+  // Get IDs of items currently visible in the table
+  const visibleIds = alerts.value.map(item => String(item.alert_id || item.id)).filter(Boolean)
+  
+  // Only update selections for items that are currently visible
+  // Items from other pages/searches should remain selected
   const currentSelectedIds = selectedAlerts.value.map(id => String(id))
   
-  // Find IDs that are in current selection but not in new selection (unchecked)
-  const removedIds = currentSelectedIds.filter(id => !newSelectedIds.includes(id))
-  // Find IDs that are in new selection but not in current selection (newly checked)
-  const addedIds = newSelectedIds.filter(id => !currentSelectedIds.includes(id))
+  // For visible items: determine which were checked/unchecked
+  const visibleRemovedIds = visibleIds.filter(id => 
+    currentSelectedIds.includes(id) && !newSelectedIds.includes(id)
+  )
+  const visibleAddedIds = newSelectedIds.filter(id => 
+    !currentSelectedIds.includes(id) && visibleIds.includes(id)
+  )
   
-  // Remove alerts that were unchecked
-  selectedAlertsData.value = selectedAlertsData.value.filter(data => !removedIds.includes(String(data.alertId)))
+  // Remove alerts that were unchecked (only for visible items)
+  selectedAlertsData.value = selectedAlertsData.value.filter(data => 
+    !visibleRemovedIds.includes(String(data.alertId))
+  )
   
-  // Add new alerts
-  addedIds.forEach(alertId => {
+  // Add new alerts (only for visible items)
+  visibleAddedIds.forEach(alertId => {
     // Try to find alert in current alerts list first, then fallback to items passed in
     const alert = alerts.value.find(item => String(item.alert_id || item.id) === alertId) || 
                   items.find(item => String(item.alert_id || item.id) === alertId)
@@ -2009,11 +2022,11 @@ const handleSelect = (items) => {
     }
   })
   
-  // Update selectedAlerts: remove unchecked ones, keep existing ones, add new ones
+  // Update selectedAlerts: only remove unchecked visible items, keep all others, add new visible ones
   // This preserves selections from other pages/searches that aren't in current view
   selectedAlerts.value = selectedAlerts.value
-    .filter(id => !removedIds.includes(id)) // Remove unchecked
-    .concat(addedIds) // Add newly checked
+    .filter(id => !visibleRemovedIds.includes(String(id))) // Remove unchecked visible items
+    .concat(visibleAddedIds) // Add newly checked visible items
     .filter((id, index, self) => self.indexOf(id) === index) // Remove duplicates
 }
 
@@ -2220,6 +2233,7 @@ const triggerAiWorkflow = async () => {
 const canRunAllWorkflows = computed(() => {
   if (selectedAlertsData.value.length === 0) return false
   return selectedAlertsData.value.every(alertData => {
+    if (!alertData || !alertData.alertId) return false
     const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
     return workflowId && workflowId !== '' && workflowId !== '__loading__'
   })
@@ -2245,6 +2259,7 @@ const handleRunAllWorkflows = async () => {
   try {
     // Run workflow for each alert sequentially
     for (const alertData of selectedAlertsData.value) {
+      if (!alertData || !alertData.alertId) continue
       const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
       if (!workflowId || workflowId === '') continue
 
@@ -2335,7 +2350,9 @@ const handleFineTuneClick = async () => {
   finetuneWorkflowSelections.value = {}
   finetuneWorkflowResults.value = {}
   selectedAlertsData.value.forEach(alertData => {
-    finetuneWorkflowSelections.value[alertData.alertId] = ''
+    if (alertData && alertData.alertId) {
+      finetuneWorkflowSelections.value[alertData.alertId] = ''
+    }
   })
   
   // Open overlay (workflows should already be loaded from onMounted)
@@ -2352,6 +2369,7 @@ const handleFineTuneClick = async () => {
   // Auto-select workflows based on agent_name match (case-insensitive)
   nextTick(() => {
     selectedAlertsData.value.forEach(alertData => {
+      if (!alertData || !alertData.alertId) return
       const agentName = alertData.alert?.agent_name
       if (agentName && workflows.value.length > 0) {
         const matchedWorkflow = workflows.value.find(w => 
