@@ -742,21 +742,20 @@
                   <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.inputAlertInfo') || 'Input Alert Information' }}</h4>
                   
                   <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 space-y-4">
-                    <div
-                      v-for="alertData in selectedAlertsData"
-                      v-if="alertData && alertData.alertId"
-                      :key="`finetune-${alertData.alertId}`"
-                      :class="[
-                        'bg-gray-50 dark:bg-[#1c2533] border rounded-lg overflow-hidden transition-colors',
-                        finetuneWorkflowSelections[alertData?.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
-                      ]"
-                    >
+                    <template v-for="alertData in selectedAlertsData" :key="`finetune-${getAlertId(alertData?.alert) || alertData?.alertId || 'unknown'}`">
+                      <div
+                        v-if="alertData && alertData.alert && (getAlertId(alertData.alert) || alertData.alertId)"
+                        :class="[
+                          'bg-gray-50 dark:bg-[#1c2533] border rounded-lg overflow-hidden transition-colors',
+                          finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
+                        ]"
+                      >
                       <!-- Alert Drawer Header -->
                       <div class="p-4 border-b border-gray-200 dark:border-[#324867]">
                         <div class="flex items-center justify-between gap-3 mb-3">
                           <div class="flex-1 min-w-0">
                             <h5 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {{ $t('alerts.detail.title') }} #{{ alertData?.alertId }}
+                              {{ $t('alerts.detail.title') }} #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
                             </h5>
                             <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
                               {{ alertData?.alert?.title || '' }}
@@ -769,11 +768,11 @@
                           <label class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
                           <div class="relative">
                             <select
-                              v-model="finetuneWorkflowSelections[alertData?.alertId]"
+                              v-model="finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId]"
                               :disabled="loadingWorkflows"
                               :class="[
                                 'pl-3 pr-8 appearance-none block w-full rounded-lg border h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
-                                finetuneWorkflowSelections[alertData?.alertId] 
+                                finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId] 
                                   ? 'border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533]' 
                                   : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                               ]"
@@ -814,7 +813,7 @@
                           <input
                             type="text"
                             class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5"
-                            :value="alertData?.alertId || ''"
+                            :value="getAlertId(alertData?.alert) || alertData?.alertId || ''"
                             readonly
                           />
                         </div>
@@ -877,6 +876,7 @@
                         </div>
                       </div>
                     </div>
+                    </template>
                   </div>
                 </div>
 
@@ -2274,8 +2274,10 @@ const triggerAiWorkflow = async () => {
 const canRunAllWorkflows = computed(() => {
   if (selectedAlertsData.value.length === 0) return false
   return selectedAlertsData.value.every(alertData => {
-    if (!alertData || !alertData.alertId) return false
-    const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
+    if (!alertData || !alertData.alert) return false
+    const alertId = getAlertId(alertData.alert) || alertData.alertId
+    if (!alertId) return false
+    const workflowId = finetuneWorkflowSelections.value[alertId]
     return workflowId && workflowId !== '' && workflowId !== '__loading__'
   })
 })
@@ -2300,11 +2302,11 @@ const handleRunAllWorkflows = async () => {
   try {
     // Run workflow for each alert sequentially
     for (const alertData of selectedAlertsData.value) {
-      if (!alertData || !alertData.alertId) continue
-      const workflowId = finetuneWorkflowSelections.value[alertData.alertId]
+      if (!alertData || !alertData.alert) continue
+      const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
+      if (!alertIdValue) continue
+      const workflowId = finetuneWorkflowSelections.value[alertIdValue]
       if (!workflowId || workflowId === '') continue
-
-      const alertIdValue = alertData.alertId
       const subjectValue = alertData.alert?.title || ''
       const descriptionValue = getRawDescription(alertData.detail, alertData.alert)
       const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
@@ -2391,8 +2393,11 @@ const handleFineTuneClick = async () => {
   finetuneWorkflowSelections.value = {}
   finetuneWorkflowResults.value = {}
   selectedAlertsData.value.forEach(alertData => {
-    if (alertData && alertData.alertId) {
-      finetuneWorkflowSelections.value[alertData.alertId] = ''
+    if (alertData && alertData.alert) {
+      const alertId = getAlertId(alertData.alert) || alertData.alertId
+      if (alertId) {
+        finetuneWorkflowSelections.value[alertId] = ''
+      }
     }
   })
   
@@ -2410,14 +2415,16 @@ const handleFineTuneClick = async () => {
   // Auto-select workflows based on agent_name match (case-insensitive)
   nextTick(() => {
     selectedAlertsData.value.forEach(alertData => {
-      if (!alertData || !alertData.alertId) return
+      if (!alertData || !alertData.alert) return
+      const alertId = getAlertId(alertData.alert) || alertData.alertId
+      if (!alertId) return
       const agentName = alertData.alert?.agent_name
       if (agentName && workflows.value.length > 0) {
         const matchedWorkflow = workflows.value.find(w => 
           w.name && agentName.toLowerCase() === w.name.toLowerCase()
         )
         if (matchedWorkflow) {
-          finetuneWorkflowSelections.value[alertData.alertId] = matchedWorkflow.id
+          finetuneWorkflowSelections.value[alertId] = matchedWorkflow.id
         }
       }
     })
