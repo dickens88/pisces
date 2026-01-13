@@ -200,15 +200,15 @@ class Alert(Base):
             if include_finetune:
                 # Attach latest AI fine-tune result (is_threat) per alert if available
                 try:
-                    from models.alert_ai_finetune import AlertAiFineTuneResult
+                    from models.ai_finetune import AiFineTuneResult
 
                     alert_ids = [str(item.alert_id) for item in rows if item.alert_id]
                     fine_tune_map = {}
                     if alert_ids:
                         ft_rows = (
-                            session.query(AlertAiFineTuneResult)
-                            .filter(AlertAiFineTuneResult.alert_id.in_(alert_ids))
-                            .order_by(AlertAiFineTuneResult.alert_id, AlertAiFineTuneResult.updated_at.desc())
+                            session.query(AiFineTuneResult)
+                            .filter(AiFineTuneResult.alert_id.in_(alert_ids))
+                            .order_by(AiFineTuneResult.alert_id, AiFineTuneResult.updated_at.desc())
                             .all()
                         )
                         for r in ft_rows:

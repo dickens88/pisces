@@ -7,7 +7,7 @@ from utils.mysql_conn import Base, Session
 from utils.logger_init import logger
 
 
-class AlertAiFineTuneResult(Base):
+class AiFineTuneResult(Base):
     """
     Stores the latest AI Fine-tune result per (alert_id, workflow_id).
     Previous results for the same alert/workflow are overwritten.
@@ -107,6 +107,38 @@ class AlertAiFineTuneResult(Base):
                 "Failed to upsert AI Fine-tune result for alert_id=%s, workflow_id=%s",
                 alert_id,
                 workflow_id,
+            )
+            raise
+        finally:
+            session.close()
+
+    @classmethod
+    def get_latest_for_alert(cls, alert_id: str) -> dict | None:
+        """
+        Get the latest AI Fine-tune result for a given alert_id.
+        
+        Args:
+            alert_id: The alert ID to query
+            
+        Returns:
+            dict: The latest result as a dictionary, or None if not found
+        """
+        session = Session()
+        try:
+            result = (
+                session.query(cls)
+                .filter_by(alert_id=str(alert_id))
+                .order_by(cls.updated_at.desc())
+                .first()
+            )
+            
+            if result:
+                return result.to_dict()
+            return None
+        except Exception:
+            logger.exception(
+                "Failed to get latest AI Fine-tune result for alert_id=%s",
+                alert_id,
             )
             raise
         finally:

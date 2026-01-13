@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 
-from models.alert_ai_finetune import AlertAiFineTuneResult
+from models.ai_finetune import AiFineTuneResult
 from utils.auth_util import auth_required
 from utils.logger_init import logger
 
@@ -34,7 +34,7 @@ class AlertAiFineTuneView(Resource):
         raw_text = data.get("raw_text") or ""
 
         try:
-            result = AlertAiFineTuneResult.upsert_for_alert(
+            result = AiFineTuneResult.upsert_for_alert(
                 alert_id=alert_id,
                 workflow_id=workflow_id,
                 agent_name=agent_name,
@@ -59,33 +59,18 @@ class AlertAiFineTuneView(Resource):
     @auth_required
     def get(self, username=None, alert_id=None):
         """
-        API endpoint to retrieve AI Fine-tune results for an alert.
+        API endpoint to retrieve the latest AI Fine-tune result for an alert.
 
         URL: GET /alerts/<alert_id>/ai-finetune
-        Returns: List of fine-tune results for the alert (latest per workflow_id)
+        Returns: The latest fine-tune result for the alert
         """
         try:
-            from utils.mysql_conn import Session
+            result = AiFineTuneResult.get_latest_for_alert(alert_id=alert_id)
             
-            session = Session()
-            try:
-                results = (
-                    session.query(AlertAiFineTuneResult)
-                    .filter_by(alert_id=str(alert_id))
-                    .order_by(AlertAiFineTuneResult.updated_at.desc())
-                    .all()
-                )
-                
-                # Group by workflow_id and keep only the latest per workflow
-                latest_by_workflow = {}
-                for result in results:
-                    workflow_key = result.workflow_id or '__no_workflow__'
-                    if workflow_key not in latest_by_workflow:
-                        latest_by_workflow[workflow_key] = result.to_dict()
-                
-                return {"data": list(latest_by_workflow.values())}, 200
-            finally:
-                session.close()
+            if result:
+                return {"data": result}, 200
+            else:
+                return {"data": None}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

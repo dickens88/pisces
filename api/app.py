@@ -11,7 +11,7 @@ from utils.app_config import config
 from utils.auth_util import parse_w3_token, TokenCache
 from utils.common_utils import scheduler
 from utils.logger_init import logger
-from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view, impacted_service_view, alert_ai_finetune_view
+from views import auth_view, alert_view, incident_view, stats_view, callback_view, comment_view, admin, toolkits_view, ai_prompt_view, impacted_service_view, ai_finetune_view
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -72,11 +72,13 @@ api.add_resource(auth_view.UserView, '/user/password')
 api.add_resource(auth_view.UserManagement, '/user/management')
 api.add_resource(auth_view.LoginRestToken, '/login/rest/token')
 
-# for alert and incident handling api
+# data statistics api
 api.add_resource(stats_view.AlertCountBySourceView, '/stats/alerts')
 
+# alert operation api
 api.add_resource(alert_view.AlertView, *['/alerts', '/alerts/<alert_id>'])
-api.add_resource(alert_ai_finetune_view.AlertAiFineTuneView, '/alerts/<alert_id>/ai-finetune')
+api.add_resource(ai_finetune_view.AlertAiFineTuneView, '/alerts/<alert_id>/ai-finetune')
+api.add_resource(incident_view.AlertRelations, '/alerts/<alert_id>/relations')
 
 # Register more specific routes first to avoid route matching conflicts
 api.add_resource(incident_view.IncidentTask, '/incidents/<incident_id>/task')
@@ -87,21 +89,15 @@ api.add_resource(impacted_service_view.IncidentBriefView, '/incidents/<incident_
 api.add_resource(incident_view.IncidentView, '/incidents', '/incidents/<incident_id>')
 api.add_resource(incident_view.IncidentView, '/vulnerabilities', '/vulnerabilities/<incident_id>', endpoint='vulnerabilityview')
 
-api.add_resource(incident_view.AlertRelations, '/alerts/<alert_id>/relations')
-
-# Comment routes: support create, read, update and delete operations
-# POST /comments - create comment
-# GET /comments/<event_id> - get comments by event_id
-# DELETE /comments/<event_id>/<comment_id> - delete comment
+# comment operations api
 api.add_resource(comment_view.CommentView, '/comments', '/comments/<event_id>', '/comments/<event_id>/<comment_id>')
+api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
 api.add_resource(toolkits_view.ToolkitsView, '/toolkits')
 api.add_resource(toolkits_view.ToolkitRecordView, '/toolkits/records')
 
 # for AI suggested prompts
 api.add_resource(ai_prompt_view.AIPromptView, '/ai/prompt')
-
-api.add_resource(comment_view.CommentDownloadView, '/comments/<comment_id>/download')
 
 # for system common functions
 api.add_resource(callback_view.CallbackMessageHandler, '/secmaster/callback')
