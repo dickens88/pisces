@@ -16,25 +16,14 @@ class CallbackMessageHandler(Resource):
 
     @staticmethod
     def _extract_agent_name(comment_content: str) -> str:
-        """Extract agent name from comment content that contains 【Dify AI Investigation】.
-        
-        Looks for patterns like [Created by]: or [{any text} by]: and returns the value after it.
-        """
         if "【Dify AI Investigation】" not in comment_content and "智能体" not in comment_content:
             return None
-        
-        # Pattern to match [anything by]: followed by the agent name
-        # Examples: [Created by]: AgentName, [Investigated by]: AgentName
+
         pattern = r'by\s+([0-9A-Za-z\u4e00-\u9fa5_ \-]+)$'
-        match = re.search(pattern, comment_content, re.IGNORECASE)
+        match = re.search(pattern, comment_content.rstrip(), re.IGNORECASE)
         
         if match:
-            agent_name = match.group(2).strip()
-            # Remove any trailing whitespace or newlines
-            agent_name = agent_name.split('\n')[0].strip()
-            logger.debug(f"Extracted agent_name: {agent_name}")
-            return agent_name
-        
+            return match.group(1).strip()
         return None
 
     @staticmethod
