@@ -610,6 +610,8 @@
         "conclusion": "调查结论",
         "conclusionPlaceholder": "请输入调查结论..."
       },
+      "closeSuccess": "事件关闭成功",
+      "closeError": "事件关闭失败，请稍后重试",
       "tabs": {
         "alertStory": "事件沙盘",
         "alerts": "关联告警",

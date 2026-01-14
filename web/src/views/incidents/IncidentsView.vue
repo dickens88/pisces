@@ -968,6 +968,7 @@ const handleCloseIncident = async (data) => {
     
     // 构建请求体
     const body = {
+      action: 'close',
       handle_status: 'Closed',
       close_reason: data.close_reason,
       close_comment: data.close_comment

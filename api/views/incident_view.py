@@ -90,12 +90,24 @@ class IncidentView(Resource):
         data = json.loads(request.data)
         search_vulscan = data.get('search_vulscan', False)
         workspace_id = get_workspace_id("asm" if search_vulscan else None)
+        action = data.get('action', 'update')
 
         try:
-            data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
-            result = IncidentService.update_incident(data, incident_id, workspace_id=workspace_id)
-            logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
-            return {"data": data, "total": result}, 201
+            if action == "update":
+                data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
+                result = IncidentService.update_incident(data, incident_id, workspace_id=workspace_id)
+                logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
+                return {"data": data, "total": result}, 200
+            elif action == "close":
+                close_reason = data["close_reason"]
+                close_comment = data["close_comment"]
+                result = IncidentService.close_incident(incident_id=incident_id,
+                                                        close_reason=close_reason,
+                                                        comment=close_comment,
+                                                        actor=username,
+                                                        workspace_id=workspace_id)
+                logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
+                return {"data": result}, 200
         except Exception as ex:
             logger.exception(ex)
             return {"error_message": str(ex)}, 500

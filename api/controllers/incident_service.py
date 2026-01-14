@@ -262,6 +262,29 @@ class IncidentService:
         return result
 
     @classmethod
+    def close_incident(cls, incident_id, close_reason, comment, actor=None, workspace_id=None):
+        ws_id = workspace_id or cls.workspace_id
+        base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/incidents/{incident_id}"
+        headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
+
+        payload = {
+            "data_object": {
+                "handle_status": "Closed",
+                "close_reason": close_reason,
+                "close_comment": f"【@{actor}】: {comment}"
+            }
+        }
+        if actor:
+            payload["data_object"]["actor"] = actor
+        body = json.dumps(payload)
+
+        resp = request_with_auth("PUT", url=base_url, headers=headers, data=body)
+        if resp.status_code > 300:
+            raise Exception(resp.text)
+
+        return json.loads(resp.text)
+
+    @classmethod
     def convert_alerts_to_incident(cls, actor: str, incident_id: str, alert_ids: list, workspace_id=None):
         # Can not call /soc/alerts/batch-order api for converting alerts to incident, because it won't show real username
         # we break the process and orchestrate apis to ensure the real username display
