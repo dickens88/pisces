@@ -144,7 +144,6 @@ class CommentView(Resource):
             
             # Validate file if present
             file_data = None
-            file_type = None
             file_name = None
             if file:
                 is_valid, file_data, file_type, error_msg = self._validate_file(file)
@@ -155,7 +154,6 @@ class CommentView(Resource):
                 file_name = sanitized_filename
             
             # Get note_type from request
-            note_type = None
             if 'file' in request.files:
                 note_type = request.form.get('note_type', 'comment')
             else:
@@ -170,7 +168,7 @@ class CommentView(Resource):
             result = CommentService.create_comment(
                 event_id=event_id, 
                 comment=comment, 
-                owner=username, 
+                actor=username,
                 workspace_id=workspace_id,
                 note_type=note_type
             )

@@ -96,6 +96,11 @@ class IncidentView(Resource):
             if action == "update":
                 data["labels"] = IncidentService.VULSCAN_LABEL if search_vulscan else "security_incident"
                 result = IncidentService.update_incident(data, incident_id, workspace_id=workspace_id)
+
+                CommentService.create_comment(event_id=incident_id,
+                                              comment=f"{username} updated the incident",
+                                              workspace_id=workspace_id,
+                                              note_type="update")
                 logger.info(f"[Incident] Updated Incident: {incident_id} successfully.[{username}]")
                 return {"data": data, "total": result}, 200
             elif action == "close":
@@ -189,7 +194,9 @@ class IncidentRelations(Resource):
                 # leave a comment
                 result = CommentService.create_comment(event_id=ids,
                                                        comment="Disassociate alerts from incident: " + incident_id,
-                                                       owner=username)
+                                                       workspace_id=workspace_id,
+                                                       note_type="update",
+                                                       actor=username)
 
                 logger.warn(f"[Incident] Disassociated Alerts successfully. ids: {ids} -> {incident_id}. [{username}]")
                 return {"data": result}, 200

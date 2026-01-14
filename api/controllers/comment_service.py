@@ -30,16 +30,14 @@ class CommentService:
         return json.loads(resp.text)
 
     @classmethod
-    def create_comment(cls, event_id, comment, owner, workspace_id=None, note_type='comment'):
+    def create_comment(cls, event_id, comment, actor=None, workspace_id=None, note_type='comment'):
         ws_id = workspace_id or cls.workspace_id
         base_url = f"{cls.base_url}/v1/{cls.project_id}/workspaces/{ws_id}/soc/notes"
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
-
-        comment_content = f"【@{owner}】: {comment}"
         
         body = {
             "type": "textMessage",
-            "content": comment_content,
+            "content": f"【@{actor}】: {comment}" if actor else comment,
             "war_room_id": event_id,
             "note_type": note_type
         }

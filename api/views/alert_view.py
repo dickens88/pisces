@@ -2,6 +2,7 @@ from flask import request
 from flask_restful import Resource
 
 from controllers.alert_service import AlertService
+from controllers.comment_service import CommentService
 from models.alert import Alert
 from utils.auth_util import auth_required
 from utils.logger_init import logger
@@ -98,6 +99,11 @@ class AlertView(Resource):
                 update_info = data["data"]
                 update_info["actor"] = username
                 result = AlertService.update_alert(alert_id, update_info, workspace_id=workspace_id)
+
+                CommentService.create_comment(event_id=alert_id,
+                                              comment=f"{username} updated the alert",
+                                              workspace_id=workspace_id,
+                                              note_type="update")
                 logger.info(f"[Alert] Update Alert: {alert_id} successfully.[{username}]")
                 return {"data": result}, 200
             elif action == "close":
