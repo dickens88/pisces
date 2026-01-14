@@ -83,17 +83,61 @@ class _LightRAGClient:
         self.api_key = config.get("application.lightrag.api_key")
 
     def ensure_workspace_empty(self):
-        """Block until the LightRAG workspace reports zero documents."""
+        """
+        等待 LightRAG workspace 进入“空闲且已清理”状态。
+
+        语义：
+        - 如果仍有进行中的任务（PENDING/PROCESSING 等），则持续等待直到这些任务结束或超时；
+        - 如果只剩下已结束文档（例如 PROCESSED/FAILED），则尝试调用 clear_documents 做一次清理；
+        - 最终要求 /documents/status_counts 的总和为 0 才返回，否则在 workspace_timeout 后抛异常。
+
+        这样可以削弱“清理动作发生在任务结束之前”的时序依赖，避免因为上一次任务的残留文档
+        阻塞下一次图生成。
+        """
         start = time.monotonic()
+        last_clear_ts = 0.0
+        clear_interval = max(1, int(self.poll_interval or 1))
+
+        processing_states = {"PENDING", "QUEUED", "PREPROCESSING", "PROCESSING", "RUNNING"}
+
         while True:
             counts = self._get_status_counts()
-            if sum(counts.values()) == 0:
+            total = sum(counts.values())
+
+            # 完全空闲，直接返回
+            if total == 0:
                 return
 
-            if time.monotonic() - start > self.workspace_timeout:
+            # 统计是否还有进行中的任务
+            processing = 0
+            for key, value in counts.items():
+                state = str(key).upper()
+                if state in processing_states:
+                    processing += int(value or 0)
+
+            now = time.monotonic()
+
+            # 没有进行中的任务，但还有残留（通常是 PROCESSED/FAILED 等），周期性触发一次清理
+            if processing == 0 and now - last_clear_ts >= clear_interval:
+                try:
+                    logger.info(
+                        "[LightRAG] Workspace has only terminal documents, "
+                        "trying to clear before next graph job: %s",
+                        counts,
+                    )
+                    self.clear_documents()
+                except EventGraphGenerationError as exc:
+                    # 清理失败不会立刻中断流程，而是继续按照超时逻辑等待
+                    logger.warning("[LightRAG] Failed to auto-clear workspace: %s", exc)
+                finally:
+                    last_clear_ts = now
+
+            if now - start > self.workspace_timeout:
                 raise EventGraphGenerationError(
-                    f"LightRAG workspace busy for more than {self.workspace_timeout} seconds"
+                    f"LightRAG workspace busy or cannot be cleared for more than {self.workspace_timeout} seconds "
+                    f"(status_counts={counts})"
                 )
+
             time.sleep(self.poll_interval)
 
     def insert_text(self, payload_text: str, file_source: Optional[str] = None) -> str:
