@@ -54,7 +54,7 @@
               <button
                 @click="handleDeleteComment(comment)"
                 class="p-0 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                :title="existsInDatabase(comment) ? $t('incidents.detail.comments.deleteComment') : $t('incidents.detail.comments.removeComment')"
+                :title="$t('incidents.detail.comments.deleteComment')"
               >
                 <span class="material-symbols-outlined text-sm leading-none">delete</span>
               </button>
@@ -322,110 +322,62 @@ const deleteConfirmInput = ref('')
 const deletingComment = ref(null)
 const isDeletingComment = ref(false)
 
-// 评论类型选项
-const commentTypeOptions = computed(() => [
-  { value: 'comment', label: t('common.commentTypes.comment') },
-  { value: 'attackTracing', label: t('common.commentTypes.attackTracing') },
-  { value: 'attackBlocking', label: t('common.commentTypes.attackBlocking') },
-  { value: 'riskMitigation', label: t('common.commentTypes.riskMitigation') },
-  { value: 'vulnerabilityIdentification', label: t('common.commentTypes.vulnerabilityIdentification') }
-])
-
-// 判断评论是否存在于数据库中
-const existsInDatabase = (comment) => {
-  // 如果明确标记为不存在，则返回false
-  // 如果没有标记或标记为存在，则返回true
-  return comment.exists_in_db !== false
-}
-// 归一化评论类型 key（用于 label 和样式）
-const normalizeCommentType = (rawType) => {
-  if (!rawType) return 'comment'
-  const value = String(rawType).toLowerCase()
-
-  // 支持标准类型值
-  let key = 'comment'
-  if (value === 'comment') {
-    key = 'comment'
-  } else if (value === 'attacktracing' || value === 'attack_tracing' || value === 'attack-tracing') {
-    key = 'attackTracing'
-  } else if (value === 'attackblocking' || value === 'attack_blocking' || value === 'attack-blocking') {
-    key = 'attackBlocking'
-  } else if (value === 'riskmitigation' || value === 'risk_mitigation' || value === 'risk-mitigation') {
-    key = 'riskMitigation'
-  } else if (value === 'vulnerabilityidentification' || value === 'vulnerability_identification' || value === 'vulnerability-identification') {
-    key = 'vulnerabilityIdentification'
-  }
-
-  return key
-}
-
-// 获取评论类型展示文案
-const getCommentTypeLabel = (rawType) => {
-  const key = normalizeCommentType(rawType)
-  return t(`common.commentTypes.${key}`) || key
-}
-
-// 不同类型对应不同颜色样式
-const getCommentTypeClass = (rawType) => {
-  const key = normalizeCommentType(rawType)
-
-  const map = {
-    comment: 'bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-slate-100',
-    attackTracing: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
-    attackBlocking: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
-    riskMitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
-    vulnerabilityIdentification: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
-  }
-
-  return map[key] || map.comment
-}
-
-// 获取动作类型标签（优先使用系统动作，其次回退到响应流程类型）
+// 统一的动作/评论类型文案：系统动作和评论类型视为一套
 const getActionTypeLabel = (rawType) => {
   if (!rawType) return ''
-  const key = String(rawType).toLowerCase()
 
-  // 1. 优先匹配系统动作（changeowner/close 等）
-  const actionLabel = t(`common.actionTypes.${key}`)
-  if (actionLabel && actionLabel !== `common.actionTypes.${key}`) {
+  const raw = String(rawType)
+  const lower = raw.toLowerCase()
+
+  // 1. 优先匹配系统动作（actionTypes），key 统一用小写
+  const actionLabel = t(`common.actionTypes.${lower}`)
+  if (actionLabel && actionLabel !== `common.actionTypes.${lower}`) {
     return actionLabel
   }
 
-  // 2. 回退匹配响应流程类型（comment/attackTracing/attackBlocking/...）
-  const commentKey = normalizeCommentType(rawType)
-  const commentLabel = t(`common.commentTypes.${commentKey}`)
-  if (commentLabel && commentLabel !== `common.commentTypes.${commentKey}`) {
+  // 2. 再按评论类型（commentTypes）key 匹配（保持原始大小写，兼容现有配置）
+  const commentLabel = t(`common.commentTypes.${raw}`)
+  if (commentLabel && commentLabel !== `common.commentTypes.${raw}`) {
     return commentLabel
   }
 
-  // 3. 再不匹配就直接回退原始值
-  return rawType
+  // 3. 都没有就直接回退原始值
+  return raw
 }
 
-// 获取动作类型样式
+// 统一的动作/评论类型样式
 const getActionTypeClass = (rawType) => {
-  if (!rawType) return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
+  const raw = String(rawType || '')
+  const lower = raw.toLowerCase()
 
-  // 先尝试按响应流程类型上色
-  const key = normalizeCommentType(rawType)
-  const map = {
-    comment: 'bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-slate-100',
+  const typeColorMap = {
+
+    // 攻击相关
+    attacktracing: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
     attackTracing: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
+    attackblocking: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
     attackBlocking: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
+
+    // 风险/漏洞处理
+    riskmitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
     riskMitigation: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
+    vulnerabilityidentification: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300',
     vulnerabilityIdentification: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300'
   }
 
-  if (map[key]) {
-    return map[key]
+  if (typeColorMap[lower]) {
+    return typeColorMap[lower]
+  }
+  if (typeColorMap[raw]) {
+    return typeColorMap[raw]
   }
 
-  // 再按系统动作（close 等）上色
-  const actionKey = String(rawType).toLowerCase()
-  if (actionKey === 'close') {
+  // 特殊：关闭/关联/转移类动作统一红色
+  if (lower === 'close' || lower === 'relatetodataobject' || lower === 'transfertoincident') {
     return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'
   }
 
+  // 其他未知动作统一蓝色
   return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
 }
 

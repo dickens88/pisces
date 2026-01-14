@@ -147,22 +147,21 @@ class IncidentService:
         # Add alert_list to row for database storage
         row["alert_list"] = associated_ids
         for alert_id in associated_ids:
-            # Try to get from database first
-            db_alert = Alert.get_alert_by_id(alert_id)
-            if db_alert:
-                # Convert database record to API format
-                alert = cls._convert_db_alert_to_api_format(db_alert)
-                associated_alerts.append(alert)
-            else:
-                # Fallback to API if not found in database
-                alert = AlertService.retrieve_alert_by_id(alert_id, workspace_id=ws_id)
-                associated_alerts.append(alert)
+            try:
+                # Try to get from database first
+                db_alert = Alert.get_alert_by_id(alert_id)
+                if db_alert:
+                    # Convert database record to API format
+                    alert = cls._convert_db_alert_to_api_format(db_alert)
+                    associated_alerts.append(alert)
+                else:
+                    # Fallback to API if not found in database
+                    alert = AlertService.retrieve_alert_by_id(alert_id, workspace_id=ws_id)
+                    associated_alerts.append(alert)
 
-                # Cache alert locally for next retrieval
-                try:
                     Alert.upsert_alert(alert)
-                except Exception as exc:
-                    logger.warning("[Incident] Failed to cache alert %s locally: %s", alert_id, exc)
+            except Exception as e:
+                logger.warning("[Incident] Failed to cache alert %s locally: %s", alert_id, e)
 
         # sort by create_time in descending order
         associated_alerts.sort(key=lambda x: x.get('create_time', ''), reverse=True)
@@ -260,6 +259,23 @@ class IncidentService:
             raise Exception(resp.text)
 
         result = json.loads(resp.text)
+        return result
+
+    @classmethod
+    def convert_alerts_to_incident(cls, actor: str, incident_id: str, alert_ids: list, workspace_id=None):
+        # Can not call /soc/alerts/batch-order api for converting alerts to incident, because it won't show real username
+        # we break the process and orchestrate apis to ensure the real username display
+
+        # 1. create relation between alerts to incident
+        cls.associate_alerts_to_incident(incident_id, alert_ids, workspace_id)
+
+        # 2. close alerts
+        result = AlertService.batch_close_alert(alert_ids=alert_ids,
+                                                close_reason="Resolved",
+                                                comment="Associate alerts to incident: " + incident_id,
+                                                actor=actor,
+                                                escalate=True,
+                                                workspace_id=workspace_id)
         return result
 
     @classmethod

@@ -3,13 +3,12 @@ import json
 from flask import request
 from flask_restful import Resource
 
-from controllers.alert_service import AlertService
 from controllers.comment_service import CommentService
 from controllers.incident_service import IncidentService
 from models.incident import Incident
 from utils.auth_util import auth_required
-from utils.logger_init import logger
 from utils.common_utils import get_workspace_id
+from utils.logger_init import logger
 
 
 class IncidentView(Resource):
@@ -75,19 +74,11 @@ class IncidentView(Resource):
                 incident = IncidentService.create_incident(data, workspace_id=workspace_id)
                 incident_id = incident["data"]["data_object"]["id"]
 
-                # 2. create relation between alerts and incident
-                try:
-                    IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
-                except Exception as e:
-                    logger.warning(f"[Incident] Fail to associate alerts: {ids} to incident:{incident_id}. error: {e}")
-
-                # 3. close alerts with comment
-                result = AlertService.batch_close_alert(alert_ids=ids,
-                                                        close_reason="Resolved",
-                                                        comment="Associate alerts to incident: " + incident_id,
-                                                        actor=username,
-                                                        escalate=True,
-                                                        workspace_id=workspace_id)
+                # 2. create relation between alerts and incident, and close alart
+                result = IncidentService.convert_alerts_to_incident(actor=username,
+                                                                    incident_id=incident_id,
+                                                                    alert_ids=ids,
+                                                                    workspace_id=workspace_id)
                 logger.info(f"[Incident] Converted Alerts to Incident: {incident_id} successfully.[{username}]")
                 return {"data": data, "total": result}, 201
         except Exception as ex:
@@ -160,16 +151,11 @@ class IncidentRelations(Resource):
             workspace_id = get_workspace_id(data.get('workspace'))
 
             if ids:
-                # create relation between alerts and incident
-                IncidentService.associate_alerts_to_incident(incident_id, ids, workspace_id=workspace_id)
-
-                # close alerts with comment
-                result = AlertService.batch_close_alert(alert_ids=ids,
-                                                        close_reason="Resolved",
-                                                        comment="Associate alerts to incident: " + incident_id,
-                                                        actor=username,
-                                                        escalate=True,
-                                                        workspace_id=workspace_id)
+                # create relation between alerts and incident, and close alart
+                result = IncidentService.convert_alerts_to_incident(actor=username,
+                                                                    incident_id=incident_id,
+                                                                    alert_ids=ids,
+                                                                    workspace_id=workspace_id)
 
                 logger.warn(f"[Incident] Associated Alerts successfully. ids: {ids} -> {incident_id}. [{username}]")
                 return {"data": result}, 200

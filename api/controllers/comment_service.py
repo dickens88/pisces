@@ -29,47 +29,6 @@ class CommentService:
 
         return json.loads(resp.text)
 
-    @staticmethod
-    def _normalize_note_type(note_type):
-        """
-        将外部 note_type（或旧 comment_type）归一化到云脑的 note_type
-        
-        Args:
-            note_type: 动作类型 (comment, attackTracing, attackBlocking, riskMitigation, vulnerabilityIdentification)
-            
-        Returns:
-            str: 对应的note_type
-        """
-        if not note_type:
-            return "pisces"
-        
-        # 映射关系：支持多种格式输入，统一映射到云脑的note_type格式
-        # 先尝试直接匹配（支持驼峰格式）
-        direct_mapping = {
-            "comment": "pisces",
-            "attackTracing": "attackTracing",
-            "attackBlocking": "attackBlocking",
-            "riskMitigation": "riskMitigation",
-            "vulnerabilityIdentification": "vulnerabilityIdentification"
-        }
-        
-        if note_type in direct_mapping:
-            return direct_mapping[note_type]
-        
-        # 统一转换为小写并移除下划线和连字符进行比较
-        normalized_type = note_type.lower().replace("_", "").replace("-", "")
-        
-        # 标准化映射关系
-        type_mapping = {
-            "comment": "pisces",
-            "attacktracing": "attackTracing",
-            "attackblocking": "attackBlocking",
-            "riskmitigation": "riskMitigation",
-            "vulnerabilityidentification": "vulnerabilityIdentification"
-        }
-        
-        return type_mapping.get(normalized_type, note_type)
-
     @classmethod
     def create_comment(cls, event_id, comment, owner, workspace_id=None, note_type='comment'):
         ws_id = workspace_id or cls.workspace_id
@@ -77,9 +36,6 @@ class CommentService:
         headers = {"Content-Type": "application/json;charset=utf8", "X-Project-Id": cls.project_id}
 
         comment_content = f"【@{owner}】: {comment}"
-        
-        # 归一化 note_type
-        note_type = cls._normalize_note_type(note_type)
         
         body = {
             "type": "textMessage",
