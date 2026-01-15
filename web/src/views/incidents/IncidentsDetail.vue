@@ -1415,34 +1415,6 @@
 
           <!-- 三个统计卡片 -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <!-- 影响服务卡片 -->
-            <button 
-              @click="activeCardTab = 'impactedServices'"
-              :class="[
-                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
-                activeCardTab === 'impactedServices'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
-                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
-              ]">
-              <div class="flex items-start gap-4">
-                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
-                  <span class="material-symbols-outlined text-2xl">warning</span>
-                </div>
-                <div>
-                  <h3 :class="[
-                    'font-bold text-lg',
-                    activeCardTab === 'impactedServices' 
-                      ? 'text-primary dark:text-blue-400' 
-                      : 'text-slate-900 dark:text-white'
-                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
-                  </p>
-                </div>
-              </div>
-              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
-            </button>
-
             <!-- 进展同步卡片 -->
             <button 
               @click="activeCardTab = 'progressSync'"
@@ -1469,6 +1441,34 @@
                 </div>
               </div>
               <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-[#152342] border-r border-b border-emerald-500 transform rotate-45"></div>
+            </button>
+
+            <!-- 影响服务卡片 -->
+            <button 
+              @click="activeCardTab = 'impactedServices'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'impactedServices'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'impactedServices' 
+                      ? 'text-primary dark:text-blue-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
+                  </p>
+                </div>
+              </div>
+              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
             </button>
 
             <!-- 事件简报卡片 -->
@@ -4473,8 +4473,8 @@ watch([timelinePageSize, associatedAlertsTimeline], () => {
 const isLeftPaneCollapsed = ref(false)
 // 左侧面板标签切换：默认显示任务管理
 const leftPaneActiveTab = ref('taskManagement')
-// 证据与响应卡片切换：默认显示影响服务
-const activeCardTab = ref('impactedServices')
+// 证据与响应卡片切换：默认显示进展同步
+const activeCardTab = ref('progressSync')
 // 进展同步指令筛选类型
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
 // 进展同步标签筛选
