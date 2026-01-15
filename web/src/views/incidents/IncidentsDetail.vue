@@ -318,7 +318,7 @@
                       </div>
                       <!-- 该warroom的任务列表 -->
                       <div class="space-y-0">
-                        <template v-if="Array.isArray(warroomDetail)">
+                        <template v-if="Array.isArray(warroomDetail) && warroomDetail.length > 0">
                           <div
                             v-for="(task, index) in warroomDetail"
                             :key="index"
@@ -374,7 +374,7 @@
                             </div>
                           </div>
                         </template>
-                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list)">
+                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list) && warroomDetail.task_list.length > 0">
                           <div
                             v-for="(task, index) in warroomDetail.task_list"
                             :key="index"
@@ -2472,7 +2472,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask, getImpactedServices, createImpactedService, updateImpactedService, deleteImpactedService, getIncidentBriefs, createIncidentBrief, updateIncidentBrief, deleteIncidentBrief } from '@/api/incidents'
 import { updateComment, deleteComment, getComments } from '@/api/comments'
-import { getProjectList, getTaskDetail } from '@/api/securityAgent'
+import { getProjectList, getTaskDetail, createGroup, modifyTask } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -6288,16 +6288,21 @@ const loadWarroomDetailsOnly = async () => {
 
     const results = await Promise.all(taskDetailPromises)
     
+    // 调试日志
+    console.log('getTaskDetail results:', results)
+    
     // 按warroom ID分组存储任务详情
     const grouped = {}
     results.forEach(({ warroomId, taskDetail, error }) => {
       if (error) {
         grouped[warroomId] = { error }
       } else {
+        console.log(`Task detail for warroom ${warroomId}:`, taskDetail)
         grouped[warroomId] = taskDetail
       }
     })
 
+    console.log('groupedTaskDetails:', grouped)
     groupedTaskDetails.value = grouped
     taskDetailLoaded.value = true
   } catch (error) {

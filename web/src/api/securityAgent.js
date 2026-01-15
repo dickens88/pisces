@@ -218,10 +218,7 @@ export const getProjectList = async ({ project_name = 'warroom' } = {}) => {
     throw new Error(errorData.message || `API 请求失败 (状态码: ${response.status})`)
   }
 
-  const data = await response.json().catch(async () => {
-    const text = await response.text().catch(() => '')
-    return { answer: text, data: null }
-  })
+  const data = await response.json()
 
   return data.data?.outputs?.project_list || []
 }
@@ -240,7 +237,7 @@ export const getProjectUuidList = async ({ project_name = 'warroom' } = {}) => {
   return [...new Set(projectUuids)].sort()
 }
 
-export const getTaskDetail = async ({ project_uuid }) => {
+export const getTaskDetail = async ({ project_uuid, group_name } = {}) => {
   if (!project_uuid) {
     throw new Error('Project UUID is required')
   }
@@ -261,10 +258,95 @@ export const getTaskDetail = async ({ project_uuid }) => {
   const isDev = import.meta.env.DEV
   const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
 
+  const inputs = {
+    action: 'get task detail',
+    project_uuid: String(project_uuid).trim()
+  }
+  
+  // 可选参数：group_name
+  if (group_name) {
+    inputs.group_name = String(group_name).trim()
+  }
+
+  const requestBody = {
+    inputs,
+    response_mode: 'blocking',
+    user: resolvedUserName
+  }
+
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.wetaskAgentKey}`
+      },
+      body: JSON.stringify(requestBody),
+      mode: 'cors',
+      credentials: 'omit'
+    })
+  } catch (fetchError) {
+    throw new Error(`网络请求失败: ${fetchError.message}`)
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    let errorData
+    try {
+      errorData = JSON.parse(errorText)
+    } catch {
+      errorData = { message: errorText }
+    }
+    throw new Error(errorData.message || `API 请求失败 (状态码: ${response.status})`)
+  }
+
+  const data = await response.json()
+
+  // 调试日志
+  console.log('getTaskDetail response:', data)
+  console.log('task_detail:', data.data?.outputs?.task_detail)
+
+  return data.data?.outputs?.task_detail || []
+}
+
+/**
+ * 创建task组（给task打标签后创建对应的group）
+ * @param {Object} params
+ * @param {string} params.project_uuid - 项目UUID（必需）
+ * @param {string} params.group_name - 组名称（必需），如：攻击溯源、攻击拦截、风险消减、漏洞定位
+ * @returns {Promise<Object>} 返回 { result: { group_id, status } }
+ */
+export const createGroup = async ({ project_uuid, group_name } = {}) => {
+  if (!project_uuid) {
+    throw new Error('Project UUID is required')
+  }
+
+  if (!group_name) {
+    throw new Error('Group name is required')
+  }
+
+  const baseEndpoint = config.wetaskAgentApi
+  if (!baseEndpoint) {
+    throw new Error('wetask Agent API endpoint is not configured (VITE_WETASK_AGENT_API)')
+  }
+
+  if (!config.wetaskAgentKey) {
+    throw new Error('wetask Agent API key is not configured (VITE_WETASK_AGENT_KEY)')
+  }
+
+  const authStore = useAuthStore()
+  const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
+
+  let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
+  const isDev = import.meta.env.DEV
+  const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
+
   const requestBody = {
     inputs: {
-      action: 'get task detail',
-      project_uuid: String(project_uuid).trim()
+      action: 'create group',
+      project_uuid: String(project_uuid).trim(),
+      group_name: String(group_name).trim()
     },
     response_mode: 'blocking',
     user: resolvedUserName
@@ -297,12 +379,128 @@ export const getTaskDetail = async ({ project_uuid }) => {
     throw new Error(errorData.message || `API 请求失败 (状态码: ${response.status})`)
   }
 
-  const data = await response.json().catch(async () => {
-    const text = await response.text().catch(() => '')
-    return { answer: text, data: null }
-  })
+  const data = await response.json()
 
-  return data.data?.outputs?.task_detail || []
+  return data.data?.outputs?.result
 }
 
+/**
+ * 修改task的内容
+ * @param {Object} params
+ * @param {string} params.project_uuid - 项目UUID（必需）
+ * @param {string} params.task_id - 任务ID（必需）
+ * @param {string} [params.task_name] - 任务名称（可选）
+ * @param {number} [params.priority] - 优先级（可选）
+ * @param {string} [params.status] - 状态（可选）
+ * @param {string} [params.start_time] - 开始时间（可选）
+ * @param {string} [params.end_time] - 结束时间（可选）
+ * @param {string} [params.group_name] - 组名称（可选）
+ * @param {string} [params.owner] - 负责人（可选）
+ * @param {string} [params.notes] - 备注（可选）
+ * @returns {Promise<Object>} 返回 { status: "success" }
+ */
+export const modifyTask = async ({
+  project_uuid,
+  task_id,
+  task_name,
+  priority,
+  status,
+  start_time,
+  end_time,
+  group_name,
+  owner,
+  notes
+} = {}) => {
+  if (!project_uuid) {
+    throw new Error('Project UUID is required')
+  }
 
+  if (!task_id) {
+    throw new Error('Task ID is required')
+  }
+
+  const baseEndpoint = config.wetaskAgentApi
+  if (!baseEndpoint) {
+    throw new Error('wetask Agent API endpoint is not configured (VITE_WETASK_AGENT_API)')
+  }
+
+  if (!config.wetaskAgentKey) {
+    throw new Error('wetask Agent API key is not configured (VITE_WETASK_AGENT_KEY)')
+  }
+
+  const authStore = useAuthStore()
+  const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
+
+  let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
+  const isDev = import.meta.env.DEV
+  const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
+
+  const inputs = {
+    action: 'modify task',
+    project_uuid: String(project_uuid).trim(),
+    task_id: String(task_id).trim()
+  }
+
+  // 可选参数
+  if (task_name !== undefined && task_name !== null) {
+    inputs.task_name = String(task_name).trim()
+  }
+  if (priority !== undefined && priority !== null) {
+    inputs.priority = Number(priority)
+  }
+  if (status !== undefined && status !== null) {
+    inputs.status = String(status).trim()
+  }
+  if (start_time !== undefined && start_time !== null) {
+    inputs.start_time = String(start_time).trim()
+  }
+  if (end_time !== undefined && end_time !== null) {
+    inputs.end_time = String(end_time).trim()
+  }
+  if (group_name !== undefined && group_name !== null) {
+    inputs.group_name = String(group_name).trim()
+  }
+  if (owner !== undefined && owner !== null) {
+    inputs.owner = String(owner).trim()
+  }
+  if (notes !== undefined && notes !== null) {
+    inputs.notes = String(notes).trim()
+  }
+
+  const requestBody = {
+    inputs,
+    response_mode: 'blocking',
+    user: resolvedUserName
+  }
+
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.wetaskAgentKey}`
+      },
+      body: JSON.stringify(requestBody),
+      mode: 'cors',
+      credentials: 'omit'
+    })
+  } catch (fetchError) {
+    throw new Error(`网络请求失败: ${fetchError.message}`)
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    let errorData
+    try {
+      errorData = JSON.parse(errorText)
+    } catch {
+      errorData = { message: errorText }
+    }
+    throw new Error(errorData.message || `API 请求失败 (状态码: ${response.status})`)
+  }
+
+  const data = await response.json()
+
+  return { status: data.data?.outputs?.status || data.data?.status || 'success' }
+}
