@@ -254,6 +254,24 @@
             </ClearableSelect>
           </div>
 
+          <!-- Agent Name filter -->
+          <div class="relative min-w-[140px] max-w-[14rem]">
+            <ClearableSelect
+              v-model="agentNameFilter"
+              clear-value="all"
+              @change="handleFilter"
+            >
+              <option value="all">{{ $t('aiPlayground.agentFilter.all') || 'All Agents' }}</option>
+              <option
+                v-for="name in agentNameOptions"
+                :key="name"
+                :value="name"
+              >
+                {{ name }}
+              </option>
+            </ClearableSelect>
+          </div>
+
           <!-- More actions button -->
           <div class="relative">
             <button
@@ -305,6 +323,7 @@
             <span
               class="text-primary hover:underline cursor-pointer"
               :title="item.title"
+              @click="openAlertDetailInNewWindow(item.alert_id || item.id)"
             >
               {{ item.title }}
             </span>
@@ -460,12 +479,22 @@
                     </p>
                   </div>
                 </div>
-                <span
-                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
-                  :class="alertData.expanded ? 'rotate-180' : ''"
-                >
-                  expand_more
-                </span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <!-- Remove from selection button -->
+                  <button
+                    @click.stop="removeSelectedAlert(alertData.alertId)"
+                    class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#1c2533] text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+                    :aria-label="$t('common.delete') || 'Remove from selection'"
+                  >
+                    <span class="material-symbols-outlined text-sm">close</span>
+                  </button>
+                  <span
+                    class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
+                    :class="alertData.expanded ? 'rotate-180' : ''"
+                  >
+                    expand_more
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -764,12 +793,22 @@
                               {{ alertData?.alert?.title || '' }}
                             </p>
                           </div>
-                          <span
-                            class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
-                            :class="alertData.finetuneExpanded ? 'rotate-180' : ''"
-                          >
-                            expand_more
-                          </span>
+                          <div class="flex items-center gap-2 flex-shrink-0">
+                            <!-- Remove from selection button (fine-tune overlay) -->
+                            <button
+                              @click.stop="removeSelectedAlert(getAlertId(alertData?.alert) || alertData?.alertId)"
+                              class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#1c2533] text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
+                              :aria-label="$t('common.delete') || 'Remove from selection'"
+                            >
+                              <span class="material-symbols-outlined text-sm">close</span>
+                            </button>
+                            <span
+                              class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
+                              :class="alertData.finetuneExpanded ? 'rotate-180' : ''"
+                            >
+                              expand_more
+                            </span>
+                          </div>
                         </div>
                         
                         <!-- Workflow Selection -->
@@ -1171,6 +1210,7 @@ const cancelWorkflows = ref(false)
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
+const agentNameFilter = ref('all')
 const humanVerdictValue = ref('')
 const humanConclusionValue = ref('')
 const isUpdatingVerdict = ref(false)
@@ -1447,6 +1487,18 @@ const searchFields = computed(() => [
   { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
   { value: 'model_name', label: t('aiPlayground.modelName'), icon: 'smart_toy' }
 ])
+
+// Unique agent names for filter dropdown
+const agentNameOptions = computed(() => {
+  const names = new Set()
+  alerts.value.forEach(alert => {
+    const name = alert.agent_name || alert.agentName
+    if (name && typeof name === 'string') {
+      names.add(name)
+    }
+  })
+  return Array.from(names).sort((a, b) => a.localeCompare(b))
+})
 
 const getFieldLabel = (field) => {
   const fieldObj = searchFields.value.find(f => f.value === field)
@@ -2337,6 +2389,29 @@ const toggleFinetuneResultCard = (alertId) => {
   }
 }
 
+// Remove a single alert from the selected list and update table selection
+const removeSelectedAlert = (alertId) => {
+  const alertIdStr = String(alertId).trim()
+  if (!alertIdStr) return
+
+  // Remove from selectedAlertsData
+  selectedAlertsData.value = selectedAlertsData.value.filter(data => {
+    const dataAlertId = getAlertId(data.alert) || data.alertId
+    return String(dataAlertId) !== alertIdStr
+  })
+
+  // Remove from selectedAlerts array
+  selectedAlerts.value = selectedAlerts.value.filter(id => String(id) !== alertIdStr)
+
+  // Update DataTable selection to reflect removed alert
+  if (dataTableRef.value?.setSelectedItems) {
+    const selectedItemsInNewList = alerts.value.filter(alert =>
+      selectedAlerts.value.includes(String(alert.alert_id || alert.id))
+    )
+    dataTableRef.value.setSelectedItems(selectedItemsInNewList, true)
+  }
+}
+
 // Format elapsed time for display
 const formatElapsedTime = (milliseconds) => {
   if (!milliseconds || milliseconds < 0) return '0s'
@@ -3047,6 +3122,11 @@ const buildConditions = () => {
   // Add human judge filter (close_reason)
   if (humanJudgeFilter.value && humanJudgeFilter.value !== 'all') {
     conditions.push({ close_reason: humanJudgeFilter.value })
+  }
+  
+  // Add agent name filter
+  if (agentNameFilter.value && agentNameFilter.value !== 'all') {
+    conditions.push({ agent_name: agentNameFilter.value })
   }
   
   // Add match filter (is_ai_decision_correct)
