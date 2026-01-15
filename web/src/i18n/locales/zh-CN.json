@@ -149,11 +149,11 @@
       "subtitle": "基于当前时间范围与筛选条件",
       "columns": {
         "agentName": "模型名称",
-        "aiHandledAlerts": "AI已处理告警",
-        "correctDecisions": "正确决策",
+        "aiHandledAlerts": "AI已处理",
+        "correctDecisions": "正确",
         "falsePositive": "FP",
         "falseNegative": "FN",
-        "totalTickets": "总告警数",
+        "totalTickets": "总计",
         "coverageRate": "覆盖率"
       },
       "placeholderTitle": "占位表格",
@@ -166,11 +166,11 @@
       "columns": {
         "modelName": "模型名称",
         "agentName": "代理名称",
-        "aiHandledAlerts": "AI已处理告警",
-        "correctDecisions": "正确决策",
+        "aiHandledAlerts": "AI已处理",
+        "correctDecisions": "正确",
         "falsePositive": "FP",
         "falseNegative": "FN",
-        "totalTickets": "总告警数",
+        "totalTickets": "总计",
         "coverageRate": "覆盖率"
       }
     },

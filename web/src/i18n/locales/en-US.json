@@ -149,11 +149,11 @@
       "subtitle": "Based on current time range and filters",
       "columns": {
         "agentName": "Agent Name",
-        "aiHandledAlerts": "AI Handled Alerts",
-        "correctDecisions": "Correct Decisions",
+        "aiHandledAlerts": "AI Handled",
+        "correctDecisions": "Correct",
         "falsePositive": "FP",
         "falseNegative": "FN",
-        "totalTickets": "Total Alerts",
+        "totalTickets": "Total",
         "coverageRate": "Coverage Rate"
       },
       "placeholderTitle": "Reserved table",
@@ -166,11 +166,11 @@
       "columns": {
         "modelName": "Model Name",
         "agentName": "Agent Name",
-        "aiHandledAlerts": "AI Handled Alerts",
-        "correctDecisions": "Correct Decisions",
+        "aiHandledAlerts": "AI Handled",
+        "correctDecisions": "Correct",
         "falsePositive": "FP",
         "falseNegative": "FN",
-        "totalTickets": "Total Alerts",
+        "totalTickets": "Total",
         "coverageRate": "Coverage Rate"
       }
     },

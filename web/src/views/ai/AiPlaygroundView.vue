@@ -159,11 +159,20 @@
                     class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
                     @click="setAgentPerformanceSort('handledCount')"
                   >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.aiHandledAlerts') }}
+                    <span class="inline-flex items-center gap-1 justify-end">
+                      <span class="leading-tight text-right">
+                        <template v-if="($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').includes(' ')">
+                          {{ ($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[0] }}
+                          <br />
+                          {{ ($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[1] }}
+                        </template>
+                        <template v-else>
+                          {{ $t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled' }}
+                        </template>
+                      </span>
                       <span
                         v-if="agentPerformanceSortKey === 'handledCount'"
-                        class="material-symbols-outlined text-[14px]"
+                        class="material-symbols-outlined text-[14px] flex-shrink-0"
                       >
                         {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
@@ -175,7 +184,7 @@
                     @click="setAgentPerformanceSort('correctDecisionsCount')"
                   >
                     <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.correctDecisions') }}
+                      {{ $t('aiPlayground.agentPerformance.columns.correctDecisions') || 'Correct' }}
                       <span
                         v-if="agentPerformanceSortKey === 'correctDecisionsCount'"
                         class="material-symbols-outlined text-[14px]"
@@ -220,7 +229,7 @@
                     @click="setAgentPerformanceSort('totalCount')"
                   >
                     <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.totalTickets') }}
+                      {{ $t('aiPlayground.agentPerformance.columns.totalTickets') || 'Total' }}
                       <span
                         v-if="agentPerformanceSortKey === 'totalCount'"
                         class="material-symbols-outlined text-[14px]"
@@ -260,7 +269,7 @@
                   :key="row.agentName"
                   class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
                 >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.agentName">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.agentName">
                     {{ row.agentName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
@@ -379,11 +388,20 @@
                     class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
                     @click="setModelPerformanceSort('handledCount')"
                   >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled Alerts' }}
+                    <span class="inline-flex items-center gap-1 justify-end">
+                      <span class="leading-tight text-right">
+                        <template v-if="($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').includes(' ')">
+                          {{ ($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[0] }}
+                          <br />
+                          {{ ($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[1] }}
+                        </template>
+                        <template v-else>
+                          {{ $t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled' }}
+                        </template>
+                      </span>
                       <span
                         v-if="modelPerformanceSortKey === 'handledCount'"
-                        class="material-symbols-outlined text-[14px]"
+                        class="material-symbols-outlined text-[14px] flex-shrink-0"
                       >
                         {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
                       </span>
@@ -395,7 +413,7 @@
                     @click="setModelPerformanceSort('correctDecisionsCount')"
                   >
                     <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.correctDecisions') || 'Correct Decisions' }}
+                      {{ $t('aiPlayground.modelPerformance.columns.correctDecisions') || 'Correct' }}
                       <span
                         v-if="modelPerformanceSortKey === 'correctDecisionsCount'"
                         class="material-symbols-outlined text-[14px]"
@@ -440,7 +458,7 @@
                     @click="setModelPerformanceSort('totalCount')"
                   >
                     <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.totalTickets') || 'Total Alerts' }}
+                      {{ $t('aiPlayground.modelPerformance.columns.totalTickets') || 'Total' }}
                       <span
                         v-if="modelPerformanceSortKey === 'totalCount'"
                         class="material-symbols-outlined text-[14px]"
@@ -480,10 +498,10 @@
                   :key="`${row.modelName}-${row.agentName}`"
                   class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
                 >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.modelName">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.modelName">
                     {{ row.modelName }}
                   </td>
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.agentName">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.agentName">
                     {{ row.agentName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
