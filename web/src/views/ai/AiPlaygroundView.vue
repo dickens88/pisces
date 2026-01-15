@@ -43,25 +43,25 @@
       </div>
     </header>
 
-    <!-- Charts -->
+    <!-- Charts and Model Performance table -->
     <section
       v-if="showCharts"
       class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
     >
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
-        <div class="flex justify-between items-center p-3 pt-2">
-          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
+        <div class="flex justify-between items-center px-3 py-1.5">
+          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
           <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
         </div>
-        <div class="flex flex-col gap-1 px-3 pb-2">
-          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
+        <div class="flex flex-col gap-0.5 px-3 pb-1.5">
+          <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
             {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
           </span>
-          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+          <span class="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">
             {{ aiAccuracyAverage }}%
           </span>
         </div>
-        <div class="relative h-52">
+        <div class="relative h-36">
           <div
             v-if="aiAccuracyLoading"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
@@ -84,19 +84,19 @@
       </div>
       
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
-        <div class="flex justify-between items-center p-3 pt-2">
-          <p class="text-gray-900 dark:text-white text-lg font-semibold">{{ $t('aiPlayground.aiDecisionAnalysis') }}</p>
+        <div class="flex justify-between items-center px-3 py-1.5">
+          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('aiPlayground.aiDecisionAnalysis') }}</p>
           <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
         </div>
-        <div class="flex flex-col gap-1 px-3 pb-2">
-          <span class="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wide">
+        <div class="flex flex-col gap-0.5 px-3 pb-1.5">
+          <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
             {{ $t('aiPlayground.totalDecisions') || 'Total Decisions' }}
           </span>
-          <span class="text-gray-900 dark:text-white text-3xl font-bold tracking-tight">
+          <span class="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">
             {{ aiDecisionTotal }}
           </span>
         </div>
-        <div class="relative h-52">
+        <div class="relative h-36">
           <div
             v-if="aiDecisionLoading"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
@@ -117,217 +117,9 @@
           ></div>
         </div>
       </div>
-    </section>
-
-    <!-- Agent performance & Model Performance tables -->
-    <section v-if="showDetailedStats" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <!-- AI performance by Agent -->
-      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
-          <div>
-            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
-              {{ $t('aiPlayground.agentPerformance.title') }}
-            </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {{ $t('aiPlayground.agentPerformance.subtitle') }}
-            </p>
-          </div>
-          <span class="text-xs text-gray-500 dark:text-gray-400">
-            {{ timeRangeLabel }}
-          </span>
-        </div>
-        <div class="relative flex-1 min-h-[200px]">
-          <div
-            v-if="agentPerformanceLoading"
-            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
-          >
-            <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
-            {{ $t('common.loading') || 'Loading...' }}
-          </div>
-          <div v-else class="overflow-x-auto overflow-y-auto max-h-[600px]">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
-              <thead class="bg-gray-50 dark:bg-[#111822] sticky top-0 z-10">
-                <tr>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300"
-                  >
-                    {{ $t('aiPlayground.agentPerformance.columns.agentName') }}
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('handledCount')"
-                  >
-                    <span class="inline-flex items-center gap-1 justify-end">
-                      <span class="leading-tight text-right">
-                        <template v-if="($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').includes(' ')">
-                          {{ ($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[0] }}
-                          <br />
-                          {{ ($t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[1] }}
-                        </template>
-                        <template v-else>
-                          {{ $t('aiPlayground.agentPerformance.columns.aiHandledAlerts') || 'AI Handled' }}
-                        </template>
-                      </span>
-                      <span
-                        v-if="agentPerformanceSortKey === 'handledCount'"
-                        class="material-symbols-outlined text-[14px] flex-shrink-0"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('correctDecisionsCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.correctDecisions') || 'Correct' }}
-                      <span
-                        v-if="agentPerformanceSortKey === 'correctDecisionsCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('falsePositiveCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.falsePositive') }}
-                      <span
-                        v-if="agentPerformanceSortKey === 'falsePositiveCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('falseNegativeCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.falseNegative') }}
-                      <span
-                        v-if="agentPerformanceSortKey === 'falseNegativeCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('totalCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.totalTickets') || 'Total' }}
-                      <span
-                        v-if="agentPerformanceSortKey === 'totalCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setAgentPerformanceSort('coverageRate')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.agentPerformance.columns.coverageRate') }}
-                      <span
-                        v-if="agentPerformanceSortKey === 'coverageRate'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 dark:divide-[#324867] bg-white dark:bg-[#19222c]">
-                <tr v-if="agentPerformanceTotal === 0">
-                  <td
-                    colspan="7"
-                    class="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-xs"
-                  >
-                    {{ $t('dashboard.charts.noData') || 'No data available' }}
-                  </td>
-                </tr>
-                <tr
-                  v-for="row in sortedAgentPerformanceData"
-                  :key="row.agentName"
-                  class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
-                >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.agentName">
-                    {{ row.agentName }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.handledCount }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.correctDecisionsCount }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.falsePositiveCount }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.falseNegativeCount }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.totalCount }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.coverageRate.toFixed(1) }}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <!-- Pagination -->
-          <div v-if="agentPerformanceTotalPages > 1" class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-[#324867]">
-            <div class="text-xs text-gray-600 dark:text-gray-400">
-              {{ $t('common.pagination.showing', {
-                start: (agentPerformancePage - 1) * agentPerformancePageSize + 1,
-                end: Math.min(agentPerformancePage * agentPerformancePageSize, agentPerformanceTotal),
-                total: agentPerformanceTotal
-              }) }}
-            </div>
-            <div class="flex items-center gap-2">
-              <button
-                @click="handleAgentPerformancePageChange(agentPerformancePage - 1)"
-                :disabled="agentPerformancePage === 1"
-                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {{ $t('common.pagination.previous') || 'Previous' }}
-              </button>
-              <span class="text-xs text-gray-600 dark:text-gray-400">
-                {{ $t('common.pagination.page') || 'Page' }} {{ agentPerformancePage }} / {{ agentPerformanceTotalPages }}
-              </span>
-              <button
-                @click="handleAgentPerformancePageChange(agentPerformancePage + 1)"
-                :disabled="agentPerformancePage >= agentPerformanceTotalPages"
-                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {{ $t('common.pagination.next') || 'Next' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      
       <!-- Model Performance table (grouped by model_name and agent_name) -->
-      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0">
+      <div v-if="showDetailedStats" class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0 lg:row-span-2 lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
           <div>
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -341,7 +133,7 @@
             {{ timeRangeLabel }}
           </span>
         </div>
-        <div class="relative flex-1 min-h-[200px]">
+        <div class="relative flex-1 min-h-[150px]">
           <div
             v-if="modelPerformanceLoading"
             class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
@@ -349,7 +141,7 @@
             <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
             {{ $t('common.loading') || 'Loading...' }}
           </div>
-          <div v-else class="overflow-x-auto overflow-y-auto max-h-[600px]">
+          <div v-else class="overflow-x-auto overflow-y-auto max-h-[400px]">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
               <thead class="bg-gray-50 dark:bg-[#111822] sticky top-0 z-10">
                 <tr>
@@ -1628,7 +1420,7 @@ const aiDecisionTotal = computed(() => {
 // Agent performance table state
 const agentPerformanceData = ref([])
 const agentPerformanceLoading = ref(false)
-const agentPerformanceSortKey = ref('handledCount') // 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
+const agentPerformanceSortKey = ref('handledCount') // 'agentName' | 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
 const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 const agentPerformancePage = ref(1)
 const agentPerformancePageSize = ref(10)
@@ -1972,6 +1764,15 @@ const sortedAgentPerformanceData = computed(() => {
   const multiplier = order === 'asc' ? 1 : -1
 
   const sorted = [...agentPerformanceData.value].sort((a, b) => {
+    // Handle string sorting for agentName
+    if (key === 'agentName') {
+      const av = String(a[key] ?? '').toLowerCase()
+      const bv = String(b[key] ?? '').toLowerCase()
+      if (av === bv) return 0
+      return av > bv ? multiplier : -multiplier
+    }
+    
+    // Handle numeric sorting for other fields
     const av = a[key] ?? 0
     const bv = b[key] ?? 0
     if (av === bv) return 0
