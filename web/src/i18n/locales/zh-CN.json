@@ -62,6 +62,7 @@
       "showing": "显示第 {start}-{end} 条，共 {total} 条",
       "previous": "上一页",
       "next": "下一页",
+      "page": "第",
       "itemsPerPage": "每页显示:"
     },
     "timeRange": {
@@ -150,8 +151,8 @@
         "agentName": "模型名称",
         "aiHandledAlerts": "AI已处理告警",
         "correctDecisions": "正确决策",
-        "falsePositive": "误报数量",
-        "falseNegative": "漏报数量",
+        "falsePositive": "FP",
+        "falseNegative": "FN",
         "totalTickets": "总告警数",
         "coverageRate": "覆盖率"
       },
@@ -167,8 +168,8 @@
         "agentName": "代理名称",
         "aiHandledAlerts": "AI已处理告警",
         "correctDecisions": "正确决策",
-        "falsePositive": "误报数量",
-        "falseNegative": "漏报数量",
+        "falsePositive": "FP",
+        "falseNegative": "FN",
         "totalTickets": "总告警数",
         "coverageRate": "覆盖率"
       }

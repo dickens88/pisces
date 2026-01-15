@@ -119,10 +119,10 @@
       </div>
     </section>
 
-    <!-- Agent performance & secondary table -->
-    <section v-if="showDetailedStats" class="grid grid-cols-1 gap-6 mb-6">
+    <!-- Agent performance & Model Performance tables -->
+    <section v-if="showDetailedStats" class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- AI performance by Agent -->
-      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
           <div>
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -144,9 +144,9 @@
             <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
             {{ $t('common.loading') || 'Loading...' }}
           </div>
-          <div v-else class="overflow-x-auto">
+          <div v-else class="overflow-x-auto overflow-y-auto max-h-[600px]">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
-              <thead class="bg-gray-50 dark:bg-[#111822]">
+              <thead class="bg-gray-50 dark:bg-[#111822] sticky top-0 z-10">
                 <tr>
                   <th
                     scope="col"
@@ -247,7 +247,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-[#324867] bg-white dark:bg-[#19222c]">
-                <tr v-if="sortedAgentPerformanceData.length === 0">
+                <tr v-if="agentPerformanceTotal === 0">
                   <td
                     colspan="7"
                     class="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-xs"
@@ -260,7 +260,7 @@
                   :key="row.agentName"
                   class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
                 >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.agentName">
                     {{ row.agentName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
@@ -285,11 +285,40 @@
               </tbody>
             </table>
           </div>
+          <!-- Pagination -->
+          <div v-if="agentPerformanceTotalPages > 1" class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-[#324867]">
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              {{ $t('common.pagination.showing', {
+                start: (agentPerformancePage - 1) * agentPerformancePageSize + 1,
+                end: Math.min(agentPerformancePage * agentPerformancePageSize, agentPerformanceTotal),
+                total: agentPerformanceTotal
+              }) }}
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="handleAgentPerformancePageChange(agentPerformancePage - 1)"
+                :disabled="agentPerformancePage === 1"
+                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ $t('common.pagination.previous') || 'Previous' }}
+              </button>
+              <span class="text-xs text-gray-600 dark:text-gray-400">
+                {{ $t('common.pagination.page') || 'Page' }} {{ agentPerformancePage }} / {{ agentPerformanceTotalPages }}
+              </span>
+              <button
+                @click="handleAgentPerformancePageChange(agentPerformancePage + 1)"
+                :disabled="agentPerformancePage >= agentPerformanceTotalPages"
+                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ $t('common.pagination.next') || 'Next' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Model Performance table (grouped by model_name and agent_name) -->
-      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
           <div>
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -311,9 +340,9 @@
             <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
             {{ $t('common.loading') || 'Loading...' }}
           </div>
-          <div v-else class="overflow-x-auto">
+          <div v-else class="overflow-x-auto overflow-y-auto max-h-[600px]">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
-              <thead class="bg-gray-50 dark:bg-[#111822]">
+              <thead class="bg-gray-50 dark:bg-[#111822] sticky top-0 z-10">
                 <tr>
                   <th
                     scope="col"
@@ -438,7 +467,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-[#324867] bg-white dark:bg-[#19222c]">
-                <tr v-if="sortedModelPerformanceData.length === 0">
+                <tr v-if="modelPerformanceTotal === 0">
                   <td
                     colspan="8"
                     class="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-xs"
@@ -451,10 +480,10 @@
                   :key="`${row.modelName}-${row.agentName}`"
                   class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
                 >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.modelName">
                     {{ row.modelName }}
                   </td>
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[120px] truncate" :title="row.agentName">
                     {{ row.agentName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
@@ -478,6 +507,35 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+          <!-- Pagination -->
+          <div v-if="modelPerformanceTotalPages > 1" class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-[#324867]">
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              {{ $t('common.pagination.showing', {
+                start: (modelPerformancePage - 1) * modelPerformancePageSize + 1,
+                end: Math.min(modelPerformancePage * modelPerformancePageSize, modelPerformanceTotal),
+                total: modelPerformanceTotal
+              }) }}
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="handleModelPerformancePageChange(modelPerformancePage - 1)"
+                :disabled="modelPerformancePage === 1"
+                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ $t('common.pagination.previous') || 'Previous' }}
+              </button>
+              <span class="text-xs text-gray-600 dark:text-gray-400">
+                {{ $t('common.pagination.page') || 'Page' }} {{ modelPerformancePage }} / {{ modelPerformanceTotalPages }}
+              </span>
+              <button
+                @click="handleModelPerformancePageChange(modelPerformancePage + 1)"
+                :disabled="modelPerformancePage >= modelPerformanceTotalPages"
+                class="px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#111822] border border-gray-300 dark:border-[#324867] rounded hover:bg-gray-50 dark:hover:bg-[#19222c] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ $t('common.pagination.next') || 'Next' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1554,12 +1612,16 @@ const agentPerformanceData = ref([])
 const agentPerformanceLoading = ref(false)
 const agentPerformanceSortKey = ref('handledCount') // 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
 const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
+const agentPerformancePage = ref(1)
+const agentPerformancePageSize = ref(10)
 
 // Model performance table state (grouped by model_name and agent_name)
 const modelPerformanceData = ref([])
 const modelPerformanceLoading = ref(false)
 const modelPerformanceSortKey = ref('handledCount') // 'modelName' | 'agentName' | 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
 const modelPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
+const modelPerformancePage = ref(1)
+const modelPerformancePageSize = ref(10)
 
 // Alert list state
 const alerts = ref([])
@@ -1891,13 +1953,21 @@ const sortedAgentPerformanceData = computed(() => {
   const order = agentPerformanceSortOrder.value
   const multiplier = order === 'asc' ? 1 : -1
 
-  return [...agentPerformanceData.value].sort((a, b) => {
+  const sorted = [...agentPerformanceData.value].sort((a, b) => {
     const av = a[key] ?? 0
     const bv = b[key] ?? 0
     if (av === bv) return 0
     return av > bv ? multiplier : -multiplier
   })
+  
+  // Apply pagination
+  const start = (agentPerformancePage.value - 1) * agentPerformancePageSize.value
+  const end = start + agentPerformancePageSize.value
+  return sorted.slice(start, end)
 })
+
+const agentPerformanceTotal = computed(() => agentPerformanceData.value.length)
+const agentPerformanceTotalPages = computed(() => Math.ceil(agentPerformanceTotal.value / agentPerformancePageSize.value))
 
 const setAgentPerformanceSort = (key) => {
   if (agentPerformanceSortKey.value === key) {
@@ -1906,6 +1976,12 @@ const setAgentPerformanceSort = (key) => {
     agentPerformanceSortKey.value = key
     agentPerformanceSortOrder.value = 'desc'
   }
+  // Reset to first page when sorting changes
+  agentPerformancePage.value = 1
+}
+
+const handleAgentPerformancePageChange = (page) => {
+  agentPerformancePage.value = page
 }
 
 const sortedModelPerformanceData = computed(() => {
@@ -1913,7 +1989,7 @@ const sortedModelPerformanceData = computed(() => {
   const order = modelPerformanceSortOrder.value
   const multiplier = order === 'asc' ? 1 : -1
 
-  return [...modelPerformanceData.value].sort((a, b) => {
+  const sorted = [...modelPerformanceData.value].sort((a, b) => {
     // Handle string sorting for modelName and agentName
     if (key === 'modelName' || key === 'agentName') {
       const av = String(a[key] ?? '').toLowerCase()
@@ -1928,7 +2004,15 @@ const sortedModelPerformanceData = computed(() => {
     if (av === bv) return 0
     return av > bv ? multiplier : -multiplier
   })
+  
+  // Apply pagination
+  const start = (modelPerformancePage.value - 1) * modelPerformancePageSize.value
+  const end = start + modelPerformancePageSize.value
+  return sorted.slice(start, end)
 })
+
+const modelPerformanceTotal = computed(() => modelPerformanceData.value.length)
+const modelPerformanceTotalPages = computed(() => Math.ceil(modelPerformanceTotal.value / modelPerformancePageSize.value))
 
 const setModelPerformanceSort = (key) => {
   if (modelPerformanceSortKey.value === key) {
@@ -1937,6 +2021,12 @@ const setModelPerformanceSort = (key) => {
     modelPerformanceSortKey.value = key
     modelPerformanceSortOrder.value = 'desc'
   }
+  // Reset to first page when sorting changes
+  modelPerformancePage.value = 1
+}
+
+const handleModelPerformancePageChange = (page) => {
+  modelPerformancePage.value = page
 }
 
 const getFieldLabel = (field) => {
