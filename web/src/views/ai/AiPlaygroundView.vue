@@ -2127,7 +2127,10 @@ const loadAgentPerformanceStats = async () => {
     }
 
     const response = await service.post('/alerts', params)
-    const raw = response.data || []
+    const raw = (response.data || []).filter(item => {
+      const autoClose = item.is_auto_close ?? item.auto_close
+      return String(autoClose) !== 'AutoClosed'
+    })
 
     const aggregateByAgent = new Map()
 
