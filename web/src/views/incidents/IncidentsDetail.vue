@@ -4571,21 +4571,29 @@ const allProgressSyncTasks = computed(() => {
     
     // 处理数组格式的任务列表
     if (Array.isArray(warroomDetail)) {
-      warroomDetail.forEach(task => {
+      warroomDetail.forEach((task, index) => {
+        const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+        // 优先使用taskTags中存储的tag，其次从group_name转换，最后使用task.tag
+        const tag = taskTags.value[uniqueId] || (task.group_name ? getGroupNameTag(task.group_name) : '') || task.tag || ''
         tasks.push({
           ...task,
           warroomId: warroomId,
-          warroomName: warroomName
+          warroomName: warroomName,
+          tag: tag
         })
       })
     } 
     // 处理对象格式，包含 task_list 数组
     else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
-      warroomDetail.task_list.forEach(task => {
+      warroomDetail.task_list.forEach((task, index) => {
+        const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+        // 优先使用taskTags中存储的tag，其次从group_name转换，最后使用task.tag
+        const tag = taskTags.value[uniqueId] || (task.group_name ? getGroupNameTag(task.group_name) : '') || task.tag || ''
         tasks.push({
           ...task,
           warroomId: warroomId,
-          warroomName: warroomName
+          warroomName: warroomName,
+          tag: tag
         })
       })
     }
@@ -4602,10 +4610,12 @@ const filteredProgressSyncTasks = computed(() => {
   // 为每个任务添加标签和唯一ID
   const tasksWithTags = tasks.map((task, index) => {
     const uniqueId = getTaskUniqueId(task, index)
+    // 优先使用taskTags中存储的tag，其次使用task.tag，最后从group_name转换
+    const tag = taskTags.value[uniqueId] || task.tag || (task.group_name ? getGroupNameTag(task.group_name) : '') || ''
     return {
       ...task,
       uniqueId: uniqueId,
-      tag: taskTags.value[uniqueId] || task.tag || '' // 优先使用存储的标签，其次使用任务本身的标签
+      tag: tag
     }
   })
   
@@ -4780,6 +4790,19 @@ const getTagGroupName = (tagValue) => {
     'vulnerabilityIdentification': '漏洞定位'
   }
   return tagMap[tagValue] || tagValue
+}
+
+// 中文名称到标签值的反向映射（用于从group_name转换为tag）
+const getGroupNameTag = (groupName) => {
+  if (!groupName) return ''
+  const groupNameMap = {
+    '攻击溯源': 'attackTracing',
+    '攻击拦截': 'attackBlocking',
+    '风险消减': 'riskMitigation',
+    '漏洞定位': 'vulnerabilityIdentification',
+    '默认分组': '' // 默认分组对应空标签
+  }
+  return groupNameMap[groupName] || ''
 }
 
 // 保存任务字段
@@ -6466,6 +6489,38 @@ const loadWarroomDetailsOnly = async () => {
 
     console.log('groupedTaskDetails:', grouped)
     groupedTaskDetails.value = grouped
+    
+    // 处理任务中的group_name，将其转换为tag并设置到taskTags中
+    Object.keys(grouped).forEach(warroomId => {
+      const warroomDetail = grouped[warroomId]
+      if (!warroomDetail || warroomDetail.error) return
+      
+      // 处理数组格式的任务列表
+      if (Array.isArray(warroomDetail)) {
+        warroomDetail.forEach((task, index) => {
+          if (task.group_name) {
+            const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+            const tag = getGroupNameTag(task.group_name)
+            if (tag !== undefined) {
+              taskTags.value[uniqueId] = tag
+            }
+          }
+        })
+      }
+      // 处理对象格式，包含 task_list 数组
+      else if (warroomDetail.task_list && Array.isArray(warroomDetail.task_list)) {
+        warroomDetail.task_list.forEach((task, index) => {
+          if (task.group_name) {
+            const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+            const tag = getGroupNameTag(task.group_name)
+            if (tag !== undefined) {
+              taskTags.value[uniqueId] = tag
+            }
+          }
+        })
+      }
+    })
+    
     taskDetailLoaded.value = true
   } catch (error) {
     console.error('Failed to load warroom task details:', error)
