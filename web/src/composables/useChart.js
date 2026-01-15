@@ -335,6 +335,20 @@ export function useRootCauseChart(chartRef, loadDataFn, titleKey) {
   const chartData = ref([])
   const loading = ref(false)
 
+  // Map backend root cause keys to i18n keys
+  const getRootCauseI18nKey = (rootCauseKey) => {
+    const rootCauseMap = {
+      'exposedPort': 'incidents.create.rootCauseExposedPort',
+      'weakPassword': 'incidents.create.rootCauseWeakPassword',
+      'weakConfig': 'incidents.create.rootCauseInformationLeak',
+      'unauthorizedApi': 'incidents.create.rootCauseUnauthorizedApi',
+      'penetrationTest': 'incidents.create.rootCausePenetrationTest',
+      'vulnerabilityExploit': 'incidents.create.rootCauseVulnerabilityExploit',
+      'infringementComplaint': 'incidents.create.rootCauseInfringementComplaint'
+    }
+    return rootCauseMap[rootCauseKey] || null
+  }
+
   const updateRootCauseChart = () => {
     if (chartData.value.length === 0) return
 
@@ -408,7 +422,11 @@ export function useRootCauseChart(chartRef, loadDataFn, titleKey) {
       const distribution = response?.data || {}
       
       chartData.value = Object.entries(distribution)
-        .map(([name, value]) => ({ name: name || 'Unknown', value: Number(value) || 0 }))
+        .map(([name, value]) => {
+          const i18nKey = getRootCauseI18nKey(name)
+          const displayName = i18nKey ? t(i18nKey) : (name || 'Unknown')
+          return { name: displayName, value: Number(value) || 0, originalKey: name }
+        })
         .filter(item => item.value > 0)
         .sort((a, b) => b.value - a.value)
     } catch (error) {
