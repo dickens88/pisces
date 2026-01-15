@@ -2027,6 +2027,19 @@
               <option :value="true">{{ $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') }}</option>
             </select>
           </div>
+          
+          <!-- 备注（仅在进展同步中显示） -->
+          <div v-if="activeCardTab === 'progressSync'">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.note', '备注') }}
+            </label>
+            <textarea
+              v-model="taskEditForm.note"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+              :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.notePlaceholder', '请输入备注')"
+            ></textarea>
+          </div>
         </div>
         
         <div class="flex justify-end gap-3 mt-6">
@@ -4466,7 +4479,8 @@ const taskEditForm = ref({
   start_time: '',
   end_time: '',
   priority: '',
-  isDone: false
+  isDone: false,
+  note: '' // 备注字段（仅在进展同步中使用）
 })
 // 事件通报/简报相关状态
 const incidentNotifications = ref([]) // 事件通报列表
@@ -4736,8 +4750,19 @@ const cancelEditTask = () => {
   editingTaskValue.value = ''
 }
 
+// 标签值到中文名称的映射
+const getTagGroupName = (tagValue) => {
+  const tagMap = {
+    'attackTracing': '攻击溯源',
+    'attackBlocking': '攻击拦截',
+    'riskMitigation': '风险消减',
+    'vulnerabilityIdentification': '漏洞定位'
+  }
+  return tagMap[tagValue] || tagValue
+}
+
 // 保存任务字段
-const saveTaskField = (taskUniqueId, field, value) => {
+const saveTaskField = async (taskUniqueId, field, value) => {
   // 找到对应的任务并更新
   const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
   if (taskIndex === -1) return
@@ -4761,8 +4786,71 @@ const saveTaskField = (taskUniqueId, field, value) => {
     task.tag = value || ''
     // 重新计算指标
     calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+    
+    // 如果是在进展同步中修改标签，需要调用dify API
+    if (activeCardTab.value === 'progressSync' && task.warroomId && task.task_id) {
+      try {
+        // 如果标签不为空，先创建group
+        if (value) {
+          const groupName = getTagGroupName(value)
+          const createGroupResult = await createGroup({
+            project_uuid: task.warroomId,
+            group_name: groupName
+          })
+          
+          // 创建group成功后，调用modifyTask修改task的group_name
+          if (createGroupResult && createGroupResult.status === 'success') {
+            await modifyTask({
+              project_uuid: task.warroomId,
+              task_id: task.task_id,
+              group_name: groupName
+            })
+          }
+        } else {
+          // 如果标签为空，设置group_name为"默认分组"
+          await modifyTask({
+            project_uuid: task.warroomId,
+            task_id: task.task_id,
+            group_name: '默认分组'
+          })
+        }
+      } catch (error) {
+        console.error('Failed to update task tag via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTagError', '更新任务标签失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
   } else {
     task[field] = value
+  }
+  
+  // 如果修改了其他字段（非标签），且是在进展同步中，调用modifyTask
+  if (field !== 'tag' && activeCardTab.value === 'progressSync' && task.warroomId && task.task_id) {
+    try {
+      const modifyParams = {
+        project_uuid: task.warroomId,
+        task_id: task.task_id
+      }
+      
+      // 根据字段类型添加相应的参数
+      if (field === 'task_name') {
+        modifyParams.task_name = value
+      } else if (field === 'owner') {
+        modifyParams.owner = value
+      } else if (field === 'priority') {
+        modifyParams.priority = value !== '' ? value : null
+      } else if (field === 'isDone') {
+        modifyParams.status = value ? '已完成' : '待处理'
+      } else if (field === 'start_time') {
+        modifyParams.start_time = value
+      } else if (field === 'end_time') {
+        modifyParams.end_time = value
+      }
+      
+      await modifyTask(modifyParams)
+    } catch (error) {
+      console.error('Failed to update task field via dify API:', error)
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+    }
   }
   
   // 同步更新到groupedTaskDetails
@@ -4854,7 +4942,8 @@ const openTaskEditDialog = (task, index) => {
     start_time: formatTaskDateTimeForInput(task.start_time),
     end_time: formatTaskDateTimeForInput(task.end_time),
     priority: priorityValue,
-    isDone: isTaskCompleted(task)
+    isDone: isTaskCompleted(task),
+    note: task.note || task.notes || '' // 备注字段
   }
   
   showTaskEditDialog.value = true
@@ -4871,7 +4960,8 @@ const closeTaskEditDialog = () => {
     start_time: '',
     end_time: '',
     priority: '',
-    isDone: false
+    isDone: false,
+    note: ''
   }
 }
 
@@ -4885,13 +4975,14 @@ const createNewTask = () => {
     start_time: '',
     end_time: '',
     priority: '',
-    isDone: false
+    isDone: false,
+    note: ''
   }
   showTaskEditDialog.value = true
 }
 
 // 保存任务编辑
-const saveTaskEdit = () => {
+const saveTaskEdit = async () => {
   if (!taskEditForm.value.task_name) {
     toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') + ' ' + t('common.warning'))
     return
@@ -4905,6 +4996,11 @@ const saveTaskEdit = () => {
     end_time: taskEditForm.value.end_time ? new Date(taskEditForm.value.end_time).toISOString() : null,
     priority: taskEditForm.value.priority !== '' ? taskEditForm.value.priority : null,
     isDone: taskEditForm.value.isDone || false
+  }
+  
+  // 如果是进展同步，添加note字段
+  if (activeCardTab.value === 'progressSync') {
+    taskData.note = taskEditForm.value.note || ''
   }
   
   if (editingTask.value) {
@@ -4925,6 +5021,51 @@ const saveTaskEdit = () => {
     
     // 同步更新到groupedTaskDetails
     updateTaskInGroupedDetails(updatedTask)
+    
+    // 如果是在进展同步中编辑任务，且任务有warroomId和task_id，调用modifyTask
+    if (activeCardTab.value === 'progressSync' && updatedTask.warroomId && updatedTask.task_id) {
+      try {
+        const modifyParams = {
+          project_uuid: updatedTask.warroomId,
+          task_id: updatedTask.task_id,
+          task_name: updatedTask.task_name,
+          owner: updatedTask.owner || '',
+          priority: updatedTask.priority !== null && updatedTask.priority !== undefined ? updatedTask.priority : null,
+          status: updatedTask.isDone ? '已完成' : '待处理',
+          start_time: updatedTask.start_time || null,
+          end_time: updatedTask.end_time || null,
+          notes: updatedTask.note || '' // 进展同步里加上note
+        }
+        
+        await modifyTask(modifyParams)
+        toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskSuccess', '任务更新成功'))
+      } catch (error) {
+        console.error('Failed to update task via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
+    // 如果是在WR管理中编辑任务，且任务有warroomId和task_id，调用modifyTask（不加note）
+    else if (leftPaneActiveTab.value === 'taskManagement' && updatedTask.warroomId && updatedTask.task_id) {
+      try {
+        const modifyParams = {
+          project_uuid: updatedTask.warroomId,
+          task_id: updatedTask.task_id,
+          task_name: updatedTask.task_name,
+          owner: updatedTask.owner || '',
+          priority: updatedTask.priority !== null && updatedTask.priority !== undefined ? updatedTask.priority : null,
+          status: updatedTask.isDone ? '已完成' : '待处理',
+          start_time: updatedTask.start_time || null,
+          end_time: updatedTask.end_time || null
+          // WR管理task详情不用加note
+        }
+        
+        await modifyTask(modifyParams)
+        toast.success(translateOr('incidents.detail.eventGraph.updateTaskSuccess', '任务更新成功'))
+      } catch (error) {
+        console.error('Failed to update task via dify API:', error)
+        toast.error(translateOr('incidents.detail.eventGraph.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
   } else {
     // 创建新任务
     // 获取第一个 warroom 或默认 warroom
