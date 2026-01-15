@@ -2128,7 +2128,6 @@ const loadAgentPerformanceStats = async () => {
 
     raw.forEach(item => {
       const agentName = item.agent_name || 'Unknown'
-      const status = String(item.status || item.handle_status || '').toLowerCase()
       const verificationState = item.verification_state
       const matchStatus = item.is_ai_decision_correct
 
@@ -2138,34 +2137,39 @@ const loadAgentPerformanceStats = async () => {
           handledCount: 0,
           falsePositiveCount: 0,
           falseNegativeCount: 0,
-          totalCount: 0,
-          coverageNumerator: 0 // non-Unknown verification_state
+          totalCount: 0
         })
       }
 
       const agg = aggregateByAgent.get(agentName)
       agg.totalCount += 1
 
-      if (status === 'closed') {
+      // Handled alerts: verification_state is not Unknown / empty / null
+      const isHandled =
+        verificationState !== null &&
+        verificationState !== undefined &&
+        String(verificationState).trim() !== '' &&
+        String(verificationState) !== 'Unknown'
+
+      if (isHandled) {
         agg.handledCount += 1
       }
 
+      // False positive count based on verification_state
       if (verificationState === 'False_Positive') {
         agg.falsePositiveCount += 1
       }
 
+      // False negative count based on is_ai_decision_correct field (FN)
       if (matchStatus === 'FN') {
         agg.falseNegativeCount += 1
-      }
-
-      if (verificationState && verificationState !== 'Unknown') {
-        agg.coverageNumerator += 1
       }
     })
 
     const rows = Array.from(aggregateByAgent.values()).map(agg => {
+      // Coverage Rate: handled / total tickets
       const coverageRate =
-        agg.totalCount > 0 ? (agg.coverageNumerator / agg.totalCount) * 100 : 0
+        agg.totalCount > 0 ? (agg.handledCount / agg.totalCount) * 100 : 0
       return {
         agentName: agg.agentName,
         handledCount: agg.handledCount,
