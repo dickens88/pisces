@@ -317,15 +317,33 @@
                 <tr>
                   <th
                     scope="col"
-                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300"
+                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setModelPerformanceSort('modelName')"
                   >
-                    {{ $t('aiPlayground.modelPerformance.columns.modelName') || 'Model Name' }}
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.modelPerformance.columns.modelName') || 'Model Name' }}
+                      <span
+                        v-if="modelPerformanceSortKey === 'modelName'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
                   </th>
                   <th
                     scope="col"
-                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300"
+                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setModelPerformanceSort('agentName')"
                   >
-                    {{ $t('aiPlayground.modelPerformance.columns.agentName') || 'Agent Name' }}
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.modelPerformance.columns.agentName') || 'Agent Name' }}
+                      <span
+                        v-if="modelPerformanceSortKey === 'agentName'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
                   </th>
                   <th
                     scope="col"
@@ -1540,7 +1558,7 @@ const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 // Model performance table state (grouped by model_name and agent_name)
 const modelPerformanceData = ref([])
 const modelPerformanceLoading = ref(false)
-const modelPerformanceSortKey = ref('handledCount') // 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
+const modelPerformanceSortKey = ref('handledCount') // 'modelName' | 'agentName' | 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
 const modelPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 
 // Alert list state
@@ -1896,6 +1914,15 @@ const sortedModelPerformanceData = computed(() => {
   const multiplier = order === 'asc' ? 1 : -1
 
   return [...modelPerformanceData.value].sort((a, b) => {
+    // Handle string sorting for modelName and agentName
+    if (key === 'modelName' || key === 'agentName') {
+      const av = String(a[key] ?? '').toLowerCase()
+      const bv = String(b[key] ?? '').toLowerCase()
+      if (av === bv) return 0
+      return av > bv ? multiplier : -multiplier
+    }
+    
+    // Handle numeric sorting for other fields
     const av = a[key] ?? 0
     const bv = b[key] ?? 0
     if (av === bv) return 0
@@ -3674,6 +3701,8 @@ const toggleAiJudgmentFilter = () => {
   // Also reload charts with updated conditions
   loadAiAccuracyStatistics()
   loadAiDecisionAnalysis()
+  loadAgentPerformanceStats()
+  loadModelPerformanceStats()
 }
 
 // Track word wrap state - DataTable stores it in localStorage with the storage key
