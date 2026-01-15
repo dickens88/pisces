@@ -62,6 +62,7 @@
       "showing": "Showing {start}-{end} of {total}",
       "previous": "Previous",
       "next": "Next",
+      "page": "Page",
       "itemsPerPage": "Items per page:"
     },
     "timeRange": {
@@ -148,11 +149,11 @@
       "subtitle": "Based on current time range and filters",
       "columns": {
         "agentName": "Agent Name",
-        "aiHandledAlerts": "AI Handled Alerts",
-        "correctDecisions": "Correct Decisions",
-        "falsePositive": "False Positive Count",
-        "falseNegative": "False Negative Count",
-        "totalTickets": "Total Alerts",
+        "aiHandledAlerts": "AI Handled",
+        "correctDecisions": "Correct",
+        "falsePositive": "FP",
+        "falseNegative": "FN",
+        "totalTickets": "Total",
         "coverageRate": "Coverage Rate"
       },
       "placeholderTitle": "Reserved table",
@@ -165,11 +166,11 @@
       "columns": {
         "modelName": "Model Name",
         "agentName": "Agent Name",
-        "aiHandledAlerts": "AI Handled Alerts",
-        "correctDecisions": "Correct Decisions",
-        "falsePositive": "False Positive Count",
-        "falseNegative": "False Negative Count",
-        "totalTickets": "Total Alerts",
+        "aiHandledAlerts": "AI Handled",
+        "correctDecisions": "Correct",
+        "falsePositive": "FP",
+        "falseNegative": "FN",
+        "totalTickets": "Total",
         "coverageRate": "Coverage Rate"
       }
     },
