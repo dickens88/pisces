@@ -4586,10 +4586,23 @@ const filteredProgressSyncTasks = computed(() => {
   // 为每个任务添加标签和唯一ID
   const tasksWithTags = tasks.map((task, index) => {
     const uniqueId = getTaskUniqueId(task, index)
+    
+    // 根据group_name同步标签：优先使用已存储的标签，其次根据group_name映射，最后使用任务本身的标签
+    let tag = taskTags.value[uniqueId] || task.tag || ''
+    
+    // 如果标签为空且任务有group_name，根据group_name设置标签
+    if (!tag && task.group_name) {
+      tag = getGroupNameToTag(task.group_name)
+      // 同步到taskTags中，避免重复计算
+      if (tag !== undefined) {
+        taskTags.value[uniqueId] = tag
+      }
+    }
+    
     return {
       ...task,
       uniqueId: uniqueId,
-      tag: taskTags.value[uniqueId] || task.tag || '' // 优先使用存储的标签，其次使用任务本身的标签
+      tag: tag
     }
   })
   
@@ -4670,6 +4683,28 @@ const calculateMetricsFromTasks = (tasks) => {
 watch([filteredProgressSyncTasks, taskTags], () => {
   calculateMetricsFromTasks(filteredProgressSyncTasks.value)
 }, { deep: true, immediate: true })
+
+// 监听 activeCardTab 变化，切换到进展同步时根据group_name同步标签
+watch(
+  activeCardTab,
+  (newTab) => {
+    if (newTab === 'progressSync' && allProgressSyncTasks.value.length > 0) {
+      // 遍历所有任务，根据group_name同步标签
+      allProgressSyncTasks.value.forEach((task, index) => {
+        const uniqueId = getTaskUniqueId(task, index)
+        
+        // 如果任务有group_name且当前没有存储标签，根据group_name设置标签
+        if (task.group_name && !taskTags.value[uniqueId]) {
+          const tag = getGroupNameToTag(task.group_name)
+          if (tag !== undefined) {
+            taskTags.value[uniqueId] = tag
+          }
+        }
+      })
+    }
+  },
+  { immediate: false }
+)
 
 // 进展同步卡片指标
 const progressSyncMetrics = computed(() => {
@@ -4759,6 +4794,18 @@ const getTagGroupName = (tagValue) => {
     'vulnerabilityIdentification': '漏洞定位'
   }
   return tagMap[tagValue] || tagValue
+}
+
+// 中文名称到标签值的反向映射
+const getGroupNameToTag = (groupName) => {
+  const groupNameMap = {
+    '攻击溯源': 'attackTracing',
+    '攻击拦截': 'attackBlocking',
+    '风险消减': 'riskMitigation',
+    '漏洞定位': 'vulnerabilityIdentification',
+    '默认分组': '' // 默认分组对应空标签
+  }
+  return groupNameMap[groupName] || ''
 }
 
 // 保存任务字段
