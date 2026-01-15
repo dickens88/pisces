@@ -139,6 +139,25 @@
     "aiPlayground": "AI Playground"
   },
   "aiPlayground": {
+    "detailedStats": {
+      "show": "Show detailed stats",
+      "hide": "Hide detailed stats"
+    },
+    "agentPerformance": {
+      "title": "AI performance by Agent",
+      "subtitle": "Based on current time range and filters",
+      "columns": {
+        "agentName": "Agent Name",
+        "handledAlerts": "Handled Alerts",
+        "falsePositive": "False Positive Count",
+        "falseNegative": "False Negative Count",
+        "totalTickets": "Total Tickets",
+        "coverageRate": "Coverage Rate"
+      },
+      "placeholderTitle": "Reserved table",
+      "placeholderSubtitle": "Reserved for future insights",
+      "placeholderBody": "No content yet."
+    },
     "title": "AI Playground",
     "charts": {
       "aiAccuracy": "AI Accuracy Rate",
@@ -165,6 +184,9 @@
       "inQueue": "In Queue",
       "cancelled": "Cancelled",
       "error": "Error"
+    },
+    "agentFilter": {
+      "all": "All Agents"
     },
     "fineTuneSubtitle": "Train and debug AI models",
     "humanVerdict": "Human Verdict",

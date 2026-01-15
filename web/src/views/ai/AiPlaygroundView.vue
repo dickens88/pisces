@@ -12,6 +12,15 @@
       </div>
       <div class="flex items-center gap-4">
         <button
+          type="button"
+          @click="showDetailedStats = !showDetailedStats"
+          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
+          :title="showDetailedStats ? ( $t('aiPlayground.detailedStats.hide') || 'Hide detailed stats' ) : ( $t('aiPlayground.detailedStats.show') || 'Show detailed stats' )"
+        >
+          <span class="material-symbols-outlined text-base mr-2">insights</span>
+          {{ showDetailedStats ? $t('aiPlayground.detailedStats.hide') : $t('aiPlayground.detailedStats.show') }}
+        </button>
+        <button
           @click="handleRefresh"
           :disabled="loadingAlerts || aiAccuracyLoading || aiDecisionLoading"
           class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
@@ -106,6 +115,166 @@
             class="absolute inset-0"
             style="margin: 0; padding: 0;"
           ></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent performance & secondary table -->
+    <section v-if="showDetailedStats" class="grid grid-cols-1 gap-6 mb-6">
+      <!-- AI performance by Agent -->
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ $t('aiPlayground.agentPerformance.title') }}
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {{ $t('aiPlayground.agentPerformance.subtitle') }}
+            </p>
+          </div>
+          <span class="text-xs text-gray-500 dark:text-gray-400">
+            {{ timeRangeLabel }}
+          </span>
+        </div>
+        <div class="relative flex-1 min-h-[200px]">
+          <div
+            v-if="agentPerformanceLoading"
+            class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+          >
+            <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
+            {{ $t('common.loading') || 'Loading...' }}
+          </div>
+          <div v-else class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
+              <thead class="bg-gray-50 dark:bg-[#111822]">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    {{ $t('aiPlayground.agentPerformance.columns.agentName') }}
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300"
+                  >
+                    {{ $t('aiPlayground.agentPerformance.columns.handledAlerts') }}
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('falsePositiveCount')"
+                  >
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.falsePositive') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'falsePositiveCount'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('falseNegativeCount')"
+                  >
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.falseNegative') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'falseNegativeCount'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('totalCount')"
+                  >
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.totalTickets') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'totalCount'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('coverageRate')"
+                  >
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.coverageRate') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'coverageRate'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-[#324867] bg-white dark:bg-[#19222c]">
+                <tr v-if="sortedAgentPerformanceData.length === 0">
+                  <td
+                    colspan="6"
+                    class="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-xs"
+                  >
+                    {{ $t('dashboard.charts.noData') || 'No data available' }}
+                  </td>
+                </tr>
+                <tr
+                  v-for="row in sortedAgentPerformanceData"
+                  :key="row.agentName"
+                  class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
+                >
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white">
+                    {{ row.agentName }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.handledCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.falsePositiveCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.falseNegativeCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.totalCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.coverageRate.toFixed(1) }}%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder right-side table (reserved for future use) -->
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ $t('aiPlayground.agentPerformance.placeholderTitle') }}
+            </h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {{ $t('aiPlayground.agentPerformance.placeholderSubtitle') }}
+            </p>
+          </div>
+        </div>
+        <div class="flex-1 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500 px-4 py-6">
+          {{ $t('aiPlayground.agentPerformance.placeholderBody') }}
         </div>
       </div>
     </section>
@@ -1151,6 +1320,7 @@ const aiWorkflowRunnerKey = import.meta.env.VITE_PLAYGROUND_RUNNER_KEY
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
 const showCharts = ref(true)
+const showDetailedStats = ref(true)
 
 // AI accuracy chart state
 const aiAccuracyChartRef = ref(null)
@@ -1174,6 +1344,12 @@ const aiDecisionTotal = computed(() => {
   if (!aiDecisionData.value.length) return 0
   return aiDecisionData.value.reduce((total, item) => total + (Number(item.value) || 0), 0)
 })
+
+// Agent performance table state
+const agentPerformanceData = ref([])
+const agentPerformanceLoading = ref(false)
+const agentPerformanceSortKey = ref('totalCount') // 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
+const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 
 // Alert list state
 const alerts = ref([])
@@ -1499,6 +1675,28 @@ const agentNameOptions = computed(() => {
   })
   return Array.from(names).sort((a, b) => a.localeCompare(b))
 })
+
+const sortedAgentPerformanceData = computed(() => {
+  const key = agentPerformanceSortKey.value
+  const order = agentPerformanceSortOrder.value
+  const multiplier = order === 'asc' ? 1 : -1
+
+  return [...agentPerformanceData.value].sort((a, b) => {
+    const av = a[key] ?? 0
+    const bv = b[key] ?? 0
+    if (av === bv) return 0
+    return av > bv ? multiplier : -multiplier
+  })
+})
+
+const setAgentPerformanceSort = (key) => {
+  if (agentPerformanceSortKey.value === key) {
+    agentPerformanceSortOrder.value = agentPerformanceSortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    agentPerformanceSortKey.value = key
+    agentPerformanceSortOrder.value = 'desc'
+  }
+}
 
 const getFieldLabel = (field) => {
   const fieldObj = searchFields.value.find(f => f.value === field)
@@ -1884,6 +2082,106 @@ const loadAiDecisionAnalysis = async () => {
     aiDecisionLoading.value = false
     await nextTick()
     updateAiDecisionChart()
+  }
+}
+
+// Load AI performance statistics by agent (based on current time range and filters)
+const loadAgentPerformanceStats = async () => {
+  agentPerformanceLoading.value = true
+  try {
+    const { start, end } = computeSelectedRange()
+    const conditions = buildConditions()
+
+    // Fetch alerts using the same "total + pagination" pattern as the Alerts listing page,
+    // so totals remain correct even when matching records exceed a single request limit.
+    const pageLimit = 500
+    let offset = 0
+    let totalCount = null
+    const raw = []
+
+    while (totalCount === null || offset < totalCount) {
+      const params = {
+        action: 'list_local',
+        limit: pageLimit,
+        offset,
+        conditions,
+        start_time: formatDateTimeWithOffset(start),
+        end_time: formatDateTimeWithOffset(end)
+      }
+
+      const response = await service.post('/alerts', params)
+      if (totalCount === null) {
+        totalCount = Number(response?.total ?? 0)
+      }
+
+      const pageItems = Array.isArray(response?.data) ? response.data : []
+      raw.push(...pageItems)
+
+      if (pageItems.length === 0) {
+        break
+      }
+
+      offset += pageItems.length
+    }
+
+    const aggregateByAgent = new Map()
+
+    raw.forEach(item => {
+      const agentName = item.agent_name || 'Unknown'
+      const status = String(item.status || item.handle_status || '').toLowerCase()
+      const verificationState = item.verification_state
+      const matchStatus = item.is_ai_decision_correct
+
+      if (!aggregateByAgent.has(agentName)) {
+        aggregateByAgent.set(agentName, {
+          agentName,
+          handledCount: 0,
+          falsePositiveCount: 0,
+          falseNegativeCount: 0,
+          totalCount: 0,
+          coverageNumerator: 0 // non-Unknown verification_state
+        })
+      }
+
+      const agg = aggregateByAgent.get(agentName)
+      agg.totalCount += 1
+
+      if (status === 'closed') {
+        agg.handledCount += 1
+      }
+
+      if (verificationState === 'False_Positive') {
+        agg.falsePositiveCount += 1
+      }
+
+      if (matchStatus === 'FN') {
+        agg.falseNegativeCount += 1
+      }
+
+      if (verificationState && verificationState !== 'Unknown') {
+        agg.coverageNumerator += 1
+      }
+    })
+
+    const rows = Array.from(aggregateByAgent.values()).map(agg => {
+      const coverageRate =
+        agg.totalCount > 0 ? (agg.coverageNumerator / agg.totalCount) * 100 : 0
+      return {
+        agentName: agg.agentName,
+        handledCount: agg.handledCount,
+        falsePositiveCount: agg.falsePositiveCount,
+        falseNegativeCount: agg.falseNegativeCount,
+        totalCount: agg.totalCount,
+        coverageRate
+      }
+    })
+
+    agentPerformanceData.value = rows
+  } catch (error) {
+    console.error('Failed to load agent performance statistics:', error)
+    agentPerformanceData.value = []
+  } finally {
+    agentPerformanceLoading.value = false
   }
 }
 
@@ -3051,6 +3349,7 @@ const handleFilter = () => {
   // Also reload charts with updated conditions
   loadAiAccuracyStatistics()
   loadAiDecisionAnalysis()
+  loadAgentPerformanceStats()
 }
 
 // AI Judgment filter state
@@ -3230,6 +3529,8 @@ const handleRefresh = async () => {
     loadAiDecisionAnalysis(),
     loadAlerts()
   ])
+  // Load agent performance stats after alerts so we don't overload the backend in parallel
+  await loadAgentPerformanceStats()
 }
 
 watch([currentPage, pageSize], () => {

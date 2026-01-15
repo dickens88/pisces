@@ -139,6 +139,25 @@
     "aiPlayground": "AI实验场"
   },
   "aiPlayground": {
+    "detailedStats": {
+      "show": "显示详细统计",
+      "hide": "隐藏详细统计"
+    },
+    "agentPerformance": {
+      "title": "按模型统计 AI 表现",
+      "subtitle": "基于当前时间范围与筛选条件",
+      "columns": {
+        "agentName": "模型名称",
+        "handledAlerts": "已处理告警",
+        "falsePositive": "误报数量",
+        "falseNegative": "漏报数量",
+        "totalTickets": "总告警数",
+        "coverageRate": "覆盖率"
+      },
+      "placeholderTitle": "占位表格",
+      "placeholderSubtitle": "用于后续扩展",
+      "placeholderBody": "暂无内容"
+    },
     "title": "AI实验场(Beta)",
     "charts": {
       "aiAccuracy": "AI研判正确率",
@@ -165,6 +184,9 @@
       "inQueue": "等待中",
       "cancelled": "已取消",
       "error": "错误"
+    },
+    "agentFilter": {
+      "all": "全部模型"
     },
     "fineTuneSubtitle": "训练和调试AI模型",
     "humanVerdict": "人工判定",
