@@ -706,6 +706,7 @@
               "myCreated": "My Created Instructions",
               "myPending": "My Pending Instructions",
               "all": "All Instructions",
+              "allTags": "All Tags",
               "other": "Other Progress"
             },
             "createInstruction": "Create Instruction",
