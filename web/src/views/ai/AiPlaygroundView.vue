@@ -156,9 +156,33 @@
                   </th>
                   <th
                     scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('handledCount')"
                   >
-                    {{ $t('aiPlayground.agentPerformance.columns.handledAlerts') }}
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.aiHandledAlerts') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'handledCount'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+                    @click="setAgentPerformanceSort('correctDecisionsCount')"
+                  >
+                    <span class="inline-flex items-center gap-1">
+                      {{ $t('aiPlayground.agentPerformance.columns.correctDecisions') }}
+                      <span
+                        v-if="agentPerformanceSortKey === 'correctDecisionsCount'"
+                        class="material-symbols-outlined text-[14px]"
+                      >
+                        {{ agentPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      </span>
+                    </span>
                   </th>
                   <th
                     scope="col"
@@ -225,7 +249,7 @@
               <tbody class="divide-y divide-gray-200 dark:divide-[#324867] bg-white dark:bg-[#19222c]">
                 <tr v-if="sortedAgentPerformanceData.length === 0">
                   <td
-                    colspan="6"
+                    colspan="7"
                     class="px-3 py-4 text-center text-gray-500 dark:text-gray-400 text-xs"
                   >
                     {{ $t('dashboard.charts.noData') || 'No data available' }}
@@ -241,6 +265,9 @@
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.handledCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.correctDecisionsCount }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.falsePositiveCount }}
@@ -1348,7 +1375,7 @@ const aiDecisionTotal = computed(() => {
 // Agent performance table state
 const agentPerformanceData = ref([])
 const agentPerformanceLoading = ref(false)
-const agentPerformanceSortKey = ref('totalCount') // 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
+const agentPerformanceSortKey = ref('handledCount') // 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
 const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 
 // Alert list state
@@ -2090,39 +2117,17 @@ const loadAgentPerformanceStats = async () => {
   agentPerformanceLoading.value = true
   try {
     const { start, end } = computeSelectedRange()
-    const conditions = buildConditions()
-
-    // Fetch alerts using the same "total + pagination" pattern as the Alerts listing page,
-    // so totals remain correct even when matching records exceed a single request limit.
-    const pageLimit = 500
-    let offset = 0
-    let totalCount = null
-    const raw = []
-
-    while (totalCount === null || offset < totalCount) {
-      const params = {
-        action: 'list_local',
-        limit: pageLimit,
-        offset,
-        conditions,
-        start_time: formatDateTimeWithOffset(start),
-        end_time: formatDateTimeWithOffset(end)
-      }
-
-      const response = await service.post('/alerts', params)
-      if (totalCount === null) {
-        totalCount = Number(response?.total ?? 0)
-      }
-
-      const pageItems = Array.isArray(response?.data) ? response.data : []
-      raw.push(...pageItems)
-
-      if (pageItems.length === 0) {
-        break
-      }
-
-      offset += pageItems.length
+    const params = {
+      action: 'list_local',
+      limit: 2000,
+      offset: 0,
+      conditions: buildConditions(),
+      start_time: formatDateTimeWithOffset(start),
+      end_time: formatDateTimeWithOffset(end)
     }
+
+    const response = await service.post('/alerts', params)
+    const raw = response.data || []
 
     const aggregateByAgent = new Map()
 
@@ -2135,50 +2140,49 @@ const loadAgentPerformanceStats = async () => {
         aggregateByAgent.set(agentName, {
           agentName,
           handledCount: 0,
+          correctDecisionsCount: 0,
           falsePositiveCount: 0,
           falseNegativeCount: 0,
-          totalCount: 0
+          totalCount: 0,
+          unknownCount: 0
         })
       }
 
       const agg = aggregateByAgent.get(agentName)
       agg.totalCount += 1
 
-      // Handled alerts: verification_state is not Unknown / empty / null
-      const isHandled =
-        verificationState !== null &&
-        verificationState !== undefined &&
-        String(verificationState).trim() !== '' &&
-        String(verificationState) !== 'Unknown'
-
-      if (isHandled) {
-        agg.handledCount += 1
+      // Count alerts where verification_state equals 'Unknown'
+      if (verificationState === 'Unknown') {
+        agg.unknownCount += 1
       }
 
-      // False positive count based on verification_state
-      if (verificationState === 'False_Positive') {
+      // Count based on is_ai_decision_correct field
+      if (matchStatus === 'TT') {
+        agg.correctDecisionsCount += 1
+      } else if (matchStatus === 'FP') {
         agg.falsePositiveCount += 1
-      }
-
-      // False negative count based on is_ai_decision_correct field (FN)
-      if (matchStatus === 'FN') {
+      } else if (matchStatus === 'FN') {
         agg.falseNegativeCount += 1
       }
     })
 
-    const rows = Array.from(aggregateByAgent.values()).map(agg => {
-      // Coverage Rate: handled / total tickets
-      const coverageRate =
-        agg.totalCount > 0 ? (agg.handledCount / agg.totalCount) * 100 : 0
-      return {
-        agentName: agg.agentName,
-        handledCount: agg.handledCount,
-        falsePositiveCount: agg.falsePositiveCount,
-        falseNegativeCount: agg.falseNegativeCount,
-        totalCount: agg.totalCount,
-        coverageRate
-      }
-    })
+    const rows = Array.from(aggregateByAgent.values())
+      .map(agg => {
+        // AI Handled Alerts = Total Alerts - alerts where verification_state === 'Unknown'
+        const handledCount = agg.totalCount - agg.unknownCount
+        // Coverage Rate: handled / total alerts
+        const coverageRate =
+          agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
+        return {
+          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
+          handledCount,
+          correctDecisionsCount: agg.correctDecisionsCount,
+          falsePositiveCount: agg.falsePositiveCount,
+          falseNegativeCount: agg.falseNegativeCount,
+          totalCount: agg.totalCount,
+          coverageRate
+        }
+      })
 
     agentPerformanceData.value = rows
   } catch (error) {

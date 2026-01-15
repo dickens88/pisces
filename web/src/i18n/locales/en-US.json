@@ -148,10 +148,11 @@
       "subtitle": "Based on current time range and filters",
       "columns": {
         "agentName": "Agent Name",
-        "handledAlerts": "Handled Alerts",
+        "aiHandledAlerts": "AI Handled Alerts",
+        "correctDecisions": "Correct Decisions",
         "falsePositive": "False Positive Count",
         "falseNegative": "False Negative Count",
-        "totalTickets": "Total Tickets",
+        "totalTickets": "Total Alerts",
         "coverageRate": "Coverage Rate"
       },
       "placeholderTitle": "Reserved table",

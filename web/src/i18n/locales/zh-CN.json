@@ -148,7 +148,8 @@
       "subtitle": "基于当前时间范围与筛选条件",
       "columns": {
         "agentName": "模型名称",
-        "handledAlerts": "已处理告警",
+        "aiHandledAlerts": "AI已处理告警",
+        "correctDecisions": "正确决策",
         "falsePositive": "误报数量",
         "falseNegative": "漏报数量",
         "totalTickets": "总告警数",
