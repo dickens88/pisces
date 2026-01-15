@@ -159,6 +159,20 @@
       "placeholderSubtitle": "Reserved for future insights",
       "placeholderBody": "No content yet."
     },
+    "modelPerformance": {
+      "title": "AI performance by Model and Agent",
+      "subtitle": "Based on current time range and filters",
+      "columns": {
+        "modelName": "Model Name",
+        "agentName": "Agent Name",
+        "aiHandledAlerts": "AI Handled Alerts",
+        "correctDecisions": "Correct Decisions",
+        "falsePositive": "False Positive Count",
+        "falseNegative": "False Negative Count",
+        "totalTickets": "Total Alerts",
+        "coverageRate": "Coverage Rate"
+      }
+    },
     "title": "AI Playground",
     "charts": {
       "aiAccuracy": "AI Accuracy Rate",
