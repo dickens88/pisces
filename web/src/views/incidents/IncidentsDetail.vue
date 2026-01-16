@@ -1305,115 +1305,92 @@
       <!-- Evidence & Response 标签页：响应流程 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
-          <!-- 顶部Header -->
-          <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-            <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary">analytics</span>
-              {{ $t('incidents.detail.evidenceResponse.title') }}
-            </h1>
-            <div class="flex items-center gap-3">
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
-              </button>
-              <div class="relative group">
-                <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
-                  {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                  <span class="material-symbols-outlined text-sm">refresh</span>
-                </button>
-              </div>
-            </div>
-          </header>
-
           <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
           <!-- 响应指标区域 -->
-          <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">响应指标</h2>
+          <div class="mb-6 pb-4 border-b border-gray-200 dark:border-border-dark">
             <!-- 指标卡片网格 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <!-- 指标1: 平均攻击溯源时间 -->
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-primary dark:text-blue-400 mb-1">
+                    <h3 class="font-semibold text-sm text-primary dark:text-blue-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackTracingTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttTracing') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
-                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">search</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-lg">search</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标2: 平均攻击源拦截时间 -->
-              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-emerald-700 dark:text-emerald-400 mb-1">
+                    <h3 class="font-semibold text-sm text-emerald-700 dark:text-emerald-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackBlockingTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttBlocking') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10 dark:bg-green-500/20">
-                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">shield</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/10 dark:bg-green-500/20">
+                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-lg">shield</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标3: 平均风险消减时间 -->
-              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-orange-700 dark:text-orange-400 mb-1">
+                    <h3 class="font-semibold text-sm text-orange-700 dark:text-orange-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageRiskMitigationTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttr') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
-                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">trending_down</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
+                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-lg">trending_down</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标4: 平均漏洞入口定位时间 -->
-              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-indigo-700 dark:text-indigo-400 mb-1">
+                    <h3 class="font-semibold text-sm text-indigo-700 dark:text-indigo-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageVulnerabilityEntryTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttVulnerabilityEntry') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
-                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-2xl">bug_report</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
+                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-lg">bug_report</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
             </div>

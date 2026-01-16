@@ -652,10 +652,9 @@
         "alertStory": "事件沙盘",
         "alerts": "关联告警",
         "assets": "受影响资产",
-        "evidenceResponse": "证据与响应"
+        "evidenceResponse": "指挥中心"
       },
       "evidenceResponse": {
-        "title": "响应流程",
         "welinkGroup": "welink 群组",
         "emergencyReport": "生成报告",
         "maturityAssessment": "成熟度评估",

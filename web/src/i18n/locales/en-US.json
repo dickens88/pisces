@@ -657,10 +657,9 @@
         "alertStory": "Alert Story",
         "alerts": "Associated Alerts",
         "assets": "Affected Assets",
-        "evidenceResponse": "Evidence & Response"
+        "evidenceResponse": "Command Center"
       },
       "evidenceResponse": {
-        "title": "Response Process",
         "welinkGroup": "Welink Group",
         "emergencyReport": "Generate Report",
         "maturityAssessment": "Maturity Assessment",
