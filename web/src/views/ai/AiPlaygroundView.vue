@@ -1364,7 +1364,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
-import { getAiAccuracyByModel, getAiDecisionAnalysis, getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
+import { getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
 import service from '@/api/axios'
 import { useToast } from '@/composables/useToast'
 
@@ -1742,15 +1742,26 @@ const agentNameOptions = computed(() => {
   return allAgentNames.value.sort((a, b) => a.localeCompare(b))
 })
 
-const loadAllAgentNames = async () => {
+// Combined function to load all stats data in one request
+const loadAllStatsData = async () => {
+  // Set loading states
+  agentPerformanceLoading.value = true
+  modelPerformanceLoading.value = true
+  aiAccuracyLoading.value = true
+  aiDecisionLoading.value = true
+
   try {
     const { start, end } = computeSelectedRange()
     // Build conditions but exclude agent_name filter to get all available agents
     const allConditions = buildConditions()
     const conditions = allConditions.filter(c => !('agent_name' in c))
     
-    // Fetch a large batch to get all unique agent names
-    // Using a high limit to get all records, then extract unique names
+    // Single fetch with high limit to get all data needed for:
+    // 1. Agent performance stats
+    // 2. Model performance stats
+    // 3. Unique agent names
+    // 4. AI accuracy statistics (by model)
+    // 5. AI decision analysis (by is_ai_decision_correct)
     const params = {
       action: 'list_local',
       limit: 10000, // High limit to get all records
@@ -1762,17 +1773,212 @@ const loadAllAgentNames = async () => {
     const response = await service.post('/alerts', params)
     const raw = response.data || []
     
+    // Filter out AutoClosed alerts (used by both performance stats)
+    const filtered = raw.filter(item => {
+      const autoClose = item.is_auto_close ?? item.auto_close
+      return String(autoClose) !== 'AutoClosed' && autoClose !== 'auto_closed'
+    })
+
+    // 1. Extract unique agent names
     const names = new Set()
-    raw.forEach(alert => {
+    filtered.forEach(alert => {
       const name = alert.agent_name || alert.agentName
       if (name && typeof name === 'string' && name.trim()) {
         names.add(name.trim())
       }
     })
     allAgentNames.value = Array.from(names)
+
+    // 2. Aggregate by agent for agent performance stats
+    const aggregateByAgent = new Map()
+    filtered.forEach(item => {
+      const agentName = item.agent_name || 'Unknown'
+      const verificationState = item.verification_state
+      const matchStatus = item.is_ai_decision_correct
+
+      if (!aggregateByAgent.has(agentName)) {
+        aggregateByAgent.set(agentName, {
+          agentName,
+          handledCount: 0,
+          correctDecisionsCount: 0,
+          falsePositiveCount: 0,
+          falseNegativeCount: 0,
+          totalCount: 0,
+          unknownCount: 0
+        })
+      }
+
+      const agg = aggregateByAgent.get(agentName)
+      agg.totalCount += 1
+
+      if (verificationState === 'Unknown') {
+        agg.unknownCount += 1
+      }
+
+      if (matchStatus === 'TP') {
+        agg.correctDecisionsCount += 1
+      } else if (matchStatus === 'FP') {
+        agg.falsePositiveCount += 1
+      } else if (matchStatus === 'FN') {
+        agg.falseNegativeCount += 1
+      }
+    })
+
+    const agentRows = Array.from(aggregateByAgent.values())
+      .map(agg => {
+        const handledCount = agg.totalCount - agg.unknownCount
+        const coverageRate = agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
+        return {
+          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
+          handledCount,
+          correctDecisionsCount: agg.correctDecisionsCount,
+          falsePositiveCount: agg.falsePositiveCount,
+          falseNegativeCount: agg.falseNegativeCount,
+          totalCount: agg.totalCount,
+          coverageRate
+        }
+      })
+      .filter(row => {
+        if (row.agentName === 'Unknown Agent') {
+          return row.handledCount > 0
+        }
+        return true
+      })
+
+    agentPerformanceData.value = agentRows
+
+    // 3. Aggregate by model and agent for model performance stats
+    const aggregateByModelAndAgent = new Map()
+    filtered.forEach(item => {
+      const modelName = item.model_name || item.model || 'Unknown Model'
+      const agentName = item.agent_name || 'Unknown'
+      const key = `${modelName}|||${agentName}`
+      const verificationState = item.verification_state
+      const matchStatus = item.is_ai_decision_correct
+
+      if (!aggregateByModelAndAgent.has(key)) {
+        aggregateByModelAndAgent.set(key, {
+          modelName,
+          agentName,
+          handledCount: 0,
+          correctDecisionsCount: 0,
+          falsePositiveCount: 0,
+          falseNegativeCount: 0,
+          totalCount: 0,
+          unknownCount: 0
+        })
+      }
+
+      const agg = aggregateByModelAndAgent.get(key)
+      agg.totalCount += 1
+
+      if (verificationState === 'Unknown') {
+        agg.unknownCount += 1
+      }
+
+      if (matchStatus === 'TP') {
+        agg.correctDecisionsCount += 1
+      } else if (matchStatus === 'FP') {
+        agg.falsePositiveCount += 1
+      } else if (matchStatus === 'FN') {
+        agg.falseNegativeCount += 1
+      }
+    })
+
+    const modelRows = Array.from(aggregateByModelAndAgent.values())
+      .map(agg => {
+        const handledCount = agg.totalCount - agg.unknownCount
+        const coverageRate = agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
+        return {
+          modelName: agg.modelName === 'Unknown Model' ? 'Unknown Model' : agg.modelName,
+          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
+          handledCount,
+          correctDecisionsCount: agg.correctDecisionsCount,
+          falsePositiveCount: agg.falsePositiveCount,
+          falseNegativeCount: agg.falseNegativeCount,
+          totalCount: agg.totalCount,
+          coverageRate
+        }
+      })
+      .filter(row => {
+        if (row.agentName === 'Unknown Agent') {
+          return row.handledCount > 0
+        }
+        return true
+      })
+
+    modelPerformanceData.value = modelRows
+
+    // 4. Aggregate by model for AI accuracy statistics
+    const aggregateByModel = new Map()
+    filtered.forEach(item => {
+      const modelName = item.model_name || item.model || 'Unknown Model'
+      const matchStatus = item.is_ai_decision_correct
+
+      if (!aggregateByModel.has(modelName)) {
+        aggregateByModel.set(modelName, {
+          modelName,
+          correct: 0,
+          total: 0
+        })
+      }
+
+      const agg = aggregateByModel.get(modelName)
+      agg.total += 1
+
+      if (matchStatus === 'TP') {
+        agg.correct += 1
+      }
+    })
+
+    const aiAccuracyRows = Array.from(aggregateByModel.values())
+      .map(agg => {
+        const accuracy = agg.total > 0 ? (agg.correct / agg.total) * 100 : 0
+        return {
+          name: agg.modelName === 'Unknown Model' ? 'Unknown' : agg.modelName,
+          accuracy: Number(accuracy.toFixed(1)),
+          correct: agg.correct,
+          total: agg.total
+        }
+      })
+      .filter(row => row.total > 0) // Only include models with data
+      .sort((a, b) => b.total - a.total) // Sort by total count descending
+      .slice(0, 10) // Top 10 models
+
+    aiAccuracyData.value = aiAccuracyRows
+
+    // 5. Aggregate by is_ai_decision_correct for AI decision analysis
+    const aggregateByDecision = new Map()
+    filtered.forEach(item => {
+      const decisionStatus = item.is_ai_decision_correct || ''
+      const statusKey = decisionStatus === 'TP' ? 'TP' :
+                       decisionStatus === 'FP' ? 'FP' :
+                       decisionStatus === 'FN' ? 'FN' : 'Empty'
+
+      if (!aggregateByDecision.has(statusKey)) {
+        aggregateByDecision.set(statusKey, 0)
+      }
+
+      aggregateByDecision.set(statusKey, aggregateByDecision.get(statusKey) + 1)
+    })
+
+    // Convert to array format expected by chart
+    const aiDecisionRows = []
+    aggregateByDecision.forEach((value, name) => {
+      aiDecisionRows.push({ name, value })
+    })
+
+    aiDecisionData.value = aiDecisionRows
   } catch (error) {
-    console.error('Failed to load agent names:', error)
-    // Fallback to current page agents
+    console.error('Failed to load stats data:', error)
+    // Fallback to empty data
+    allAgentNames.value = []
+    agentPerformanceData.value = []
+    modelPerformanceData.value = []
+    aiAccuracyData.value = []
+    aiDecisionData.value = []
+
+    // Fallback to current page agents for agent names
     const names = new Set()
     alerts.value.forEach(alert => {
       const name = alert.agent_name || alert.agentName
@@ -1781,6 +1987,16 @@ const loadAllAgentNames = async () => {
       }
     })
     allAgentNames.value = Array.from(names)
+  } finally {
+    agentPerformanceLoading.value = false
+    modelPerformanceLoading.value = false
+    aiAccuracyLoading.value = false
+    aiDecisionLoading.value = false
+
+    // Update charts after data is loaded
+    await nextTick()
+    updateAiAccuracyChart()
+    updateAiDecisionChart()
   }
 }
 
@@ -2111,26 +2327,10 @@ const computeSelectedRange = () => {
   return { start, end }
 }
 
+// Legacy function - now handled by loadAllStatsData
 const loadAiAccuracyStatistics = async () => {
-  aiAccuracyLoading.value = true
-  try {
-    const { start, end } = computeSelectedRange()
-    const conditions = buildConditions()
-    const response = await getAiAccuracyByModel(start, end, 10, conditions)
-    aiAccuracyData.value = (response?.data || []).map((item) => ({
-      name: item.model_name || item.model || 'Unknown',
-      accuracy: Number(item.accuracy) || 0,
-      correct: item.correct || 0,
-      total: item.total || 0
-    }))
-  } catch (error) {
-    console.error('Failed to load AI accuracy statistics:', error)
-    aiAccuracyData.value = []
-  } finally {
-    aiAccuracyLoading.value = false
-    await nextTick()
-    updateAiAccuracyChart()
-  }
+  // This is now handled by loadAllStatsData
+  // Keep function for any direct calls, but it will be called via loadAllStatsData
 }
 
 const updateAiDecisionChart = () => {
@@ -2244,208 +2444,21 @@ const updateAiDecisionChart = () => {
   })
 }
 
+// Legacy function - now handled by loadAllStatsData
 const loadAiDecisionAnalysis = async () => {
-  aiDecisionLoading.value = true
-  try {
-    const { start, end } = computeSelectedRange()
-    const conditions = buildConditions()
-    const response = await getAiDecisionAnalysis(start, end, conditions)
-    aiDecisionData.value = response?.data || []
-  } catch (error) {
-    console.error('Failed to load AI decision analysis:', error)
-    aiDecisionData.value = []
-  } finally {
-    aiDecisionLoading.value = false
-    await nextTick()
-    updateAiDecisionChart()
-  }
+  // This is now handled by loadAllStatsData
+  // Keep function for any direct calls, but it will be called via loadAllStatsData
 }
 
-// Load AI performance statistics by agent (based on current time range and filters)
+// Legacy functions kept for backward compatibility - now call the combined function
 const loadAgentPerformanceStats = async () => {
-  agentPerformanceLoading.value = true
-  try {
-    const { start, end } = computeSelectedRange()
-    const params = {
-      action: 'list_local',
-      limit: 2000,
-      offset: 0,
-      conditions: buildConditions(),
-      start_time: formatDateTimeWithOffset(start),
-      end_time: formatDateTimeWithOffset(end)
-    }
-
-    const response = await service.post('/alerts', params)
-    const raw = (response.data || []).filter(item => {
-      const autoClose = item.is_auto_close ?? item.auto_close
-      return String(autoClose) !== 'AutoClosed'
-    })
-
-    const aggregateByAgent = new Map()
-
-    raw.forEach(item => {
-      const agentName = item.agent_name || 'Unknown'
-      const verificationState = item.verification_state
-      const matchStatus = item.is_ai_decision_correct
-
-      if (!aggregateByAgent.has(agentName)) {
-        aggregateByAgent.set(agentName, {
-          agentName,
-          handledCount: 0,
-          correctDecisionsCount: 0,
-          falsePositiveCount: 0,
-          falseNegativeCount: 0,
-          totalCount: 0,
-          unknownCount: 0
-        })
-      }
-
-      const agg = aggregateByAgent.get(agentName)
-      agg.totalCount += 1
-
-      // Count alerts where verification_state equals 'Unknown'
-      if (verificationState === 'Unknown') {
-        agg.unknownCount += 1
-      }
-
-      // Count based on is_ai_decision_correct field
-      if (matchStatus === 'TP') {
-        agg.correctDecisionsCount += 1
-      } else if (matchStatus === 'FP') {
-        agg.falsePositiveCount += 1
-      } else if (matchStatus === 'FN') {
-        agg.falseNegativeCount += 1
-      }
-    })
-
-    const rows = Array.from(aggregateByAgent.values())
-      .map(agg => {
-        // AI Handled Alerts = Total Alerts - alerts where verification_state === 'Unknown'
-        const handledCount = agg.totalCount - agg.unknownCount
-        // Coverage Rate: handled / total alerts
-        const coverageRate =
-          agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
-        return {
-          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
-          handledCount,
-          correctDecisionsCount: agg.correctDecisionsCount,
-          falsePositiveCount: agg.falsePositiveCount,
-          falseNegativeCount: agg.falseNegativeCount,
-          totalCount: agg.totalCount,
-          coverageRate
-        }
-      })
-      .filter(row => {
-        // Unknown Agent should only show if handledCount is not 0
-        if (row.agentName === 'Unknown Agent') {
-          return row.handledCount > 0
-        }
-        return true
-      })
-
-    agentPerformanceData.value = rows
-  } catch (error) {
-    console.error('Failed to load agent performance statistics:', error)
-    agentPerformanceData.value = []
-  } finally {
-    agentPerformanceLoading.value = false
-  }
+  // This is now handled by loadAllStatsData
+  // Keep function for any direct calls, but it will be called via loadAllStatsData
 }
 
-// Load AI performance statistics by model and agent (grouped by both model_name and agent_name)
 const loadModelPerformanceStats = async () => {
-  modelPerformanceLoading.value = true
-  try {
-    const { start, end } = computeSelectedRange()
-    const params = {
-      action: 'list_local',
-      limit: 2000,
-      offset: 0,
-      conditions: buildConditions(),
-      start_time: formatDateTimeWithOffset(start),
-      end_time: formatDateTimeWithOffset(end)
-    }
-
-    const response = await service.post('/alerts', params)
-    const raw = (response.data || []).filter(item => {
-      // Exclude AutoClosed alerts
-      const isAutoClose = item.is_auto_close || item.auto_close
-      return isAutoClose !== 'AutoClosed' && isAutoClose !== 'auto_closed'
-    })
-
-    const aggregateByModelAndAgent = new Map()
-
-    raw.forEach(item => {
-      const modelName = item.model_name || item.model || 'Unknown Model'
-      const agentName = item.agent_name || 'Unknown'
-      const key = `${modelName}|||${agentName}` // Use separator to combine model and agent
-      const verificationState = item.verification_state
-      const matchStatus = item.is_ai_decision_correct
-
-      if (!aggregateByModelAndAgent.has(key)) {
-        aggregateByModelAndAgent.set(key, {
-          modelName,
-          agentName,
-          handledCount: 0,
-          correctDecisionsCount: 0,
-          falsePositiveCount: 0,
-          falseNegativeCount: 0,
-          totalCount: 0,
-          unknownCount: 0
-        })
-      }
-
-      const agg = aggregateByModelAndAgent.get(key)
-      agg.totalCount += 1
-
-      // Count alerts where verification_state equals 'Unknown'
-      if (verificationState === 'Unknown') {
-        agg.unknownCount += 1
-      }
-
-      // Count based on is_ai_decision_correct field
-      if (matchStatus === 'TP') {
-        agg.correctDecisionsCount += 1
-      } else if (matchStatus === 'FP') {
-        agg.falsePositiveCount += 1
-      } else if (matchStatus === 'FN') {
-        agg.falseNegativeCount += 1
-      }
-    })
-
-    const rows = Array.from(aggregateByModelAndAgent.values())
-      .map(agg => {
-        // AI Handled Alerts = Total Alerts - alerts where verification_state === 'Unknown'
-        const handledCount = agg.totalCount - agg.unknownCount
-        // Coverage Rate: handled / total alerts
-        const coverageRate =
-          agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
-        return {
-          modelName: agg.modelName === 'Unknown Model' ? 'Unknown Model' : agg.modelName,
-          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
-          handledCount,
-          correctDecisionsCount: agg.correctDecisionsCount,
-          falsePositiveCount: agg.falsePositiveCount,
-          falseNegativeCount: agg.falseNegativeCount,
-          totalCount: agg.totalCount,
-          coverageRate
-        }
-      })
-      .filter(row => {
-        // Unknown Agent should only show if handledCount is not 0
-        if (row.agentName === 'Unknown Agent') {
-          return row.handledCount > 0
-        }
-        return true
-      })
-
-    modelPerformanceData.value = rows
-  } catch (error) {
-    console.error('Failed to load model performance statistics:', error)
-    modelPerformanceData.value = []
-  } finally {
-    modelPerformanceLoading.value = false
-  }
+  // This is now handled by loadAllStatsData
+  // Keep function for any direct calls, but it will be called via loadAllStatsData
 }
 
 const getRiskLevelClass = (level) => {
@@ -2598,10 +2611,7 @@ const addKeywordIfMissing = (field, value) => {
   currentPage.value = 1
   loadAlerts()
   // Also reload charts with updated conditions
-  loadAiAccuracyStatistics()
-  loadAiDecisionAnalysis()
-  loadAgentPerformanceStats()
-  loadModelPerformanceStats()
+  loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
 }
 
 const addKeyword = () => {
@@ -2623,10 +2633,7 @@ const addKeyword = () => {
       currentPage.value = 1
       loadAlerts()
       // Also reload charts with updated conditions
-      loadAiAccuracyStatistics()
-      loadAiDecisionAnalysis()
-      loadAgentPerformanceStats()
-      loadModelPerformanceStats()
+      loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
     }
   }
 }
@@ -2636,10 +2643,7 @@ const removeKeyword = (index) => {
   currentPage.value = 1
   loadAlerts()
   // Also reload charts with updated conditions
-  loadAiAccuracyStatistics()
-  loadAiDecisionAnalysis()
-  loadAgentPerformanceStats()
-  loadModelPerformanceStats()
+  loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
 }
 
 const handleKeywordDeleteKey = (event) => {
@@ -3615,12 +3619,8 @@ const isDarkMode = () => document.documentElement.classList.contains('dark')
 const handleFilter = () => {
   currentPage.value = 1
   loadAlerts()
-  loadAllAgentNames() // Reload agent names when filters change
   // Also reload charts with updated conditions
-  loadAiAccuracyStatistics()
-  loadAiDecisionAnalysis()
-  loadAgentPerformanceStats()
-  loadModelPerformanceStats()
+  loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
 }
 
 // AI Judgment filter state
@@ -3635,10 +3635,7 @@ const toggleAiJudgmentFilter = () => {
   currentPage.value = 1
   loadAlerts()
   // Also reload charts with updated conditions
-  loadAiAccuracyStatistics()
-  loadAiDecisionAnalysis()
-  loadAgentPerformanceStats()
-  loadModelPerformanceStats()
+  loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
 }
 
 // Track word wrap state - DataTable stores it in localStorage with the storage key
@@ -3798,15 +3795,8 @@ const handleCustomRangeChange = (range) => {
 
 const handleRefresh = async () => {
   await Promise.all([
-    loadAiAccuracyStatistics(),
-    loadAiDecisionAnalysis(),
     loadAlerts(),
-    loadAllAgentNames() // Reload agent names when time range changes
-  ])
-  // Load performance stats after alerts so we don't overload the backend in parallel
-  await Promise.all([
-    loadAgentPerformanceStats(),
-    loadModelPerformanceStats()
+    loadAllStatsData() // Combined function for all stats (agent names, agent stats, model stats, AI accuracy, AI decision analysis)
   ])
 }
 

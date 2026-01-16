@@ -1497,9 +1497,6 @@
                 class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
                 {{ $t('incidents.detail.evidenceResponse.services.add') }}
               </button>
-              <button class="px-4 py-1.5 text-sm bg-gray-100 dark:bg-surface-hover-dark text-slate-400 dark:text-slate-500 border border-gray-200 dark:border-border-dark rounded cursor-not-allowed">
-                {{ $t('incidents.detail.evidenceResponse.services.batchAdd') }}
-              </button>
             </div>
 
             <!-- 受影响服务表格 -->
@@ -1508,14 +1505,15 @@
                 <table class="w-full text-sm text-left">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
-                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
-                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
+                      <th class="px-4 py-3 w-40 whitespace-nowrap">{{ $t('incidents.detail.createTime') }}</th>
+                      <th class="px-4 py-3 w-48">{{ $t('incidents.detail.evidenceResponse.services.columns.service') }}</th>
+                      <th class="px-4 py-3 w-56 whitespace-normal">{{ $t('incidents.detail.evidenceResponse.services.columns.measure') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.sla') }}</th>
-                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
+                      <th class="px-4 py-3 w-44 whitespace-nowrap">{{ $t('incidents.detail.evidenceResponse.services.columns.plannedCompletionTime') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.owner') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.progress') }}</th>
-                      <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
-                      <th class="px-4 py-3">操作</th>
+                      <th class="px-4 py-3 w-56 whitespace-normal">{{ $t('incidents.detail.evidenceResponse.services.columns.remark') }}</th>
+                      <th class="px-4 py-3">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
@@ -1524,10 +1522,13 @@
                         v-for="(service, index) in impactedServices" 
                         :key="index"
                         class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
-                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ service.service || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.measure || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400 w-40 whitespace-nowrap">
+                          {{ formatDateTime(service.create_time || service.createTime) || '--' }}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-900 dark:text-white w-48">{{ service.service || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400 w-56 whitespace-normal break-words">{{ service.measure || '--' }}</td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.sla || '--' }}</td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400 w-44 whitespace-nowrap">
                           {{ formatServiceDateTime(service.plannedCompletionTime) }}
                         </td>
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.owner || '--' }}</td>
@@ -1541,7 +1542,7 @@
                             {{ service.progress || '--' }}
                           </span>
                         </td>
-                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ service.remark || '--' }}</td>
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400 w-56 whitespace-normal break-words">{{ service.remark || '--' }}</td>
                         <td class="px-4 py-3">
                           <div class="flex items-center gap-2">
                             <button
@@ -1563,7 +1564,7 @@
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>
@@ -1675,13 +1676,9 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm transition-transform duration-200"
-                              :class="{
-                                'text-primary': sortColumn.value === 'start_time',
-                                'opacity-50': sortColumn.value !== 'start_time',
-                                'rotate-180': sortColumn.value === 'start_time' && sortOrder.value === 'desc'
-                              }"
-                              :style="sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                              class="material-symbols-outlined text-sm"
+                              :class="getSortIconClass('start_time')"
+                              :style="getSortIconStyle('start_time')"
                             >
                               sort
                             </span>
@@ -1697,13 +1694,9 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm transition-transform duration-200"
-                              :class="{
-                                'text-primary': sortColumn.value === 'end_time',
-                                'opacity-50': sortColumn.value !== 'end_time',
-                                'rotate-180': sortColumn.value === 'end_time' && sortOrder.value === 'desc'
-                              }"
-                              :style="sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                              class="material-symbols-outlined text-sm"
+                              :class="getSortIconClass('end_time')"
+                              :style="getSortIconStyle('end_time')"
                             >
                               sort
                             </span>
@@ -1845,7 +1838,7 @@
               <button 
                 @click="showAddNotificationDialog = true"
                 class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+                {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.add') }}
               </button>
             </div>
 
@@ -1855,13 +1848,14 @@
                 <table class="w-full text-sm text-left">
                   <thead class="bg-gray-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 font-medium border-b border-gray-200 dark:border-border-dark">
                     <tr>
+                      <th class="px-4 py-3 w-40 whitespace-nowrap">{{ $t('incidents.detail.createTime') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationEvent') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.notificationType') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.owner') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.progress') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.nextPlan') }}</th>
                       <th class="px-4 py-3">{{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.columns.remark') }}</th>
-                      <th class="px-4 py-3 w-24">操作</th>
+                      <th class="px-4 py-3 w-24">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-200 dark:divide-border-dark">
@@ -1870,6 +1864,9 @@
                         v-for="(notification, index) in incidentNotifications" 
                         :key="index"
                         class="bg-white dark:bg-surface-dark hover:bg-gray-50 dark:hover:bg-surface-hover-dark/50 transition-colors">
+                        <td class="px-4 py-3 text-slate-500 dark:text-slate-400 w-40 whitespace-nowrap">
+                          {{ formatDateTime(notification.create_time || notification.createTime) || '--' }}
+                        </td>
                         <td class="px-4 py-3 font-medium text-slate-900 dark:text-white">{{ notification.event || '--' }}</td>
                         <td class="px-4 py-3">
                           <span 
@@ -1909,7 +1906,7 @@
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="7" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="8" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.noData') }}
                       </td>
                     </tr>
@@ -2455,7 +2452,7 @@
       <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            {{ editingNotificationIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.addNotification') }}
+            {{ editingNotificationIndex >= 0 ? $t('common.edit') : $t('incidents.detail.evidenceResponse.cards.incidentBrief.notificationTable.add') }}
           </h2>
           <button
             @click="cancelNotification"
@@ -4569,6 +4566,26 @@ const progressSyncWarroomFilter = ref('all') // 'all' 或具体的warroomId
 // 排序相关
 const sortColumn = ref('') // 'start_time', 'end_time', ''
 const sortOrder = ref('asc') // 'asc', 'desc'
+
+// 获取排序图标的样式
+const getSortIconStyle = (column) => {
+  const isActive = sortColumn.value === column
+  const isDesc = isActive && sortOrder.value === 'desc'
+  return {
+    transform: isDesc ? 'rotate(180deg)' : 'rotate(0deg)',
+    display: 'inline-block',
+    transition: 'transform 0.2s ease, opacity 0.2s ease, color 0.2s ease'
+  }
+}
+
+// 获取排序图标的类
+const getSortIconClass = (column) => {
+  const isActive = sortColumn.value === column
+  return {
+    'text-primary': isActive,
+    'opacity-50': !isActive
+  }
+}
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4715,6 +4732,30 @@ const allProgressSyncTasks = computed(() => {
   return tasks
 })
 
+// 生成用户ID：首字母 + 最后8位数字的租户
+// 格式：首字母（用户名首字母）+ 租户ID的最后8位数字
+const getCurrentUserId = () => {
+  const user = authStore.user
+  if (!user) return ''
+  
+  // 获取用户名（用于提取首字母）
+  const username = user.username || user.cn || user.name || ''
+  const firstLetter = username ? username.charAt(0).toUpperCase() : ''
+  
+  // 获取租户ID（用于提取最后8位数字）
+  // 尝试从多个可能的字段获取租户ID
+  const tenantId = user.tenant_id || user.tenantId || user.tenant || user.id || ''
+  const tenantIdStr = String(tenantId || '')
+  
+  // 提取最后8位数字
+  const last8Digits = tenantIdStr.length >= 8 
+    ? tenantIdStr.slice(-8) 
+    : tenantIdStr.padStart(8, '0')
+  
+  // 组合：首字母 + 最后8位数字
+  return firstLetter + last8Digits
+}
+
 // 根据筛选类型过滤任务
 const filteredProgressSyncTasks = computed(() => {
   const tasks = allProgressSyncTasks.value
@@ -4734,6 +4775,8 @@ const filteredProgressSyncTasks = computed(() => {
   
   // 获取当前用户信息
   const currentUser = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
+  // 获取当前用户ID（首字母+最后8位数字格式）
+  const currentUserId = getCurrentUserId()
   
   let filtered = []
   switch (progressSyncFilterType.value) {
@@ -4745,12 +4788,13 @@ const filteredProgressSyncTasks = computed(() => {
       })
       break
     case 'myPending':
-      // 待我处理的指令：状态为待处理且责任人为当前用户
+      // 待我处理的指令：所有状态且责任人为当前用户
+      // 使用首字母+最后8位数字格式的用户ID与责任人匹配
       filtered = tasksWithTags.filter(task => {
-        const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
         const owner = task.owner || task.employeeAccount || task.assignee
-        const isMyTask = owner === currentUser
-        return isPending && isMyTask
+        // 匹配当前用户ID（首字母+最后8位数字格式）
+        const isMyTask = owner === currentUserId
+        return isMyTask
       })
       break
     case 'all':
@@ -4874,8 +4918,15 @@ const getTaskUniqueId = (task, index) => {
 // 处理排序
 const handleSort = (column) => {
   if (sortColumn.value === column) {
-    // 如果点击的是当前排序列，切换排序顺序
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    // 如果点击的是当前排序列，切换排序顺序：升序 -> 降序 -> 不排序
+    if (sortOrder.value === 'asc') {
+      // 从升序切换到降序
+      sortOrder.value = 'desc'
+    } else {
+      // 从降序切换到不排序（重置）
+      sortColumn.value = ''
+      sortOrder.value = 'asc'
+    }
   } else {
     // 如果点击的是新列，设置为升序
     sortColumn.value = column

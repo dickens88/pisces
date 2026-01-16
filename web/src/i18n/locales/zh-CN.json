@@ -673,6 +673,13 @@
           "mttVulnerabilityEntry": "MTT漏洞入口定位",
           "unit": "小时"
         },
+        "progressSync": {
+          "priority": {
+            "normal": "普通",
+            "urgent": "紧急",
+            "veryUrgent": "非常紧急"
+          }
+        },
         "cards": {
           "impactedServices": {
             "title": "影响服务",
@@ -736,7 +743,7 @@
             "bulletin": "公告",
             "notificationTable": {
               "title": "事件通报/简报",
-              "addNotification": "新增通报",
+              "add": "新增",
               "columns": {
                 "notificationEvent": "通报事件",
                 "notificationType": "通报类型",
@@ -761,7 +768,6 @@
           "servicesNotExported": "个服务的印象面还未导出",
           "updateTime": "更新时间",
           "add": "新增",
-          "batchAdd": "批量增加",
           "columns": {
             "service": "服务",
             "measure": "措施",
