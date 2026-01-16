@@ -1962,6 +1962,57 @@
         </div>
         
         <div class="space-y-4">
+          <!-- 项目选择（仅在创建新任务时显示） -->
+          <div v-if="!editingTask">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <div class="relative" ref="taskProjectDropdownRef">
+              <input
+                v-model="warroomSearchKeyword"
+                @input="handleWarroomSearch"
+                @focus="showTaskProjectDropdown = true"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.searchWarroom', '搜索项目...')"
+              />
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">
+                {{ showTaskProjectDropdown ? 'expand_less' : 'expand_more' }}
+              </span>
+              <!-- 下拉选择列表 -->
+              <div
+                v-if="showTaskProjectDropdown"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                @mousedown.prevent
+              >
+                <!-- 加载状态 -->
+                <div v-if="loadingProjectList" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                  {{ translateOr('incidents.detail.eventGraph.loading', '加载中...') }}
+                </div>
+                <!-- 无结果提示 -->
+                <div v-else-if="!loadingProjectList && projectOptions.length === 0" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                  {{ translateOr('incidents.detail.eventGraph.noWarroomFound', '未找到匹配的项目') }}
+                </div>
+                <!-- 选项列表 -->
+                <div
+                  v-for="option in projectOptions"
+                  :key="option.value"
+                  @click.stop="selectTaskProject(option.value, option.label)"
+                  :class="[
+                    'px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer',
+                    taskEditForm.project_uuid === option.value ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  ]"
+                >
+                  {{ option.label }}
+                </div>
+              </div>
+            </div>
+            <div v-if="taskEditForm.project_uuid" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.selectedProject', '已选择') }}: {{ taskEditForm.project_name }}
+            </div>
+          </div>
+          
           <!-- 任务名称 -->
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -2499,7 +2550,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask, getImpactedServices, createImpactedService, updateImpactedService, deleteImpactedService, getIncidentBriefs, createIncidentBrief, updateIncidentBrief, deleteIncidentBrief } from '@/api/incidents'
 import { updateComment, deleteComment, getComments } from '@/api/comments'
-import { getProjectList, getTaskDetail, createGroup, modifyTask } from '@/api/securityAgent'
+import { getProjectList, getTaskDetail, createGroup, modifyTask, createTask } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -4177,6 +4228,9 @@ const handleOpenAISidebar = () => {
 }
 
 onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', closeTaskProjectDropdown)
+  }
   window.removeEventListener('pointermove', handleNodeDetailResize)
   window.removeEventListener('pointerup', stopNodeDetailResize)
   if (typeof window !== 'undefined') {
@@ -4496,8 +4550,13 @@ const taskEditForm = ref({
   end_time: '',
   priority: '',
   isDone: false,
-  note: '' // 备注字段（仅在进展同步中使用）
+  note: '', // 备注字段（仅在进展同步中使用）
+  project_uuid: '', // 项目UUID（仅在创建新任务时使用）
+  project_name: '' // 项目名称（用于显示）
 })
+// 任务项目选择相关状态（复用WR任务管理的项目选择逻辑）
+const showTaskProjectDropdown = ref(false)
+const taskProjectDropdownRef = ref(null)
 // 事件通报/简报相关状态
 const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
@@ -5005,24 +5064,46 @@ const closeTaskEditDialog = () => {
     end_time: '',
     priority: '',
     isDone: false,
-    note: ''
+    note: '',
+    project_uuid: '',
+    project_name: ''
   }
+  // 重置项目选择相关状态
+  warroomSearchKeyword.value = ''
+  showTaskProjectDropdown.value = false
 }
 
 // 创建新任务
 const createNewTask = () => {
-  editingTask.value = null
-  editingTaskIdx.value = -1
-  taskEditForm.value = {
-    task_name: '',
-    owner: '',
-    start_time: '',
-    end_time: '',
-    priority: '',
-    isDone: false,
-    note: ''
+  try {
+    editingTask.value = null
+    editingTaskIdx.value = -1
+    taskEditForm.value = {
+      task_name: '',
+      owner: '',
+      start_time: '',
+      end_time: '',
+      priority: '',
+      isDone: false,
+      note: '',
+      project_uuid: '',
+      project_name: ''
+    }
+    // 重置项目选择相关状态
+    warroomSearchKeyword.value = ''
+    showTaskProjectDropdown.value = false
+    // 显示对话框（先显示对话框，再加载项目列表，确保用户能看到对话框）
+    showTaskEditDialog.value = true
+    // 加载项目列表（复用WR任务管理的逻辑，异步加载，不阻塞对话框显示）
+    loadProjectList('warroom').catch((error) => {
+      console.error('Failed to load project list when creating task:', error)
+      // 即使加载失败，对话框也应该显示
+    })
+  } catch (error) {
+    console.error('Error in createNewTask:', error)
+    // 即使出错，也尝试显示对话框
+    showTaskEditDialog.value = true
   }
-  showTaskEditDialog.value = true
 }
 
 // 保存任务编辑
@@ -5112,21 +5193,66 @@ const saveTaskEdit = async () => {
     }
   } else {
     // 创建新任务
-    // 获取第一个 warroom 或默认 warroom
-    const warroomIds = Object.keys(groupedTaskDetails.value)
-    if (warroomIds.length === 0) {
-      toast.error('请先绑定 Warroom')
+    // 验证必需参数
+    if (!taskEditForm.value.project_uuid) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') + ' ' + t('common.warning'))
       return
     }
     
-    const defaultWarroomId = warroomIds[0]
-    const warroomName = getWarroomName(defaultWarroomId)
+    if (!taskEditForm.value.owner) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (!taskEditForm.value.start_time) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (!taskEditForm.value.end_time) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (taskEditForm.value.priority === '' || taskEditForm.value.priority === null || taskEditForm.value.priority === undefined) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') + ' ' + t('common.warning'))
+      return
+    }
+    
+    // 获取 group_name，如果没有 tag，使用"默认分组"
+    let groupName = '默认分组'
+    // 尝试从新任务的 tag 获取 group_name（如果有的话）
+    // 注意：新任务可能还没有 tag，所以使用默认值
+    
+    // 如果是进展同步，调用 createTask API
+    if (activeCardTab.value === 'progressSync') {
+      try {
+        const createParams = {
+          project_uuid: taskEditForm.value.project_uuid,
+          task_name: taskEditForm.value.task_name,
+          priority: taskEditForm.value.priority,
+          start_time: new Date(taskEditForm.value.start_time).toISOString(),
+          end_time: new Date(taskEditForm.value.end_time).toISOString(),
+          group_name: groupName,
+          owner: taskEditForm.value.owner,
+          notes: taskEditForm.value.note || ''
+        }
+        
+        await createTask(createParams)
+        toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
+      } catch (error) {
+        console.error('Failed to create task via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': ' + (error?.message || 'Unknown error'))
+        return
+      }
+    }
     
     // 创建新任务对象
+    const selectedProjectName = taskEditForm.value.project_name || getWarroomName(taskEditForm.value.project_uuid)
     const newTask = {
       ...taskData,
-      warroomId: defaultWarroomId,
-      warroomName: warroomName,
+      warroomId: taskEditForm.value.project_uuid,
+      warroomName: selectedProjectName,
       uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }
     
@@ -5134,21 +5260,22 @@ const saveTaskEdit = async () => {
     filteredProgressSyncTasks.value.push(newTask)
     
     // 添加到 groupedTaskDetails
-    if (!groupedTaskDetails.value[defaultWarroomId]) {
-      groupedTaskDetails.value[defaultWarroomId] = []
+    if (!groupedTaskDetails.value[taskEditForm.value.project_uuid]) {
+      groupedTaskDetails.value[taskEditForm.value.project_uuid] = []
     }
     
-    const warroomDetail = groupedTaskDetails.value[defaultWarroomId]
+    const warroomDetail = groupedTaskDetails.value[taskEditForm.value.project_uuid]
     if (Array.isArray(warroomDetail)) {
       warroomDetail.push(newTask)
     } else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
       warroomDetail.task_list.push(newTask)
     } else {
-      groupedTaskDetails.value[defaultWarroomId] = [newTask]
+      groupedTaskDetails.value[taskEditForm.value.project_uuid] = [newTask]
     }
     
-    toast.success(t('common.operationSuccess'))
-    // TODO: 调用后端API创建
+    if (activeCardTab.value !== 'progressSync') {
+      toast.success(t('common.operationSuccess'))
+    }
   }
   
   // 重新计算指标
@@ -5156,6 +5283,30 @@ const saveTaskEdit = async () => {
   
   // 关闭对话框
   closeTaskEditDialog()
+}
+
+// 选择任务项目（用于创建任务时的项目选择，复用WR任务管理的项目列表）
+const selectTaskProject = (projectUuid, projectName) => {
+  taskEditForm.value.project_uuid = projectUuid
+  taskEditForm.value.project_name = projectName
+  showTaskProjectDropdown.value = false
+}
+
+// 点击外部关闭任务项目下拉框
+const closeTaskProjectDropdown = (event) => {
+  // 如果点击的是WR任务管理的下拉框，不处理（由 closeTaskIdDropdown 处理）
+  if (taskIdDropdownRef.value && taskIdDropdownRef.value.contains(event.target)) {
+    return
+  }
+  // 如果点击的是任务项目下拉框内部，不关闭
+  if (taskProjectDropdownRef.value && taskProjectDropdownRef.value.contains(event.target)) {
+    return
+  }
+  showTaskProjectDropdown.value = false
+  // 如果WR任务管理的下拉框也没有打开，清空搜索关键字
+  if (!showTaskIdDropdown.value) {
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 删除进展同步任务
@@ -6412,13 +6563,19 @@ const toggleTaskIdDropdown = () => {
 
 // 关闭任务ID下拉框
 const closeTaskIdDropdown = (event) => {
+  // 如果点击的是任务项目下拉框，不处理（由 closeTaskProjectDropdown 处理）
+  if (taskProjectDropdownRef.value && taskProjectDropdownRef.value.contains(event.target)) {
+    return
+  }
   // 如果点击的是下拉框内部，不关闭
   if (taskIdDropdownRef.value && taskIdDropdownRef.value.contains(event.target)) {
     return
   }
   showTaskIdDropdown.value = false
-  // 关闭下拉框时，清空搜索关键字
-  warroomSearchKeyword.value = ''
+  // 如果任务项目下拉框也没有打开，清空搜索关键字
+  if (!showTaskProjectDropdown.value) {
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 将当前warroom IDs写入本地数据库（与事件绑定）
@@ -6812,6 +6969,7 @@ onMounted(() => {
     syncGraphFullscreenState()
     // 添加点击外部区域关闭下拉框的事件监听
     document.addEventListener('click', closeTaskIdDropdown)
+    document.addEventListener('click', closeTaskProjectDropdown)
   }
   // 监听Header发出的打开AI侧边栏事件
   window.addEventListener('open-ai-sidebar', handleOpenAISidebar)

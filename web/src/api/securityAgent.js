@@ -504,3 +504,125 @@ export const modifyTask = async ({
 
   return { status: data.data?.outputs?.status || data.data?.status || 'success' }
 }
+
+/**
+ * 创建task
+ * @param {Object} params
+ * @param {string} params.project_uuid - 项目UUID（必需）
+ * @param {string} params.task_name - 任务名称（必需）
+ * @param {number} params.priority - 优先级（必需）
+ * @param {string} params.start_time - 开始时间（必需）
+ * @param {string} params.end_time - 结束时间（必需）
+ * @param {string} params.group_name - 组名称（必需）
+ * @param {string} params.owner - 负责人（必需）
+ * @param {string} params.notes - 备注（必需）
+ * @returns {Promise<Object>} 返回 { status: "success" }
+ */
+export const createTask = async ({
+  project_uuid,
+  task_name,
+  priority,
+  start_time,
+  end_time,
+  group_name,
+  owner,
+  notes
+} = {}) => {
+  if (!project_uuid) {
+    throw new Error('Project UUID is required')
+  }
+
+  if (!task_name) {
+    throw new Error('Task name is required')
+  }
+
+  if (priority === undefined || priority === null) {
+    throw new Error('Priority is required')
+  }
+
+  if (!start_time) {
+    throw new Error('Start time is required')
+  }
+
+  if (!end_time) {
+    throw new Error('End time is required')
+  }
+
+  if (!group_name) {
+    throw new Error('Group name is required')
+  }
+
+  if (!owner) {
+    throw new Error('Owner is required')
+  }
+
+  if (notes === undefined || notes === null) {
+    throw new Error('Notes is required')
+  }
+
+  const baseEndpoint = config.wetaskAgentApi
+  if (!baseEndpoint) {
+    throw new Error('wetask Agent API endpoint is not configured (VITE_WETASK_AGENT_API)')
+  }
+
+  if (!config.wetaskAgentKey) {
+    throw new Error('wetask Agent API key is not configured (VITE_WETASK_AGENT_KEY)')
+  }
+
+  const authStore = useAuthStore()
+  const resolvedUserName = (await resolveUserIdentity(authStore)) || 'Guest'
+
+  let baseUrl = baseEndpoint.replace(/\/v1\/?.*$/, '').replace(/\/$/, '')
+  const isDev = import.meta.env.DEV
+  const endpoint = isDev ? `/dify-api/v1/workflows/run` : `${baseUrl}/v1/workflows/run`
+
+  const inputs = {
+    action: 'create task',
+    project_uuid: String(project_uuid).trim(),
+    task_name: String(task_name).trim(),
+    priority: Number(priority),
+    start_time: String(start_time).trim(),
+    end_time: String(end_time).trim(),
+    group_name: String(group_name).trim(),
+    owner: String(owner).trim(),
+    notes: String(notes).trim(),
+    status: '未完成' // 默认设置为未完成
+  }
+
+  const requestBody = {
+    inputs,
+    response_mode: 'blocking',
+    user: resolvedUserName
+  }
+
+  let response
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.wetaskAgentKey}`
+      },
+      body: JSON.stringify(requestBody),
+      mode: 'cors',
+      credentials: 'omit'
+    })
+  } catch (fetchError) {
+    throw new Error(`网络请求失败: ${fetchError.message}`)
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => '')
+    let errorData
+    try {
+      errorData = JSON.parse(errorText)
+    } catch {
+      errorData = { message: errorText }
+    }
+    throw new Error(errorData.message || `API 请求失败 (状态码: ${response.status})`)
+  }
+
+  const data = await response.json()
+
+  return { status: data.data?.outputs?.status || data.data?.status || 'success' }
+}
