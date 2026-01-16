@@ -666,13 +666,6 @@
         "rlReview": "RL Review",
         "gocReview": "GOC Review",
         "updateStatus": "Update Status",
-        "progressSync": {
-          "priority": {
-            "normal": "Normal",
-            "urgent": "Urgent",
-            "veryUrgent": "Very Urgent"
-          }
-        },
         "metrics": {
           "averageAttackTracingTime": "Average Attack Tracing Time",
           "mttTracing": "MTT Tracing",
@@ -692,7 +685,7 @@
             "confirmed": "Confirmed"
           },
           "progressSync": {
-            "title": "Progress Sync",
+            "title": "Combat Instruction",
             "instructions": "Instructions",
             "progress": "Progress",
             "statusLabel": "Status",

@@ -1642,7 +1642,6 @@
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
                       <th class="px-4 py-3 min-w-[120px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
-                      <th class="px-4 py-3 w-32 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</th>
                       <th class="px-4 py-3 w-24 whitespace-nowrap">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
@@ -1656,47 +1655,41 @@
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
                         <!-- 任务名称 -->
                         <td class="px-4 py-3 max-w-[280px]">
+                          <a
+                            v-if="task.detail_url"
+                            :href="task.detail_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-primary hover:text-primary/80 hover:underline break-words whitespace-normal block"
+                            :title="task.task_name || '--'"
+                          >{{ task.task_name || '--' }}</a>
                           <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal block"
+                            v-else
+                            class="font-medium text-slate-900 dark:text-white break-words whitespace-normal block"
                             :title="task.task_name || '--'"
                           >{{ task.task_name || '--' }}</span>
                         </td>
                         <!-- 责任人 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.owner || '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.owner || '--' }}</span>
                         </td>
                         <!-- 开始时间 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
                         </td>
                         <!-- 结束时间 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
                         </td>
                         <!-- 优先级 -->
                         <td class="px-4 py-3 whitespace-nowrap">
                           <span
                             v-if="getPriorityConfig(task.priority)"
-                            @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs',
                               getPriorityConfig(task.priority)?.bgClass,
                               getPriorityConfig(task.priority)?.textClass
                             ]"
-                            :title="$t('common.edit')"
                           >
                             <span 
                               class="material-symbols-outlined text-sm flex-shrink-0"
@@ -1709,22 +1702,18 @@
                           </span>
                           <span
                             v-else
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary whitespace-nowrap"
-                            :title="$t('common.edit')"
+                            class="text-slate-500 dark:text-slate-400 whitespace-nowrap"
                           >--</span>
                         </td>
                         <!-- 状态 -->
                         <td class="px-4 py-3 whitespace-nowrap">
                           <span
-                            @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80 whitespace-nowrap',
+                              'inline-block px-2 py-0.5 rounded text-xs whitespace-nowrap',
                               isTaskCompleted(task)
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                             ]"
-                            :title="$t('common.edit')"
                           >
                             {{ isTaskCompleted(task)
                               ? $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') 
@@ -1745,20 +1734,6 @@
                             <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
                             <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
                           </select>
-                        </td>
-                        <!-- 查看详情 -->
-                        <td class="px-4 py-3 whitespace-nowrap">
-                          <a
-                            v-if="task.detail_url"
-                            :href="task.detail_url"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-primary hover:text-primary/80 hover:underline inline-flex items-center gap-1 text-xs whitespace-nowrap"
-                          >
-                            <span class="material-symbols-outlined text-sm flex-shrink-0">open_in_new</span>
-                            <span class="whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</span>
-                          </a>
-                          <span v-else class="text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">--</span>
                         </td>
                         <!-- 操作 -->
                         <td class="px-4 py-3 whitespace-nowrap">
@@ -1782,7 +1757,7 @@
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>

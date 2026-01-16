@@ -661,13 +661,6 @@
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
-        "progressSync": {
-          "priority": {
-            "normal": "普通",
-            "urgent": "紧急",
-            "veryUrgent": "非常紧急"
-          }
-        },
         "metrics": {
           "averageAttackTracingTime": "平均攻击溯源时间",
           "mttTracing": "MTT溯源",
@@ -687,7 +680,7 @@
             "confirmed": "已确认"
           },
           "progressSync": {
-            "title": "进展同步",
+            "title": "作战指令",
             "instructions": "指令",
             "progress": "进展",
             "statusLabel": "状态",
