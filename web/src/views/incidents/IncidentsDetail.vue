@@ -310,10 +310,10 @@
                         <button
                           type="button"
                           @click="unbindWarroom(warroomId)"
-                          class="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
                           :title="translateOr('incidents.detail.eventGraph.unbindWarroom', '解绑')"
                         >
-                          {{ translateOr('incidents.detail.eventGraph.unbind', '解绑') }}
+                          <span class="material-symbols-outlined text-base">link_off</span>
                         </button>
                       </div>
                       <!-- 该warroom的任务列表 -->
@@ -1022,6 +1022,22 @@
                   <div class="space-y-2 text-xs">
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.detail.category') }}
+                      </span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        {{
+                          $t(
+                            `incidents.create.category${
+                              incident?.category
+                                ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1)
+                                : 'Platform'
+                            }`
+                          )
+                        }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
                         {{ $t('incidents.detail.status') }}
                       </span>
                       <span class="col-span-2 flex items-center text-gray-900 dark:text-slate-100 font-medium">
@@ -1034,20 +1050,10 @@
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
-                        {{ $t('incidents.detail.severity') }}
+                        {{ $t('incidents.detail.createTime') }}
                       </span>
-                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
-                        <span
-                          v-if="incident?.severity"
-                          :class="[
-                            'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
-                            getRiskLevelClass(getIncidentRiskLevel(incident.severity))
-                          ]"
-                          :title="$t(`common.severity.${getIncidentRiskLevel(incident.severity)}`)"
-                        >
-                          {{ $t(`common.severity.${getIncidentRiskLevel(incident.severity)}`) }}
-                        </span>
-                        <span v-else>-</span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        {{ incident?.createTime ? formatDateTime(incident.createTime) : '-' }}
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -1068,33 +1074,84 @@
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
-                        {{ $t('incidents.detail.category') }}
+                        {{ $t('incidents.detail.actor') }}
                       </span>
                       <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
-                        {{
-                          $t(
-                            `incidents.create.category${
-                              incident?.category
-                                ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1)
-                                : 'Platform'
-                            }`
-                          )
-                        }}
+                        {{ incident?.actor || '-' }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.create.rootCause') }}
+                      </span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        <span v-if="incident?.rootCause">
+                          {{
+                            (() => {
+                              const rootCauseMap = {
+                                'exposedPort': 'incidents.create.rootCauseExposedPort',
+                                'weakPassword': 'incidents.create.rootCauseWeakPassword',
+                                'weakConfig': 'incidents.create.rootCauseInformationLeak',
+                                'unauthorizedApi': 'incidents.create.rootCauseUnauthorizedApi',
+                                'penetrationTest': 'incidents.create.rootCausePenetrationTest',
+                                'vulnerabilityExploit': 'incidents.create.rootCauseVulnerabilityExploit',
+                                'infringementComplaint': 'incidents.create.rootCauseInfringementComplaint'
+                              }
+                              const i18nKey = rootCauseMap[incident.rootCause]
+                              return i18nKey ? $t(i18nKey) : incident.rootCause
+                            })()
+                          }}
+                        </span>
+                        <span v-else>-</span>
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.detail.severity') }}
+                      </span>
+                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
+                        <span
+                          v-if="incident?.severity"
+                          :class="[
+                            'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
+                            getRiskLevelClass(getIncidentRiskLevel(incident.severity))
+                          ]"
+                          :title="$t(`common.severity.${getIncidentRiskLevel(incident.severity)}`)"
+                        >
+                          {{ $t(`common.severity.${getIncidentRiskLevel(incident.severity)}`) }}
+                        </span>
+                        <span v-else>-</span>
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <!-- 分割线：事件详情 与 受影响资产 之间（略微减弱暗色边框） -->
+                <!-- 分割线：事件详情 与 描述 之间 -->
+                <div
+                  v-if="incident?.description"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
+                ></div>
+
+                <!-- 描述 -->
+                <div v-if="incident?.description">
+                  <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
+                    {{ translateOr('incidents.detail.eventGraph.descriptionTitle', 'Description') }}
+                  </h4>
+                  <p class="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
+                    {{ incident.description }}
+                  </p>
+                </div>
+
+                <!-- 分割线：描述 与 关联实体 之间 -->
                 <div
                   v-if="topImpactedEntities.length"
                   class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
-                <!-- 受影响资产：图谱中关联度最高的实体 Top 5 -->
+                <!-- 关联实体：图谱中关联度最高的实体 Top 5 -->
                 <div v-if="topImpactedEntities.length">
                   <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
-                    {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
+                    {{ translateOr('incidents.detail.eventGraph.relatedEntitiesTitle', '关联实体') }}
                   </h4>
                   <ul class="space-y-1.5 text-xs">
                     <li
@@ -1115,22 +1172,6 @@
                       </span>
                     </li>
                   </ul>
-                </div>
-
-                <!-- 分割线：受影响资产 与 描述 之间 -->
-                <div
-                  v-if="incident?.description"
-                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
-                ></div>
-
-                <!-- 描述 -->
-                <div v-if="incident?.description">
-                  <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
-                    {{ translateOr('incidents.detail.eventGraph.descriptionTitle', 'Description') }}
-                  </h4>
-                  <p class="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
-                    {{ incident.description }}
-                  </p>
                 </div>
 
                 <!-- 标签 -->
@@ -1258,41 +1299,6 @@
               </div>
             </template>
           </DataTable>
-        </div>
-      </div>
-
-      <!-- Assets 标签页：受影响资产 -->
-      <div v-else-if="activeTab === 'assets'" class="flex flex-col gap-6">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl">
-          <div class="p-6 border-b border-gray-200 dark:border-slate-800">
-            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
-              {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
-            </h3>
-          </div>
-          <div class="p-6">
-            <div v-if="topImpactedEntities.length > 0" class="space-y-3">
-              <div
-                v-for="item in topImpactedEntities"
-                :key="item.id"
-                class="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
-              >
-                <div class="flex flex-col flex-1 min-w-0">
-                  <span class="text-gray-900 dark:text-white font-medium truncate">
-                    {{ item.label }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-slate-400 truncate mt-1">
-                    {{ item.type }}
-                  </span>
-                </div>
-                <span class="text-sm text-gray-600 dark:text-slate-300 ml-4 whitespace-nowrap">
-                  {{ translateOr('incidents.detail.eventGraph.degreeLabel', 'Relations') }}: {{ item.degree }}
-                </span>
-              </div>
-            </div>
-            <div v-else class="text-center py-12 text-gray-400 dark:text-slate-500">
-              {{ translateOr('common.noData', 'No data') }}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -4414,7 +4420,6 @@ watch(graphSearchQuery, () => {
 const tabs = [
   { key: 'alertStory', label: 'incidents.detail.tabs.alertStory' },
   { key: 'alerts', label: 'incidents.detail.tabs.alerts' },
-  { key: 'assets', label: 'incidents.detail.tabs.assets' },
   { key: 'evidenceResponse', label: 'incidents.detail.tabs.evidenceResponse' }
 ]
 

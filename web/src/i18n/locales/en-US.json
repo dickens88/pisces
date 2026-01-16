@@ -871,6 +871,8 @@
         "regenerateSuccess": "Graph regeneration started. Refresh later to view updates.",
         "regenerateError": "Failed to regenerate graph, please try again.",
         "lastGenerationTime": "Last Generation Time",
+        "entityCount": "Entity Count",
+        "relationCount": "Relation Count",
         "incidentCreated": "Correlation Seed Created",
         "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
         "alertConverted": "Alert Enriched in Graph",
@@ -932,7 +934,14 @@
         "viewMobileDetail": "Mobile View",
         "taskIdRequired": "Please select a task ID first",
         "collapseLeftPane": "Collapse panel",
-        "expandLeftPane": "Expand panel"
+        "expandLeftPane": "Expand panel",
+        "collapseRightPane": "Collapse information panel",
+        "expandRightPane": "Expand information panel",
+        "informationTitle": "Information",
+        "incidentInfoTitle": "Incident details",
+        "relatedEntitiesTitle": "Related entities",
+        "descriptionTitle": "Description",
+        "degreeLabel": "Relations"
       },
       "attackChain": {
         "title": "Attack Chain",
