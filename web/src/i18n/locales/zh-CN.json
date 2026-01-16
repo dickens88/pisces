@@ -140,10 +140,6 @@
     "aiPlayground": "AI实验场"
   },
   "aiPlayground": {
-    "detailedStats": {
-      "show": "显示详细统计",
-      "hide": "隐藏详细统计"
-    },
     "agentPerformance": {
       "title": "按模型统计 AI 表现",
       "subtitle": "基于当前时间范围与筛选条件",
@@ -308,6 +304,8 @@
       "responseTime": "TTA",
       "owner": "责任人",
       "actor": "调查员",
+      "description": "告警描述",
+      "closeReason": "关闭评论",
       "searchPlaceholder": "点击选择搜索字段，然后输入关键字...",
       "ownerSearchPlaceholder": "搜索责任人...",
       "actorSearchPlaceholder": "搜索调查员...",
@@ -601,7 +599,7 @@
       "selectRootCause": "请选择根因",
       "rootCauseExposedPort": "高危端口暴露",
       "rootCauseWeakPassword": "弱口令",
-      "rootCauseWeakConfig": "弱配置",
+      "rootCauseInformationLeak": "泄露泄露",
       "rootCauseUnauthorizedApi": "未授权接口",
       "rootCausePenetrationTest": "渗透测试",
       "rootCauseVulnerabilityExploit": "漏洞利用",
@@ -699,6 +697,7 @@
               "myCreated": "我创建的指令",
               "myPending": "待我处理的指令",
               "all": "全部指令",
+              "allTags": "全部标签",
               "other": "其他进展"
             },
             "createInstruction": "创建指令",
@@ -715,7 +714,9 @@
               "tag": "标签",
               "noTag": "无标签",
               "viewDetail": "查看详情",
-              "noPriority": "无"
+              "noPriority": "无",
+              "searchWarroom": "搜索项目...",
+              "selectedProject": "已选择"
             },
             "status": {
               "finished": "已完成",
@@ -726,7 +727,14 @@
               "urgent": "紧急",
               "veryUrgent": "非常紧急"
             },
-            "editTask": "编辑任务"
+            "editTask": "编辑任务",
+            "createTask": "创建任务",
+            "createTaskSuccess": "任务创建成功",
+            "createTaskError": "创建任务失败",
+            "updateTaskSuccess": "任务更新成功",
+            "updateTaskError": "更新任务失败",
+            "note": "备注",
+            "notePlaceholder": "请输入备注"
           },
           "incidentBrief": {
             "title": "事件简报",

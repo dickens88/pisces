@@ -919,9 +919,11 @@ const searchContainerRef = ref(null)
 
 const searchFields = computed(() => [
   { value: 'title', label: t('alerts.list.alertTitle'), icon: 'title' },
+  { value: 'description', label: t('alerts.list.description'), icon: 'description' },
+  { value: 'close_comment', label: t('alerts.list.closeReason'), icon: 'check_circle' },
   { value: 'id', label: t('alerts.list.alertId'), icon: 'tag' },
   { value: 'creator', label: t('alerts.list.owner'), icon: 'person' },
-  { value: 'actor', label: t('alerts.list.actor'), icon: 'person_search' }
+  { value: 'actor', label: t('alerts.list.actor'), icon: 'person_search' },
 ])
 
 const getFieldLabel = (field) => {

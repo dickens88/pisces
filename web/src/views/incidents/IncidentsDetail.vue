@@ -318,7 +318,7 @@
                       </div>
                       <!-- 该warroom的任务列表 -->
                       <div class="space-y-0">
-                        <template v-if="Array.isArray(warroomDetail)">
+                        <template v-if="Array.isArray(warroomDetail) && warroomDetail.length > 0">
                           <div
                             v-for="(task, index) in warroomDetail"
                             :key="index"
@@ -374,7 +374,7 @@
                             </div>
                           </div>
                         </template>
-                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list)">
+                        <template v-else-if="warroomDetail.task_list && Array.isArray(warroomDetail.task_list) && warroomDetail.task_list.length > 0">
                           <div
                             v-for="(task, index) in warroomDetail.task_list"
                             :key="index"
@@ -1415,34 +1415,6 @@
 
           <!-- 三个统计卡片 -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <!-- 影响服务卡片 -->
-            <button 
-              @click="activeCardTab = 'impactedServices'"
-              :class="[
-                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
-                activeCardTab === 'impactedServices'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
-                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
-              ]">
-              <div class="flex items-start gap-4">
-                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
-                  <span class="material-symbols-outlined text-2xl">warning</span>
-                </div>
-                <div>
-                  <h3 :class="[
-                    'font-bold text-lg',
-                    activeCardTab === 'impactedServices' 
-                      ? 'text-primary dark:text-blue-400' 
-                      : 'text-slate-900 dark:text-white'
-                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
-                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
-                  </p>
-                </div>
-              </div>
-              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
-            </button>
-
             <!-- 进展同步卡片 -->
             <button 
               @click="activeCardTab = 'progressSync'"
@@ -1469,6 +1441,34 @@
                 </div>
               </div>
               <div v-if="activeCardTab === 'progressSync'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-emerald-50 dark:bg-[#152342] border-r border-b border-emerald-500 transform rotate-45"></div>
+            </button>
+
+            <!-- 影响服务卡片 -->
+            <button 
+              @click="activeCardTab = 'impactedServices'"
+              :class="[
+                'text-left rounded-lg p-5 relative group shadow-sm hover:shadow-md transition-all focus:outline-none cursor-pointer',
+                activeCardTab === 'impactedServices'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border border-primary'
+                  : 'bg-white dark:bg-surface-dark border border-gray-200 dark:border-border-dark hover:border-slate-400 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-surface-hover-dark'
+              ]">
+              <div class="flex items-start gap-4">
+                <div class="p-3 bg-yellow-400/20 rounded-full text-yellow-600 dark:text-yellow-400 flex-shrink-0">
+                  <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <div>
+                  <h3 :class="[
+                    'font-bold text-lg',
+                    activeCardTab === 'impactedServices' 
+                      ? 'text-primary dark:text-blue-400' 
+                      : 'text-slate-900 dark:text-white'
+                  ]">{{ $t('incidents.detail.evidenceResponse.cards.impactedServices.title') }}</h3>
+                  <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    改进措施个数 {{ impactedServicesStats.total }} | 已完成 {{ impactedServicesStats.completed }} | 未完成 {{ impactedServicesStats.uncompleted }}
+                  </p>
+                </div>
+              </div>
+              <div v-if="activeCardTab === 'impactedServices'" class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-blue-50 dark:bg-[#152342] border-r border-b border-primary transform rotate-45"></div>
             </button>
 
             <!-- 事件简报卡片 -->
@@ -1593,7 +1593,7 @@
           <!-- 进展同步内容 -->
           <template v-if="activeCardTab === 'progressSync'">
             <!-- 功能键 -->
-            <div class="flex gap-2 mb-4 flex-wrap">
+            <div class="flex gap-2 mb-4 flex-wrap items-center">
               <button 
                 @click="progressSyncFilterType = 'myCreated'"
                 :class="[
@@ -1624,9 +1624,23 @@
                 ]">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
               </button>
+              <!-- 标签过滤 -->
+              <div class="flex items-center gap-2 ml-2">
+                <span class="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}:</span>
+                <select
+                  v-model="progressSyncTagFilter"
+                  class="px-3 py-1.5 text-sm border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                >
+                  <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.allTags', '全部标签') }}</option>
+                  <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
+                  <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
+                  <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
+                  <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
+                </select>
+              </div>
               <button 
                 @click="createNewTask"
-                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors">
+                class="px-4 py-1.5 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors ml-auto">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.createInstruction', '创建指令') }}
               </button>
             </div>
@@ -1948,6 +1962,57 @@
         </div>
         
         <div class="space-y-4">
+          <!-- 项目选择（仅在创建新任务时显示） -->
+          <div v-if="!editingTask">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}
+              <span class="text-red-500">*</span>
+            </label>
+            <div class="relative" ref="taskProjectDropdownRef">
+              <input
+                v-model="warroomSearchKeyword"
+                @input="handleWarroomSearch"
+                @focus="showTaskProjectDropdown = true"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+                :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.searchWarroom', '搜索项目...')"
+              />
+              <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 pointer-events-none">
+                {{ showTaskProjectDropdown ? 'expand_less' : 'expand_more' }}
+              </span>
+              <!-- 下拉选择列表 -->
+              <div
+                v-if="showTaskProjectDropdown"
+                class="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                @mousedown.prevent
+              >
+                <!-- 加载状态 -->
+                <div v-if="loadingProjectList" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                  {{ translateOr('incidents.detail.eventGraph.loading', '加载中...') }}
+                </div>
+                <!-- 无结果提示 -->
+                <div v-else-if="!loadingProjectList && projectOptions.length === 0" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-slate-400">
+                  {{ translateOr('incidents.detail.eventGraph.noWarroomFound', '未找到匹配的项目') }}
+                </div>
+                <!-- 选项列表 -->
+                <div
+                  v-for="option in projectOptions"
+                  :key="option.value"
+                  @click.stop="selectTaskProject(option.value, option.label)"
+                  :class="[
+                    'px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer',
+                    taskEditForm.project_uuid === option.value ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  ]"
+                >
+                  {{ option.label }}
+                </div>
+              </div>
+            </div>
+            <div v-if="taskEditForm.project_uuid" class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.selectedProject', '已选择') }}: {{ taskEditForm.project_name }}
+            </div>
+          </div>
+          
           <!-- 任务名称 -->
           <div>
             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -2026,6 +2091,19 @@
               <option :value="false">{{ $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}</option>
               <option :value="true">{{ $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') }}</option>
             </select>
+          </div>
+          
+          <!-- 备注（仅在进展同步中显示） -->
+          <div v-if="activeCardTab === 'progressSync'">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              {{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.note', '备注') }}
+            </label>
+            <textarea
+              v-model="taskEditForm.note"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
+              :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.notePlaceholder', '请输入备注')"
+            ></textarea>
           </div>
         </div>
         
@@ -2472,7 +2550,7 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { getIncidentDetail, postComment, regenerateIncidentGraph, disassociateAlertsFromIncident, updateIncidentTask, getImpactedServices, createImpactedService, updateImpactedService, deleteImpactedService, getIncidentBriefs, createIncidentBrief, updateIncidentBrief, deleteIncidentBrief } from '@/api/incidents'
 import { updateComment, deleteComment, getComments } from '@/api/comments'
-import { getProjectList, getTaskDetail } from '@/api/securityAgent'
+import { getProjectList, getTaskDetail, createGroup, modifyTask, createTask } from '@/api/securityAgent'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import EditIncidentDialog from '@/components/incidents/EditIncidentDialog.vue'
 import CloseIncidentDialog from '@/components/incidents/CloseIncidentDialog.vue'
@@ -4150,6 +4228,9 @@ const handleOpenAISidebar = () => {
 }
 
 onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', closeTaskProjectDropdown)
+  }
   window.removeEventListener('pointermove', handleNodeDetailResize)
   window.removeEventListener('pointerup', stopNodeDetailResize)
   if (typeof window !== 'undefined') {
@@ -4446,10 +4527,12 @@ watch([timelinePageSize, associatedAlertsTimeline], () => {
 const isLeftPaneCollapsed = ref(false)
 // 左侧面板标签切换：默认显示任务管理
 const leftPaneActiveTab = ref('taskManagement')
-// 证据与响应卡片切换：默认显示影响服务
-const activeCardTab = ref('impactedServices')
+// 证据与响应卡片切换：默认显示进展同步
+const activeCardTab = ref('progressSync')
 // 进展同步指令筛选类型
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
+// 进展同步标签筛选
+const progressSyncTagFilter = ref('') // ''表示全部，'attackTracing', 'attackBlocking', 'riskMitigation', 'vulnerabilityIdentification'
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4466,8 +4549,14 @@ const taskEditForm = ref({
   start_time: '',
   end_time: '',
   priority: '',
-  isDone: false
+  isDone: false,
+  note: '', // 备注字段（仅在进展同步中使用）
+  project_uuid: '', // 项目UUID（仅在创建新任务时使用）
+  project_name: '' // 项目名称（用于显示）
 })
+// 任务项目选择相关状态（复用WR任务管理的项目选择逻辑）
+const showTaskProjectDropdown = ref(false)
+const taskProjectDropdownRef = ref(null)
 // 事件通报/简报相关状态
 const incidentNotifications = ref([]) // 事件通报列表
 const showAddNotificationDialog = ref(false) // 显示新增通报对话框
@@ -4541,21 +4630,29 @@ const allProgressSyncTasks = computed(() => {
     
     // 处理数组格式的任务列表
     if (Array.isArray(warroomDetail)) {
-      warroomDetail.forEach(task => {
+      warroomDetail.forEach((task, index) => {
+        const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+        // 优先使用taskTags中存储的tag，其次从group_name转换，最后使用task.tag
+        const tag = taskTags.value[uniqueId] || (task.group_name ? getGroupNameTag(task.group_name) : '') || task.tag || ''
         tasks.push({
           ...task,
           warroomId: warroomId,
-          warroomName: warroomName
+          warroomName: warroomName,
+          tag: tag
         })
       })
     } 
     // 处理对象格式，包含 task_list 数组
     else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
-      warroomDetail.task_list.forEach(task => {
+      warroomDetail.task_list.forEach((task, index) => {
+        const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+        // 优先使用taskTags中存储的tag，其次从group_name转换，最后使用task.tag
+        const tag = taskTags.value[uniqueId] || (task.group_name ? getGroupNameTag(task.group_name) : '') || task.tag || ''
         tasks.push({
           ...task,
           warroomId: warroomId,
-          warroomName: warroomName
+          warroomName: warroomName,
+          tag: tag
         })
       })
     }
@@ -4572,10 +4669,12 @@ const filteredProgressSyncTasks = computed(() => {
   // 为每个任务添加标签和唯一ID
   const tasksWithTags = tasks.map((task, index) => {
     const uniqueId = getTaskUniqueId(task, index)
+    // 优先使用taskTags中存储的tag，其次使用task.tag，最后从group_name转换
+    const tag = taskTags.value[uniqueId] || task.tag || (task.group_name ? getGroupNameTag(task.group_name) : '') || ''
     return {
       ...task,
       uniqueId: uniqueId,
-      tag: taskTags.value[uniqueId] || task.tag || '' // 优先使用存储的标签，其次使用任务本身的标签
+      tag: tag
     }
   })
   
@@ -4606,6 +4705,11 @@ const filteredProgressSyncTasks = computed(() => {
       break
     default:
       filtered = tasksWithTags
+  }
+  
+  // 根据标签过滤
+  if (progressSyncTagFilter.value) {
+    filtered = filtered.filter(task => task.tag === progressSyncTagFilter.value)
   }
   
   return filtered
@@ -4736,8 +4840,32 @@ const cancelEditTask = () => {
   editingTaskValue.value = ''
 }
 
+// 标签值到中文名称的映射
+const getTagGroupName = (tagValue) => {
+  const tagMap = {
+    'attackTracing': '攻击溯源',
+    'attackBlocking': '攻击拦截',
+    'riskMitigation': '风险消减',
+    'vulnerabilityIdentification': '漏洞定位'
+  }
+  return tagMap[tagValue] || tagValue
+}
+
+// 中文名称到标签值的反向映射（用于从group_name转换为tag）
+const getGroupNameTag = (groupName) => {
+  if (!groupName) return ''
+  const groupNameMap = {
+    '攻击溯源': 'attackTracing',
+    '攻击拦截': 'attackBlocking',
+    '风险消减': 'riskMitigation',
+    '漏洞定位': 'vulnerabilityIdentification',
+    '默认分组': '' // 默认分组对应空标签
+  }
+  return groupNameMap[groupName] || ''
+}
+
 // 保存任务字段
-const saveTaskField = (taskUniqueId, field, value) => {
+const saveTaskField = async (taskUniqueId, field, value) => {
   // 找到对应的任务并更新
   const taskIndex = filteredProgressSyncTasks.value.findIndex(task => task.uniqueId === taskUniqueId)
   if (taskIndex === -1) return
@@ -4761,8 +4889,71 @@ const saveTaskField = (taskUniqueId, field, value) => {
     task.tag = value || ''
     // 重新计算指标
     calculateMetricsFromTasks(filteredProgressSyncTasks.value)
+    
+    // 如果是在进展同步中修改标签，需要调用dify API
+    if (activeCardTab.value === 'progressSync' && task.warroomId && task.task_id) {
+      try {
+        // 如果标签不为空，先创建group
+        if (value) {
+          const groupName = getTagGroupName(value)
+          const createGroupResult = await createGroup({
+            project_uuid: task.warroomId,
+            group_name: groupName
+          })
+          
+          // 创建group成功后，调用modifyTask修改task的group_name
+          if (createGroupResult && createGroupResult.status === 'success') {
+            await modifyTask({
+              project_uuid: task.warroomId,
+              task_id: task.task_id,
+              group_name: groupName
+            })
+          }
+        } else {
+          // 如果标签为空，设置group_name为"默认分组"
+          await modifyTask({
+            project_uuid: task.warroomId,
+            task_id: task.task_id,
+            group_name: '默认分组'
+          })
+        }
+      } catch (error) {
+        console.error('Failed to update task tag via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTagError', '更新任务标签失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
   } else {
     task[field] = value
+  }
+  
+  // 如果修改了其他字段（非标签），且是在进展同步中，调用modifyTask
+  if (field !== 'tag' && activeCardTab.value === 'progressSync' && task.warroomId && task.task_id) {
+    try {
+      const modifyParams = {
+        project_uuid: task.warroomId,
+        task_id: task.task_id
+      }
+      
+      // 根据字段类型添加相应的参数
+      if (field === 'task_name') {
+        modifyParams.task_name = value
+      } else if (field === 'owner') {
+        modifyParams.owner = value
+      } else if (field === 'priority') {
+        modifyParams.priority = value !== '' ? value : null
+      } else if (field === 'isDone') {
+        modifyParams.status = value ? '已完成' : '待处理'
+      } else if (field === 'start_time') {
+        modifyParams.start_time = value
+      } else if (field === 'end_time') {
+        modifyParams.end_time = value
+      }
+      
+      await modifyTask(modifyParams)
+    } catch (error) {
+      console.error('Failed to update task field via dify API:', error)
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+    }
   }
   
   // 同步更新到groupedTaskDetails
@@ -4854,7 +5045,8 @@ const openTaskEditDialog = (task, index) => {
     start_time: formatTaskDateTimeForInput(task.start_time),
     end_time: formatTaskDateTimeForInput(task.end_time),
     priority: priorityValue,
-    isDone: isTaskCompleted(task)
+    isDone: isTaskCompleted(task),
+    note: task.note || task.notes || '' // 备注字段
   }
   
   showTaskEditDialog.value = true
@@ -4871,27 +5063,51 @@ const closeTaskEditDialog = () => {
     start_time: '',
     end_time: '',
     priority: '',
-    isDone: false
+    isDone: false,
+    note: '',
+    project_uuid: '',
+    project_name: ''
   }
+  // 重置项目选择相关状态
+  warroomSearchKeyword.value = ''
+  showTaskProjectDropdown.value = false
 }
 
 // 创建新任务
 const createNewTask = () => {
-  editingTask.value = null
-  editingTaskIdx.value = -1
-  taskEditForm.value = {
-    task_name: '',
-    owner: '',
-    start_time: '',
-    end_time: '',
-    priority: '',
-    isDone: false
+  try {
+    editingTask.value = null
+    editingTaskIdx.value = -1
+    taskEditForm.value = {
+      task_name: '',
+      owner: '',
+      start_time: '',
+      end_time: '',
+      priority: '',
+      isDone: false,
+      note: '',
+      project_uuid: '',
+      project_name: ''
+    }
+    // 重置项目选择相关状态
+    warroomSearchKeyword.value = ''
+    showTaskProjectDropdown.value = false
+    // 显示对话框（先显示对话框，再加载项目列表，确保用户能看到对话框）
+    showTaskEditDialog.value = true
+    // 加载项目列表（复用WR任务管理的逻辑，异步加载，不阻塞对话框显示）
+    loadProjectList('warroom').catch((error) => {
+      console.error('Failed to load project list when creating task:', error)
+      // 即使加载失败，对话框也应该显示
+    })
+  } catch (error) {
+    console.error('Error in createNewTask:', error)
+    // 即使出错，也尝试显示对话框
+    showTaskEditDialog.value = true
   }
-  showTaskEditDialog.value = true
 }
 
 // 保存任务编辑
-const saveTaskEdit = () => {
+const saveTaskEdit = async () => {
   if (!taskEditForm.value.task_name) {
     toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') + ' ' + t('common.warning'))
     return
@@ -4905,6 +5121,11 @@ const saveTaskEdit = () => {
     end_time: taskEditForm.value.end_time ? new Date(taskEditForm.value.end_time).toISOString() : null,
     priority: taskEditForm.value.priority !== '' ? taskEditForm.value.priority : null,
     isDone: taskEditForm.value.isDone || false
+  }
+  
+  // 如果是进展同步，添加note字段
+  if (activeCardTab.value === 'progressSync') {
+    taskData.note = taskEditForm.value.note || ''
   }
   
   if (editingTask.value) {
@@ -4925,23 +5146,113 @@ const saveTaskEdit = () => {
     
     // 同步更新到groupedTaskDetails
     updateTaskInGroupedDetails(updatedTask)
+    
+    // 如果是在进展同步中编辑任务，且任务有warroomId和task_id，调用modifyTask
+    if (activeCardTab.value === 'progressSync' && updatedTask.warroomId && updatedTask.task_id) {
+      try {
+        const modifyParams = {
+          project_uuid: updatedTask.warroomId,
+          task_id: updatedTask.task_id,
+          task_name: updatedTask.task_name,
+          owner: updatedTask.owner || '',
+          priority: updatedTask.priority !== null && updatedTask.priority !== undefined ? updatedTask.priority : null,
+          status: updatedTask.isDone ? '已完成' : '待处理',
+          start_time: updatedTask.start_time || null,
+          end_time: updatedTask.end_time || null,
+          notes: updatedTask.note || '' // 进展同步里加上note
+        }
+        
+        await modifyTask(modifyParams)
+        toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskSuccess', '任务更新成功'))
+      } catch (error) {
+        console.error('Failed to update task via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
+    // 如果是在WR管理中编辑任务，且任务有warroomId和task_id，调用modifyTask（不加note）
+    else if (leftPaneActiveTab.value === 'taskManagement' && updatedTask.warroomId && updatedTask.task_id) {
+      try {
+        const modifyParams = {
+          project_uuid: updatedTask.warroomId,
+          task_id: updatedTask.task_id,
+          task_name: updatedTask.task_name,
+          owner: updatedTask.owner || '',
+          priority: updatedTask.priority !== null && updatedTask.priority !== undefined ? updatedTask.priority : null,
+          status: updatedTask.isDone ? '已完成' : '待处理',
+          start_time: updatedTask.start_time || null,
+          end_time: updatedTask.end_time || null
+          // WR管理task详情不用加note
+        }
+        
+        await modifyTask(modifyParams)
+        toast.success(translateOr('incidents.detail.eventGraph.updateTaskSuccess', '任务更新成功'))
+      } catch (error) {
+        console.error('Failed to update task via dify API:', error)
+        toast.error(translateOr('incidents.detail.eventGraph.updateTaskError', '更新任务失败') + ': ' + (error?.message || 'Unknown error'))
+      }
+    }
   } else {
     // 创建新任务
-    // 获取第一个 warroom 或默认 warroom
-    const warroomIds = Object.keys(groupedTaskDetails.value)
-    if (warroomIds.length === 0) {
-      toast.error('请先绑定 Warroom')
+    // 验证必需参数
+    if (!taskEditForm.value.project_uuid) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') + ' ' + t('common.warning'))
       return
     }
     
-    const defaultWarroomId = warroomIds[0]
-    const warroomName = getWarroomName(defaultWarroomId)
+    if (!taskEditForm.value.owner) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (!taskEditForm.value.start_time) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (!taskEditForm.value.end_time) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') + ' ' + t('common.warning'))
+      return
+    }
+    
+    if (taskEditForm.value.priority === '' || taskEditForm.value.priority === null || taskEditForm.value.priority === undefined) {
+      toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') + ' ' + t('common.warning'))
+      return
+    }
+    
+    // 获取 group_name，如果没有 tag，使用"默认分组"
+    let groupName = '默认分组'
+    // 尝试从新任务的 tag 获取 group_name（如果有的话）
+    // 注意：新任务可能还没有 tag，所以使用默认值
+    
+    // 如果是进展同步，调用 createTask API
+    if (activeCardTab.value === 'progressSync') {
+      try {
+        const createParams = {
+          project_uuid: taskEditForm.value.project_uuid,
+          task_name: taskEditForm.value.task_name,
+          priority: taskEditForm.value.priority,
+          start_time: new Date(taskEditForm.value.start_time).toISOString(),
+          end_time: new Date(taskEditForm.value.end_time).toISOString(),
+          group_name: groupName,
+          owner: taskEditForm.value.owner,
+          notes: taskEditForm.value.note || ''
+        }
+        
+        await createTask(createParams)
+        toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
+      } catch (error) {
+        console.error('Failed to create task via dify API:', error)
+        toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': ' + (error?.message || 'Unknown error'))
+        return
+      }
+    }
     
     // 创建新任务对象
+    const selectedProjectName = taskEditForm.value.project_name || getWarroomName(taskEditForm.value.project_uuid)
     const newTask = {
       ...taskData,
-      warroomId: defaultWarroomId,
-      warroomName: warroomName,
+      warroomId: taskEditForm.value.project_uuid,
+      warroomName: selectedProjectName,
       uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     }
     
@@ -4949,21 +5260,22 @@ const saveTaskEdit = () => {
     filteredProgressSyncTasks.value.push(newTask)
     
     // 添加到 groupedTaskDetails
-    if (!groupedTaskDetails.value[defaultWarroomId]) {
-      groupedTaskDetails.value[defaultWarroomId] = []
+    if (!groupedTaskDetails.value[taskEditForm.value.project_uuid]) {
+      groupedTaskDetails.value[taskEditForm.value.project_uuid] = []
     }
     
-    const warroomDetail = groupedTaskDetails.value[defaultWarroomId]
+    const warroomDetail = groupedTaskDetails.value[taskEditForm.value.project_uuid]
     if (Array.isArray(warroomDetail)) {
       warroomDetail.push(newTask)
     } else if (warroomDetail && Array.isArray(warroomDetail.task_list)) {
       warroomDetail.task_list.push(newTask)
     } else {
-      groupedTaskDetails.value[defaultWarroomId] = [newTask]
+      groupedTaskDetails.value[taskEditForm.value.project_uuid] = [newTask]
     }
     
-    toast.success(t('common.operationSuccess'))
-    // TODO: 调用后端API创建
+    if (activeCardTab.value !== 'progressSync') {
+      toast.success(t('common.operationSuccess'))
+    }
   }
   
   // 重新计算指标
@@ -4971,6 +5283,30 @@ const saveTaskEdit = () => {
   
   // 关闭对话框
   closeTaskEditDialog()
+}
+
+// 选择任务项目（用于创建任务时的项目选择，复用WR任务管理的项目列表）
+const selectTaskProject = (projectUuid, projectName) => {
+  taskEditForm.value.project_uuid = projectUuid
+  taskEditForm.value.project_name = projectName
+  showTaskProjectDropdown.value = false
+}
+
+// 点击外部关闭任务项目下拉框
+const closeTaskProjectDropdown = (event) => {
+  // 如果点击的是WR任务管理的下拉框，不处理（由 closeTaskIdDropdown 处理）
+  if (taskIdDropdownRef.value && taskIdDropdownRef.value.contains(event.target)) {
+    return
+  }
+  // 如果点击的是任务项目下拉框内部，不关闭
+  if (taskProjectDropdownRef.value && taskProjectDropdownRef.value.contains(event.target)) {
+    return
+  }
+  showTaskProjectDropdown.value = false
+  // 如果WR任务管理的下拉框也没有打开，清空搜索关键字
+  if (!showTaskIdDropdown.value) {
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 删除进展同步任务
@@ -6227,13 +6563,19 @@ const toggleTaskIdDropdown = () => {
 
 // 关闭任务ID下拉框
 const closeTaskIdDropdown = (event) => {
+  // 如果点击的是任务项目下拉框，不处理（由 closeTaskProjectDropdown 处理）
+  if (taskProjectDropdownRef.value && taskProjectDropdownRef.value.contains(event.target)) {
+    return
+  }
   // 如果点击的是下拉框内部，不关闭
   if (taskIdDropdownRef.value && taskIdDropdownRef.value.contains(event.target)) {
     return
   }
   showTaskIdDropdown.value = false
-  // 关闭下拉框时，清空搜索关键字
-  warroomSearchKeyword.value = ''
+  // 如果任务项目下拉框也没有打开，清空搜索关键字
+  if (!showTaskProjectDropdown.value) {
+    warroomSearchKeyword.value = ''
+  }
 }
 
 // 将当前warroom IDs写入本地数据库（与事件绑定）
@@ -6288,17 +6630,54 @@ const loadWarroomDetailsOnly = async () => {
 
     const results = await Promise.all(taskDetailPromises)
     
+    // 调试日志
+    console.log('getTaskDetail results:', results)
+    
     // 按warroom ID分组存储任务详情
     const grouped = {}
     results.forEach(({ warroomId, taskDetail, error }) => {
       if (error) {
         grouped[warroomId] = { error }
       } else {
+        console.log(`Task detail for warroom ${warroomId}:`, taskDetail)
         grouped[warroomId] = taskDetail
       }
     })
 
+    console.log('groupedTaskDetails:', grouped)
     groupedTaskDetails.value = grouped
+    
+    // 处理任务中的group_name，将其转换为tag并设置到taskTags中
+    Object.keys(grouped).forEach(warroomId => {
+      const warroomDetail = grouped[warroomId]
+      if (!warroomDetail || warroomDetail.error) return
+      
+      // 处理数组格式的任务列表
+      if (Array.isArray(warroomDetail)) {
+        warroomDetail.forEach((task, index) => {
+          if (task.group_name) {
+            const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+            const tag = getGroupNameTag(task.group_name)
+            if (tag !== undefined) {
+              taskTags.value[uniqueId] = tag
+            }
+          }
+        })
+      }
+      // 处理对象格式，包含 task_list 数组
+      else if (warroomDetail.task_list && Array.isArray(warroomDetail.task_list)) {
+        warroomDetail.task_list.forEach((task, index) => {
+          if (task.group_name) {
+            const uniqueId = getTaskUniqueId({ ...task, warroomId }, index)
+            const tag = getGroupNameTag(task.group_name)
+            if (tag !== undefined) {
+              taskTags.value[uniqueId] = tag
+            }
+          }
+        })
+      }
+    })
+    
     taskDetailLoaded.value = true
   } catch (error) {
     console.error('Failed to load warroom task details:', error)
@@ -6590,6 +6969,7 @@ onMounted(() => {
     syncGraphFullscreenState()
     // 添加点击外部区域关闭下拉框的事件监听
     document.addEventListener('click', closeTaskIdDropdown)
+    document.addEventListener('click', closeTaskProjectDropdown)
   }
   // 监听Header发出的打开AI侧边栏事件
   window.addEventListener('open-ai-sidebar', handleOpenAISidebar)
