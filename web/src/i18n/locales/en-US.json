@@ -739,7 +739,7 @@
             "bulletin": "Bulletin",
             "notificationTable": {
               "title": "Incident Notifications/Briefs",
-              "addNotification": "Add Notification",
+              "add": "Add",
               "columns": {
                 "notificationEvent": "Notification Event",
                 "notificationType": "Notification Type",
@@ -764,7 +764,6 @@
           "servicesNotExported": "services impact not exported",
           "updateTime": "Update Time",
           "add": "Add",
-          "batchAdd": "Batch Add",
           "columns": {
             "service": "Service",
             "measure": "Measure",
