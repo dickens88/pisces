@@ -1607,19 +1607,48 @@
                 ]">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
               </button>
-              <!-- 标签过滤 -->
-              <div class="flex items-center gap-2 ml-2">
-                <span class="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}:</span>
-                <select
-                  v-model="progressSyncTagFilter"
-                  class="px-3 py-1.5 text-sm border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                >
-                  <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.allTags', '全部标签') }}</option>
-                  <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
-                  <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
-                  <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
-                  <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
-                </select>
+              <!-- 筛选器行 -->
+              <div class="flex items-center gap-3 ml-2">
+                <!-- Warroom筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncWarroomFilter"
+                    clear-value="all"
+                  >
+                    <option value="all">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</option>
+                    <option
+                      v-for="warroom in availableWarrooms"
+                      :key="warroom.value"
+                      :value="warroom.value"
+                    >
+                      {{ warroom.label }}
+                    </option>
+                  </ClearableSelect>
+                </div>
+                <!-- 完成状态筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncStatusFilter"
+                    clear-value="all"
+                  >
+                    <option value="all">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</option>
+                    <option value="finished">{{ $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') }}</option>
+                    <option value="unfinished">{{ $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}</option>
+                  </ClearableSelect>
+                </div>
+                <!-- 标签筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncTagFilter"
+                    clear-value=""
+                  >
+                    <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</option>
+                    <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
+                    <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
+                    <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
+                    <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
+                  </ClearableSelect>
+                </div>
               </div>
               <button 
                 @click="createNewTask"
@@ -1637,8 +1666,46 @@
                       <th class="px-4 py-3 w-28">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
                       <th class="px-4 py-3 max-w-[280px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
                       <th class="px-4 py-3 w-24">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
-                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
-                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
+                      <th class="px-4 py-3 w-36">
+                        <div class="flex items-center gap-2">
+                          <span>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</span>
+                          <button
+                            @click="handleSort('start_time')"
+                            class="flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            :title="$t('common.sort')"
+                          >
+                            <span
+                              class="material-symbols-outlined text-sm"
+                              :class="{
+                                'text-primary': sortColumn.value === 'start_time',
+                                'opacity-50': sortColumn.value !== 'start_time'
+                              }"
+                            >
+                              {{ sortColumn.value === 'start_time' && sortOrder.value === 'asc' ? 'arrow_upward' : sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'arrow_downward' : 'swap_vert' }}
+                            </span>
+                          </button>
+                        </div>
+                      </th>
+                      <th class="px-4 py-3 w-36">
+                        <div class="flex items-center gap-2">
+                          <span>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</span>
+                          <button
+                            @click="handleSort('end_time')"
+                            class="flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            :title="$t('common.sort')"
+                          >
+                            <span
+                              class="material-symbols-outlined text-sm"
+                              :class="{
+                                'text-primary': sortColumn.value === 'end_time',
+                                'opacity-50': sortColumn.value !== 'end_time'
+                              }"
+                            >
+                              {{ sortColumn.value === 'end_time' && sortOrder.value === 'asc' ? 'arrow_upward' : sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'arrow_downward' : 'swap_vert' }}
+                            </span>
+                          </button>
+                        </div>
+                      </th>
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
                       <th class="px-4 py-3 min-w-[120px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
@@ -2516,6 +2583,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
+import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { severityToNumber } from '@/utils/severity'
@@ -4490,6 +4558,13 @@ const activeCardTab = ref('progressSync')
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
 // 进展同步标签筛选
 const progressSyncTagFilter = ref('') // ''表示全部，'attackTracing', 'attackBlocking', 'riskMitigation', 'vulnerabilityIdentification'
+// 完成状态筛选
+const progressSyncStatusFilter = ref('all') // 'all', 'finished', 'unfinished'
+// Warroom筛选
+const progressSyncWarroomFilter = ref('all') // 'all' 或具体的warroomId
+// 排序相关
+const sortColumn = ref('') // 'start_time', 'end_time', ''
+const sortOrder = ref('asc') // 'asc', 'desc'
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4571,6 +4646,24 @@ const selectedTaskName = computed(() => {
   }
   const selectedOption = projectOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
+})
+
+// 获取所有warroom列表，用于筛选器
+const availableWarrooms = computed(() => {
+  const warrooms = []
+  if (!groupedTaskDetails.value || Object.keys(groupedTaskDetails.value).length === 0) {
+    return warrooms
+  }
+  
+  Object.keys(groupedTaskDetails.value).forEach(warroomId => {
+    const warroomName = getWarroomName(warroomId)
+    warrooms.push({
+      value: warroomId,
+      label: warroomName
+    })
+  })
+  
+  return warrooms
 })
 
 // 从 groupedTaskDetails 中提取所有任务项，用于进展同步表格
@@ -4669,6 +4762,42 @@ const filteredProgressSyncTasks = computed(() => {
     filtered = filtered.filter(task => task.tag === progressSyncTagFilter.value)
   }
   
+  // 根据完成状态过滤
+  if (progressSyncStatusFilter.value !== 'all') {
+    filtered = filtered.filter(task => {
+      const isCompleted = isTaskCompleted(task)
+      if (progressSyncStatusFilter.value === 'finished') {
+        return isCompleted
+      } else if (progressSyncStatusFilter.value === 'unfinished') {
+        return !isCompleted
+      }
+      return true
+    })
+  }
+  
+  // 根据Warroom过滤
+  if (progressSyncWarroomFilter.value !== 'all') {
+    filtered = filtered.filter(task => task.warroomId === progressSyncWarroomFilter.value)
+  }
+  
+  // 排序
+  if (sortColumn.value) {
+    filtered = [...filtered].sort((a, b) => {
+      let aValue = a[sortColumn.value]
+      let bValue = b[sortColumn.value]
+      
+      // 处理时间字段
+      if (sortColumn.value === 'start_time' || sortColumn.value === 'end_time') {
+        aValue = aValue ? new Date(aValue).getTime() : 0
+        bValue = bValue ? new Date(bValue).getTime() : 0
+      }
+      
+      if (aValue === bValue) return 0
+      const comparison = aValue > bValue ? 1 : -1
+      return sortOrder.value === 'asc' ? comparison : -comparison
+    })
+  }
+  
   return filtered
 })
 
@@ -4736,6 +4865,18 @@ const progressSyncMetrics = computed(() => {
 const getTaskUniqueId = (task, index) => {
   // 使用warroomId + task_name + index 作为唯一标识
   return `${task.warroomId || 'unknown'}_${task.task_name || 'task'}_${index}`
+}
+
+// 处理排序
+const handleSort = (column) => {
+  if (sortColumn.value === column) {
+    // 如果点击的是当前排序列，切换排序顺序
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // 如果点击的是新列，设置为升序
+    sortColumn.value = column
+    sortOrder.value = 'asc'
+  }
 }
 
 // 判断任务是否已完成（支持多种状态字段和格式）
