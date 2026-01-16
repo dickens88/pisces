@@ -15,7 +15,7 @@
     "close": "关闭",
     "loading": "加载中...",
     "noComments": "暂无评论",
-    "addComment": "请输入文本，可以按crtl+v粘贴图片...",
+    "addComment": "添加评论，支持ctrl+v粘贴图片",
     "commentTypes": {
       "label": "动作",
       "comment": "评论",
@@ -140,10 +140,6 @@
     "aiPlayground": "AI实验场"
   },
   "aiPlayground": {
-    "detailedStats": {
-      "show": "显示详细统计",
-      "hide": "隐藏详细统计"
-    },
     "agentPerformance": {
       "title": "按模型统计 AI 表现",
       "subtitle": "基于当前时间范围与筛选条件",

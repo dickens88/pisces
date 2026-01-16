@@ -15,7 +15,7 @@
     "close": "Close",
     "loading": "Loading...",
     "noComments": "No comments yet",
-    "addComment": "Type message or paste image by ctrl+v...",
+    "addComment": "Add a comment, support ctrl+v to paste image",
     "commentTypes": {
       "label": "Comment type",
       "comment": "Comment",
@@ -140,10 +140,6 @@
     "aiPlayground": "AI Playground"
   },
   "aiPlayground": {
-    "detailedStats": {
-      "show": "Show detailed stats",
-      "hide": "Hide detailed stats"
-    },
     "agentPerformance": {
       "title": "AI performance by Agent",
       "subtitle": "Based on current time range and filters",

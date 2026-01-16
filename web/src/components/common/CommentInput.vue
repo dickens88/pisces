@@ -8,7 +8,7 @@
       <div class="flex-1">
         <!-- Input container -->
         <div 
-          class="relative rounded-xl border-2 border-gray-200 dark:border-[#3c4a60] bg-white dark:bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20"
+          class="relative rounded-xl border-2 border-gray-200 dark:border-[#3c4a60] bg-white dark:bg-[#1e293b] transition-all duration-200 focus-within:border-primary focus-within:shadow-lg focus-within:shadow-primary/20 flex flex-col"
           :class="{ 
             'border-primary shadow-lg shadow-primary/20 drag-active': isDragging,
             'border-primary/50': isDragging
@@ -19,22 +19,66 @@
         >
           <!-- 启用评论类型时的布局（事件管理使用） -->
           <template v-if="props.enableCommentType">
-            <div class="flex items-start gap-3 py-1 pl-2 pr-12">
-              <!-- 左侧工具区：附件 + 评论类型 -->
+            <!-- 文本输入区域 -->
+            <div class="relative px-3 py-2">
               <div
-                v-if="props.enableFileUpload"
-                class="flex items-center gap-2 pt-0.5 shrink-0"
+                v-if="prefixIcon && !imagePreviewUrl"
+                class="absolute left-5 top-3.5 text-gray-400 dark:text-text-light/70 pointer-events-none z-10"
               >
+                <span class="material-symbols-outlined text-base leading-none">
+                  {{ prefixIcon }}
+                </span>
+              </div>
+
+              <!-- 图片缩略图预览 -->
+              <div
+                v-if="imagePreviewUrl"
+                class="group absolute left-3 top-2 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md z-10"
+              >
+                <img
+                  :src="imagePreviewUrl"
+                  alt="Preview"
+                  class="w-full h-full object-cover"
+                />
+                <button
+                  @click.stop="removeFile()"
+                  class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <span class="material-symbols-outlined text-xs">close</span>
+                </button>
+              </div>
+
+              <textarea
+                v-model="commentText"
+                :class="[
+                  'comment-textarea w-full rounded-lg bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px] border-0 overflow-y-auto',
+                  imagePreviewUrl ? 'pl-20' : '',
+                  prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
+                ]"
+                :placeholder="placeholder || $t('common.addComment') || '添加评论，支持ctrl+v粘贴图片'"
+                rows="1"
+                @input="handleTextareaInput"
+                @keydown="handleKeyDown"
+                @paste="handlePaste"
+              ></textarea>
+            </div>
+
+            <!-- 底部控制栏 -->
+            <div class="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-[#3c4a60]">
+              <!-- 左侧：附件按钮 + 评论类型 -->
+              <div class="flex items-center gap-2">
                 <input
+                  v-if="props.enableFileUpload"
                   ref="fileInput"
                   type="file"
                   class="hidden"
                   @change="handleFileSelect"
                 />
                 <button
+                  v-if="props.enableFileUpload"
                   type="button"
                   @click="triggerFileInput"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] text-gray-600 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-all duration-200 group border border-transparent hover:border-primary/30"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2a3546] transition-all duration-200"
                   :title="$t('incidents.detail.comments.attachFile') || 'Upload file'"
                 >
                   <span class="material-symbols-outlined text-lg">attach_file</span>
@@ -55,149 +99,106 @@
                 </select>
               </div>
 
-              <!-- 文本输入（带类型） -->
-              <div class="relative flex-1">
-                <div
-                  v-if="prefixIcon && !imagePreviewUrl"
-                  class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
-                >
-                  <span class="material-symbols-outlined text-base leading-none">
-                    {{ prefixIcon }}
-                  </span>
-                </div>
-
-                <div
-                  v-if="imagePreviewUrl"
-                  class="group absolute -top-1 left-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md"
-                >
-                  <img
-                    :src="imagePreviewUrl"
-                    alt="Preview"
-                    class="w-full h-full object-cover"
-                  />
-                  <button
-                    @click.stop="removeFile()"
-                    class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <span class="material-symbols-outlined text-xs">close</span>
-                  </button>
-                </div>
-
-                <textarea
-                  v-model="commentText"
-                  :class="[
-                    'w-full rounded-xl bg-transparent px-3 py-1.5 pr-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[36px] max-h-[200px] border border-transparent',
-                    imagePreviewUrl ? 'pl-20' : '',
-                    prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
-                  ]"
-                  :placeholder="placeholder || $t('incidents.detail.comments.addComment')"
-                  rows="1"
-                  @input="handleTextareaInput"
-                  @keydown="handleKeyDown"
-                  @paste="handlePaste"
-                ></textarea>
-              </div>
-            </div>
-
-            <!-- 发送按钮（带类型布局） -->
-            <button
-              @click="handleSubmit"
-              :disabled="!canSubmit || props.loading"
-              class="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg disabled:shadow-none"
-              :title="$t('common.send') || '发送'"
-            >
-              <span
-                class="material-symbols-outlined text-base"
-                :class="{ 'animate-spin': props.loading }"
+              <!-- 右侧：发送按钮 -->
+              <button
+                @click="handleSubmit"
+                :disabled="!canSubmit || props.loading"
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
+                :title="$t('common.send') || '发送'"
               >
-                {{ props.loading ? 'refresh' : 'send' }}
-              </span>
-            </button>
+                <span
+                  class="material-symbols-outlined text-base"
+                  :class="{ 'animate-spin': props.loading }"
+                >
+                  {{ props.loading ? 'refresh' : 'arrow_upward' }}
+                </span>
+              </button>
+            </div>
           </template>
 
-          <!-- 默认紧凑布局（告警/ASM/漏洞等），附件按钮与光标同一行 -->
+          <!-- 默认紧凑布局（告警/ASM/漏洞等），优化后的布局 -->
           <template v-else>
-            <div class="flex items-start gap-3 py-1 pl-2 pr-12">
-              <!-- 左侧附件按钮 -->
+            <!-- 文本输入区域 -->
+            <div class="relative px-3 py-2">
               <div
-                v-if="props.enableFileUpload"
-                class="flex items-center pt-0.5 shrink-0"
+                v-if="prefixIcon && !imagePreviewUrl"
+                class="absolute left-5 top-3.5 text-gray-400 dark:text-text-light/70 pointer-events-none z-10"
               >
+                <span class="material-symbols-outlined text-base leading-none">
+                  {{ prefixIcon }}
+                </span>
+              </div>
+
+              <!-- 图片缩略图预览 -->
+              <div
+                v-if="imagePreviewUrl"
+                class="group absolute left-3 top-2 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md z-10"
+              >
+                <img
+                  :src="imagePreviewUrl"
+                  alt="Preview"
+                  class="w-full h-full object-cover"
+                />
+                <button
+                  @click.stop="removeFile()"
+                  class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <span class="material-symbols-outlined text-xs">close</span>
+                </button>
+              </div>
+
+              <textarea
+                v-model="commentText"
+                :class="[
+                  'comment-textarea w-full rounded-lg bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[40px] max-h-[200px] border-0 overflow-y-auto',
+                  imagePreviewUrl ? 'pl-20' : '',
+                  prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
+                ]"
+                :placeholder="placeholder || $t('common.addComment') || '添加评论，支持ctrl+v粘贴图片'"
+                rows="1"
+                @input="handleTextareaInput"
+                @keydown="handleKeyDown"
+                @paste="handlePaste"
+              ></textarea>
+            </div>
+
+            <!-- 底部控制栏 -->
+            <div class="flex items-center justify-between px-3 py-2 border-t border-gray-200 dark:border-[#3c4a60]">
+              <!-- 左侧：附件按钮 -->
+              <div class="flex items-center gap-2">
                 <input
+                  v-if="props.enableFileUpload"
                   ref="fileInput"
                   type="file"
                   class="hidden"
                   @change="handleFileSelect"
                 />
                 <button
+                  v-if="props.enableFileUpload"
                   type="button"
                   @click="triggerFileInput"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#2a3546] hover:bg-gray-200 dark:hover:bg-[#3c4a60] text-gray-600 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-all duration-200 group border border-transparent hover:border-primary/30"
+                  class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#2a3546] transition-all duration-200"
                   :title="$t('incidents.detail.comments.attachFile') || 'Upload file'"
                 >
                   <span class="material-symbols-outlined text-lg">attach_file</span>
                 </button>
               </div>
 
-              <!-- 文本输入（无类型时） -->
-              <div class="relative flex-1">
-                <div
-                  v-if="prefixIcon && !imagePreviewUrl"
-                  class="absolute left-3 top-2.5 text-gray-400 dark:text-text-light/70 pointer-events-none"
-                >
-                  <span class="material-symbols-outlined text-base leading-none">
-                    {{ prefixIcon }}
-                  </span>
-                </div>
-
-                <!-- 图片缩略图预览 -->
-                <div
-                  v-if="imagePreviewUrl"
-                  class="group absolute -top-1 left-0 w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 dark:border-[#3c4a60] bg-gray-100 dark:bg-[#2a3546] shadow-md"
-                >
-                  <img
-                    :src="imagePreviewUrl"
-                    alt="Preview"
-                    class="w-full h-full object-cover"
-                  />
-                  <button
-                    @click.stop="removeFile()"
-                    class="absolute top-1 right-1 w-5 h-5 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-sm text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <span class="material-symbols-outlined text-xs">close</span>
-                  </button>
-                </div>
-
-                <textarea
-                  v-model="commentText"
-                  :class="[
-                    'w-full rounded-xl bg-transparent px-3 py-1.5 pr-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-text-light/60 focus:outline-none text-sm resize-none min-h-[36px] max-h-[200px] border border-transparent',
-                    imagePreviewUrl ? 'pl-20' : '',
-                    prefixIcon && !imagePreviewUrl ? 'pl-10' : ''
-                  ]"
-                  :placeholder="placeholder"
-                  rows="1"
-                  @input="handleTextareaInput"
-                  @keydown="handleKeyDown"
-                  @paste="handlePaste"
-                ></textarea>
-              </div>
-            </div>
-
-            <!-- Submit button -->
-            <button
-              @click="handleSubmit"
-              :disabled="!canSubmit || props.loading"
-              class="absolute bottom-2 right-2 flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white transition-all duration-200 hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg disabled:shadow-none"
-              :title="$t('common.send') || '发送'"
-            >
-              <span
-                class="material-symbols-outlined text-base"
-                :class="{ 'animate-spin': props.loading }"
+              <!-- 右侧：发送按钮 -->
+              <button
+                @click="handleSubmit"
+                :disabled="!canSubmit || props.loading"
+                class="flex items-center justify-center w-8 h-8 rounded-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
+                :title="$t('common.send') || '发送'"
               >
-                {{ props.loading ? 'refresh' : 'send' }}
-              </span>
-            </button>
+                <span
+                  class="material-symbols-outlined text-base"
+                  :class="{ 'animate-spin': props.loading }"
+                >
+                  {{ props.loading ? 'refresh' : 'arrow_upward' }}
+                </span>
+              </button>
+            </div>
           </template>
         </div>
         
@@ -481,5 +482,21 @@ defineExpose({
 </script>
 
 <style scoped>
+/* 隐藏 textarea 的滚动条，但保持滚动功能 */
+.comment-textarea {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.comment-textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* 确保 textarea 在内容变化时正确调整高度 */
+.comment-textarea {
+  overflow-y: auto;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 </style>
 

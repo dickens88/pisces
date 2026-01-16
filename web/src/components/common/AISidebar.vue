@@ -280,16 +280,38 @@
 
         <!-- Input Area -->
         <div class="p-2 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 security-agent-input">
-          <CommentInput
-            v-model="inputMessage"
-            :disabled="isSendingSecurityAgentMessage"
-            :loading="isSendingSecurityAgentMessage"
-            :enable-file-upload="false"
-            :submit-on-enter="true"
-            placeholder="Ask me anything about ..."
-            prefix-icon="auto_awesome"
-            @submit="handleSecurityAgentSend"
-          />
+          <div class="relative rounded-lg border border-gray-200 dark:border-[#3c4a60] bg-white dark:bg-[#1e293b] focus-within:border-primary focus-within:shadow-sm transition-all duration-200">
+            <div class="flex items-center gap-2 px-3 py-1.5">
+              <!-- 前缀图标 -->
+              <span class="material-symbols-outlined text-sm text-gray-400 dark:text-gray-500 shrink-0">auto_awesome</span>
+              
+              <!-- 文本输入 -->
+              <textarea
+                v-model="inputMessage"
+                :disabled="isSendingSecurityAgentMessage"
+                class="flex-1 bg-transparent text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none text-sm resize-none min-h-[24px] max-h-[120px] border-0 overflow-y-auto py-1 leading-5"
+                placeholder="Ask me anything about ..."
+                rows="1"
+                @input="handleTextareaInput"
+                @keydown="handleKeyDown"
+              ></textarea>
+              
+              <!-- 发送按钮 -->
+              <button
+                @click="handleSendClick"
+                :disabled="!canSend || isSendingSecurityAgentMessage"
+                class="flex items-center justify-center w-6 h-6 rounded-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary shrink-0"
+                :title="$t('common.send') || '发送'"
+              >
+                <span
+                  class="material-symbols-outlined text-sm"
+                  :class="{ 'animate-spin': isSendingSecurityAgentMessage }"
+                >
+                  {{ isSendingSecurityAgentMessage ? 'refresh' : 'arrow_upward' }}
+                </span>
+              </button>
+            </div>
+          </div>
           <div
             v-if="promptSuggestions.length"
             class="mt-2 flex flex-wrap gap-2"
@@ -318,7 +340,6 @@ import { formatDateTime } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import DOMPurify from 'dompurify'
 import { useDarkModeObserver } from '@/composables/useDarkModeObserver'
-import CommentInput from '@/components/common/CommentInput.vue'
 import { sendSecurityAgentMessage } from '@/api/securityAgent'
 import { getAIPrompts } from '@/api/aiPrompts'
 import UserAvatar from '@/components/common/UserAvatar.vue'
@@ -764,12 +785,34 @@ const handleOpenAiPlayground = () => {
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
-const handleSecurityAgentSend = async (data) => {
-  // CommentInput 发出的是 { comment, files }，需要映射为 { message, files }
-  const message = data?.comment || data?.message || ''
-  const files = data?.files || []
+const canSend = computed(() => {
+  return inputMessage.value.trim().length > 0 && !isSendingSecurityAgentMessage.value
+})
 
-  if (!message.trim() && (!files || files.length === 0)) {
+const handleTextareaInput = (event) => {
+  const textarea = event.target
+  textarea.style.height = 'auto'
+  const scrollHeight = textarea.scrollHeight
+  const maxHeight = 120
+  textarea.style.height = Math.min(scrollHeight, maxHeight) + 'px'
+}
+
+const handleKeyDown = (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    handleSendClick()
+  }
+}
+
+const handleSendClick = () => {
+  if (!canSend.value) return
+  handleSecurityAgentSend()
+}
+
+const handleSecurityAgentSend = async () => {
+  const message = inputMessage.value.trim()
+
+  if (!message) {
     return
   }
 
@@ -777,11 +820,11 @@ const handleSecurityAgentSend = async (data) => {
     return
   }
 
-  const sanitizedUserMessage = message.trim()
+  const sanitizedUserMessage = message
   const payload = {
     alertId: props.alertId,
     message: sanitizedUserMessage,
-    files: data.files,
+    files: [],
     conversationId: conversationId.value
   }
 
@@ -887,6 +930,15 @@ const handleSecurityAgentSend = async (data) => {
     }
   } finally {
     isSendingSecurityAgentMessage.value = false
+    // 清空输入框
+    inputMessage.value = ''
+    // 重置textarea高度
+    nextTick(() => {
+      const textarea = document.querySelector('.security-agent-input textarea')
+      if (textarea) {
+        textarea.style.height = 'auto'
+      }
+    })
   }
 }
 
@@ -1106,33 +1158,14 @@ onMounted(() => {
   margin: 4px 0;
 }
 
-/* 隐藏 Security Agent 输入框中的头像，并压缩整体布局 */
-.security-agent-input :deep(.comment-input-container > div > .shrink-0) {
-  display: none;
+/* Security Agent 输入框样式 */
+.security-agent-input textarea {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
-.security-agent-input :deep(.comment-input-container > div) {
-  gap: 0;
-  align-items: center;
-}
-
-.security-agent-input :deep(textarea) {
-  min-height: 30px;
-  max-height: 120px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  line-height: 1.4;
-}
-
-.security-agent-input :deep(.comment-input-container .absolute.left-3) {
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.security-agent-input :deep(.comment-input-container .absolute.right-2) {
-  top: 50%;
-  bottom: auto;
-  transform: translateY(-50%);
+.security-agent-input textarea::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 /* 打字指示器动画 */

@@ -9,8 +9,8 @@ from werkzeug.utils import secure_filename
 from controllers.comment_service import CommentService
 from models.comment import Comment
 from utils.auth_util import auth_required
-from utils.logger_init import logger
 from utils.common_utils import get_workspace_id
+from utils.logger_init import logger
 
 # 文件大小限制：500KB
 MAX_FILE_SIZE = 500 * 1024
@@ -145,6 +145,7 @@ class CommentView(Resource):
             # Validate file if present
             file_data = None
             file_name = None
+            file_type = None
             if file:
                 is_valid, file_data, file_type, error_msg = self._validate_file(file)
                 if not is_valid:
@@ -160,11 +161,7 @@ class CommentView(Resource):
                 data = json.loads(request.data)
                 note_type = data.get('note_type', 'comment')
             
-            # 直接调用云脑接口创建评论，不保存到数据库
-            # 注意：文件上传功能暂时不支持，因为云脑接口可能需要不同的处理方式
-            if file_data:
-                logger.warning(f"File upload is not supported when writing directly to cloud brain. File ignored: {file_name}")
-            
+            # call secMaster API to create new comment
             result = CommentService.create_comment(
                 event_id=event_id, 
                 comment=comment, 
@@ -172,7 +169,28 @@ class CommentView(Resource):
                 workspace_id=workspace_id,
                 note_type=note_type
             )
-            
+
+            # save the comment into db
+            try:
+                comment_data = {
+                    "id": result.get("data", {}).get("id"),
+                    "content": {
+                        "come_from": username,
+                        "value": comment
+                    },
+                    "create_time": result.get("data", {}).get("create_time")
+                }
+
+                Comment.upsert_comment(
+                    comment_data=comment_data,
+                    event_id=event_id,
+                    file_data=file_data,
+                    file_name=file_name,
+                    file_type=file_type
+                )
+            except Exception as ex:
+                logger.error(f"Failed to save comment to database: {ex}")
+
             return {"data": result}, 201
             
         except Exception as ex:

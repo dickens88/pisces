@@ -12,15 +12,6 @@
       </div>
       <div class="flex items-center gap-4">
         <button
-          type="button"
-          @click="showDetailedStats = !showDetailedStats"
-          class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center h-10"
-          :title="showDetailedStats ? ( $t('aiPlayground.detailedStats.hide') || 'Hide detailed stats' ) : ( $t('aiPlayground.detailedStats.show') || 'Show detailed stats' )"
-        >
-          <span class="material-symbols-outlined text-base mr-2">insights</span>
-          {{ showDetailedStats ? $t('aiPlayground.detailedStats.hide') : $t('aiPlayground.detailedStats.show') }}
-        </button>
-        <button
           @click="handleRefresh"
           :disabled="loadingAlerts || aiAccuracyLoading || aiDecisionLoading"
           class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
@@ -119,7 +110,7 @@
       </div>
       
       <!-- Model Performance table (grouped by model_name and agent_name) -->
-      <div v-if="showDetailedStats" class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0 lg:row-span-2 lg:col-start-2 lg:row-start-1">
+      <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0 lg:row-span-2 lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
           <div>
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
@@ -1392,7 +1383,6 @@ const aiWorkflowRunnerKey = import.meta.env.VITE_PLAYGROUND_RUNNER_KEY
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
 const showCharts = ref(true)
-const showDetailedStats = ref(true)
 
 // AI accuracy chart state
 const aiAccuracyChartRef = ref(null)
@@ -1746,17 +1736,53 @@ const searchFields = computed(() => [
   { value: 'model_name', label: t('aiPlayground.modelName'), icon: 'smart_toy' }
 ])
 
-// Unique agent names for filter dropdown
+// Unique agent names for filter dropdown - fetch all unique agent names
+const allAgentNames = ref([])
 const agentNameOptions = computed(() => {
-  const names = new Set()
-  alerts.value.forEach(alert => {
-    const name = alert.agent_name || alert.agentName
-    if (name && typeof name === 'string') {
-      names.add(name)
-    }
-  })
-  return Array.from(names).sort((a, b) => a.localeCompare(b))
+  return allAgentNames.value.sort((a, b) => a.localeCompare(b))
 })
+
+const loadAllAgentNames = async () => {
+  try {
+    const { start, end } = computeSelectedRange()
+    // Build conditions but exclude agent_name filter to get all available agents
+    const allConditions = buildConditions()
+    const conditions = allConditions.filter(c => !('agent_name' in c))
+    
+    // Fetch a large batch to get all unique agent names
+    // Using a high limit to get all records, then extract unique names
+    const params = {
+      action: 'list_local',
+      limit: 10000, // High limit to get all records
+      offset: 0,
+      conditions: conditions,
+      start_time: formatDateTimeWithOffset(start),
+      end_time: formatDateTimeWithOffset(end)
+    }
+    const response = await service.post('/alerts', params)
+    const raw = response.data || []
+    
+    const names = new Set()
+    raw.forEach(alert => {
+      const name = alert.agent_name || alert.agentName
+      if (name && typeof name === 'string' && name.trim()) {
+        names.add(name.trim())
+      }
+    })
+    allAgentNames.value = Array.from(names)
+  } catch (error) {
+    console.error('Failed to load agent names:', error)
+    // Fallback to current page agents
+    const names = new Set()
+    alerts.value.forEach(alert => {
+      const name = alert.agent_name || alert.agentName
+      if (name && typeof name === 'string') {
+        names.add(name)
+      }
+    })
+    allAgentNames.value = Array.from(names)
+  }
+}
 
 const sortedAgentPerformanceData = computed(() => {
   const key = agentPerformanceSortKey.value
@@ -3589,6 +3615,7 @@ const isDarkMode = () => document.documentElement.classList.contains('dark')
 const handleFilter = () => {
   currentPage.value = 1
   loadAlerts()
+  loadAllAgentNames() // Reload agent names when filters change
   // Also reload charts with updated conditions
   loadAiAccuracyStatistics()
   loadAiDecisionAnalysis()
@@ -3773,7 +3800,8 @@ const handleRefresh = async () => {
   await Promise.all([
     loadAiAccuracyStatistics(),
     loadAiDecisionAnalysis(),
-    loadAlerts()
+    loadAlerts(),
+    loadAllAgentNames() // Reload agent names when time range changes
   ])
   // Load performance stats after alerts so we don't overload the backend in parallel
   await Promise.all([

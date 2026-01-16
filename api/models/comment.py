@@ -52,7 +52,7 @@ class Comment(Base):
             session.close()
 
     @classmethod
-    def upsert_comment(cls, comment_data: dict, event_id: str):
+    def upsert_comment(cls, comment_data: dict, event_id: str, file_data=None, file_name=None, file_type=None):
         session = Session()
         try:
             comment_id = comment_data.get("id")
@@ -81,21 +81,25 @@ class Comment(Base):
                 existing_comment.message = content
                 existing_comment.create_time = create_time
                 existing_comment.last_update_time = datetime.now()
-                session.commit()
-                return existing_comment
-            
-            new_comment = cls(
-                event_id=event_id,
-                comment_id=comment_id,
-                owner=owner,
-                message=content,
-                create_time=create_time,
-                last_update_time=datetime.now()
-            )
-            session.add(new_comment)
+                # update file info if has
+                if file_data is not None:
+                    existing_comment.file_obj = file_data
+                    existing_comment.file_name = file_name
+                    existing_comment.file_type = file_type
+            else:
+                new_comment = cls(
+                    event_id=event_id,
+                    comment_id=comment_id,
+                    owner=owner,
+                    message=content,
+                    create_time=create_time,
+                    last_update_time=datetime.now(),
+                    file_obj=file_data,
+                    file_name=file_name,
+                    file_type=file_type
+                )
+                session.add(new_comment)
             session.commit()
-            session.refresh(new_comment)
-            return new_comment
         except Exception as ex:
             session.rollback()
             logger.exception(f"Failed to upsert comment: {ex}")

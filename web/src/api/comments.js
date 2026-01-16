@@ -20,9 +20,7 @@ export const postComment = (eventId, comment, files = [], workspace = null, comm
     if (commentType) formData.append('note_type', commentType)
     formData.append('file', files[0])
     
-    return service.post(url, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    return service.post(url, formData)
   }
   
   return service.post(url, {
