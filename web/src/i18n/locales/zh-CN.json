@@ -8,6 +8,7 @@
     "edit": "编辑",
     "search": "搜索",
     "filter": "筛选",
+    "sort": "排序",
     "reset": "重置",
     "refresh": "刷新",
     "submit": "提交",
@@ -652,23 +653,15 @@
         "alertStory": "事件沙盘",
         "alerts": "关联告警",
         "assets": "受影响资产",
-        "evidenceResponse": "证据与响应"
+        "evidenceResponse": "指挥中心"
       },
       "evidenceResponse": {
-        "title": "响应流程",
         "welinkGroup": "welink 群组",
         "emergencyReport": "生成报告",
         "maturityAssessment": "成熟度评估",
         "rlReview": "RL复盘",
         "gocReview": "GOC复盘",
         "updateStatus": "更新状态",
-        "progressSync": {
-          "priority": {
-            "normal": "普通",
-            "urgent": "紧急",
-            "veryUrgent": "非常紧急"
-          }
-        },
         "metrics": {
           "averageAttackTracingTime": "平均攻击溯源时间",
           "mttTracing": "MTT溯源",
@@ -688,7 +681,7 @@
             "confirmed": "已确认"
           },
           "progressSync": {
-            "title": "进展同步",
+            "title": "作战指令",
             "instructions": "指令",
             "progress": "进展",
             "statusLabel": "状态",
@@ -928,15 +921,13 @@
         "taskIdRequired": "请先选择任务ID",
         "informationTitle": "信息",
         "incidentInfoTitle": "事件详情",
-        "impactedAssetsTitle": "受影响资产",
+        "relatedEntitiesTitle": "关联实体",
         "descriptionTitle": "描述",
         "degreeLabel": "关联度",
         "collapseLeftPane": "收起告警列表",
         "expandLeftPane": "展开告警列表",
         "collapseRightPane": "收起信息面板",
         "expandRightPane": "展开信息面板",
-        "perPageTooltip": "每页条数",
-        "perPageUnit": "页",
         "incidentCreated": "图谱引擎初始化",
         "incidentCreatedDesc": "初始主机与租户侧FIP已写入攻击图谱。",
         "alertConverted": "告警写入图谱",

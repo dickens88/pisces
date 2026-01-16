@@ -8,6 +8,7 @@
     "edit": "Edit",
     "search": "Search",
     "filter": "Filter",
+    "sort": "Sort",
     "reset": "Reset",
     "refresh": "Refresh",
     "submit": "Submit",
@@ -657,23 +658,15 @@
         "alertStory": "Alert Story",
         "alerts": "Associated Alerts",
         "assets": "Affected Assets",
-        "evidenceResponse": "Evidence & Response"
+        "evidenceResponse": "Command Center"
       },
       "evidenceResponse": {
-        "title": "Response Process",
         "welinkGroup": "Welink Group",
         "emergencyReport": "Generate Report",
         "maturityAssessment": "Maturity Assessment",
         "rlReview": "RL Review",
         "gocReview": "GOC Review",
         "updateStatus": "Update Status",
-        "progressSync": {
-          "priority": {
-            "normal": "Normal",
-            "urgent": "Urgent",
-            "veryUrgent": "Very Urgent"
-          }
-        },
         "metrics": {
           "averageAttackTracingTime": "Average Attack Tracing Time",
           "mttTracing": "MTT Tracing",
@@ -693,7 +686,7 @@
             "confirmed": "Confirmed"
           },
           "progressSync": {
-            "title": "Progress Sync",
+            "title": "Combat Instruction",
             "instructions": "Instructions",
             "progress": "Progress",
             "statusLabel": "Status",
@@ -867,6 +860,8 @@
         "regenerateSuccess": "Graph regeneration started. Refresh later to view updates.",
         "regenerateError": "Failed to regenerate graph, please try again.",
         "lastGenerationTime": "Last Generation Time",
+        "entityCount": "Entity Count",
+        "relationCount": "Relation Count",
         "incidentCreated": "Correlation Seed Created",
         "incidentCreatedDesc": "The initial host and tenant-side FIP were promoted into the event graph.",
         "alertConverted": "Alert Enriched in Graph",
@@ -928,7 +923,14 @@
         "viewMobileDetail": "Mobile View",
         "taskIdRequired": "Please select a task ID first",
         "collapseLeftPane": "Collapse panel",
-        "expandLeftPane": "Expand panel"
+        "expandLeftPane": "Expand panel",
+        "collapseRightPane": "Collapse information panel",
+        "expandRightPane": "Expand information panel",
+        "informationTitle": "Information",
+        "incidentInfoTitle": "Incident details",
+        "relatedEntitiesTitle": "Related entities",
+        "descriptionTitle": "Description",
+        "degreeLabel": "Relations"
       },
       "attackChain": {
         "title": "Attack Chain",

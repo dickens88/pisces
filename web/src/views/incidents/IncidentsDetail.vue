@@ -310,10 +310,10 @@
                         <button
                           type="button"
                           @click="unbindWarroom(warroomId)"
-                          class="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                          class="p-1 rounded text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 transition-colors"
                           :title="translateOr('incidents.detail.eventGraph.unbindWarroom', '解绑')"
                         >
-                          {{ translateOr('incidents.detail.eventGraph.unbind', '解绑') }}
+                          <span class="material-symbols-outlined text-base">link_off</span>
                         </button>
                       </div>
                       <!-- 该warroom的任务列表 -->
@@ -1022,6 +1022,22 @@
                   <div class="space-y-2 text-xs">
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.detail.category') }}
+                      </span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        {{
+                          $t(
+                            `incidents.create.category${
+                              incident?.category
+                                ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1)
+                                : 'Platform'
+                            }`
+                          )
+                        }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
                         {{ $t('incidents.detail.status') }}
                       </span>
                       <span class="col-span-2 flex items-center text-gray-900 dark:text-slate-100 font-medium">
@@ -1034,20 +1050,10 @@
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
-                        {{ $t('incidents.detail.severity') }}
+                        {{ $t('incidents.detail.createTime') }}
                       </span>
-                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
-                        <span
-                          v-if="incident?.severity"
-                          :class="[
-                            'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
-                            getRiskLevelClass(getIncidentRiskLevel(incident.severity))
-                          ]"
-                          :title="$t(`common.severity.${getIncidentRiskLevel(incident.severity)}`)"
-                        >
-                          {{ $t(`common.severity.${getIncidentRiskLevel(incident.severity)}`) }}
-                        </span>
-                        <span v-else>-</span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        {{ incident?.createTime ? formatDateTime(incident.createTime) : '-' }}
                       </span>
                     </div>
                     <div class="grid grid-cols-3 gap-2">
@@ -1068,33 +1074,84 @@
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                       <span class="text-gray-500 dark:text-slate-400 col-span-1">
-                        {{ $t('incidents.detail.category') }}
+                        {{ $t('incidents.detail.actor') }}
                       </span>
                       <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
-                        {{
-                          $t(
-                            `incidents.create.category${
-                              incident?.category
-                                ? incident.category.charAt(0).toUpperCase() + incident.category.slice(1)
-                                : 'Platform'
-                            }`
-                          )
-                        }}
+                        {{ incident?.actor || '-' }}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.create.rootCause') }}
+                      </span>
+                      <span class="col-span-2 text-gray-900 dark:text-slate-100 truncate">
+                        <span v-if="incident?.rootCause">
+                          {{
+                            (() => {
+                              const rootCauseMap = {
+                                'exposedPort': 'incidents.create.rootCauseExposedPort',
+                                'weakPassword': 'incidents.create.rootCauseWeakPassword',
+                                'weakConfig': 'incidents.create.rootCauseInformationLeak',
+                                'unauthorizedApi': 'incidents.create.rootCauseUnauthorizedApi',
+                                'penetrationTest': 'incidents.create.rootCausePenetrationTest',
+                                'vulnerabilityExploit': 'incidents.create.rootCauseVulnerabilityExploit',
+                                'infringementComplaint': 'incidents.create.rootCauseInfringementComplaint'
+                              }
+                              const i18nKey = rootCauseMap[incident.rootCause]
+                              return i18nKey ? $t(i18nKey) : incident.rootCause
+                            })()
+                          }}
+                        </span>
+                        <span v-else>-</span>
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                      <span class="text-gray-500 dark:text-slate-400 col-span-1">
+                        {{ $t('incidents.detail.severity') }}
+                      </span>
+                      <span class="col-span-2 flex items-center font-medium text-gray-900 dark:text-slate-100">
+                        <span
+                          v-if="incident?.severity"
+                          :class="[
+                            'text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center justify-center',
+                            getRiskLevelClass(getIncidentRiskLevel(incident.severity))
+                          ]"
+                          :title="$t(`common.severity.${getIncidentRiskLevel(incident.severity)}`)"
+                        >
+                          {{ $t(`common.severity.${getIncidentRiskLevel(incident.severity)}`) }}
+                        </span>
+                        <span v-else>-</span>
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <!-- 分割线：事件详情 与 受影响资产 之间（略微减弱暗色边框） -->
+                <!-- 分割线：事件详情 与 描述 之间 -->
+                <div
+                  v-if="incident?.description"
+                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
+                ></div>
+
+                <!-- 描述 -->
+                <div v-if="incident?.description">
+                  <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
+                    {{ translateOr('incidents.detail.eventGraph.descriptionTitle', 'Description') }}
+                  </h4>
+                  <p class="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
+                    {{ incident.description }}
+                  </p>
+                </div>
+
+                <!-- 分割线：描述 与 关联实体 之间 -->
                 <div
                   v-if="topImpactedEntities.length"
                   class="my-3 border-t border-gray-200 dark:border-slate-700/60"
                 ></div>
 
-                <!-- 受影响资产：图谱中关联度最高的实体 Top 5 -->
+                <!-- 关联实体：图谱中关联度最高的实体 Top 5 -->
                 <div v-if="topImpactedEntities.length">
                   <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
-                    {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
+                    {{ translateOr('incidents.detail.eventGraph.relatedEntitiesTitle', '关联实体') }}
                   </h4>
                   <ul class="space-y-1.5 text-xs">
                     <li
@@ -1115,22 +1172,6 @@
                       </span>
                     </li>
                   </ul>
-                </div>
-
-                <!-- 分割线：受影响资产 与 描述 之间 -->
-                <div
-                  v-if="incident?.description"
-                  class="my-3 border-t border-gray-200 dark:border-slate-700/60"
-                ></div>
-
-                <!-- 描述 -->
-                <div v-if="incident?.description">
-                  <h4 class="text-[11px] font-bold text-gray-900 dark:text-slate-100 uppercase tracking-wide mb-2">
-                    {{ translateOr('incidents.detail.eventGraph.descriptionTitle', 'Description') }}
-                  </h4>
-                  <p class="text-xs text-gray-600 dark:text-slate-300 leading-relaxed">
-                    {{ incident.description }}
-                  </p>
                 </div>
 
                 <!-- 标签 -->
@@ -1261,153 +1302,95 @@
         </div>
       </div>
 
-      <!-- Assets 标签页：受影响资产 -->
-      <div v-else-if="activeTab === 'assets'" class="flex flex-col gap-6">
-        <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867]/70 rounded-xl">
-          <div class="p-6 border-b border-gray-200 dark:border-slate-800">
-            <h3 class="text-gray-900 dark:text-white font-bold text-lg">
-              {{ translateOr('incidents.detail.eventGraph.impactedAssetsTitle', 'Impacted assets') }}
-            </h3>
-          </div>
-          <div class="p-6">
-            <div v-if="topImpactedEntities.length > 0" class="space-y-3">
-              <div
-                v-for="item in topImpactedEntities"
-                :key="item.id"
-                class="flex items-center justify-between p-4 border border-gray-200 dark:border-slate-700/60 rounded-lg hover:bg-gray-50 dark:hover:bg-[#1e293b] transition-colors"
-              >
-                <div class="flex flex-col flex-1 min-w-0">
-                  <span class="text-gray-900 dark:text-white font-medium truncate">
-                    {{ item.label }}
-                  </span>
-                  <span class="text-sm text-gray-500 dark:text-slate-400 truncate mt-1">
-                    {{ item.type }}
-                  </span>
-                </div>
-                <span class="text-sm text-gray-600 dark:text-slate-300 ml-4 whitespace-nowrap">
-                  {{ translateOr('incidents.detail.eventGraph.degreeLabel', 'Relations') }}: {{ item.degree }}
-                </span>
-              </div>
-            </div>
-            <div v-else class="text-center py-12 text-gray-400 dark:text-slate-500">
-              {{ translateOr('common.noData', 'No data') }}
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Evidence & Response 标签页：响应流程 -->
       <div v-else-if="activeTab === 'evidenceResponse'" class="flex-grow flex flex-col gap-6">
         <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-border-dark rounded-xl shadow-sm flex flex-col overflow-hidden">
-          <!-- 顶部Header -->
-          <header class="bg-white dark:bg-surface-dark border-b border-gray-200 dark:border-border-dark px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-            <h1 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span class="material-symbols-outlined text-primary">analytics</span>
-              {{ $t('incidents.detail.evidenceResponse.title') }}
-            </h1>
-            <div class="flex items-center gap-3">
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.welinkGroup') }}
-              </button>
-              <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-surface-hover-dark text-slate-700 dark:text-slate-300 transition-colors">
-                {{ $t('incidents.detail.evidenceResponse.emergencyReport') }}
-              </button>
-              <div class="relative group">
-                <button class="px-3 py-1.5 text-sm font-medium border border-gray-300 dark:border-border-dark rounded bg-gray-100 dark:bg-surface-hover-dark text-slate-500 dark:text-slate-400 cursor-not-allowed flex items-center gap-1">
-                  {{ $t('incidents.detail.evidenceResponse.updateStatus') }}
-                  <span class="material-symbols-outlined text-sm">refresh</span>
-                </button>
-              </div>
-            </div>
-          </header>
-
           <main class="flex-1 p-6 overflow-y-auto bg-white dark:bg-[#111822]">
           <!-- 响应指标区域 -->
-          <div class="mb-8 pb-8 border-b border-gray-200 dark:border-border-dark">
-            <h2 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">响应指标</h2>
+          <div class="mb-6 pb-4 border-b border-gray-200 dark:border-border-dark">
             <!-- 指标卡片网格 -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <!-- 指标1: 平均攻击溯源时间 -->
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-primary dark:text-blue-400 mb-1">
+                    <h3 class="font-semibold text-sm text-primary dark:text-blue-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackTracingTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttTracing') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
-                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-2xl">search</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 dark:bg-blue-500/20">
+                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-lg">search</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttTracing || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标2: 平均攻击源拦截时间 -->
-              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-emerald-700 dark:text-emerald-400 mb-1">
+                    <h3 class="font-semibold text-sm text-emerald-700 dark:text-emerald-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageAttackBlockingTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttBlocking') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-green-500/10 dark:bg-green-500/20">
-                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-2xl">shield</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-500/10 dark:bg-green-500/20">
+                    <span class="material-symbols-outlined text-green-600 dark:text-green-400 text-lg">shield</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttBlocking || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标3: 平均风险消减时间 -->
-              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border border-orange-200 dark:border-orange-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-orange-700 dark:text-orange-400 mb-1">
+                    <h3 class="font-semibold text-sm text-orange-700 dark:text-orange-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageRiskMitigationTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttr') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
-                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-2xl">trending_down</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
+                    <span class="material-symbols-outlined text-orange-600 dark:text-orange-400 text-lg">trending_down</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttr || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
 
               <!-- 指标4: 平均漏洞入口定位时间 -->
-              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-4">
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800/30 rounded-lg p-3 shadow-sm">
+                <div class="flex items-start justify-between mb-2">
                   <div class="flex-1">
-                    <h3 class="font-bold text-lg text-indigo-700 dark:text-indigo-400 mb-1">
+                    <h3 class="font-semibold text-sm text-indigo-700 dark:text-indigo-400 mb-0.5">
                       {{ $t('incidents.detail.evidenceResponse.metrics.averageVulnerabilityEntryTime') }}
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
                       {{ $t('incidents.detail.evidenceResponse.metrics.mttVulnerabilityEntry') }}
                     </p>
                   </div>
-                  <div class="flex items-center justify-center w-12 h-12 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
-                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-2xl">bug_report</span>
+                  <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-500/10 dark:bg-purple-500/20">
+                    <span class="material-symbols-outlined text-purple-600 dark:text-purple-400 text-lg">bug_report</span>
                   </div>
                 </div>
                 <div class="flex items-baseline gap-2">
-                  <span class="text-3xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
-                  <span class="text-sm text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
+                  <span class="text-xl font-bold text-slate-900 dark:text-white">{{ metricsData.mttVulnerabilityEntry || '--' }}</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ $t('incidents.detail.evidenceResponse.metrics.unit') }}</span>
                 </div>
               </div>
             </div>
@@ -1624,19 +1607,48 @@
                 ]">
                 {{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.all', '全部指令') }}
               </button>
-              <!-- 标签过滤 -->
-              <div class="flex items-center gap-2 ml-2">
-                <span class="text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}:</span>
-                <select
-                  v-model="progressSyncTagFilter"
-                  class="px-3 py-1.5 text-sm border border-gray-300 dark:border-border-dark rounded focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
-                >
-                  <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.filters.allTags', '全部标签') }}</option>
-                  <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
-                  <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
-                  <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
-                  <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
-                </select>
+              <!-- 筛选器行 -->
+              <div class="flex items-center gap-3 ml-2">
+                <!-- Warroom筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncWarroomFilter"
+                    clear-value="all"
+                  >
+                    <option value="all">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</option>
+                    <option
+                      v-for="warroom in availableWarrooms"
+                      :key="warroom.value"
+                      :value="warroom.value"
+                    >
+                      {{ warroom.label }}
+                    </option>
+                  </ClearableSelect>
+                </div>
+                <!-- 完成状态筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncStatusFilter"
+                    clear-value="all"
+                  >
+                    <option value="all">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</option>
+                    <option value="finished">{{ $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') }}</option>
+                    <option value="unfinished">{{ $t('incidents.detail.evidenceResponse.progressSync.status.unfinished', '未完成') }}</option>
+                  </ClearableSelect>
+                </div>
+                <!-- 标签筛选 -->
+                <div class="min-w-[120px] max-w-[12rem]">
+                  <ClearableSelect
+                    v-model="progressSyncTagFilter"
+                    clear-value=""
+                  >
+                    <option value="">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</option>
+                    <option value="attackTracing">{{ $t('common.commentTypes.attackTracing', '攻击溯源') }}</option>
+                    <option value="attackBlocking">{{ $t('common.commentTypes.attackBlocking', '攻击拦截') }}</option>
+                    <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
+                    <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
+                  </ClearableSelect>
+                </div>
               </div>
               <button 
                 @click="createNewTask"
@@ -1654,12 +1666,53 @@
                       <th class="px-4 py-3 w-28">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.warroom', 'Warroom') }}</th>
                       <th class="px-4 py-3 max-w-[280px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.taskName', '任务名称') }}</th>
                       <th class="px-4 py-3 w-24">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.owner', '责任人') }}</th>
-                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</th>
-                      <th class="px-4 py-3 w-36">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</th>
+                      <th class="px-4 py-3 w-36">
+                        <div class="flex items-center gap-2">
+                          <span>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.startTime', '开始时间') }}</span>
+                          <button
+                            @click="handleSort('start_time')"
+                            class="flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            :title="$t('common.sort')"
+                          >
+                            <span
+                              class="material-symbols-outlined text-sm transition-transform duration-200"
+                              :class="{
+                                'text-primary': sortColumn.value === 'start_time',
+                                'opacity-50': sortColumn.value !== 'start_time',
+                                'rotate-180': sortColumn.value === 'start_time' && sortOrder.value === 'desc'
+                              }"
+                              :style="sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                            >
+                              sort
+                            </span>
+                          </button>
+                        </div>
+                      </th>
+                      <th class="px-4 py-3 w-36">
+                        <div class="flex items-center gap-2">
+                          <span>{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.endTime', '结束时间') }}</span>
+                          <button
+                            @click="handleSort('end_time')"
+                            class="flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                            :title="$t('common.sort')"
+                          >
+                            <span
+                              class="material-symbols-outlined text-sm transition-transform duration-200"
+                              :class="{
+                                'text-primary': sortColumn.value === 'end_time',
+                                'opacity-50': sortColumn.value !== 'end_time',
+                                'rotate-180': sortColumn.value === 'end_time' && sortOrder.value === 'desc'
+                              }"
+                              :style="sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                            >
+                              sort
+                            </span>
+                          </button>
+                        </div>
+                      </th>
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.priority', '优先级') }}</th>
                       <th class="px-4 py-3 w-32">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.status', '状态') }}</th>
                       <th class="px-4 py-3 min-w-[120px]">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.tag', '标签') }}</th>
-                      <th class="px-4 py-3 w-32 whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</th>
                       <th class="px-4 py-3 w-24 whitespace-nowrap">{{ $t('common.action') }}</th>
                     </tr>
                   </thead>
@@ -1673,47 +1726,41 @@
                         <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ task.warroomName || '--' }}</td>
                         <!-- 任务名称 -->
                         <td class="px-4 py-3 max-w-[280px]">
+                          <a
+                            v-if="task.detail_url"
+                            :href="task.detail_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-primary hover:text-primary/80 hover:underline break-words whitespace-normal block"
+                            :title="task.task_name || '--'"
+                          >{{ task.task_name || '--' }}</a>
                           <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="font-medium text-slate-900 dark:text-white cursor-pointer hover:text-primary break-words whitespace-normal block"
+                            v-else
+                            class="font-medium text-slate-900 dark:text-white break-words whitespace-normal block"
                             :title="task.task_name || '--'"
                           >{{ task.task_name || '--' }}</span>
                         </td>
                         <!-- 责任人 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.owner || '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.owner || '--' }}</span>
                         </td>
                         <!-- 开始时间 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.start_time ? formatTaskDateTime(task.start_time) : '--' }}</span>
                         </td>
                         <!-- 结束时间 -->
                         <td class="px-4 py-3">
-                          <span
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary"
-                            :title="$t('common.edit')"
-                          >{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
+                          <span class="text-slate-500 dark:text-slate-400">{{ task.end_time ? formatTaskDateTime(task.end_time) : '--' }}</span>
                         </td>
                         <!-- 优先级 -->
                         <td class="px-4 py-3 whitespace-nowrap">
                           <span
                             v-if="getPriorityConfig(task.priority)"
-                            @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80',
+                              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs',
                               getPriorityConfig(task.priority)?.bgClass,
                               getPriorityConfig(task.priority)?.textClass
                             ]"
-                            :title="$t('common.edit')"
                           >
                             <span 
                               class="material-symbols-outlined text-sm flex-shrink-0"
@@ -1726,22 +1773,18 @@
                           </span>
                           <span
                             v-else
-                            @click="openTaskEditDialog(task, index)"
-                            class="text-slate-500 dark:text-slate-400 cursor-pointer hover:text-primary whitespace-nowrap"
-                            :title="$t('common.edit')"
+                            class="text-slate-500 dark:text-slate-400 whitespace-nowrap"
                           >--</span>
                         </td>
                         <!-- 状态 -->
                         <td class="px-4 py-3 whitespace-nowrap">
                           <span
-                            @click="openTaskEditDialog(task, index)"
                             :class="[
-                              'inline-block px-2 py-0.5 rounded text-xs cursor-pointer hover:opacity-80 whitespace-nowrap',
+                              'inline-block px-2 py-0.5 rounded text-xs whitespace-nowrap',
                               isTaskCompleted(task)
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
                             ]"
-                            :title="$t('common.edit')"
                           >
                             {{ isTaskCompleted(task)
                               ? $t('incidents.detail.evidenceResponse.progressSync.status.finished', '已完成') 
@@ -1762,20 +1805,6 @@
                             <option value="riskMitigation">{{ $t('common.commentTypes.riskMitigation', '风险消减') }}</option>
                             <option value="vulnerabilityIdentification">{{ $t('common.commentTypes.vulnerabilityIdentification', '漏洞定位') }}</option>
                           </select>
-                        </td>
-                        <!-- 查看详情 -->
-                        <td class="px-4 py-3 whitespace-nowrap">
-                          <a
-                            v-if="task.detail_url"
-                            :href="task.detail_url"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-primary hover:text-primary/80 hover:underline inline-flex items-center gap-1 text-xs whitespace-nowrap"
-                          >
-                            <span class="material-symbols-outlined text-sm flex-shrink-0">open_in_new</span>
-                            <span class="whitespace-nowrap">{{ translateOr('incidents.detail.evidenceResponse.progressSync.columns.viewDetail', '查看详情') }}</span>
-                          </a>
-                          <span v-else class="text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">--</span>
                         </td>
                         <!-- 操作 -->
                         <td class="px-4 py-3 whitespace-nowrap">
@@ -1799,7 +1828,7 @@
                       </tr>
                     </template>
                     <tr v-else class="bg-white dark:bg-surface-dark">
-                      <td colspan="10" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colspan="9" class="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                         {{ $t('common.noData') }}
                       </td>
                     </tr>
@@ -2558,6 +2587,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import CommentSection from '@/components/common/CommentSection.vue'
 import AISidebar from '@/components/common/AISidebar.vue'
+import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import { formatDateTime, parseToDate } from '@/utils/dateTime'
 import { useToast } from '@/composables/useToast'
 import { severityToNumber } from '@/utils/severity'
@@ -4414,7 +4444,6 @@ watch(graphSearchQuery, () => {
 const tabs = [
   { key: 'alertStory', label: 'incidents.detail.tabs.alertStory' },
   { key: 'alerts', label: 'incidents.detail.tabs.alerts' },
-  { key: 'assets', label: 'incidents.detail.tabs.assets' },
   { key: 'evidenceResponse', label: 'incidents.detail.tabs.evidenceResponse' }
 ]
 
@@ -4533,6 +4562,13 @@ const activeCardTab = ref('progressSync')
 const progressSyncFilterType = ref('all') // 'myCreated', 'myPending', 'all'
 // 进展同步标签筛选
 const progressSyncTagFilter = ref('') // ''表示全部，'attackTracing', 'attackBlocking', 'riskMitigation', 'vulnerabilityIdentification'
+// 完成状态筛选
+const progressSyncStatusFilter = ref('all') // 'all', 'finished', 'unfinished'
+// Warroom筛选
+const progressSyncWarroomFilter = ref('all') // 'all' 或具体的warroomId
+// 排序相关
+const sortColumn = ref('') // 'start_time', 'end_time', ''
+const sortOrder = ref('asc') // 'asc', 'desc'
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4614,6 +4650,24 @@ const selectedTaskName = computed(() => {
   }
   const selectedOption = projectOptions.value.find(option => option.value === selectedTaskId.value)
   return selectedOption ? selectedOption.label : ''
+})
+
+// 获取所有warroom列表，用于筛选器
+const availableWarrooms = computed(() => {
+  const warrooms = []
+  if (!groupedTaskDetails.value || Object.keys(groupedTaskDetails.value).length === 0) {
+    return warrooms
+  }
+  
+  Object.keys(groupedTaskDetails.value).forEach(warroomId => {
+    const warroomName = getWarroomName(warroomId)
+    warrooms.push({
+      value: warroomId,
+      label: warroomName
+    })
+  })
+  
+  return warrooms
 })
 
 // 从 groupedTaskDetails 中提取所有任务项，用于进展同步表格
@@ -4712,6 +4766,42 @@ const filteredProgressSyncTasks = computed(() => {
     filtered = filtered.filter(task => task.tag === progressSyncTagFilter.value)
   }
   
+  // 根据完成状态过滤
+  if (progressSyncStatusFilter.value !== 'all') {
+    filtered = filtered.filter(task => {
+      const isCompleted = isTaskCompleted(task)
+      if (progressSyncStatusFilter.value === 'finished') {
+        return isCompleted
+      } else if (progressSyncStatusFilter.value === 'unfinished') {
+        return !isCompleted
+      }
+      return true
+    })
+  }
+  
+  // 根据Warroom过滤
+  if (progressSyncWarroomFilter.value !== 'all') {
+    filtered = filtered.filter(task => task.warroomId === progressSyncWarroomFilter.value)
+  }
+  
+  // 排序
+  if (sortColumn.value) {
+    filtered = [...filtered].sort((a, b) => {
+      let aValue = a[sortColumn.value]
+      let bValue = b[sortColumn.value]
+      
+      // 处理时间字段
+      if (sortColumn.value === 'start_time' || sortColumn.value === 'end_time') {
+        aValue = aValue ? new Date(aValue).getTime() : 0
+        bValue = bValue ? new Date(bValue).getTime() : 0
+      }
+      
+      if (aValue === bValue) return 0
+      const comparison = aValue > bValue ? 1 : -1
+      return sortOrder.value === 'asc' ? comparison : -comparison
+    })
+  }
+  
   return filtered
 })
 
@@ -4779,6 +4869,18 @@ const progressSyncMetrics = computed(() => {
 const getTaskUniqueId = (task, index) => {
   // 使用warroomId + task_name + index 作为唯一标识
   return `${task.warroomId || 'unknown'}_${task.task_name || 'task'}_${index}`
+}
+
+// 处理排序
+const handleSort = (column) => {
+  if (sortColumn.value === column) {
+    // 如果点击的是当前排序列，切换排序顺序
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // 如果点击的是新列，设置为升序
+    sortColumn.value = column
+    sortOrder.value = 'asc'
+  }
 }
 
 // 判断任务是否已完成（支持多种状态字段和格式）
