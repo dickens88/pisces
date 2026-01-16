@@ -210,7 +210,7 @@
     },
     "matchFilter": {
       "all": "Match Status",
-      "TT": "TT True Positive",
+      "TP": "TP True Positive",
       "FP": "FP False Positive",
       "FN": "FN False Negative",
       "empty": "No Match"

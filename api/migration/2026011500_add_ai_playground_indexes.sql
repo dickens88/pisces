@@ -18,7 +18,7 @@ ON `t_alerts` (`model_name`, `agent_name`);
 CREATE INDEX `idx_alerts_verification_state` 
 ON `t_alerts` (`verification_state`);
 
--- 5. Index on is_ai_decision_correct for TT/FP/FN counting
+-- 5. Index on is_ai_decision_correct for TP/FP/FN counting
 --    Speeds up counting of Correct Decisions, False Positives, and False Negatives
 CREATE INDEX `idx_alerts_ai_decision` 
 ON `t_alerts` (`is_ai_decision_correct`);

@@ -479,7 +479,7 @@
               @change="handleFilter"
             >
               <option value="all">{{ $t('aiPlayground.matchFilter.all') }}</option>
-              <option value="TT">{{ $t('aiPlayground.matchFilter.TT') }}</option>
+              <option value="TP">{{ $t('aiPlayground.matchFilter.TP') }}</option>
               <option value="FP">{{ $t('aiPlayground.matchFilter.FP') }}</option>
               <option value="FN">{{ $t('aiPlayground.matchFilter.FN') }}</option>
               <option value="empty">{{ $t('aiPlayground.matchFilter.empty') }}</option>
@@ -1492,12 +1492,12 @@ const contentFormatMode = ref('json') // 'json' or 'richtext'
 
 // Match status configuration - centralized configuration for reuse
 const MATCH_STATUS_CONFIG = {
-  TT: {
-    dbValue: 'TT',
-    filterValue: 'TT',
-    chartName: 'TT',
+  TP: {
+    dbValue: 'TP',
+    filterValue: 'TP',
+    chartName: 'TP',
     color: '#10b981',
-    i18nKey: 'aiPlayground.matchFilter.TT'
+    i18nKey: 'aiPlayground.matchFilter.TP'
   },
   FP: {
     dbValue: 'FP',
@@ -1526,7 +1526,7 @@ const MATCH_STATUS_CONFIG = {
 const getMatchStatusConfig = (status) => {
   if (!status) return MATCH_STATUS_CONFIG.Empty
   const upperStatus = String(status).toUpperCase()
-  if (upperStatus === 'TT' || upperStatus === 'FP' || upperStatus === 'FN') {
+  if (upperStatus === 'TP' || upperStatus === 'FP' || upperStatus === 'FN') {
     return MATCH_STATUS_CONFIG[upperStatus]
   }
   return MATCH_STATUS_CONFIG.Empty
@@ -2148,7 +2148,7 @@ const updateAiDecisionChart = () => {
     if (!isDark) {
       // Adjust colors for light mode - use softer, more pleasant colors
       const colorMap = {
-        '#10b981': '#94d2bd', // TT - slightly deeper green for better contrast
+        '#10b981': '#94d2bd', // TP - slightly deeper green for better contrast
         '#ef4444': '#dc2626', // FP - slightly deeper red for better contrast
         '#f59e0b': '#d97706', // FN - slightly deeper orange for better contrast
         '#94a3b8': '#6b7280'  // Empty - darker gray for better visibility
@@ -2309,7 +2309,7 @@ const loadAgentPerformanceStats = async () => {
       }
 
       // Count based on is_ai_decision_correct field
-      if (matchStatus === 'TT') {
+      if (matchStatus === 'TP') {
         agg.correctDecisionsCount += 1
       } else if (matchStatus === 'FP') {
         agg.falsePositiveCount += 1
@@ -2404,7 +2404,7 @@ const loadModelPerformanceStats = async () => {
       }
 
       // Count based on is_ai_decision_correct field
-      if (matchStatus === 'TT') {
+      if (matchStatus === 'TP') {
         agg.correctDecisionsCount += 1
       } else if (matchStatus === 'FP') {
         agg.falsePositiveCount += 1
@@ -2523,7 +2523,7 @@ const getHumanVerdictText = (alert) => {
 }
 
 // Determine match status based on is_ai_decision_correct field
-// Returns: 'TT' (True Positive), 'FP' (False Positive), 'FN' (False Negative), or '' (empty)
+// Returns: 'TP' (True Positive), 'FP' (False Positive), 'FN' (False Negative), or '' (empty)
 const getMatchStatus = (item) => {
   const aiDecisionCorrect = item.is_ai_decision_correct
   
@@ -2534,8 +2534,8 @@ const getMatchStatus = (item) => {
   
   const value = String(aiDecisionCorrect).trim()
   
-  // Return the value directly if it's TT, FP, or FN
-  if (value === 'TT' || value === 'FP' || value === 'FN') {
+  // Return the value directly if it's TP, FP, or FN
+  if (value === 'TP' || value === 'FP' || value === 'FN') {
     return value
   }
   
@@ -2549,7 +2549,7 @@ const getMatchStatusDisplay = (status) => {
   const statusUpper = status ? String(status).toUpperCase() : ''
   
   const displayMap = {
-    'TT': {
+    'TP': {
       icon: 'check_circle',
       colorClass: 'text-green-500 dark:text-green-400',
       title: t(config.i18nKey)

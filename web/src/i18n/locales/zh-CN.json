@@ -210,7 +210,7 @@
     },
     "matchFilter": {
       "all": "匹配状态",
-      "TT": "TT真阳",
+      "TP": "TP真阳",
       "FP": "FP假阳",
       "FN": "FN假阴",
       "empty": "无匹配"

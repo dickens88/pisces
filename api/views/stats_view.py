@@ -1,11 +1,9 @@
-from datetime import datetime
-
 from flask import request
 from flask_restful import Resource
 
 from controllers.stats_service import StatisticsService
-from utils.common_utils import parse_datetime_with_timezone, normalize_time_to_utc
 from utils.auth_util import auth_required
+from utils.common_utils import parse_datetime_with_timezone
 from utils.logger_init import logger
 
 

@@ -1,10 +1,11 @@
-from sqlalchemy import cast, DateTime, func, case, or_
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
+
+from sqlalchemy import func, case, or_
 
 from models.alert import Alert
 from models.incident import Incident
-from utils.mysql_conn import Session
 from utils.common_utils import normalize_time_to_utc
+from utils.mysql_conn import Session
 
 
 class StatisticsService:
@@ -850,7 +851,7 @@ class StatisticsService:
                     func.count(Alert.id).label('total'),
                     func.sum(
                         case(
-                            (Alert.is_ai_decision_correct == 'TT', 1),
+                            (or_(Alert.is_ai_decision_correct == 'TP', Alert.is_ai_decision_correct == 'TT'), 1),
                             else_=0
                         )
                     ).label('correct')
@@ -895,7 +896,7 @@ class StatisticsService:
     def get_ai_decision_analysis(cls, start_date, end_date, conditions=None):
         """
         Get AI decision analysis statistics by grouping is_ai_decision_correct field.
-        Returns count for each value: TT, FP, FN, and empty/null.
+        Returns count for each value: TP, FP, FN, and empty/null.
         
         Args:
             start_date: Start datetime
@@ -903,7 +904,7 @@ class StatisticsService:
             conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
             
         Returns:
-            List of dicts with keys: name (TT/FP/FN/Empty), value (count)
+            List of dicts with keys: name (TP/FP/FN/Empty), value (count)
         """
         if not start_date or not end_date:
             raise ValueError("start_date and end_date are required")
@@ -938,7 +939,7 @@ class StatisticsService:
         
         # Map to store counts for each category
         category_counts = {
-            'TT': 0,
+            'TP': 0,
             'FP': 0,
             'FN': 0,
             'Empty': 0
@@ -949,8 +950,8 @@ class StatisticsService:
             count = int(row.count or 0)
             total_count += count
             
-            if decision_value == 'TT':
-                category_counts['TT'] = count
+            if decision_value == 'TP' or decision_value == 'TT':
+                category_counts['TP'] = count
             elif decision_value == 'FP':
                 category_counts['FP'] = count
             elif decision_value == 'FN':
@@ -1063,7 +1064,7 @@ class StatisticsService:
         Returns:
             dict with keys:
                 - total_judgments: total number of judgments (verification_state != 'Unknown', excluding is_auto_closed='AutoClosed')
-                - correct_judgments: number of correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TT', excluding is_auto_closed='AutoClosed')
+                - correct_judgments: number of correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TP' or 'TT', excluding is_auto_closed='AutoClosed')
                 - accuracy_rate: accuracy rate percentage (correct_judgments / total_judgments * 100)
         """
         # Normalize and format datetime for database query
@@ -1081,13 +1082,13 @@ class StatisticsService:
             )
             total_judgments = query_total.scalar() or 0
             
-            # Count correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TT', excluding is_auto_closed='AutoClosed')
+            # Count correct judgments (verification_state != 'Unknown' and is_ai_decision_correct = 'TP' or 'TT', excluding is_auto_closed='AutoClosed')
             query_correct = session.query(func.count(Alert.id)).filter(
                 Alert.create_time >= start_date_str,
                 Alert.create_time <= end_date_str,
                 Alert.verification_state != 'Unknown',
                 Alert.verification_state.isnot(None),
-                Alert.is_ai_decision_correct == 'TT',
+                or_(Alert.is_ai_decision_correct == 'TP', Alert.is_ai_decision_correct == 'TT'),
                 or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
             correct_judgments = query_correct.scalar() or 0

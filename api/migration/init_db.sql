@@ -19,7 +19,7 @@ CREATE TABLE `t_alerts` (
   `data_source_product_name` tinytext COMMENT '数据源产品名',
   `model_name` varchar(50) DEFAULT NULL,
   `is_auto_closed` varchar(50) DEFAULT NULL,
-  `is_ai_decision_correct` varchar(10) DEFAULT NULL COMMENT 'AI决策正确性：TT(真阳性), FP(假阳性), FN(假阴性)',
+  `is_ai_decision_correct` varchar(10) DEFAULT NULL COMMENT 'AI决策正确性：TP(真阳性), FP(假阳性), FN(假阴性)',
   `tta` int DEFAULT 0 COMMENT 'Time To Acknowledge (seconds)',
   `verification_state` varchar(50) DEFAULT NULL COMMENT 'AI研判结果：True_Positive(可疑), False_Positive(误报), Unknown(未知)',
   `ipdrr_phase` varchar(100) DEFAULT NULL COMMENT 'IPDRR阶段/处置状态',
