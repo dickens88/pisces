@@ -4792,8 +4792,35 @@ const filteredProgressSyncTasks = computed(() => {
       // 使用首字母+最后8位数字格式的用户ID与责任人匹配
       filtered = tasksWithTags.filter(task => {
         const owner = task.owner || task.employeeAccount || task.assignee
-        // 匹配当前用户ID（首字母+最后8位数字格式）
-        const isMyTask = owner === currentUserId
+        if (!owner) return false
+        
+        // 获取当前用户的完整用户名（用于匹配完整用户名的情况）
+        const currentUserFullName = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
+        
+        // 匹配策略：
+        // 1. 严格匹配 currentUserId（首字母+最后8位数字格式）
+        // 2. 忽略大小写匹配 currentUserId
+        // 3. 提取最后8位数字进行比较（兼容不同首字母但相同数字的情况）
+        // 4. 匹配完整用户名（兼容 owner 是完整用户名的情况）
+        
+        // 提取 owner 的最后8位数字
+        const ownerLast8Digits = owner.length >= 8 
+          ? owner.slice(-8) 
+          : owner.padStart(8, '0')
+        
+        // 提取 currentUserId 的最后8位数字
+        const currentUserIdLast8Digits = currentUserId.length >= 8 
+          ? currentUserId.slice(-8) 
+          : currentUserId.padStart(8, '0')
+        
+        // 多种匹配方式
+        const isMyTask = 
+          owner === currentUserId || // 严格匹配
+          owner.toLowerCase() === currentUserId.toLowerCase() || // 忽略大小写匹配
+          ownerLast8Digits === currentUserIdLast8Digits || // 最后8位数字匹配
+          owner === currentUserFullName || // 完整用户名匹配
+          owner.toLowerCase() === currentUserFullName.toLowerCase() // 完整用户名忽略大小写匹配
+        
         return isMyTask
       })
       break
