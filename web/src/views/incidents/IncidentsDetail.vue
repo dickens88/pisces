@@ -328,7 +328,16 @@
                             ]"
                           >
                             <div class="space-y-2">
-                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.task_name" class="font-medium text-xs">
+                                <a
+                                  v-if="task.detail_url"
+                                  :href="task.detail_url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="text-primary hover:text-primary/80 hover:underline"
+                                >{{ task.task_name }}</a>
+                                <span v-else class="text-gray-900 dark:text-white">{{ task.task_name }}</span>
+                              </div>
                               <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
@@ -384,7 +393,16 @@
                             ]"
                           >
                             <div class="space-y-2">
-                              <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                              <div v-if="task.task_name" class="font-medium text-xs">
+                                <a
+                                  v-if="task.detail_url"
+                                  :href="task.detail_url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="text-primary hover:text-primary/80 hover:underline"
+                                >{{ task.task_name }}</a>
+                                <span v-else class="text-gray-900 dark:text-white">{{ task.task_name }}</span>
+                              </div>
                               <div v-if="task.owner" class="text-xs text-gray-600 dark:text-slate-400">
                                 {{ translateOr('incidents.detail.eventGraph.employeeAccount', 'Employee Account') }}: {{ task.owner }}
                               </div>
@@ -467,7 +485,16 @@
                               ]"
                             >
                               <div class="space-y-2">
-                                <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                                <div v-if="task.task_name" class="font-medium text-xs">
+                                  <a
+                                    v-if="task.detail_url"
+                                    :href="task.detail_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary hover:text-primary/80 hover:underline"
+                                  >{{ task.task_name }}</a>
+                                  <span v-else class="text-gray-900 dark:text-white">{{ task.task_name }}</span>
+                                </div>
                                 <div v-if="task.stageName" class="text-xs">
                                   <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
                                   <span 
@@ -520,7 +547,16 @@
                               ]"
                             >
                               <div class="space-y-2">
-                                <div v-if="task.task_name" class="font-medium text-xs text-gray-900 dark:text-white">{{ task.task_name }}</div>
+                                <div v-if="task.task_name" class="font-medium text-xs">
+                                  <a
+                                    v-if="task.detail_url"
+                                    :href="task.detail_url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-primary hover:text-primary/80 hover:underline"
+                                  >{{ task.task_name }}</a>
+                                  <span v-else class="text-gray-900 dark:text-white">{{ task.task_name }}</span>
+                                </div>
                                 <div v-if="task.stageName" class="text-xs">
                                   <span class="text-gray-600 dark:text-slate-400">{{ translateOr('incidents.detail.eventGraph.stageName', 'Stage') }}: </span>
                                   <span 
@@ -570,7 +606,14 @@
                                 {{ translateOr('incidents.detail.eventGraph.taskName', 'Task Name') }}
                               </div>
                               <div class="text-xs text-gray-700 dark:text-slate-300 font-medium">
-                                {{ taskDetail.task_name }}
+                                <a
+                                  v-if="taskDetail.detail_url"
+                                  :href="taskDetail.detail_url"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  class="text-primary hover:text-primary/80 hover:underline"
+                                >{{ taskDetail.task_name }}</a>
+                                <span v-else>{{ taskDetail.task_name }}</span>
                               </div>
                             </div>
                             <!-- 阶段名称 -->
@@ -1996,9 +2039,9 @@
             </label>
             <div class="relative" ref="taskProjectDropdownRef">
               <input
-                v-model="warroomSearchKeyword"
-                @input="handleWarroomSearch"
-                @focus="showTaskProjectDropdown = true"
+                :value="taskProjectDisplayValue"
+                @input="handleTaskProjectInput"
+                @focus="handleTaskProjectFocus"
                 type="text"
                 class="w-full px-3 py-2 border border-gray-300 dark:border-border-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-surface-dark dark:text-white"
                 :placeholder="translateOr('incidents.detail.evidenceResponse.progressSync.columns.searchWarroom', '搜索项目...')"
@@ -4669,6 +4712,14 @@ const selectedTaskName = computed(() => {
   return selectedOption ? selectedOption.label : ''
 })
 
+// 任务项目输入框显示值：如果已选中项目则显示项目名称，否则显示搜索关键字
+const taskProjectDisplayValue = computed(() => {
+  if (taskEditForm.value.project_uuid && taskEditForm.value.project_name) {
+    return taskEditForm.value.project_name
+  }
+  return warroomSearchKeyword.value
+})
+
 // 获取所有warroom列表，用于筛选器
 const availableWarrooms = computed(() => {
   const warrooms = []
@@ -5405,6 +5456,7 @@ const saveTaskEdit = async () => {
     // 注意：新任务可能还没有 tag，所以使用默认值
     
     // 如果是进展同步，调用 createTask API
+    let taskDetailResult = null
     if (activeCardTab.value === 'progressSync') {
       try {
         const createParams = {
@@ -5418,8 +5470,46 @@ const saveTaskEdit = async () => {
           notes: taskEditForm.value.note || ''
         }
         
-        await createTask(createParams)
-        toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
+        const response = await createTask(createParams)
+        // 适配新的返回格式：{ data: { outputs: { task_detail: { status, detail_url, task_id } } } }
+        // 或者旧格式：{ task_detail: { status, detail_url, task_id } }
+        let taskDetail = null
+        
+        // 优先尝试新格式：response.data.outputs.task_detail
+        if (response && response.data && response.data.outputs && response.data.outputs.task_detail) {
+          taskDetail = response.data.outputs.task_detail
+        }
+        // 尝试旧格式：response.task_detail
+        else if (response && response.task_detail) {
+          taskDetail = response.task_detail
+        }
+        // 尝试直接格式：response.detail_url 或 response.task_id
+        else if (response && (response.detail_url || response.task_id)) {
+          taskDetail = {
+            status: 'success',
+            detail_url: response.detail_url || null,
+            task_id: response.task_id || null
+          }
+        }
+        
+        if (taskDetail) {
+          taskDetailResult = taskDetail
+          if (taskDetailResult.status === 'success') {
+            toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
+          } else if (taskDetailResult.status === 'failed') {
+            toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': ' + (taskDetailResult.message || 'Unknown error'))
+            return
+          } else {
+            // 如果status不是success也不是failed，可能是旧格式或其他情况
+            toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': ' + (taskDetailResult.status || 'Unknown error'))
+            return
+          }
+        } else {
+          // 完全无法识别返回格式，报错
+          console.error('Invalid response format:', response)
+          toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': Invalid response format')
+          return
+        }
       } catch (error) {
         console.error('Failed to create task via dify API:', error)
         toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': ' + (error?.message || 'Unknown error'))
@@ -5433,7 +5523,10 @@ const saveTaskEdit = async () => {
       ...taskData,
       warroomId: taskEditForm.value.project_uuid,
       warroomName: selectedProjectName,
-      uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      uniqueId: `new_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      // 如果创建任务成功并返回了detail_url，则保存到任务对象中
+      detail_url: taskDetailResult?.detail_url || null,
+      task_id: taskDetailResult?.task_id || null
     }
     
     // 添加到 filteredProgressSyncTasks
@@ -5465,10 +5558,38 @@ const saveTaskEdit = async () => {
   closeTaskEditDialog()
 }
 
+// 处理任务项目输入框输入事件
+const handleTaskProjectInput = (event) => {
+  const value = event.target.value
+  // 如果已选中项目，且用户输入的内容与项目名称不同，则清空已选中的项目
+  if (taskEditForm.value.project_uuid && value !== taskEditForm.value.project_name) {
+    taskEditForm.value.project_uuid = ''
+    taskEditForm.value.project_name = ''
+  }
+  // 更新搜索关键字
+  warroomSearchKeyword.value = value
+  // 触发搜索
+  handleWarroomSearch()
+}
+
+// 处理任务项目输入框获得焦点事件
+const handleTaskProjectFocus = (event) => {
+  showTaskProjectDropdown.value = true
+  // 如果已选中项目，当用户点击输入框时，全选文本以便用户可以直接输入替换
+  if (taskEditForm.value.project_uuid && taskEditForm.value.project_name) {
+    // 延迟执行，确保在focus事件之后
+    setTimeout(() => {
+      event.target.select()
+    }, 0)
+  }
+}
+
 // 选择任务项目（用于创建任务时的项目选择，复用WR任务管理的项目列表）
 const selectTaskProject = (projectUuid, projectName) => {
   taskEditForm.value.project_uuid = projectUuid
   taskEditForm.value.project_name = projectName
+  // 清空搜索关键字，因为已选中项目
+  warroomSearchKeyword.value = ''
   showTaskProjectDropdown.value = false
 }
 
