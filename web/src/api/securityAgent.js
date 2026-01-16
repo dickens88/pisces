@@ -624,5 +624,6 @@ export const createTask = async ({
 
   const data = await response.json()
 
-  return { status: data.data?.outputs?.status || data.data?.status || 'success' }
+  // 返回完整的响应数据，以便前端可以访问 data.outputs.task_detail
+  return data
 }
