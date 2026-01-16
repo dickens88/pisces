@@ -185,7 +185,7 @@
       "runWorkflow": "运行工作流",
       "workflowResult": "工作流结果",
       "noResult": "暂无工作流结果。运行工作流以查看输出。",
-      "inputAlertInfo": "输入告警信息",
+      "selectdAlertInfo": "选中的告警",
       "runAnalysis": "运行分析",
       "comments": "关闭备注",
       "aiAgentWorkspace": "AI代理工作区",
@@ -201,7 +201,7 @@
     "agentFilter": {
       "all": "全部模型"
     },
-    "fineTuneSubtitle": "训练和调试AI模型",
+    "fineTuneSubtitle": "在Dify上完成工作流调优后，在这里批量测试调优效果",
     "humanVerdict": "人工判定",
     "aiJudgeFineTune": "AI研判（微调）",
     "match": "匹配",
@@ -226,8 +226,9 @@
     "updateHumanConclusion": "更新人工结论",
     "updateVerdictSuccess": "判定更新成功",
     "saveChanges": "保存更改",
-    "fineTuneAI": "微调AI",
+    "fineTuneAI": "微调召回测试",
     "noAlertSelected": "未选择告警",
+    "selectedAlerts": "已选择告警",
     "closeReason": {
       "falsePositive": "误检",
       "resolved": "已解决",

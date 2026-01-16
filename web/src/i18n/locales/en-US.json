@@ -185,7 +185,7 @@
       "runWorkflow": "Run Workflow",
       "workflowResult": "Workflow Result",
       "noResult": "No workflow result yet. Run a workflow to see the output.",
-      "inputAlertInfo": "Input Alert Information",
+      "selectdAlertInfo": "Selected Alert(s)",
       "runAnalysis": "Run Analysis",
       "comments": "Close Comment",
       "aiAgentWorkspace": "AI Agent Workspace",
@@ -201,7 +201,7 @@
     "agentFilter": {
       "all": "All Agents"
     },
-    "fineTuneSubtitle": "Train and debug AI models",
+    "fineTuneSubtitle": "Conduct retrieval test after fine-tuning workflows on Dify",
     "humanVerdict": "Human Verdict",
     "aiJudgeFineTune": "AI Judge (Fine-tune)",
     "match": "Match",
@@ -226,8 +226,9 @@
     "updateHumanConclusion": "Update Human Conclusion",
     "updateVerdictSuccess": "Verdict updated successfully",
     "saveChanges": "Save Changes",
-    "fineTuneAI": "Fine-tune AI",
+    "fineTuneAI": "Fine-tune Retrieval Test",
     "noAlertSelected": "No alert selected",
+    "selectedAlerts": "Selected Alerts",
     "closeReason": {
       "falsePositive": "False detection",
       "resolved": "Resolved",

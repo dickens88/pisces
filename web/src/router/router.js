@@ -79,6 +79,12 @@ const routes = [
         meta: { title: '漏洞详情', requiresAuth: true }
       },
       {
+        path: 'ai-playground/:id',
+        name: 'AiPlaygroundWithDetail',
+        component: () => import('@/views/ai/AiPlaygroundView.vue'),
+        meta: { title: 'AI Playground', requiresAuth: true }
+      },
+      {
         path: 'ai-playground',
         name: 'AiPlayground',
         component: () => import('@/views/ai/AiPlaygroundView.vue'),
