@@ -552,13 +552,27 @@
             {{ formatDateTime(value || item?.create_time) }}
           </template>
           <template #cell-alertTitle="{ item }">
-            <span
-              class="text-primary hover:underline cursor-pointer"
-              :title="item.title"
-              @click="openAlertDetailInNewWindow(item.alert_id || item.id)"
-            >
-              {{ item.title }}
-            </span>
+            <div class="flex items-center gap-2">
+              <button
+                @click.stop="openAlertDetailInNewWindow(item.alert_id || item.id)"
+                class="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-primary transition-colors p-1"
+                :title="$t('alerts.list.openInNewWindow') || '在新窗口打开'"
+              >
+                <span class="material-symbols-outlined text-base">open_in_new</span>
+              </button>
+              <a
+                @click="openAlertDetail(item.alert_id || item.id)"
+                :class="[
+                  'hover:underline cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap flex-1 font-medium',
+                  (item.handle_status?.toLowerCase() === 'closed' || item.status === 'closed') 
+                    ? 'text-gray-500 dark:text-gray-400' 
+                    : 'text-primary'
+                ]"
+                :title="item.title"
+              >
+                {{ item.title }}
+              </a>
+            </div>
           </template>
           <template #cell-riskLevel="{ item }">
             <div class="flex items-center gap-2 flex-wrap">
@@ -618,34 +632,6 @@
               </template>
             </div>
           </template>
-          <template #cell-aiJudgeFineTune="{ item }">
-            <div class="flex items-center justify-center">
-              <span
-                v-if="getFineTuneVerificationState(item) === 'True_Positive'"
-                class="text-sm font-medium text-red-600 dark:text-red-400"
-              >
-                {{ $t('alerts.list.aiJudgeResult.truePositive') }}
-              </span>
-              <span
-                v-else-if="getFineTuneVerificationState(item) === 'False_Positive'"
-                class="text-sm font-medium text-green-600 dark:text-green-400"
-              >
-                {{ $t('alerts.list.aiJudgeResult.falsePositive') }}
-              </span>
-              <span
-                v-else-if="getFineTuneVerificationState(item) === 'Unknown'"
-                class="text-sm font-medium text-gray-400 dark:text-gray-500"
-              >
-                {{ $t('alerts.list.aiJudgeResult.unknown') }}
-              </span>
-              <span
-                v-else
-                class="text-sm font-medium text-gray-400 dark:text-gray-500"
-              >
-                -
-              </span>
-            </div>
-          </template>
           <template #cell-agentName="{ item }">
             <div class="flex items-center justify-center">
               <span class="text-sm text-gray-900 dark:text-white">
@@ -660,7 +646,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-200 dark:border-[#324867] gap-3">
           <h2 class="text-base font-semibold text-gray-900 dark:text-white">
-            {{ $t('alerts.detail.title') }} ({{ selectedAlerts.length }})
+            {{ $t('aiPlayground.selectedAlerts') }} ({{ selectedAlerts.length }})
           </h2>
           <div class="flex items-center gap-2">
             <button
@@ -695,13 +681,6 @@
             >
               <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                  <button
-                    @click.stop="openAlertDetailInNewWindow(alertData.alertId)"
-                    class="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex-shrink-0"
-                    :title="$t('common.openInNewWindow') || 'Open in new window'"
-                  >
-                    <span class="material-symbols-outlined text-base">open_in_new</span>
-                  </button>
                   <div class="flex-1 min-w-0">
                     <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                       {{ $t('alerts.detail.title') }} #{{ alertData.alertId }}
@@ -784,6 +763,17 @@
 
               <!-- Reasoning Comparison Section -->
               <div class="space-y-4">
+                <!-- Human Reasoning -->
+                <div>
+                  <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">edit_note</span>
+                    {{ $t('aiPlayground.humanReasoning') }}
+                  </h4>
+                  <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[60px]">
+                    {{ alertData.alert?.close_comment || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
+                  </div>
+                </div>
+
                 <!-- AI Reasoning -->
                 <div>
                   <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
@@ -807,17 +797,6 @@
                   </div>
                   <div v-else class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-500 dark:text-gray-400">
                     {{ $t('alerts.detail.noAiResponse') }}
-                  </div>
-                </div>
-
-                <!-- Human Reasoning -->
-                <div>
-                  <h4 class="text-xs font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <span class="material-symbols-outlined text-sm">edit_note</span>
-                    {{ $t('aiPlayground.humanReasoning') }}
-                  </h4>
-                  <div class="bg-white dark:bg-[#111822] border border-gray-200 dark:border-[#324867] rounded-lg p-3 text-xs text-gray-700 dark:text-gray-300 whitespace-pre-line min-h-[60px]">
-                    {{ alertData.alert?.close_comment || ($t('alerts.detail.noAiResponse') || 'No conclusion available.') }}
                   </div>
                 </div>
               </div>
@@ -1000,15 +979,14 @@
               <div class="flex-1 flex gap-6 min-h-0">
                 <!-- Left Panel: All Selected Alerts with Workflow Selectors -->
                 <div class="w-full lg:w-1/2 flex flex-col min-h-0">
-                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.inputAlertInfo') || 'Input Alert Information' }}</h4>
+                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.selectdAlertInfo') || 'Selected Alerts' }}</h4>
                   
                   <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 space-y-4">
                     <template v-for="alertData in selectedAlertsData" :key="`finetune-${getAlertId(alertData?.alert) || alertData?.alertId || 'unknown'}`">
                       <div
                         v-if="alertData && alertData.alert && (getAlertId(alertData.alert) || alertData.alertId)"
                         :class="[
-                          'bg-gray-50 dark:bg-[#1c2533] border rounded-lg overflow-hidden transition-colors',
-                          finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId] ? 'border-gray-200 dark:border-[#324867]' : 'border-red-300 dark:border-red-700'
+                          'bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden transition-colors'
                         ]"
                       >
                       <!-- Alert Drawer Header (clickable to expand/collapse) -->
@@ -1350,6 +1328,14 @@
         </Transition>
       </div>
     </Teleport>
+
+    <!-- Alert detail drawer -->
+    <AlertDetail
+      v-if="currentAlertId"
+      :alert-id="currentAlertId"
+      @close="closeAlertDetail"
+      @closed="handleRefresh"
+    />
   </div>
 </template>
 
@@ -1363,6 +1349,7 @@ import TimeRangePicker from '@/components/common/TimeRangePicker.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
+import AlertDetail from '@/components/alerts/AlertDetail.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
 import service from '@/api/axios'
@@ -1374,6 +1361,7 @@ const { t } = useI18n()
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
+const currentAlertId = computed(() => route.params.id ?? null)
 
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
@@ -1711,23 +1699,21 @@ watch([overlayAlertSubject, overlayAlertTitleTextarea], () => {
 const columns = computed(() => [
   { key: 'createTime', label: t('alerts.list.createTime') },
   { key: 'alertTitle', label: t('alerts.list.alertTitle') },
+  { key: 'agentName', label: 'Agent Name' },
   { key: 'riskLevel', label: t('alerts.list.riskLevel') },
   { key: 'aiJudge', label: t('alerts.list.aiJudge') },
   { key: 'humanVerdict', label: t('aiPlayground.humanVerdict') },
-  { key: 'match', label: t('aiPlayground.match') },
-  { key: 'aiJudgeFineTune', label: t('aiPlayground.aiJudgeFineTune') || 'AI Judge (Fine-tune)' },
-  { key: 'agentName', label: 'Agent Name' }
+  { key: 'match', label: t('aiPlayground.match') }
 ])
 
 const defaultWidths = {
   createTime: 180,
   alertTitle: 360,
+  agentName: 150,
   riskLevel: 120,
   aiJudge: 120,
-  aiJudgeFineTune: 140,
   humanVerdict: 150,
-  match: 120,
-  agentName: 150
+  match: 120
 }
 
 const searchFields = computed(() => [
@@ -3007,12 +2993,23 @@ const formatFinetuneVerdict = (isThreat) => {
   return '-'
 }
 
+// Open alert detail in right side panel
+const openAlertDetail = (alertId) => {
+  if (!alertId) return
+  router.push({ path: `/ai-playground/${alertId}`, replace: true })
+}
+
 // Open alert detail in new window
 const openAlertDetailInNewWindow = (alertId) => {
   if (!alertId) return
   const route = router.resolve({ path: `/alerts/${alertId}` })
   const url = window.location.origin + route.href
   window.open(url, '_blank')
+}
+
+// Close alert detail
+const closeAlertDetail = () => {
+  router.push({ path: '/ai-playground', replace: true })
 }
 
 // Removed - now handled by handleFineTuneClick for all alerts
