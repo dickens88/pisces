@@ -1676,13 +1676,9 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm transition-transform duration-200"
-                              :class="{
-                                'text-primary': sortColumn.value === 'start_time',
-                                'opacity-50': sortColumn.value !== 'start_time',
-                                'rotate-180': sortColumn.value === 'start_time' && sortOrder.value === 'desc'
-                              }"
-                              :style="sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                              class="material-symbols-outlined text-sm"
+                              :class="getSortIconClass('start_time')"
+                              :style="getSortIconStyle('start_time')"
                             >
                               sort
                             </span>
@@ -1698,13 +1694,9 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm transition-transform duration-200"
-                              :class="{
-                                'text-primary': sortColumn.value === 'end_time',
-                                'opacity-50': sortColumn.value !== 'end_time',
-                                'rotate-180': sortColumn.value === 'end_time' && sortOrder.value === 'desc'
-                              }"
-                              :style="sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
+                              class="material-symbols-outlined text-sm"
+                              :class="getSortIconClass('end_time')"
+                              :style="getSortIconStyle('end_time')"
                             >
                               sort
                             </span>
@@ -4574,6 +4566,26 @@ const progressSyncWarroomFilter = ref('all') // 'all' 或具体的warroomId
 // 排序相关
 const sortColumn = ref('') // 'start_time', 'end_time', ''
 const sortOrder = ref('asc') // 'asc', 'desc'
+
+// 获取排序图标的样式
+const getSortIconStyle = (column) => {
+  const isActive = sortColumn.value === column
+  const isDesc = isActive && sortOrder.value === 'desc'
+  return {
+    transform: isDesc ? 'rotate(180deg)' : 'rotate(0deg)',
+    display: 'inline-block',
+    transition: 'transform 0.2s ease, opacity 0.2s ease, color 0.2s ease'
+  }
+}
+
+// 获取排序图标的类
+const getSortIconClass = (column) => {
+  const isActive = sortColumn.value === column
+  return {
+    'text-primary': isActive,
+    'opacity-50': !isActive
+  }
+}
 // 任务编辑相关状态
 const editingTaskIndex = ref(null) // 正在编辑的任务唯一ID
 const editingTaskField = ref(null) // 正在编辑的字段名
@@ -4906,8 +4918,15 @@ const getTaskUniqueId = (task, index) => {
 // 处理排序
 const handleSort = (column) => {
   if (sortColumn.value === column) {
-    // 如果点击的是当前排序列，切换排序顺序
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+    // 如果点击的是当前排序列，切换排序顺序：升序 -> 降序 -> 不排序
+    if (sortOrder.value === 'asc') {
+      // 从升序切换到降序
+      sortOrder.value = 'desc'
+    } else {
+      // 从降序切换到不排序（重置）
+      sortColumn.value = ''
+      sortOrder.value = 'asc'
+    }
   } else {
     // 如果点击的是新列，设置为升序
     sortColumn.value = column
