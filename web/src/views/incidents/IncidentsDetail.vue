@@ -1675,13 +1675,15 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm"
+                              class="material-symbols-outlined text-sm transition-transform duration-200"
                               :class="{
                                 'text-primary': sortColumn.value === 'start_time',
-                                'opacity-50': sortColumn.value !== 'start_time'
+                                'opacity-50': sortColumn.value !== 'start_time',
+                                'rotate-180': sortColumn.value === 'start_time' && sortOrder.value === 'desc'
                               }"
+                              :style="sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
                             >
-                              {{ sortColumn.value === 'start_time' && sortOrder.value === 'asc' ? 'arrow_upward' : sortColumn.value === 'start_time' && sortOrder.value === 'desc' ? 'arrow_downward' : 'swap_vert' }}
+                              sort
                             </span>
                           </button>
                         </div>
@@ -1695,13 +1697,15 @@
                             :title="$t('common.sort')"
                           >
                             <span
-                              class="material-symbols-outlined text-sm"
+                              class="material-symbols-outlined text-sm transition-transform duration-200"
                               :class="{
                                 'text-primary': sortColumn.value === 'end_time',
-                                'opacity-50': sortColumn.value !== 'end_time'
+                                'opacity-50': sortColumn.value !== 'end_time',
+                                'rotate-180': sortColumn.value === 'end_time' && sortOrder.value === 'desc'
                               }"
+                              :style="sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'transform: rotate(180deg);' : ''"
                             >
-                              {{ sortColumn.value === 'end_time' && sortOrder.value === 'asc' ? 'arrow_upward' : sortColumn.value === 'end_time' && sortOrder.value === 'desc' ? 'arrow_downward' : 'swap_vert' }}
+                              sort
                             </span>
                           </button>
                         </div>
