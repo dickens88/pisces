@@ -5471,9 +5471,29 @@ const saveTaskEdit = async () => {
         }
         
         const response = await createTask(createParams)
-        // 适配新的返回格式：{ task_detail: { status, detail_url, task_id } }
-        if (response && response.task_detail) {
-          taskDetailResult = response.task_detail
+        // 适配新的返回格式：{ data: { outputs: { task_detail: { status, detail_url, task_id } } } }
+        // 或者旧格式：{ task_detail: { status, detail_url, task_id } }
+        let taskDetail = null
+        
+        // 优先尝试新格式：response.data.outputs.task_detail
+        if (response && response.data && response.data.outputs && response.data.outputs.task_detail) {
+          taskDetail = response.data.outputs.task_detail
+        }
+        // 尝试旧格式：response.task_detail
+        else if (response && response.task_detail) {
+          taskDetail = response.task_detail
+        }
+        // 尝试直接格式：response.detail_url 或 response.task_id
+        else if (response && (response.detail_url || response.task_id)) {
+          taskDetail = {
+            status: 'success',
+            detail_url: response.detail_url || null,
+            task_id: response.task_id || null
+          }
+        }
+        
+        if (taskDetail) {
+          taskDetailResult = taskDetail
           if (taskDetailResult.status === 'success') {
             toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
           } else if (taskDetailResult.status === 'failed') {
@@ -5485,19 +5505,10 @@ const saveTaskEdit = async () => {
             return
           }
         } else {
-          // 兼容旧格式：如果没有task_detail字段，尝试直接使用response
-          if (response && (response.detail_url || response.task_id)) {
-            taskDetailResult = {
-              status: 'success',
-              detail_url: response.detail_url || null,
-              task_id: response.task_id || null
-            }
-            toast.success(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskSuccess', '任务创建成功'))
-          } else {
-            // 完全无法识别返回格式，报错
-            toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': Invalid response format')
-            return
-          }
+          // 完全无法识别返回格式，报错
+          console.error('Invalid response format:', response)
+          toast.error(translateOr('incidents.detail.evidenceResponse.progressSync.createTaskError', '创建任务失败') + ': Invalid response format')
+          return
         }
       } catch (error) {
         console.error('Failed to create task via dify API:', error)
