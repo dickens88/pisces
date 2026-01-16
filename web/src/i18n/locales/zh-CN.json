@@ -673,6 +673,13 @@
           "mttVulnerabilityEntry": "MTT漏洞入口定位",
           "unit": "小时"
         },
+        "progressSync": {
+          "priority": {
+            "normal": "普通",
+            "urgent": "紧急",
+            "veryUrgent": "非常紧急"
+          }
+        },
         "cards": {
           "impactedServices": {
             "title": "影响服务",

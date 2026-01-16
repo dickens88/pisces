@@ -678,6 +678,13 @@
           "mttVulnerabilityEntry": "MTT Vulnerability Entry",
           "unit": "hours"
         },
+        "progressSync": {
+          "priority": {
+            "normal": "Normal",
+            "urgent": "Urgent",
+            "veryUrgent": "Very Urgent"
+          }
+        },
         "cards": {
           "impactedServices": {
             "title": "Impacted Services",
