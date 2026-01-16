@@ -715,11 +715,12 @@ const updateVulnerabilityTrendChart = () => {
     'High': '#FF7A45',
     'Medium': '#FFA940',
     'Low': '#1890FF',
+    'Tips': '#91D5FF',
     'Unknown': '#8C8C8C'
   }
 
   // Severity order (exclude Unknown from legend)
-  const severityOrder = ['Critical', 'High', 'Medium', 'Low']
+  const severityOrder = ['Critical', 'High', 'Medium', 'Low', 'Tips']
 
   // Build series data for each severity (exclude Unknown)
   const series = severityOrder
