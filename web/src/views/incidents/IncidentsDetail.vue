@@ -4715,6 +4715,30 @@ const allProgressSyncTasks = computed(() => {
   return tasks
 })
 
+// 生成用户ID：首字母 + 最后8位数字的租户
+// 格式：首字母（用户名首字母）+ 租户ID的最后8位数字
+const getCurrentUserId = () => {
+  const user = authStore.user
+  if (!user) return ''
+  
+  // 获取用户名（用于提取首字母）
+  const username = user.username || user.cn || user.name || ''
+  const firstLetter = username ? username.charAt(0).toUpperCase() : ''
+  
+  // 获取租户ID（用于提取最后8位数字）
+  // 尝试从多个可能的字段获取租户ID
+  const tenantId = user.tenant_id || user.tenantId || user.tenant || user.id || ''
+  const tenantIdStr = String(tenantId || '')
+  
+  // 提取最后8位数字
+  const last8Digits = tenantIdStr.length >= 8 
+    ? tenantIdStr.slice(-8) 
+    : tenantIdStr.padStart(8, '0')
+  
+  // 组合：首字母 + 最后8位数字
+  return firstLetter + last8Digits
+}
+
 // 根据筛选类型过滤任务
 const filteredProgressSyncTasks = computed(() => {
   const tasks = allProgressSyncTasks.value
@@ -4734,6 +4758,8 @@ const filteredProgressSyncTasks = computed(() => {
   
   // 获取当前用户信息
   const currentUser = authStore.user?.username || authStore.user?.cn || authStore.user?.name || ''
+  // 获取当前用户ID（首字母+最后8位数字格式）
+  const currentUserId = getCurrentUserId()
   
   let filtered = []
   switch (progressSyncFilterType.value) {
@@ -4745,12 +4771,13 @@ const filteredProgressSyncTasks = computed(() => {
       })
       break
     case 'myPending':
-      // 待我处理的指令：状态为待处理且责任人为当前用户
+      // 待我处理的指令：所有状态且责任人为当前用户
+      // 使用首字母+最后8位数字格式的用户ID与责任人匹配
       filtered = tasksWithTags.filter(task => {
-        const isPending = task.stageName === '待处理' || task.stageName === 'Pending'
         const owner = task.owner || task.employeeAccount || task.assignee
-        const isMyTask = owner === currentUser
-        return isPending && isMyTask
+        // 匹配当前用户ID（首字母+最后8位数字格式）
+        const isMyTask = owner === currentUserId
+        return isMyTask
       })
       break
     case 'all':
