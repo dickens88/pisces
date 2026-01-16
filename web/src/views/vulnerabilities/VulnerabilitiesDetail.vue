@@ -284,10 +284,24 @@
 
       <!-- Comments 标签页 -->
       <div v-if="activeTab === 'comments'" class="flex-grow">
-        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col">
+        <div class="bg-white dark:bg-slate-800/50 border border-gray-200 dark:border-slate-700 rounded-lg flex flex-col relative">
+          <!-- 评论区loading遮罩 -->
+          <div
+            v-if="loadingComment"
+            class="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg"
+          >
+            <div class="flex flex-col items-center gap-4">
+              <div class="relative w-12 h-12">
+                <div class="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-transparent border-t-primary rounded-full animate-spin"></div>
+              </div>
+              <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">{{ $t('common.loading') || '加载中...' }}</p>
+            </div>
+          </div>
           <div class="p-6 pt-4 overflow-x-hidden">
             <CommentSection
               :comments="vulnerability?.comments || []"
+              :loading="loadingComment"
               @submit="handlePostComment"
               @delete="handleDeleteComment"
             />
@@ -418,6 +432,7 @@ const authStore = useAuthStore()
 
 const vulnerability = ref(null)
 const loadingVulnerability = ref(false)
+const loadingComment = ref(false)
 const activeTab = ref('overview')
 const showCloseDialog = ref(false)
 const isClosingVulnerability = ref(false)
@@ -540,47 +555,41 @@ const handlePostComment = async ({ comment, files }) => {
       return
     }
     
+    loadingComment.value = true
     await postComment(vulnerability.value.id, commentText, files || [], 'asm')
     
-    await loadVulnerabilityDetail()
+    // 静默刷新，不触发整个页面的loading
+    await loadVulnerabilityDetail({ silent: true })
     
     toast.success(t('vulnerabilities.detail.commentSuccess') || '评论提交成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to post comment:', error)
     const errorMessage = error?.response?.data?.message || error?.message || t('vulnerabilities.detail.commentError') || '评论提交失败，请稍后重试'
     toast.error(errorMessage, 'ERROR')
+  } finally {
+    loadingComment.value = false
   }
 }
 
-// 处理删除评论（统一处理，根据 existsInDatabase 标志决定是否调用API）
-const handleDeleteComment = async ({ commentId, existsInDatabase }) => {
-  // 如果评论不存在于数据库中，直接从前端移除
-  if (!existsInDatabase) {
-    if (!vulnerability.value?.comments) {
-      return
-    }
-    vulnerability.value.comments = vulnerability.value.comments.filter(
-      comment => (comment.id || comment.comment_id) !== commentId
-    )
-    toast.success(t('alerts.detail.comments.removeSuccess') || '评论已从列表中移除', 'SUCCESS')
-    return
-  }
-
-  // 评论存在于数据库中，需要调用后端API删除
+// 处理删除评论
+const handleDeleteComment = async ({ commentId }) => {
   if (!vulnerability.value?.id) {
     toast.error(t('vulnerabilities.detail.commentError') || '无法删除评论：漏洞ID不存在', 'ERROR')
     return
   }
   
   try {
+    loadingComment.value = true
     await deleteComment(vulnerability.value.id, commentId)
-    // 重新加载漏洞详情
-    await loadVulnerabilityDetail()
-    toast.success(t('alerts.detail.comments.deleteSuccess') || '评论删除成功', 'SUCCESS')
+    // 静默刷新，不触发整个页面的loading
+    await loadVulnerabilityDetail({ silent: true })
+    toast.success(t('incidents.detail.comments.deleteSuccess') || '评论删除成功', 'SUCCESS')
   } catch (error) {
     console.error('Failed to delete comment:', error)
-    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('alerts.detail.comments.deleteError') || '评论删除失败，请稍后重试'
+    const errorMessage = error?.response?.data?.error_message || error?.response?.data?.message || error?.message || t('incidents.detail.comments.deleteError') || '评论删除失败，请稍后重试'
     toast.error(errorMessage, 'ERROR')
+  } finally {
+    loadingComment.value = false
   }
 }
 

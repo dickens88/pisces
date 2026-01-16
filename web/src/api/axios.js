@@ -29,6 +29,10 @@ function getCookie(name) {
 // Request interceptor
 service.interceptors.request.use(
   requestConfig => {
+    if (requestConfig.data instanceof FormData) {
+      delete requestConfig.headers['Content-Type']
+    }
+    
     // 无论配置如何，都尝试从cookie读取token（因为cookie是最可靠的来源）
     const cookieToken = getCookie('access_token')
     const authStore = useAuthStore()

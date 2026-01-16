@@ -220,7 +220,7 @@
         <!-- Prompt message -->
         <div class="mb-4 p-3 bg-[#1e293b] rounded-md">
           <p class="text-sm text-gray-400">
-            {{ deletingComment && existsInDatabase(deletingComment) ? $t('incidents.detail.comments.confirmDeleteMessage') : $t('incidents.detail.comments.confirmRemoveMessage') }}
+            {{ $t('incidents.detail.comments.confirmDeleteMessage') || '确认要删除这条评论吗？此操作不可撤销。' }}
           </p>
         </div>
 
@@ -572,12 +572,10 @@ const confirmDeleteComment = async () => {
   isDeletingComment.value = true
 
   try {
-    const existsInDb = existsInDatabase(comment)
-    // 统一使用 delete 事件，包含评论信息和是否存在于数据库的标志
+    // 直接调用 delete 事件，由父组件处理 API 调用
     emit('delete', {
       commentId: comment.id || comment.comment_id,
-      comment: comment,
-      existsInDatabase: existsInDb
+      comment: comment
     })
     closeDeleteCommentDialog()
   } catch (error) {
