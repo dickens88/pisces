@@ -839,7 +839,37 @@ const loadAllFinetuneRecords = async () => {
     toast.error('Failed to load fine-tune records', 'ERROR')
   } finally {
     loadingFinetuneRecords.value = false
+    // Populate AI Response Details from loaded records
+    populateFinetuneResultsFromRecords()
   }
+}
+
+// Populate finetuneWorkflowResults from allFinetuneRecords
+const populateFinetuneResultsFromRecords = () => {
+  // Clear existing results first
+  finetuneWorkflowResults.value = {}
+  
+  // Populate from loaded records
+  allFinetuneRecords.value.forEach(record => {
+    const alertId = record.alert_id
+    if (!alertId || !record.updated_at) return // Skip if no alert_id or no actual record data
+    
+    finetuneWorkflowResults.value[alertId] = {
+      data: null, // No raw workflow data, just parsed results from database
+      error: null,
+      loading: false,
+      status: 'completed',
+      is_threat: record.is_threat || null,
+      confidence_score: record.confidence_score || null,
+      reason: record.reason || null,
+      raw_text: record.raw_text || '',
+      workflowName: record.agent_name || null,
+      expanded: false,
+      startTime: null,
+      elapsedTime: 0,
+      timerInterval: null
+    }
+  })
 }
 
 
@@ -880,6 +910,9 @@ const canRunAllWorkflows = computed(() => {
 // Handle running workflows
 const handleRunAllWorkflows = async () => {
   if (!canRunAllWorkflows.value || runningWorkflow.value) return
+
+  // Clear AI Response Details before running new tests
+  finetuneWorkflowResults.value = {}
 
   runningWorkflow.value = true
   cancelWorkflows.value = false
