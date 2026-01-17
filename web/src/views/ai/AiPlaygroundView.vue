@@ -13,13 +13,13 @@
       <div class="flex items-center gap-4">
         <button
           @click="handleRefresh"
-          :disabled="loadingAlerts || aiAccuracyLoading || aiDecisionLoading"
+          :disabled="loadingAlerts || aiDecisionLoading || aiCoverageLoading || aiAccuracyTrendLoading || modelPerformanceLoading"
           class="bg-gray-200 dark:bg-[#2a3546] hover:bg-gray-300 dark:hover:bg-[#3c4a60] text-sm font-medium text-gray-700 dark:text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-[#2a3546] h-10"
           :title="$t('common.refresh') || 'Refresh'"
         >
           <span
             class="material-symbols-outlined text-base"
-            :class="{ 'animate-spin': loadingAlerts || aiAccuracyLoading || aiDecisionLoading }"
+            :class="{ 'animate-spin': loadingAlerts || aiDecisionLoading || aiCoverageLoading || aiAccuracyTrendLoading || modelPerformanceLoading }"
           >
             refresh
           </span>
@@ -39,86 +39,130 @@
       v-if="showCharts"
       class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6"
     >
+      <!-- AI Accuracy Trend by Model Chart -->
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center px-3 py-1.5">
-          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('dashboard.charts.aiAccuracy') }}</p>
+          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('aiPlayground.charts.aiAccuracyTrend') }}</p>
           <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
         </div>
-        <div class="flex flex-col gap-0.5 px-3 pb-1.5">
-          <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
-            {{ $t('common.averageAccuracy') || 'Average Accuracy' }}
-          </span>
-          <span class="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">
-            {{ aiAccuracyAverage }}%
-          </span>
-        </div>
-        <div class="relative h-36">
+        <div class="relative" style="height: 180px;">
           <div
-            v-if="aiAccuracyLoading"
+            v-if="aiAccuracyTrendLoading"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('common.loading') }}
           </div>
           <div
-            v-else-if="aiAccuracyData.length === 0"
+            v-else-if="aiAccuracyTrendData.length === 0"
             class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
           >
             {{ $t('dashboard.charts.noData') }}
           </div>
           <div
-            v-show="!aiAccuracyLoading && aiAccuracyData.length > 0"
-            ref="aiAccuracyChartRef"
+            v-show="!aiAccuracyTrendLoading && aiAccuracyTrendData.length > 0"
+            ref="aiAccuracyTrendChartRef"
             class="absolute inset-0"
             style="margin: 0; padding: 0;"
           ></div>
         </div>
       </div>
       
+      <!-- AI Performance Indicators: Two pie charts side by side -->
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0">
         <div class="flex justify-between items-center px-3 py-1.5">
-          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('aiPlayground.aiDecisionAnalysis') }}</p>
+          <p class="text-gray-900 dark:text-white text-base font-semibold">{{ $t('aiPlayground.aiPerformanceIndicators') || 'AI Performance Indicators' }}</p>
           <span class="text-xs text-gray-600 dark:text-white/60">{{ timeRangeLabel }}</span>
         </div>
-        <div class="flex flex-col gap-0.5 px-3 pb-1.5">
-          <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
-            {{ $t('aiPlayground.totalDecisions') || 'Total Decisions' }}
-          </span>
-          <span class="text-gray-900 dark:text-white text-2xl font-bold tracking-tight">
-            {{ aiDecisionTotal }}
-          </span>
-        </div>
-        <div class="relative h-36">
-          <div
-            v-if="aiDecisionLoading"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
-          >
-            {{ $t('common.loading') }}
+        <div class="grid grid-cols-2 gap-4 px-3 pb-0.5">
+          <!-- Left: AI Coverage -->
+          <div class="flex flex-col gap-2">
+            <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
+              {{ $t('alerts.list.statistics.aiJudgmentCoverageRate') || 'AI Coverage' }}
+            </span>
+            <div class="flex items-center gap-4">
+              <div class="relative w-32 h-32 flex-shrink-0">
+                <div
+                  v-if="aiCoverageLoading"
+                  class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+                >
+                  {{ $t('common.loading') }}
+                </div>
+                <div
+                  v-else-if="!aiCoverageStats.totalAlerts && !aiCoverageStats.coveredAlerts"
+                  class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+                >
+                  {{ $t('common.noData') }}
+                </div>
+                <div
+                  v-show="!aiCoverageLoading && (aiCoverageStats.totalAlerts || aiCoverageStats.coveredAlerts)"
+                  ref="aiCoverageChartRef"
+                  class="absolute inset-0"
+                  style="margin: 0; padding: 0;"
+                ></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-gray-900 dark:text-white text-3xl font-bold leading-tight">
+                  {{ aiCoverageStats.coverageRate }}%
+                </p>
+                <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                  {{ aiCoverageStats.coveredAlerts || 0 }}/{{ aiCoverageStats.totalAlerts || 0 }} {{ $t('alerts.list.statistics.Alerts') || 'Alerts' }}
+                </p>
+              </div>
+            </div>
           </div>
-          <div
-            v-else-if="aiDecisionData.length === 0"
-            class="absolute inset-0 flex items-center justify-center text-white/50 text-sm"
-          >
-            {{ $t('dashboard.charts.noData') }}
+          
+          <!-- Right: AI Decision Analysis -->
+          <div class="flex flex-col gap-2">
+            <span class="text-gray-600 dark:text-white/60 text-xs font-medium uppercase tracking-wide">
+              {{ $t('aiPlayground.aiAccuracyAnalysis') || 'aiAccuracyAnalysis' }}
+            </span>
+            <div class="flex items-center gap-4">
+              <div class="relative w-32 h-32 flex-shrink-0">
+                <div
+                  v-if="aiDecisionLoading"
+                  class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+                >
+                  {{ $t('common.loading') }}
+                </div>
+                <div
+                  v-else-if="aiDecisionData.length === 0"
+                  class="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs"
+                >
+                  {{ $t('dashboard.charts.noData') }}
+                </div>
+                <div
+                  v-show="!aiDecisionLoading && aiDecisionData.length > 0"
+                  ref="aiDecisionChartRef"
+                  class="absolute inset-0"
+                  style="margin: 0; padding: 0;"
+                ></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-gray-900 dark:text-white text-3xl font-bold leading-tight">
+                  {{ aiDecisionAccuracyRate }}%
+                </p>
+                <p class="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                  {{ aiDecisionTPValue }}/{{ aiDecisionTotalCount }} {{ $t('alerts.list.statistics.Alerts') || 'Alerts' }}
+                </p>
+              </div>
+            </div>
           </div>
-          <div
-            v-show="!aiDecisionLoading && aiDecisionData.length > 0"
-            ref="aiDecisionChartRef"
-            class="absolute inset-0"
-            style="margin: 0; padding: 0;"
-          ></div>
         </div>
       </div>
       
       <!-- Model Performance table (grouped by model_name and agent_name) -->
       <div class="flex flex-col rounded-xl border border-gray-200 dark:border-[#324867]/50 bg-white dark:bg-[#19222c] p-0 min-w-0 lg:row-span-2 lg:col-start-2 lg:row-start-1">
         <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#324867]/60">
-          <div>
+          <div class="flex items-center gap-2">
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
               {{ $t('aiPlayground.modelPerformance.title') || 'AI performance by Model and Agent' }}
             </h3>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {{ $t('aiPlayground.modelPerformance.subtitle') || 'Based on current time range and filters' }}
-            </p>
+            <span
+              class="material-symbols-outlined text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 cursor-help"
+              :title="$t('aiPlayground.modelPerformance.tooltip') || 'TP (True Positive): AI correctly identified alerts as threats\nFP (False Positive): AI incorrectly identified non-threats as threats\nFN (False Negative): AI missed actual threats\nAI Handled: Total number of alerts processed by AI\nTotal: Total number of alerts\nCoverage Rate: Percentage of alerts handled by AI'"
+            >
+              help
+            </span>
           </div>
           <span class="text-xs text-gray-500 dark:text-gray-400">
             {{ timeRangeLabel }}
@@ -132,136 +176,30 @@
             <span class="material-symbols-outlined animate-spin text-base mr-2">sync</span>
             {{ $t('common.loading') || 'Loading...' }}
           </div>
-          <div v-else class="overflow-x-auto overflow-y-auto max-h-[400px]">
+          <div v-else class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 dark:divide-[#324867] text-xs">
               <thead class="bg-gray-50 dark:bg-[#111822] sticky top-0 z-10">
                 <tr>
                   <th
+                    v-for="col in modelPerformanceColumns"
+                    :key="col.key"
                     scope="col"
-                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('modelName')"
+                    :class="[
+                      'px-3 py-2 font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none',
+                      col.align === 'left' ? 'text-left' : 'text-right'
+                    ]"
+                    @click="setModelPerformanceSort(col.key)"
                   >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.modelName') || 'Model Name' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'modelName'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('agentName')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.agentName') || 'Agent Name' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'agentName'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('handledCount')"
-                  >
-                    <span class="inline-flex items-center gap-1 justify-end">
-                      <span class="leading-tight text-right">
-                        <template v-if="($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').includes(' ')">
-                          {{ ($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[0] }}
-                          <br />
-                          {{ ($t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled').split(' ')[1] }}
+                    <span :class="['inline-flex items-center gap-1', col.align === 'right' && col.multiline ? 'justify-end' : '']">
+                      <span v-if="col.multiline" class="leading-tight text-right">
+                        <template v-if="($t(col.i18nKey) || col.label).includes(' ')">
+                          {{ ($t(col.i18nKey) || col.label).split(' ')[0] }}<br />{{ ($t(col.i18nKey) || col.label).split(' ')[1] }}
                         </template>
-                        <template v-else>
-                          {{ $t('aiPlayground.modelPerformance.columns.aiHandledAlerts') || 'AI Handled' }}
-                        </template>
+                        <template v-else>{{ $t(col.i18nKey) || col.label }}</template>
                       </span>
-                      <span
-                        v-if="modelPerformanceSortKey === 'handledCount'"
-                        class="material-symbols-outlined text-[14px] flex-shrink-0"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('correctDecisionsCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.correctDecisions') || 'Correct' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'correctDecisionsCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('falsePositiveCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.falsePositive') || 'False Positive Count' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'falsePositiveCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('falseNegativeCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.falseNegative') || 'False Negative Count' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'falseNegativeCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('totalCount')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.totalTickets') || 'Total' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'totalCount'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
-                      </span>
-                    </span>
-                  </th>
-                  <th
-                    scope="col"
-                    class="px-3 py-2 text-right font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none"
-                    @click="setModelPerformanceSort('coverageRate')"
-                  >
-                    <span class="inline-flex items-center gap-1">
-                      {{ $t('aiPlayground.modelPerformance.columns.coverageRate') || 'Coverage Rate' }}
-                      <span
-                        v-if="modelPerformanceSortKey === 'coverageRate'"
-                        class="material-symbols-outlined text-[14px]"
-                      >
-                        {{ modelPerformanceSortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward' }}
+                      <template v-else>{{ $t(col.i18nKey) || col.label }}</template>
+                      <span :class="['material-symbols-outlined text-[14px]', col.multiline ? 'flex-shrink-0' : '']">
+                        {{ getSortIcon(col.key) }}
                       </span>
                     </span>
                   </th>
@@ -279,16 +217,14 @@
                 <tr
                   v-for="row in sortedModelPerformanceData"
                   :key="`${row.modelName}-${row.agentName}`"
-                  class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors"
+                  class="hover:bg-gray-50 dark:hover:bg-[#111822] transition-colors cursor-pointer"
+                  @click="handleModelPerformanceRowClick(row)"
                 >
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.modelName">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[180px] truncate" :title="row.modelName">
                     {{ row.modelName }}
                   </td>
-                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[200px] truncate" :title="row.agentName">
+                  <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[150px] truncate" :title="row.agentName">
                     {{ row.agentName }}
-                  </td>
-                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
-                    {{ row.handledCount }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.correctDecisionsCount }}
@@ -298,6 +234,9 @@
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.falseNegativeCount }}
+                  </td>
+                  <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
+                    {{ row.handledCount }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.totalCount }}
@@ -1372,36 +1311,27 @@ const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playgroun
 
 const showCharts = ref(true)
 
-// AI accuracy chart state
-const aiAccuracyChartRef = ref(null)
-const aiAccuracyData = ref([])
-const aiAccuracyLoading = ref(false)
-const aiAccuracyChartInstance = { value: null }
-const aiAccuracyResizeListenerBound = { value: false }
-const aiAccuracyAverage = computed(() => {
-  if (!aiAccuracyData.value.length) return '0.0'
-  const sum = aiAccuracyData.value.reduce((total, item) => total + (Number(item.accuracy) || 0), 0)
-  return (sum / aiAccuracyData.value.length).toFixed(1)
-})
-
 // AI decision analysis chart state
 const aiDecisionChartRef = ref(null)
 const aiDecisionData = ref([])
 const aiDecisionLoading = ref(false)
 const aiDecisionChartInstance = { value: null }
 const aiDecisionResizeListenerBound = { value: false }
-const aiDecisionTotal = computed(() => {
-  if (!aiDecisionData.value.length) return 0
-  return aiDecisionData.value.reduce((total, item) => total + (Number(item.value) || 0), 0)
-})
+const aiDecisionTotal = ref(0)
 
-// Agent performance table state
-const agentPerformanceData = ref([])
-const agentPerformanceLoading = ref(false)
-const agentPerformanceSortKey = ref('handledCount') // 'agentName' | 'handledCount' | 'correctDecisionsCount' | 'falsePositiveCount' | 'falseNegativeCount' | 'totalCount' | 'coverageRate'
-const agentPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
-const agentPerformancePage = ref(1)
-const agentPerformancePageSize = ref(10)
+// AI coverage chart state
+const aiCoverageChartRef = ref(null)
+const aiCoverageLoading = ref(false)
+const aiCoverageStats = ref({ totalAlerts: 0, coveredAlerts: 0, coverageRate: 0 })
+const aiCoverageChartInstance = { value: null }
+const aiCoverageResizeListenerBound = { value: false }
+
+// AI accuracy trend by model chart state
+const aiAccuracyTrendChartRef = ref(null)
+const aiAccuracyTrendData = ref([])
+const aiAccuracyTrendLoading = ref(false)
+const aiAccuracyTrendChartInstance = { value: null }
+const aiAccuracyTrendResizeListenerBound = { value: false }
 
 // Model performance table state (grouped by model_name and agent_name)
 const modelPerformanceData = ref([])
@@ -1410,6 +1340,26 @@ const modelPerformanceSortKey = ref('handledCount') // 'modelName' | 'agentName'
 const modelPerformanceSortOrder = ref('desc') // 'asc' | 'desc'
 const modelPerformancePage = ref(1)
 const modelPerformancePageSize = ref(10)
+
+// Model performance table columns configuration
+const modelPerformanceColumns = [
+  { key: 'modelName', i18nKey: 'aiPlayground.modelPerformance.columns.modelName', label: 'Model Name', align: 'left' },
+  { key: 'agentName', i18nKey: 'aiPlayground.modelPerformance.columns.agentName', label: 'Agent Name', align: 'left' },
+  { key: 'correctDecisionsCount', i18nKey: 'aiPlayground.modelPerformance.columns.correctDecisions', label: 'TP', align: 'right' },
+  { key: 'falsePositiveCount', i18nKey: 'aiPlayground.modelPerformance.columns.falsePositive', label: 'False Positive Count', align: 'right' },
+  { key: 'falseNegativeCount', i18nKey: 'aiPlayground.modelPerformance.columns.falseNegative', label: 'False Negative Count', align: 'right' },
+  { key: 'handledCount', i18nKey: 'aiPlayground.modelPerformance.columns.aiHandledAlerts', label: 'AI Handled', align: 'right', multiline: true },
+  { key: 'totalCount', i18nKey: 'aiPlayground.modelPerformance.columns.totalTickets', label: 'Total', align: 'right' },
+  { key: 'coverageRate', i18nKey: 'aiPlayground.modelPerformance.columns.coverageRate', label: 'Coverage Rate', align: 'right' }
+]
+
+// Computed property to get sort icon for a column
+const getSortIcon = (columnKey) => {
+  if (modelPerformanceSortKey.value === columnKey) {
+    return modelPerformanceSortOrder.value === 'asc' ? 'arrow_upward' : 'arrow_downward'
+  }
+  return 'unfold_more'
+}
 
 // Alert list state
 const alerts = ref([])
@@ -1455,6 +1405,27 @@ const isUpdatingVerdict = ref(false)
 const overlayAlertId = computed(() => selectedAlertForFinetuning.value?.alert_id || selectedAlertForFinetuning.value?.id || '')
 const overlayAlertSubject = computed(() => selectedAlertForFinetuning.value?.title || '')
 const overlayHumanConclusion = computed(() => selectedAlertForFinetuning.value?.close_comment || '')
+
+// Calculate AI accuracy rate: TP / Total * 100%
+const aiDecisionAccuracyRate = computed(() => {
+  if (aiDecisionData.value.length === 0) return '0.0'
+  const tpItem = aiDecisionData.value.find(item => item.name === 'TP' || item.name === 'tp')
+  const tpValue = tpItem ? tpItem.value : 0
+  const total = aiDecisionData.value.reduce((sum, item) => sum + item.value, 0)
+  if (total === 0) return '0.0'
+  return ((tpValue / total) * 100).toFixed(1)
+})
+
+// Get TP value
+const aiDecisionTPValue = computed(() => {
+  const tpItem = aiDecisionData.value.find(item => item.name === 'TP' || item.name === 'tp')
+  return tpItem ? tpItem.value : 0
+})
+
+// Get total count (TP + FP + FN + Empty)
+const aiDecisionTotalCount = computed(() => {
+  return aiDecisionData.value.reduce((sum, item) => sum + item.value, 0)
+})
 const overlayFormattedContent = computed(() => {
   const desc = getRawDescription(selectedAlertDetailForFinetuning.value, selectedAlertForFinetuning.value)
   if (contentFormatMode.value === 'json') {
@@ -1728,242 +1699,158 @@ const agentNameOptions = computed(() => {
   return allAgentNames.value.sort((a, b) => a.localeCompare(b))
 })
 
-// Combined function to load all stats data in one request
+// Load all stats data from backend API
 const loadAllStatsData = async () => {
   // Set loading states
-  agentPerformanceLoading.value = true
-  modelPerformanceLoading.value = true
-  aiAccuracyLoading.value = true
   aiDecisionLoading.value = true
+  aiCoverageLoading.value = true
+  aiAccuracyTrendLoading.value = true
+  modelPerformanceLoading.value = true
 
   try {
     const { start, end } = computeSelectedRange()
-    // Build conditions but exclude agent_name filter to get all available agents
     const allConditions = buildConditions()
     const conditions = allConditions.filter(c => !('agent_name' in c))
     
-    // Single fetch with high limit to get all data needed for:
-    // 1. Agent performance stats
-    // 2. Model performance stats
-    // 3. Unique agent names
-    // 4. AI accuracy statistics (by model)
-    // 5. AI decision analysis (by is_ai_decision_correct)
-    const params = {
-      action: 'list_local',
-      limit: 10000, // High limit to get all records
-      offset: 0,
-      conditions: conditions,
-      start_time: formatDateTimeWithOffset(start),
-      end_time: formatDateTimeWithOffset(end)
-    }
-    const response = await service.post('/alerts', params)
-    const raw = response.data || []
+    // Call four separate APIs for each statistic type using GET requests
+    const [aiDecisionResponse, modelPerformanceResponse, aiCoverageResponse, aiAccuracyTrendResponse] = await Promise.all([
+      // AI Decision statistics - call ai-decision-analysis chart
+      service.get('/stats/alerts', {
+        params: {
+          chart: 'ai-decision-analysis',
+          start_date: formatDateTimeWithOffset(start),
+          end_date: formatDateTimeWithOffset(end),
+          ...(conditions.length > 0 && { conditions: JSON.stringify(conditions) })
+        }
+      }).catch(err => {
+        console.error('Failed to load AI decision stats:', err)
+        return { data: [] }
+      }),
+      // Model Performance statistics
+      service.get('/stats/alerts', {
+        params: {
+          chart: 'model-performance',
+          start_date: formatDateTimeWithOffset(start),
+          end_date: formatDateTimeWithOffset(end),
+          ...(conditions.length > 0 && { conditions: JSON.stringify(conditions) })
+        }
+      }).catch(err => {
+        console.error('Failed to load model performance stats:', err)
+        return { data: [] }
+      }),
+      // AI Coverage statistics
+      service.get('/stats/alerts', {
+        params: {
+          chart: 'ai-judgment-coverage-rate',
+          start_date: formatDateTimeWithOffset(start),
+          end_date: formatDateTimeWithOffset(end),
+          ...(conditions.length > 0 && { conditions: JSON.stringify(conditions) })
+        }
+      }).catch(err => {
+        console.error('Failed to load AI coverage stats:', err)
+        return { data: {} }
+      }),
+      // AI Accuracy Trend by Model statistics
+      service.get('/stats/alerts', {
+        params: {
+          chart: 'ai-accuracy-trend-by-model',
+          start_date: formatDateTimeWithOffset(start),
+          end_date: formatDateTimeWithOffset(end),
+          ...(conditions.length > 0 && { conditions: JSON.stringify(conditions) })
+        }
+      }).catch(err => {
+        console.error('Failed to load AI accuracy trend stats:', err)
+        return { data: [] }
+      })
+    ])
     
-    // Filter out AutoClosed alerts (used by both performance stats)
-    const filtered = raw.filter(item => {
-      const autoClose = item.is_auto_close ?? item.auto_close
-      return String(autoClose) !== 'AutoClosed' && autoClose !== 'auto_closed'
-    })
-
-    // 1. Extract unique agent names
+    // Set AI decision data from backend response
+    // Expected format: { data: [{ name: 'TP', value: 100 }, { name: 'FP', value: 20 }, ...], total_decisions: 150 }
+    const aiDecisionResponseData = aiDecisionResponse.data || {}
+    let rawDecisionData = []
+    if (Array.isArray(aiDecisionResponseData)) {
+      rawDecisionData = aiDecisionResponseData
+    } else if (Array.isArray(aiDecisionResponseData.data)) {
+      rawDecisionData = aiDecisionResponseData.data
+    }
+    
+    // Set total decisions from backend (no frontend calculation)
+    aiDecisionTotal.value = aiDecisionResponseData.total_decisions ?? 0
+    
+    // Normalize field names (only field name conversion, no calculation)
+    aiDecisionData.value = rawDecisionData.map(item => ({
+      name: item.name || item.status || item.decision || '',
+      value: Number(item.value ?? item.count ?? 0)
+    })).filter(item => item.name) // Filter out items without a name
+    
+    // Set model performance data from backend response
+    const modelPerformanceDataRaw = modelPerformanceResponse.data
+    let rawModelData = []
+    if (Array.isArray(modelPerformanceDataRaw)) {
+      rawModelData = modelPerformanceDataRaw
+    } else if (modelPerformanceDataRaw && Array.isArray(modelPerformanceDataRaw.data)) {
+      rawModelData = modelPerformanceDataRaw.data
+    }
+    
+    // Normalize field names: convert snake_case to camelCase
+    modelPerformanceData.value = rawModelData.map(row => ({
+      modelName: row.modelName || row.model_name || row.model || 'Unknown Model',
+      agentName: row.agentName || row.agent_name || 'Unknown Agent',
+      handledCount: row.handledCount ?? row.handled_count ?? 0,
+      correctDecisionsCount: row.correctDecisionsCount ?? row.correct_decisions_count ?? 0,
+      falsePositiveCount: row.falsePositiveCount ?? row.false_positive_count ?? 0,
+      falseNegativeCount: row.falseNegativeCount ?? row.false_negative_count ?? 0,
+      totalCount: row.totalCount ?? row.total_count ?? 0,
+      coverageRate: row.coverageRate ?? row.coverage_rate ?? 0
+    }))
+    
+    // Extract unique agent names from model performance data
     const names = new Set()
-    filtered.forEach(alert => {
-      const name = alert.agent_name || alert.agentName
-      if (name && typeof name === 'string' && name.trim()) {
-        names.add(name.trim())
+    modelPerformanceData.value.forEach(row => {
+      if (row.agentName && typeof row.agentName === 'string' && row.agentName.trim()) {
+        names.add(row.agentName.trim())
       }
     })
     allAgentNames.value = Array.from(names)
-
-    // 2. Aggregate by agent for agent performance stats
-    const aggregateByAgent = new Map()
-    filtered.forEach(item => {
-      const agentName = item.agent_name || 'Unknown'
-      const verificationState = item.verification_state
-      const matchStatus = item.is_ai_decision_correct
-
-      if (!aggregateByAgent.has(agentName)) {
-        aggregateByAgent.set(agentName, {
-          agentName,
-          handledCount: 0,
-          correctDecisionsCount: 0,
-          falsePositiveCount: 0,
-          falseNegativeCount: 0,
-          totalCount: 0,
-          unknownCount: 0
-        })
+    
+    // Set AI coverage data from backend response
+    if (aiCoverageResponse && aiCoverageResponse.data) {
+      if (aiCoverageResponse.data.total_alerts !== undefined) {
+        aiCoverageStats.value.totalAlerts = aiCoverageResponse.data.total_alerts
       }
-
-      const agg = aggregateByAgent.get(agentName)
-      agg.totalCount += 1
-
-      if (verificationState === 'Unknown') {
-        agg.unknownCount += 1
+      if (aiCoverageResponse.data.covered_alerts !== undefined) {
+        aiCoverageStats.value.coveredAlerts = aiCoverageResponse.data.covered_alerts
       }
-
-      if (matchStatus === 'TP') {
-        agg.correctDecisionsCount += 1
-      } else if (matchStatus === 'FP') {
-        agg.falsePositiveCount += 1
-      } else if (matchStatus === 'FN') {
-        agg.falseNegativeCount += 1
+      if (aiCoverageResponse.data.coverage_rate !== undefined) {
+        aiCoverageStats.value.coverageRate = aiCoverageResponse.data.coverage_rate
       }
-    })
-
-    const agentRows = Array.from(aggregateByAgent.values())
-      .map(agg => {
-        const handledCount = agg.totalCount - agg.unknownCount
-        const coverageRate = agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
-        return {
-          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
-          handledCount,
-          correctDecisionsCount: agg.correctDecisionsCount,
-          falsePositiveCount: agg.falsePositiveCount,
-          falseNegativeCount: agg.falseNegativeCount,
-          totalCount: agg.totalCount,
-          coverageRate
-        }
-      })
-      .filter(row => {
-        if (row.agentName === 'Unknown Agent') {
-          return row.handledCount > 0
-        }
-        return true
-      })
-
-    agentPerformanceData.value = agentRows
-
-    // 3. Aggregate by model and agent for model performance stats
-    const aggregateByModelAndAgent = new Map()
-    filtered.forEach(item => {
-      const modelName = item.model_name || item.model || 'Unknown Model'
-      const agentName = item.agent_name || 'Unknown'
-      const key = `${modelName}|||${agentName}`
-      const verificationState = item.verification_state
-      const matchStatus = item.is_ai_decision_correct
-
-      if (!aggregateByModelAndAgent.has(key)) {
-        aggregateByModelAndAgent.set(key, {
-          modelName,
-          agentName,
-          handledCount: 0,
-          correctDecisionsCount: 0,
-          falsePositiveCount: 0,
-          falseNegativeCount: 0,
-          totalCount: 0,
-          unknownCount: 0
-        })
-      }
-
-      const agg = aggregateByModelAndAgent.get(key)
-      agg.totalCount += 1
-
-      if (verificationState === 'Unknown') {
-        agg.unknownCount += 1
-      }
-
-      if (matchStatus === 'TP') {
-        agg.correctDecisionsCount += 1
-      } else if (matchStatus === 'FP') {
-        agg.falsePositiveCount += 1
-      } else if (matchStatus === 'FN') {
-        agg.falseNegativeCount += 1
-      }
-    })
-
-    const modelRows = Array.from(aggregateByModelAndAgent.values())
-      .map(agg => {
-        const handledCount = agg.totalCount - agg.unknownCount
-        const coverageRate = agg.totalCount > 0 ? (handledCount / agg.totalCount) * 100 : 0
-        return {
-          modelName: agg.modelName === 'Unknown Model' ? 'Unknown Model' : agg.modelName,
-          agentName: agg.agentName === 'Unknown' ? 'Unknown Agent' : agg.agentName,
-          handledCount,
-          correctDecisionsCount: agg.correctDecisionsCount,
-          falsePositiveCount: agg.falsePositiveCount,
-          falseNegativeCount: agg.falseNegativeCount,
-          totalCount: agg.totalCount,
-          coverageRate
-        }
-      })
-      .filter(row => {
-        if (row.agentName === 'Unknown Agent') {
-          return row.handledCount > 0
-        }
-        return true
-      })
-
-    modelPerformanceData.value = modelRows
-
-    // 4. Aggregate by model for AI accuracy statistics
-    const aggregateByModel = new Map()
-    filtered.forEach(item => {
-      const modelName = item.model_name || item.model || 'Unknown Model'
-      const matchStatus = item.is_ai_decision_correct
-
-      if (!aggregateByModel.has(modelName)) {
-        aggregateByModel.set(modelName, {
-          modelName,
-          correct: 0,
-          total: 0
-        })
-      }
-
-      const agg = aggregateByModel.get(modelName)
-      agg.total += 1
-
-      if (matchStatus === 'TP') {
-        agg.correct += 1
-      }
-    })
-
-    const aiAccuracyRows = Array.from(aggregateByModel.values())
-      .map(agg => {
-        const accuracy = agg.total > 0 ? (agg.correct / agg.total) * 100 : 0
-        return {
-          name: agg.modelName === 'Unknown Model' ? 'Unknown' : agg.modelName,
-          accuracy: Number(accuracy.toFixed(1)),
-          correct: agg.correct,
-          total: agg.total
-        }
-      })
-      .filter(row => row.total > 0) // Only include models with data
-      .sort((a, b) => b.total - a.total) // Sort by total count descending
-      .slice(0, 10) // Top 10 models
-
-    aiAccuracyData.value = aiAccuracyRows
-
-    // 5. Aggregate by is_ai_decision_correct for AI decision analysis
-    const aggregateByDecision = new Map()
-    filtered.forEach(item => {
-      const decisionStatus = item.is_ai_decision_correct || ''
-      const statusKey = decisionStatus === 'TP' ? 'TP' :
-                       decisionStatus === 'FP' ? 'FP' :
-                       decisionStatus === 'FN' ? 'FN' : 'Empty'
-
-      if (!aggregateByDecision.has(statusKey)) {
-        aggregateByDecision.set(statusKey, 0)
-      }
-
-      aggregateByDecision.set(statusKey, aggregateByDecision.get(statusKey) + 1)
-    })
-
-    // Convert to array format expected by chart
-    const aiDecisionRows = []
-    aggregateByDecision.forEach((value, name) => {
-      aiDecisionRows.push({ name, value })
-    })
-
-    aiDecisionData.value = aiDecisionRows
+    }
+    
+    // Set AI accuracy trend data from backend response
+    const aiAccuracyTrendResponseData = aiAccuracyTrendResponse.data || {}
+    let rawTrendData = []
+    if (Array.isArray(aiAccuracyTrendResponseData)) {
+      rawTrendData = aiAccuracyTrendResponseData
+    } else if (Array.isArray(aiAccuracyTrendResponseData.data)) {
+      rawTrendData = aiAccuracyTrendResponseData.data
+    }
+    
+    // Normalize field names
+    aiAccuracyTrendData.value = rawTrendData.map(item => ({
+      date: item.date || '',
+      modelName: item.model_name || item.modelName || 'Unknown',
+      accuracy: Number(item.accuracy ?? 0),
+      tpCount: Number(item.tp_count ?? 0),
+      totalCount: Number(item.total_count ?? 0)
+    })).filter(item => item.date && item.modelName)
   } catch (error) {
     console.error('Failed to load stats data:', error)
-    // Fallback to empty data
-    allAgentNames.value = []
-    agentPerformanceData.value = []
-    modelPerformanceData.value = []
-    aiAccuracyData.value = []
     aiDecisionData.value = []
-
+    aiAccuracyTrendData.value = []
+    modelPerformanceData.value = []
+    allAgentNames.value = []
+    aiCoverageStats.value = { totalAlerts: 0, coveredAlerts: 0, coverageRate: 0 }
+    
     // Fallback to current page agents for agent names
     const names = new Set()
     alerts.value.forEach(alert => {
@@ -1974,61 +1861,380 @@ const loadAllStatsData = async () => {
     })
     allAgentNames.value = Array.from(names)
   } finally {
-    agentPerformanceLoading.value = false
-    modelPerformanceLoading.value = false
-    aiAccuracyLoading.value = false
     aiDecisionLoading.value = false
+    aiCoverageLoading.value = false
+    aiAccuracyTrendLoading.value = false
+    modelPerformanceLoading.value = false
 
     // Update charts after data is loaded
     await nextTick()
-    updateAiAccuracyChart()
     updateAiDecisionChart()
+    updateAiCoverageChart()
+    updateAiAccuracyTrendChart()
   }
 }
 
-const sortedAgentPerformanceData = computed(() => {
-  const key = agentPerformanceSortKey.value
-  const order = agentPerformanceSortOrder.value
-  const multiplier = order === 'asc' ? 1 : -1
-
-  const sorted = [...agentPerformanceData.value].sort((a, b) => {
-    // Handle string sorting for agentName
-    if (key === 'agentName') {
-      const av = String(a[key] ?? '').toLowerCase()
-      const bv = String(b[key] ?? '').toLowerCase()
-      if (av === bv) return 0
-      return av > bv ? multiplier : -multiplier
+// Chart management helper
+const useChartManager = (chartRef, chartInstance, resizeListenerBound) => {
+  const ensure = () => {
+    if (!chartInstance.value && chartRef.value) {
+      chartInstance.value = echarts.init(chartRef.value)
+      if (!resizeListenerBound.value) {
+        const resizeHandler = () => chartInstance.value?.resize()
+        window.addEventListener('resize', resizeHandler)
+        resizeListenerBound.value = true
+        chartInstance.value._resizeHandler = resizeHandler
+      }
     }
+  }
+  
+  const dispose = () => {
+    if (chartInstance.value) {
+      if (chartInstance.value._resizeHandler) {
+        window.removeEventListener('resize', chartInstance.value._resizeHandler)
+      }
+      chartInstance.value.dispose()
+      chartInstance.value = null
+    }
+    resizeListenerBound.value = false
+  }
+  
+  return { ensure, dispose }
+}
+
+const aiDecisionChartManager = useChartManager(
+  aiDecisionChartRef,
+  aiDecisionChartInstance,
+  aiDecisionResizeListenerBound
+)
+
+const aiCoverageChartManager = useChartManager(
+  aiCoverageChartRef,
+  aiCoverageChartInstance,
+  aiCoverageResizeListenerBound
+)
+
+const aiAccuracyTrendChartManager = useChartManager(
+  aiAccuracyTrendChartRef,
+  aiAccuracyTrendChartInstance,
+  aiAccuracyTrendResizeListenerBound
+)
+
+const updateAiDecisionChart = () => {
+  aiDecisionChartManager.ensure()
+  if (!aiDecisionChartInstance.value) return
+  
+  aiDecisionChartInstance.value.clear()
+
+  // Build pie data using centralized config
+  const isDark = isDarkMode()
+  const pieData = aiDecisionData.value.map((item) => {
+    const statusConfig = getMatchStatusConfig(item.name)
+    // Use lighter/more vibrant colors for light mode, darker for dark mode
+    let color = statusConfig.color
+    if (!isDark) {
+      // Adjust colors for light mode - use softer, more pleasant colors
+      const colorMap = {
+        '#10b981': '#94d2bd', // TP - slightly deeper green for better contrast
+        '#ef4444': '#dc2626', // FP - slightly deeper red for better contrast
+        '#f59e0b': '#d97706', // FN - slightly deeper orange for better contrast
+        '#94a3b8': '#6b7280'  // Empty - darker gray for better visibility
+      }
+      color = colorMap[statusConfig.color] || statusConfig.color
+    }
+    return {
+      name: t(statusConfig.i18nKey),
+      value: item.value,
+      itemStyle: { color },
+      // Store original name for click event
+      originalName: item.name
+    }
+  })
+
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+      borderWidth: isDark ? 0 : 1,
+      borderColor: isDark ? 'transparent' : '#d1d5db',
+      textStyle: { color: isDark ? '#e2e8f0' : '#111827' },
+      padding: [10, 12],
+      extraCssText: isDark ? '' : 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);',
+      formatter: (params) => {
+        if (!params) return ''
+        const total = aiDecisionData.value.reduce((sum, item) => sum + item.value, 0)
+        const percent = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0'
+        return `<div style="min-width:140px">
+          <div style="font-weight:600;margin-bottom:4px;">${params.name}</div>
+          <div>Count: ${params.value}</div>
+          <div>Percentage: ${percent}%</div>
+        </div>`
+      }
+    },
+    legend: {
+      show: false
+    },
+    series: [
+      {
+        name: t('aiPlayground.aiDecisionAnalysis'),
+        type: 'pie',
+        radius: ['45%', '75%'],
+        center: ['50%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 4,
+          borderColor: isDark ? '#19222c' : '#ffffff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: isDark ? '#e2e8f0' : '#1f2937'
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: pieData
+      }
+    ]
+  }
+
+  aiDecisionChartInstance.value.setOption(option, true)
+  setTimeout(() => aiDecisionChartInstance.value?.resize(), 0)
+
+  // Bind click to filter alerts by match status
+  aiDecisionChartInstance.value.off('click')
+  aiDecisionChartInstance.value.on('click', (params) => {
+    if (!params?.data?.originalName) return
     
-    // Handle numeric sorting for other fields
-    const av = a[key] ?? 0
-    const bv = b[key] ?? 0
-    if (av === bv) return 0
-    return av > bv ? multiplier : -multiplier
+    const filterValue = chartNameToFilterValue(params.data.originalName)
+    if (filterValue) {
+      // Set match filter and trigger filter
+      matchFilter.value = filterValue
+      handleFilter()
+    }
+  })
+}
+
+const updateAiCoverageChart = () => {
+  aiCoverageChartManager.ensure()
+  if (!aiCoverageChartInstance.value) return
+  
+  aiCoverageChartInstance.value.clear()
+  
+  const total = aiCoverageStats.value.totalAlerts || 0
+  const covered = aiCoverageStats.value.coveredAlerts || 0
+  const rate = aiCoverageStats.value.coverageRate || 0
+  
+  if (total === 0) {
+    return
+  }
+  
+  const isDark = isDarkMode()
+  const primaryColor = '#0a9396' // Dark blue for AI coverage
+  const secondaryColor = isDark ? '#1e293b' : '#e5e7eb'
+  
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} ({d}%)',
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: isDark ? '#e2e8f0' : '#374151' }
+    },
+    series: [{
+      type: 'pie',
+      radius: ['45%', '75%'],
+      center: ['50%', '50%'],
+      itemStyle: {
+        borderRadius: 0,
+        borderColor: isDark ? '#19222c' : '#ffffff',
+        borderWidth: 0
+      },
+      label: {
+        show: true,
+        position: 'center',
+        formatter: () => `${rate}%`,
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: isDark ? '#ffffff' : '#1f2937'
+      },
+      labelLine: { show: false },
+      data: [
+        { value: covered, name: t('alerts.list.statistics.covered') || '已覆盖', itemStyle: { color: primaryColor } },
+        { value: total - covered, name: t('alerts.list.statistics.uncovered') || '未覆盖', itemStyle: { color: secondaryColor } }
+      ]
+    }]
+  }
+  
+  aiCoverageChartInstance.value.setOption(option, true)
+  setTimeout(() => aiCoverageChartInstance.value?.resize(), 0)
+}
+
+const updateAiAccuracyTrendChart = () => {
+  aiAccuracyTrendChartManager.ensure()
+  if (!aiAccuracyTrendChartInstance.value || aiAccuracyTrendData.value.length === 0) {
+    return
+  }
+  
+  aiAccuracyTrendChartInstance.value.clear()
+  
+  // Build data maps: { modelName: { date: { accuracy, tpCount, totalCount } } }
+  const modelDataMap = new Map()
+  const dates = new Set()
+  
+  aiAccuracyTrendData.value.forEach(item => {
+    if (!item.date || !item.modelName) return
+    
+    dates.add(item.date)
+    if (!modelDataMap.has(item.modelName)) {
+      modelDataMap.set(item.modelName, new Map())
+    }
+    modelDataMap.get(item.modelName).set(item.date, {
+      accuracy: item.accuracy,
+      tpCount: item.tpCount,
+      totalCount: item.totalCount
+    })
   })
   
-  // Apply pagination
-  const start = (agentPerformancePage.value - 1) * agentPerformancePageSize.value
-  const end = start + agentPerformancePageSize.value
-  return sorted.slice(start, end)
-})
-
-const agentPerformanceTotal = computed(() => agentPerformanceData.value.length)
-const agentPerformanceTotalPages = computed(() => Math.ceil(agentPerformanceTotal.value / agentPerformancePageSize.value))
-
-const setAgentPerformanceSort = (key) => {
-  if (agentPerformanceSortKey.value === key) {
-    agentPerformanceSortOrder.value = agentPerformanceSortOrder.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    agentPerformanceSortKey.value = key
-    agentPerformanceSortOrder.value = 'desc'
+  const sortedDates = Array.from(dates).sort()
+  const modelNames = Array.from(modelDataMap.keys()).sort()
+  
+  // Build series data
+  const series = modelNames.map((modelName, index) => {
+    const dateMap = modelDataMap.get(modelName)
+    return {
+      name: modelName,
+      type: 'line',
+      data: sortedDates.map(date => {
+        const data = dateMap.get(date)
+        return data ? data.accuracy : null
+      }),
+      smooth: false,
+      symbol: 'circle',
+      symbolSize: 5,
+      showSymbol: true,
+      connectNulls: false,
+      lineStyle: { 
+        width: 2,
+        type: 'solid'
+      },
+      itemStyle: { 
+        color: getModelColor(index),
+        borderWidth: 1,
+        borderColor: '#19222c'
+      },
+      emphasis: {
+        focus: 'series',
+        lineStyle: { width: 3 },
+        symbolSize: 7
+      }
+    }
+  })
+  
+  const option = {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+      borderWidth: 0,
+      textStyle: { color: '#e2e8f0' },
+      padding: [10, 12],
+      formatter: (params) => {
+        if (!params?.length) return ''
+        
+        const date = params[0].axisValue
+        let html = `<div style="min-width:140px"><div style="font-weight:600;margin-bottom:4px;">${date}</div>`
+        
+        params.forEach(param => {
+          if (param.value == null || !param.seriesName) return
+          // Use modelDataMap from outer scope to get data
+          const dateMap = modelDataMap.get(param.seriesName)
+          const data = dateMap?.get(date)
+          const tpCount = data?.tpCount || 0
+          const totalCount = data?.totalCount || 0
+          html += `<div style="margin-top:4px;">
+            <span style="display:inline-block;width:10px;height:10px;background-color:${param.color};border-radius:50%;margin-right:6px;"></span>
+            ${param.seriesName}: ${param.value}% (${tpCount}/${totalCount})
+          </div>`
+        })
+        
+        return html + '</div>'
+      }
+    },
+    grid: {
+      top: 20,
+      right: 20,
+      bottom: 20,
+      left: 55,
+      containLabel: false
+    },
+    xAxis: {
+      type: 'category',
+      data: sortedDates,
+      axisLabel: {
+        color: '#cbd5f5',
+        fontSize: 10,
+        rotate: sortedDates.length > 8 ? 45 : 0,
+        margin: 8,
+        formatter: (value) => value?.substring(5, 10) || value
+      },
+      axisLine: { lineStyle: { color: '#334155' } },
+      axisTick: { 
+        show: true, 
+        alignWithLabel: true,
+        length: 4
+      },
+      boundaryGap: false
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 100,
+      axisLabel: {
+        color: '#94a3b8',
+        fontSize: 10,
+        formatter: '{value}%',
+        margin: 8
+      },
+      splitLine: { 
+        lineStyle: { 
+          color: '#1f2a37',
+          type: 'dashed',
+          opacity: 0.5
+        } 
+      },
+      axisLine: { show: false },
+      splitNumber: 5
+    },
+    series
   }
-  // Reset to first page when sorting changes
-  agentPerformancePage.value = 1
+  
+  aiAccuracyTrendChartInstance.value.setOption(option, true)
+  setTimeout(() => aiAccuracyTrendChartInstance.value?.resize(), 0)
 }
 
-const handleAgentPerformancePageChange = (page) => {
-  agentPerformancePage.value = page
+// Helper function to get colors for different models
+const getModelColor = (index) => {
+  const colors = [
+    '#10b981', // green
+    '#3b82f6', // blue
+    '#f59e0b', // orange
+    '#ef4444', // red
+    '#8b5cf6', // purple
+    '#06b6d4', // cyan
+    '#ec4899', // pink
+    '#84cc16'  // lime
+  ]
+  return colors[index % colors.length]
 }
 
 const sortedModelPerformanceData = computed(() => {
@@ -2037,19 +2243,50 @@ const sortedModelPerformanceData = computed(() => {
   const multiplier = order === 'asc' ? 1 : -1
 
   const sorted = [...modelPerformanceData.value].sort((a, b) => {
+    let result = 0
+    
     // Handle string sorting for modelName and agentName
     if (key === 'modelName' || key === 'agentName') {
       const av = String(a[key] ?? '').toLowerCase()
       const bv = String(b[key] ?? '').toLowerCase()
-      if (av === bv) return 0
-      return av > bv ? multiplier : -multiplier
+      if (av !== bv) {
+        result = av > bv ? multiplier : -multiplier
+      }
+    } else {
+      // Handle numeric sorting for other fields - ensure values are converted to numbers
+      const av = Number(a[key] ?? 0)
+      const bv = Number(b[key] ?? 0)
+      
+      // Handle NaN values - put them at the end regardless of sort order
+      if (isNaN(av) && isNaN(bv)) {
+        result = 0
+      } else if (isNaN(av)) {
+        result = 1 // Put NaN values at the end
+      } else if (isNaN(bv)) {
+        result = -1
+      } else if (av !== bv) {
+        // Normal numeric comparison
+        result = av > bv ? multiplier : -multiplier
+      }
     }
     
-    // Handle numeric sorting for other fields
-    const av = a[key] ?? 0
-    const bv = b[key] ?? 0
-    if (av === bv) return 0
-    return av > bv ? multiplier : -multiplier
+    // Stable sort: if primary key values are equal, use modelName then agentName as tiebreakers
+    if (result === 0) {
+      // First tiebreaker: modelName
+      const aModel = String(a.modelName ?? '').toLowerCase()
+      const bModel = String(b.modelName ?? '').toLowerCase()
+      if (aModel !== bModel) {
+        return aModel > bModel ? 1 : -1
+      }
+      // Second tiebreaker: agentName
+      const aAgent = String(a.agentName ?? '').toLowerCase()
+      const bAgent = String(b.agentName ?? '').toLowerCase()
+      if (aAgent !== bAgent) {
+        return aAgent > bAgent ? 1 : -1
+      }
+    }
+    
+    return result
   })
   
   // Apply pagination
@@ -2074,6 +2311,12 @@ const setModelPerformanceSort = (key) => {
 
 const handleModelPerformancePageChange = (page) => {
   modelPerformancePage.value = page
+}
+
+const handleModelPerformanceRowClick = (row) => {
+  if (row && row.modelName) {
+    addKeywordIfMissing('model_name', row.modelName)
+  }
 }
 
 const getFieldLabel = (field) => {
@@ -2132,151 +2375,6 @@ const wrapAxisLabel = (label) => {
   return segments ? segments.join('\n') : normalized
 }
 
-// Chart management helper
-const useChartManager = (chartRef, chartInstance, resizeListenerBound) => {
-  const ensure = () => {
-    if (!chartInstance.value && chartRef.value) {
-      chartInstance.value = echarts.init(chartRef.value)
-      if (!resizeListenerBound.value) {
-        const resizeHandler = () => chartInstance.value?.resize()
-        window.addEventListener('resize', resizeHandler)
-        resizeListenerBound.value = true
-        chartInstance.value._resizeHandler = resizeHandler
-      }
-    }
-  }
-  
-  const dispose = () => {
-    if (chartInstance.value) {
-      if (chartInstance.value._resizeHandler) {
-        window.removeEventListener('resize', chartInstance.value._resizeHandler)
-      }
-      chartInstance.value.dispose()
-      chartInstance.value = null
-    }
-    resizeListenerBound.value = false
-  }
-  
-  return { ensure, dispose }
-}
-
-const aiAccuracyChartManager = useChartManager(
-  aiAccuracyChartRef,
-  aiAccuracyChartInstance,
-  aiAccuracyResizeListenerBound
-)
-
-const aiDecisionChartManager = useChartManager(
-  aiDecisionChartRef,
-  aiDecisionChartInstance,
-  aiDecisionResizeListenerBound
-)
-
-const updateAiAccuracyChart = () => {
-  aiAccuracyChartManager.ensure()
-  if (!aiAccuracyChartInstance.value) return
-  
-  aiAccuracyChartInstance.value.clear()
-
-  const categories = aiAccuracyData.value.map((item) => item.name)
-  const accuracies = aiAccuracyData.value.map((item) => item.accuracy)
-
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-      borderWidth: 0,
-      textStyle: { color: '#e2e8f0' },
-      padding: [10, 12],
-      formatter: (params) => {
-        if (!params || params.length === 0) {
-          return ''
-        }
-        const dataIndex = params[0].dataIndex
-        const dataPoint = aiAccuracyData.value[dataIndex]
-        if (!dataPoint) {
-          return `${params[0].name}: ${params[0].value}%`
-        }
-        return `<div style="min-width:140px">
-          <div style="font-weight:600;margin-bottom:4px;">${dataPoint.name}</div>
-          <div>Accuracy: ${dataPoint.accuracy}%</div>
-          <div>Correct: ${dataPoint.correct}/${dataPoint.total}</div>
-        </div>`
-      }
-    },
-    grid: {
-      top: 10,
-      right: 12,
-      bottom: 6,
-      left: 28,
-      containLabel: true
-    },
-    xAxis: {
-      type: 'category',
-      data: categories,
-      axisLabel: {
-        color: '#cbd5f5',
-        fontSize: 11,
-        lineHeight: 11,
-        margin: 1,
-        interval: 0,
-        formatter: wrapAxisLabel
-      },
-      axisLine: {
-        lineStyle: { color: '#334155' }
-      },
-      axisTick: {
-        show: true,
-        inside: true,
-        alignWithLabel: true
-      }
-    },
-    yAxis: {
-      type: 'value',
-      max: 100,
-      axisLabel: {
-        color: '#94a3b8',
-        formatter: '{value}%'
-      },
-      splitLine: {
-        lineStyle: { color: '#1f2a37' }
-      },
-      axisLine: { show: false }
-    },
-    series: [
-      {
-        name: t('dashboard.charts.aiAccuracy'),
-        type: 'bar',
-        data: accuracies,
-        barWidth: '45%',
-        itemStyle: {
-          borderRadius: [8, 8, 0, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#34d399' },
-            { offset: 0.7, color: '#10b981' },
-            { offset: 1, color: '#059669' }
-          ])
-        }
-      }
-    ]
-  }
-
-  aiAccuracyChartInstance.value.setOption(option, true)
-  setTimeout(() => aiAccuracyChartInstance.value?.resize(), 0)
-
-  // Bind click to filter alerts by model name
-  aiAccuracyChartInstance.value.off('click')
-  aiAccuracyChartInstance.value.on('click', (params) => {
-    if (!params?.name) return
-    // Remove existing model/model_name filters before adding the new one
-    searchKeywords.value = searchKeywords.value.filter(
-      k => k.field !== 'model_name' && k.field !== 'model'
-    )
-    addKeywordIfMissing('model_name', params.name)
-  })
-}
 
 const computeSelectedRange = () => {
   if (selectedTimeRange.value === 'customRange' && customTimeRange.value && customTimeRange.value.length === 2) {
@@ -2313,139 +2411,6 @@ const computeSelectedRange = () => {
   return { start, end }
 }
 
-// Legacy function - now handled by loadAllStatsData
-const loadAiAccuracyStatistics = async () => {
-  // This is now handled by loadAllStatsData
-  // Keep function for any direct calls, but it will be called via loadAllStatsData
-}
-
-const updateAiDecisionChart = () => {
-  aiDecisionChartManager.ensure()
-  if (!aiDecisionChartInstance.value) return
-  
-  aiDecisionChartInstance.value.clear()
-
-  // Build pie data using centralized config
-  const isDark = isDarkMode()
-  const pieData = aiDecisionData.value.map((item) => {
-    const statusConfig = getMatchStatusConfig(item.name)
-    // Use lighter/more vibrant colors for light mode, darker for dark mode
-    let color = statusConfig.color
-    if (!isDark) {
-      // Adjust colors for light mode - use softer, more pleasant colors
-      const colorMap = {
-        '#10b981': '#94d2bd', // TP - slightly deeper green for better contrast
-        '#ef4444': '#dc2626', // FP - slightly deeper red for better contrast
-        '#f59e0b': '#d97706', // FN - slightly deeper orange for better contrast
-        '#94a3b8': '#6b7280'  // Empty - darker gray for better visibility
-      }
-      color = colorMap[statusConfig.color] || statusConfig.color
-    }
-    return {
-      name: t(statusConfig.i18nKey),
-      value: item.value,
-      itemStyle: { color },
-      // Store original name for click event
-      originalName: item.name
-    }
-  })
-
-  const option = {
-    backgroundColor: 'transparent',
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.98)',
-      borderWidth: isDark ? 0 : 1,
-      borderColor: isDark ? 'transparent' : '#d1d5db',
-      textStyle: { color: isDark ? '#e2e8f0' : '#111827' },
-      padding: [10, 12],
-      extraCssText: isDark ? '' : 'box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);',
-      formatter: (params) => {
-        if (!params) return ''
-        const total = aiDecisionTotal.value
-        const percent = total > 0 ? ((params.value / total) * 100).toFixed(1) : '0.0'
-        return `<div style="min-width:140px">
-          <div style="font-weight:600;margin-bottom:4px;">${params.name}</div>
-          <div>Count: ${params.value}</div>
-          <div>Percentage: ${percent}%</div>
-        </div>`
-      }
-    },
-    legend: {
-      orient: 'vertical',
-      right: 10,
-      top: 'center',
-      textStyle: {
-        color: isDark ? '#cbd5f5' : '#374151',
-        fontSize: 11,
-        fontWeight: isDark ? 'normal' : '500'
-      },
-      itemGap: 8
-    },
-    series: [
-      {
-        name: t('aiPlayground.aiDecisionAnalysis'),
-        type: 'pie',
-        radius: ['40%', '70%'],
-        center: ['35%', '50%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 4,
-          borderColor: isDark ? '#19222c' : '#ffffff',
-          borderWidth: 2
-        },
-        label: {
-          show: false
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 12,
-            fontWeight: 'bold',
-            color: isDark ? '#e2e8f0' : '#1f2937'
-          }
-        },
-        labelLine: {
-          show: false
-        },
-        data: pieData
-      }
-    ]
-  }
-
-  aiDecisionChartInstance.value.setOption(option, true)
-  setTimeout(() => aiDecisionChartInstance.value?.resize(), 0)
-
-  // Bind click to filter alerts by match status
-  aiDecisionChartInstance.value.off('click')
-  aiDecisionChartInstance.value.on('click', (params) => {
-    if (!params?.data?.originalName) return
-    
-    const filterValue = chartNameToFilterValue(params.data.originalName)
-    if (filterValue) {
-      // Set match filter and trigger filter
-      matchFilter.value = filterValue
-      handleFilter()
-    }
-  })
-}
-
-// Legacy function - now handled by loadAllStatsData
-const loadAiDecisionAnalysis = async () => {
-  // This is now handled by loadAllStatsData
-  // Keep function for any direct calls, but it will be called via loadAllStatsData
-}
-
-// Legacy functions kept for backward compatibility - now call the combined function
-const loadAgentPerformanceStats = async () => {
-  // This is now handled by loadAllStatsData
-  // Keep function for any direct calls, but it will be called via loadAllStatsData
-}
-
-const loadModelPerformanceStats = async () => {
-  // This is now handled by loadAllStatsData
-  // Keep function for any direct calls, but it will be called via loadAllStatsData
-}
 
 const getRiskLevelClass = (level) => {
   const classes = {
@@ -3829,8 +3794,9 @@ watch(selectedAlerts, () => {
 })
 
 onMounted(() => {
-  aiAccuracyChartManager.ensure()
   aiDecisionChartManager.ensure()
+  aiCoverageChartManager.ensure()
+  aiAccuracyTrendChartManager.ensure()
   document.addEventListener('click', handleClickOutside)
   wordWrapState.value = getWordWrapState()
   
@@ -3857,8 +3823,9 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  aiAccuracyChartManager.dispose()
   aiDecisionChartManager.dispose()
+  aiCoverageChartManager.dispose()
+  aiAccuracyTrendChartManager.dispose()
   document.removeEventListener('click', handleClickOutside)
   document.body.style.overflow = ''
 })

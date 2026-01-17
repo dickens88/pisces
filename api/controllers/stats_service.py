@@ -1,6 +1,6 @@
 from datetime import timedelta, timezone
 
-from sqlalchemy import func, case, or_
+from sqlalchemy import func, case, or_, and_, text
 
 from models.alert import Alert
 from models.incident import Incident
@@ -822,75 +822,9 @@ class StatisticsService:
                         query = query.filter(Alert.is_ai_decision_correct == val_str)
                 elif key_lower == 'close_reason':
                     query = query.filter(Alert.close_reason == val_str)
+                elif key_lower in ('agent_name', 'agent'):
+                    query = query.filter(Alert.agent_name == val_str)
         return query
-
-    @classmethod
-    def get_ai_accuracy_by_model(cls, start_date, end_date, limit=10, conditions=None):
-        """
-        Calculate AI decision accuracy per model between start_date and end_date.
-        Only includes alerts with non-null model_name and is_ai_decision_correct.
-        Returns at most `limit` models sorted by total alert count (desc).
-        
-        Args:
-            start_date: Start datetime
-            end_date: End datetime
-            limit: Maximum number of models to return
-            conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
-        """
-        if not start_date or not end_date:
-            raise ValueError("start_date and end_date are required")
-
-        # Normalize and format datetime for database query
-        _, start_date_str = cls._prepare_datetime_for_query(start_date)
-        _, end_date_str = cls._prepare_datetime_for_query(end_date)
-
-        with Session() as session:
-            query = (
-                session.query(
-                    Alert.model_name.label('model_name'),
-                    func.count(Alert.id).label('total'),
-                    func.sum(
-                        case(
-                            (or_(Alert.is_ai_decision_correct == 'TP', Alert.is_ai_decision_correct == 'TT'), 1),
-                            else_=0
-                        )
-                    ).label('correct')
-                )
-                .filter(
-                    Alert.create_time >= start_date_str,
-                    Alert.create_time <= end_date_str,
-                    Alert.model_name.isnot(None),
-                    Alert.model_name != '',
-                    Alert.is_ai_decision_correct.isnot(None),
-                )
-            )
-            
-            # Apply conditions if provided
-            query = StatisticsService._apply_conditions_to_query(query, conditions)
-            
-            query = query.group_by(Alert.model_name)
-
-            results = query.all()
-
-        stats = []
-        for row in results:
-            total_raw = row.total or 0
-            correct_raw = row.correct or 0
-
-            total = int(total_raw)
-            if total == 0:
-                continue
-            correct = int(correct_raw)
-            accuracy = round((correct / total) * 100.0, 1)
-            stats.append({
-                'model_name': row.model_name,
-                'accuracy': float(accuracy),
-                'correct': correct,
-                'total': total
-            })
-
-        stats.sort(key=lambda item: item['total'], reverse=True)
-        return stats[:max(0, limit or 10)]
 
     @classmethod
     def get_ai_decision_analysis(cls, start_date, end_date, conditions=None):
@@ -968,7 +902,13 @@ class StatisticsService:
                     'value': value
                 })
         
-        return stats
+        # Calculate total decisions
+        total_decisions = sum(item['value'] for item in stats)
+        
+        return {
+            'data': stats,
+            'total_decisions': total_decisions
+        }
 
     @classmethod
     def get_automation_closure_rate(cls, start_date, end_date):
@@ -1014,9 +954,13 @@ class StatisticsService:
             }
 
     @classmethod
-    def get_ai_judgment_coverage_rate(cls, start_date, end_date):
+    def get_ai_judgment_coverage_rate(cls, start_date, end_date, conditions=None):
         """
         Get AI judgment coverage rate statistics between start_date and end_date.
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
         Returns:
             dict with keys:
                 - total_alerts: total number of alerts (excluding is_auto_closed='AutoClosed')
@@ -1034,6 +978,8 @@ class StatisticsService:
                 Alert.create_time <= end_date_str,
                 or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
+            # Apply conditions if provided
+            query_total = cls._apply_conditions_to_query(query_total, conditions)
             total_alerts = query_total.scalar() or 0
             
             # Count covered alerts (verification_state != 'Unknown', excluding is_auto_closed='AutoClosed')
@@ -1044,6 +990,8 @@ class StatisticsService:
                 Alert.verification_state.isnot(None),
                 or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
             )
+            # Apply conditions if provided
+            query_covered = cls._apply_conditions_to_query(query_covered, conditions)
             covered_alerts = query_covered.scalar() or 0
             
             # Calculate coverage rate
@@ -1103,3 +1051,284 @@ class StatisticsService:
                 'correct_judgments': correct_judgments,
                 'accuracy_rate': accuracy_rate
             }
+
+    @classmethod
+    def get_ai_accuracy_trend_by_model(cls, start_date, end_date, conditions=None):
+        """
+        Get AI accuracy trend grouped by date and model_name between start_date and end_date.
+        Accuracy calculation:
+        - Numerator: count of is_ai_decision_correct='TP'
+        - Denominator: count of verification_state != 'Unknown'
+        
+        Returns a list of dictionaries with 'date', 'model_name', and 'accuracy' keys.
+        Uses raw SQL for better performance and simpler code.
+        """
+        # Normalize datetime to UTC naive for calculations and format for database query
+        start_dt, start_date_str = cls._prepare_datetime_for_query(start_date)
+        end_dt, end_date_str = cls._prepare_datetime_for_query(end_date)
+        
+        if start_dt is None or end_dt is None:
+            return []
+        
+        # Build WHERE conditions (create_time is stored as string, use SUBSTRING for date extraction)
+        where_conditions = [
+            "SUBSTRING(create_time, 1, 10) >= :start_date",
+            "SUBSTRING(create_time, 1, 10) <= :end_date",
+            "model_name IS NOT NULL",
+            "model_name != ''"
+        ]
+        
+        # Build condition filters from conditions parameter
+        condition_params = {}
+        if conditions:
+            for cond in conditions:
+                if not isinstance(cond, dict):
+                    continue
+                for key, value in cond.items():
+                    if value is None:
+                        continue
+                    key_lower = key.lower()
+                    if key_lower in ('model', 'model_name'):
+                        where_conditions.append("model_name = :model_name")
+                        condition_params['model_name'] = str(value)
+                    elif key_lower == 'verification_state':
+                        where_conditions.append("verification_state = :verification_state")
+                        condition_params['verification_state'] = str(value)
+                    elif key_lower == 'verification_state!=':
+                        where_conditions.append("verification_state != :verification_state_ne")
+                        condition_params['verification_state_ne'] = str(value)
+                    elif key_lower == 'is_ai_decision_correct':
+                        if str(value) == '':
+                            where_conditions.append("(is_ai_decision_correct IS NULL OR is_ai_decision_correct = '')")
+                        else:
+                            where_conditions.append("is_ai_decision_correct = :is_ai_decision_correct")
+                            condition_params['is_ai_decision_correct'] = str(value)
+        
+        where_clause = " AND ".join(where_conditions)
+        
+        # Use raw SQL to calculate accuracy directly in database
+        # create_time is stored as string format: YYYY-MM-DDTHH:mm:ss.SSSZ+0000
+        # First, get top 5 model_names by total_count (denominator)
+        # Then filter results to only include these top 5 models
+        sql = text(f"""
+            WITH model_totals AS (
+                SELECT 
+                    COALESCE(model_name, 'Unknown') as model_name,
+                    SUM(CASE WHEN verification_state IS NOT NULL AND verification_state != 'Unknown' THEN 1 ELSE 0 END) as total_count
+                FROM t_alerts
+                WHERE {where_clause}
+                GROUP BY COALESCE(model_name, 'Unknown')
+                ORDER BY total_count DESC
+                LIMIT 5
+            ),
+            trend_data AS (
+                SELECT 
+                    SUBSTRING(create_time, 1, 10) as date,
+                    COALESCE(a.model_name, 'Unknown') as model_name,
+                    SUM(CASE WHEN a.is_ai_decision_correct IN ('TP', 'TT') THEN 1 ELSE 0 END) as tp_count,
+                    SUM(CASE WHEN a.verification_state IS NOT NULL AND a.verification_state != 'Unknown' THEN 1 ELSE 0 END) as total_count,
+                    CASE 
+                        WHEN SUM(CASE WHEN a.verification_state IS NOT NULL AND a.verification_state != 'Unknown' THEN 1 ELSE 0 END) > 0
+                        THEN ROUND(
+                            SUM(CASE WHEN a.is_ai_decision_correct IN ('TP', 'TT') THEN 1 ELSE 0 END) * 100.0 / 
+                            SUM(CASE WHEN a.verification_state IS NOT NULL AND a.verification_state != 'Unknown' THEN 1 ELSE 0 END),
+                            2
+                        )
+                        ELSE 0.0
+                    END as accuracy
+                FROM t_alerts a
+                WHERE {where_clause}
+                GROUP BY SUBSTRING(a.create_time, 1, 10), COALESCE(a.model_name, 'Unknown')
+            )
+            SELECT 
+                td.date,
+                td.model_name,
+                td.tp_count,
+                td.total_count,
+                td.accuracy
+            FROM trend_data td
+            INNER JOIN model_totals mt ON td.model_name = mt.model_name
+            ORDER BY td.date, td.model_name
+        """)
+        
+        with Session() as session:
+            params = {
+                'start_date': start_date_str[:10] if start_date_str else None,
+                'end_date': end_date_str[:10] if end_date_str else None,
+                **condition_params
+            }
+            
+            result = session.execute(sql, params)
+            rows = result.fetchall()
+            
+            # Convert to list of dicts
+            trend_data = []
+            for row in rows:
+                trend_data.append({
+                    'date': str(row.date),
+                    'model_name': row.model_name or 'Unknown',
+                    'accuracy': float(row.accuracy or 0.0),
+                    'tp_count': int(row.tp_count or 0),
+                    'total_count': int(row.total_count or 0)
+                })
+            
+            # Fill in missing dates with 0 accuracy for each model
+            # Get all unique dates and model names
+            all_dates = set()
+            all_models = set()
+            current_date = start_dt.date()
+            end_date_obj = end_dt.date()
+            
+            while current_date <= end_date_obj:
+                date_str = current_date.strftime('%Y-%m-%d')
+                all_dates.add(date_str)
+                current_date += timedelta(days=1)
+            
+            # Add models from actual data
+            for item in trend_data:
+                if item['model_name']:
+                    all_models.add(item['model_name'])
+            
+            # Build a dictionary for quick lookup
+            trend_dict = {}
+            for item in trend_data:
+                date = item['date']
+                model_name = item['model_name']
+                if date not in trend_dict:
+                    trend_dict[date] = {}
+                trend_dict[date][model_name] = {
+                    'accuracy': item['accuracy'],
+                    'tp_count': item['tp_count'],
+                    'total_count': item['total_count']
+                }
+            
+            # Build complete trend data
+            complete_trend = []
+            for date in sorted(all_dates):
+                for model_name in sorted(all_models):
+                    data = trend_dict.get(date, {}).get(model_name, {
+                        'accuracy': 0.0,
+                        'tp_count': 0,
+                        'total_count': 0
+                    })
+                    complete_trend.append({
+                        'date': date,
+                        'model_name': model_name,
+                        'accuracy': data['accuracy'],
+                        'tp_count': data['tp_count'],
+                        'total_count': data['total_count']
+                    })
+            
+            return complete_trend
+
+    @classmethod
+    def get_model_performance(cls, start_date, end_date, conditions=None):
+        """
+        Get AI performance statistics grouped by model_name and agent_name.
+        
+        Args:
+            start_date: Start datetime
+            end_date: End datetime
+            conditions: Optional list of filter conditions (same format as AlertService.list_local_alerts)
+            
+        Returns:
+            List of dicts with keys:
+                - model_name: Model name
+                - agent_name: Agent name
+                - handled_count: Count of alerts with verification_state != 'Unknown' (excluding is_auto_closed='AutoClosed')
+                - correct_decisions_count: Count of TP (is_ai_decision_correct = 'TP')
+                - false_positive_count: Count of FP (is_ai_decision_correct = 'FP')
+                - false_negative_count: Count of FN (is_ai_decision_correct = 'FN')
+                - total_count: Total count of alerts (excluding is_auto_closed='AutoClosed')
+                - coverage_rate: handled_count / total_count * 100
+        """
+        if not start_date or not end_date:
+            raise ValueError("start_date and end_date are required")
+
+        # Normalize and format datetime for database query
+        _, start_date_str = cls._prepare_datetime_for_query(start_date)
+        _, end_date_str = cls._prepare_datetime_for_query(end_date)
+
+        with Session() as session:
+            # Query to get statistics grouped by model_name and agent_name
+            query = (
+                session.query(
+                    func.coalesce(Alert.model_name, 'Unknown Model').label('model_name'),
+                    func.coalesce(Alert.agent_name, 'Unknown Agent').label('agent_name'),
+                    func.count(Alert.id).label('total_count'),
+                    func.sum(
+                        case(
+                            (
+                                and_(
+                                    Alert.verification_state != 'Unknown',
+                                    Alert.verification_state.isnot(None)
+                                ),
+                                1
+                            ),
+                            else_=0
+                        )
+                    ).label('handled_count'),
+                    func.sum(
+                        case(
+                            (Alert.is_ai_decision_correct == 'TP', 1),
+                            else_=0
+                        )
+                    ).label('correct_decisions_count'),
+                    func.sum(
+                        case(
+                            (Alert.is_ai_decision_correct == 'FP', 1),
+                            else_=0
+                        )
+                    ).label('false_positive_count'),
+                    func.sum(
+                        case(
+                            (Alert.is_ai_decision_correct == 'FN', 1),
+                            else_=0
+                        )
+                    ).label('false_negative_count')
+                )
+                .filter(
+                    Alert.create_time >= start_date_str,
+                    Alert.create_time <= end_date_str,
+                    or_(Alert.is_auto_closed != 'AutoClosed', Alert.is_auto_closed.is_(None))
+                )
+            )
+            
+            # Apply conditions if provided
+            query = StatisticsService._apply_conditions_to_query(query, conditions)
+            
+            query = query.group_by(
+                func.coalesce(Alert.model_name, 'Unknown Model'),
+                func.coalesce(Alert.agent_name, 'Unknown Agent')
+            )
+
+            results = query.all()
+
+        # Build result list
+        stats = []
+        for row in results:
+            model_name = row.model_name or 'Unknown Model'
+            agent_name = row.agent_name or 'Unknown Agent'
+            total_count = int(row.total_count or 0)
+            handled_count = int(row.handled_count or 0)
+            correct_decisions_count = int(row.correct_decisions_count or 0)
+            false_positive_count = int(row.false_positive_count or 0)
+            false_negative_count = int(row.false_negative_count or 0)
+            
+            # Calculate coverage rate
+            coverage_rate = 0.0
+            if total_count > 0:
+                coverage_rate = round((handled_count / total_count) * 100, 1)
+            
+            stats.append({
+                'model_name': model_name,
+                'agent_name': agent_name,
+                'handled_count': handled_count,
+                'correct_decisions_count': correct_decisions_count,
+                'false_positive_count': false_positive_count,
+                'false_negative_count': false_negative_count,
+                'total_count': total_count,
+                'coverage_rate': coverage_rate
+            })
+        
+        return stats

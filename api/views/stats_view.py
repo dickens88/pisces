@@ -55,7 +55,19 @@ class AlertCountBySourceView(Resource):
                         return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
                 except Exception as e:
                     return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
-                data = StatisticsService.get_ai_judgment_coverage_rate(start_date, end_date)
+
+                # Parse conditions from request if provided
+                conditions = []
+                try:
+                    conditions_json = request.args.get("conditions")
+                    if conditions_json:
+                        import json
+                        conditions = json.loads(conditions_json)
+                except Exception as e:
+                    logger.warning(f"Failed to parse conditions: {str(e)}")
+                    conditions = []
+                
+                data = StatisticsService.get_ai_judgment_coverage_rate(start_date, end_date, conditions=conditions)
                 return {
                     "data": data,
                     "description": "AI judgment coverage rate in the selected time range.",
@@ -228,39 +240,6 @@ class AlertCountBySourceView(Resource):
                     "description": "Distribution of incidents by root cause.",
                 }, 200
             elif chart_name_normalized in (
-                "ai-model-accuracy",
-                "ai_model_accuracy",
-                "aiaccuracy",
-                "ai-accuracy",
-            ):
-                if not end_date_str:
-                    return {"error_message": "end_date is required for ai-model-accuracy chart"}, 400
-
-                try:
-                    end_date = parse_datetime_with_timezone(end_date_str)
-                    if end_date is None:
-                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
-                except Exception as e:
-                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
-
-                limit = request.args.get("limit", default=10, type=int)
-                # Parse conditions from request if provided
-                conditions = []
-                try:
-                    conditions_json = request.args.get("conditions")
-                    if conditions_json:
-                        import json
-                        conditions = json.loads(conditions_json)
-                except Exception as e:
-                    logger.warning(f"Failed to parse conditions: {str(e)}")
-                    conditions = []
-                
-                data = StatisticsService.get_ai_accuracy_by_model(start_date, end_date, limit=limit or 10, conditions=conditions)
-                return {
-                    "data": data,
-                    "description": "Accuracy of each AI model in the selected time range.",
-                }, 200
-            elif chart_name_normalized in (
                 "ai-decision-analysis",
                 "ai_decision_analysis",
                 "aidecisionanalysis",
@@ -286,10 +265,73 @@ class AlertCountBySourceView(Resource):
                     logger.warning(f"Failed to parse conditions: {str(e)}")
                     conditions = []
                 
-                data = StatisticsService.get_ai_decision_analysis(start_date, end_date, conditions=conditions)
+                result = StatisticsService.get_ai_decision_analysis(start_date, end_date, conditions=conditions)
+                return {
+                    "data": result.get('data', []),
+                    "total_decisions": result.get('total_decisions', 0),
+                    "description": "AI decision analysis grouped by is_ai_decision_correct field.",
+                }, 200
+            elif chart_name_normalized in (
+                "model-performance",
+                "model_performance",
+                "modelperformance",
+            ):
+                if not end_date_str:
+                    return {"error_message": "end_date is required for model-performance chart"}, 400
+
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+
+                # Parse conditions from request if provided
+                conditions = []
+                try:
+                    conditions_json = request.args.get("conditions")
+                    if conditions_json:
+                        import json
+                        conditions = json.loads(conditions_json)
+                except Exception as e:
+                    logger.warning(f"Failed to parse conditions: {str(e)}")
+                    conditions = []
+                
+                data = StatisticsService.get_model_performance(start_date, end_date, conditions=conditions)
                 return {
                     "data": data,
-                    "description": "AI decision analysis grouped by is_ai_decision_correct field.",
+                    "description": "AI performance statistics grouped by model_name and agent_name.",
+                }, 200
+            elif chart_name_normalized in (
+                "ai-accuracy-trend-by-model",
+                "ai_accuracy_trend_by_model",
+                "aiaccuracytrendbymodel",
+            ):
+                if not end_date_str:
+                    return {"error_message": "end_date is required for ai-accuracy-trend-by-model chart"}, 400
+
+                try:
+                    end_date = parse_datetime_with_timezone(end_date_str)
+                    if end_date is None:
+                        return {"error_message": "end_date must be in format YYYY-MM-DDTHH:mm:ss.SSSZ+HHmm"}, 400
+                except Exception as e:
+                    return {"error_message": f"Invalid end_date format: {str(e)}"}, 400
+
+                # Parse conditions from request if provided
+                conditions = []
+                try:
+                    conditions_json = request.args.get("conditions")
+                    if conditions_json:
+                        import json
+                        conditions = json.loads(conditions_json)
+                except Exception as e:
+                    logger.warning(f"Failed to parse conditions: {str(e)}")
+                    conditions = []
+                
+                data = StatisticsService.get_ai_accuracy_trend_by_model(start_date, end_date, conditions=conditions)
+                return {
+                    "data": data,
+                    "description": "AI accuracy trend by date and model_name in the selected time range.",
                 }, 200
             elif chart_name_normalized == "alert-status-by-severity":
                 if not end_date_str:

@@ -143,11 +143,10 @@
   "aiPlayground": {
     "agentPerformance": {
       "title": "AI performance by Agent",
-      "subtitle": "Based on current time range and filters",
       "columns": {
         "agentName": "Agent Name",
         "aiHandledAlerts": "AI Handled",
-        "correctDecisions": "Correct",
+        "correctDecisions": "TP",
         "falsePositive": "FP",
         "falseNegative": "FN",
         "totalTickets": "Total",
@@ -158,13 +157,13 @@
       "placeholderBody": "No content yet."
     },
     "modelPerformance": {
-      "title": "AI performance by Model and Agent",
-      "subtitle": "Based on current time range and filters",
+      "title": "AI Performance by Model and Agent",
+      "tooltip": "TP (True Positive): AI correctly identified alerts correctly\nFP (False Positive): AI incorrectly identified non-threats as threats\nFN (False Negative): AI missed actual threats\nAI Handled: Total number of alerts processed by AI\nTotal: Total number of alerts\nCoverage Rate: Percentage of alerts handled by AI",
       "columns": {
         "modelName": "Model Name",
         "agentName": "Agent Name",
         "aiHandledAlerts": "AI Handled",
-        "correctDecisions": "Correct",
+        "correctDecisions": "TP",
         "falsePositive": "FP",
         "falseNegative": "FN",
         "totalTickets": "Total",
@@ -174,6 +173,7 @@
     "title": "AI Playground",
     "charts": {
       "aiAccuracy": "AI Accuracy Rate",
+      "aiAccuracyTrend": "AI Accuracy Trend by Model(Top 5 Amount)",
       "placeholder": "Reserved for future insight"
     },
     "list": {
@@ -216,7 +216,8 @@
       "FN": "FN False Negative",
       "empty": "No Match"
     },
-    "aiDecisionAnalysis": "AI Decision Analysis",
+    "aiAccuracyAnalysis": "AI Accuracy Rate",
+    "aiPerformanceIndicators": "AI Performance Indicators",
     "totalDecisions": "Total Decisions",
     "humanJudgeFilter": {
       "all": "Human Judge"

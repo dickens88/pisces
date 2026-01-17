@@ -143,11 +143,10 @@
   "aiPlayground": {
     "agentPerformance": {
       "title": "按模型统计 AI 表现",
-      "subtitle": "基于当前时间范围与筛选条件",
       "columns": {
         "agentName": "模型名称",
         "aiHandledAlerts": "AI已处理",
-        "correctDecisions": "正确",
+        "correctDecisions": "TP",
         "falsePositive": "FP",
         "falseNegative": "FN",
         "totalTickets": "总计",
@@ -158,22 +157,23 @@
       "placeholderBody": "暂无内容"
     },
     "modelPerformance": {
-      "title": "按模型和代理统计 AI 表现",
-      "subtitle": "基于当前时间范围与筛选条件",
+      "title": "AI智能体性能统计",
+      "tooltip": "TP (真阳性): AI判断与人工判断一致\nFP (假阳性): AI错误地将非威胁识别为威胁\nFN (假阴性): AI错误地将威胁识别为误报\nAI研判: AI处理的告警总数\n总数: 告警总数\nAI覆盖: AI处理的告警占比",
       "columns": {
-        "modelName": "模型名称",
+        "modelName": "智能体名称",
         "agentName": "代理名称",
-        "aiHandledAlerts": "AI已处理",
-        "correctDecisions": "正确",
+        "aiHandledAlerts": "AI研判",
+        "correctDecisions": "TP",
         "falsePositive": "FP",
         "falseNegative": "FN",
-        "totalTickets": "总计",
-        "coverageRate": "覆盖率"
+        "totalTickets": "总数",
+        "coverageRate": "AI覆盖"
       }
     },
     "title": "AI实验场(Beta)",
     "charts": {
       "aiAccuracy": "AI研判正确率",
+      "aiAccuracyTrend": "AI研判准确率趋势图(Top 5 数量)",
       "placeholder": "后续数据占位"
     },
     "list": {
@@ -216,7 +216,8 @@
       "FN": "FN假阴",
       "empty": "无匹配"
     },
-    "aiDecisionAnalysis": "AI 研判分析",
+    "aiAccuracyAnalysis": "AI研判准确度",
+    "aiPerformanceIndicators": "AI 性能指标",
     "totalDecisions": "总决策数",
     "humanJudgeFilter": {
       "all": "人工研判"
