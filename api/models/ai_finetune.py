@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, UniqueConstraint
 from sqlalchemy.sql import func
@@ -36,6 +36,7 @@ class AiFineTuneResult(Base):
         onupdate=func.current_timestamp(),
         nullable=False,
     )
+    updated_by = Column(String(128), nullable=True)  # Username who updated this record
 
     __table_args__ = (
         UniqueConstraint(
@@ -46,6 +47,20 @@ class AiFineTuneResult(Base):
     )
 
     def to_dict(self):
+        # Format updated_at as UTC timezone string to match create_time format
+        updated_at_str = None
+        if isinstance(self.updated_at, datetime):
+            # If datetime is naive (no timezone), assume it's UTC
+            if self.updated_at.tzinfo is None:
+                updated_at_utc = self.updated_at.replace(tzinfo=timezone.utc)
+            else:
+                # Convert to UTC if it has timezone info
+                updated_at_utc = self.updated_at.astimezone(timezone.utc)
+            # Format as ISO string with UTC timezone (e.g., 2025-01-16T10:30:00+00:00)
+            updated_at_str = updated_at_utc.isoformat()
+        elif self.updated_at:
+            updated_at_str = str(self.updated_at)
+        
         return {
             "id": self.id,
             "alert_id": self.alert_id,
@@ -55,7 +70,8 @@ class AiFineTuneResult(Base):
             "confidence_score": self.confidence_score,
             "reason": self.reason,
             "raw_text": self.raw_text,
-            "updated_at": self.updated_at.isoformat() if isinstance(self.updated_at, datetime) else self.updated_at,
+            "updated_at": updated_at_str,
+            "updated_by": self.updated_by,
         }
 
     @classmethod
@@ -68,6 +84,7 @@ class AiFineTuneResult(Base):
         confidence_score: str | None,
         reason: str | None,
         raw_text: str,
+        updated_by: str | None = None,
     ) -> dict:
         """
         Insert or update the latest Fine-tune result for a given (alert_id, workflow_id).
@@ -90,6 +107,7 @@ class AiFineTuneResult(Base):
             row.confidence_score = confidence_score or None
             row.reason = reason or None
             row.raw_text = raw_text or ""
+            row.updated_by = updated_by
 
             session.add(row)
             session.commit()

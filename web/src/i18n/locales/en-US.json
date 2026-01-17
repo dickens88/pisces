@@ -186,17 +186,24 @@
       "workflowResult": "Workflow Result",
       "noResult": "No workflow result yet. Run a workflow to see the output.",
       "selectdAlertInfo": "Selected Alert(s)",
-      "runAnalysis": "Run Analysis",
+      "runAnalysis": "Run Retrieval Test",
       "comments": "Close Comment",
       "aiAgentWorkspace": "AI Agent Workspace",
       "inputsForCurrentRun": "Inputs for Current Run",
       "allInputsIncluded": "All inputs from the left panel are included for AI analysis.",
-      "aiResponseFeed": "AI Response Feed",
+      "aiResponseFeed": "AI Response Details",
       "running": "Running",
       "cancelRun": "Cancel Run",
       "inQueue": "In Queue",
       "cancelled": "Cancelled",
-      "error": "Error"
+      "error": "Error",
+      "retrievalTestRecords": "Retrieval Test Records",
+      "noretrievalTestRecords": "No Retrieval Test records found.",
+      "updatedAt": "Updated At",
+      "isThreat": "Is Threat",
+      "confidenceScore": "Confidence Score",
+      "agentName": "Agent Name",
+      "updatedBy": "Updated By"
     },
     "agentFilter": {
       "all": "All Agents"

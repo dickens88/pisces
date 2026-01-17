@@ -186,17 +186,24 @@
       "workflowResult": "工作流结果",
       "noResult": "暂无工作流结果。运行工作流以查看输出。",
       "selectdAlertInfo": "选中的告警",
-      "runAnalysis": "运行分析",
+      "runAnalysis": "运行召回测试",
       "comments": "关闭备注",
       "aiAgentWorkspace": "AI代理工作区",
       "inputsForCurrentRun": "当前运行的输入",
       "allInputsIncluded": "左侧面板的所有输入都包含在AI分析中。",
-      "aiResponseFeed": "AI响应反馈",
+      "aiResponseFeed": "AI召回详情",
       "running": "运行中",
       "cancelRun": "取消运行",
       "inQueue": "等待中",
       "cancelled": "已取消",
-      "error": "错误"
+      "error": "错误",
+      "retrievalTestRecords": "召回测试记录",
+      "noretrievalTestRecords": "未找到召回测试记录。",
+      "updatedAt": "更新时间",
+      "isThreat": "是否威胁",
+      "confidenceScore": "置信度",
+      "agentName": "代理名称",
+      "updatedBy": "更新人"
     },
     "agentFilter": {
       "all": "全部模型"

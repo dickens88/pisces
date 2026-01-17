@@ -42,6 +42,7 @@ class AlertAiFineTuneView(Resource):
                 confidence_score=confidence_score,
                 reason=reason,
                 raw_text=raw_text,
+                updated_by=username,
             )
 
             logger.info(

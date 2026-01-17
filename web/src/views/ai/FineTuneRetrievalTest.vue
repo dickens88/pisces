@@ -22,13 +22,29 @@
                 </h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $t('aiPlayground.fineTuneSubtitle') || 'Train and debug AI models' }}</p>
               </div>
-              <button
-                class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
-                @click="$emit('update:modelValue', false)"
-                aria-label="Close"
-              >
-                <span class="material-symbols-outlined">close</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
+                  @click="loadAllFinetuneRecords()"
+                  :disabled="loadingFinetuneRecords"
+                  aria-label="Refresh"
+                  :title="$t('common.refresh') || 'Refresh'"
+                >
+                  <span 
+                    class="material-symbols-outlined"
+                    :class="{ 'animate-spin': loadingFinetuneRecords }"
+                  >
+                    refresh
+                  </span>
+                </button>
+                <button
+                  class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
+                  @click="$emit('update:modelValue', false)"
+                  aria-label="Close"
+                >
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
             </div>
           </div>
           
@@ -36,7 +52,7 @@
           <div class="flex-1 p-6 min-h-0 overflow-hidden flex flex-col">
             <div class="flex-1 flex gap-6 min-h-0">
               <!-- Left Panel: All Selected Alerts with Workflow Selectors -->
-              <div class="w-full lg:w-1/2 flex flex-col min-h-0">
+              <div class="w-full lg:w-[36%] flex flex-col min-h-0">
                 <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.selectdAlertInfo') || 'Selected Alerts' }}</h4>
                 
                 <!-- Combined Execute/Cancel Button -->
@@ -98,7 +114,7 @@
                             class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#1c2533] text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
                             :aria-label="$t('common.delete') || 'Remove from selection'"
                           >
-                            <span class="material-symbols-outlined text-sm">close</span>
+                            <span class="material-symbols-outlined text-sm">delete</span>
                           </button>
                           <span
                             class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
@@ -241,13 +257,65 @@
               </div>
 
               <!-- Right Panel: AI Agent Workspace -->
-              <div class="w-full lg:w-1/2 flex flex-col min-h-0">
-                <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
+              <div class="w-full lg:w-[64%] flex flex-col min-h-0">
+                <!-- Fine-tune Records Table -->
+                <div class="flex flex-col gap-2 mb-4">
+                  <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.retrievalTestRecords') || 'Retrieval Test Records' }}</h4>
+                  <div class="border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden bg-white dark:bg-[#1c2533]">
+                    <div v-if="loadingFinetuneRecords" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                      <span class="material-symbols-outlined animate-spin text-base inline-block mr-2">sync</span>
+                      {{ $t('common.loading') || 'Loading...' }}
+                    </div>
+                    <div v-else-if="allFinetuneRecords.length === 0" class="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">
+                      {{ $t('aiPlayground.retrievalTest.noFinetuneRecords') || 'No fine-tune records found.' }}
+                    </div>
+                    <div v-else class="overflow-x-auto">
+                      <table class="w-full text-xs">
+                        <thead class="bg-gray-50 dark:bg-[#192233] border-b border-gray-200 dark:border-[#324867]">
+                          <tr>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.updatedAt') || 'Updated At' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.isThreat') || 'Is Threat' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.confidenceScore') || 'Confidence Score' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.agentName') || 'Agent Name' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.updatedBy') || 'Updated By' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('alerts.list.alertTitle') || 'Alert Title' }}</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-[#324867]">
+                          <tr
+                            v-for="(record, index) in allFinetuneRecords"
+                            :key="`record-${record.id || index}`"
+                            class="hover:bg-gray-50 dark:hover:bg-[#192233] transition-colors"
+                          >
+                            <td class="px-4 py-2 text-gray-900 dark:text-white whitespace-nowrap">
+                              {{ formatDateTime(record.updated_at) }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white">
+                              {{ record.is_threat || '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white">
+                              {{ record.confidence_score || '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white">
+                              {{ record.agent_name || '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white">
+                              {{ record.updated_by || '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white max-w-xs truncate" :title="record.alert_title || ''">
+                              {{ record.alert_title || '-' }}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
                 
                 <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
                   <!-- Workflow Results Feed -->
                   <div class="flex flex-col gap-2">
-                    <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
+                    <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Details' }}</h5>
                     <div class="flex-1 overflow-y-auto space-y-3">
                       <div v-if="!runningWorkflow && Object.keys(finetuneWorkflowResults).length === 0 && selectedAlertsData.length > 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
                         {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run workflows to see the output.' }}
@@ -404,6 +472,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
 import { useToast } from '@/composables/useToast'
+import { formatDateTime } from '@/utils/dateTime'
 
 const props = defineProps({
   modelValue: {
@@ -441,6 +510,8 @@ const runningWorkflow = ref(false)
 const currentRunningAlertId = ref(null)
 const cancelWorkflows = ref(false)
 const contentFormatMode = ref('json')
+const allFinetuneRecords = ref([]) // Store all fine-tune records for display in table
+const loadingFinetuneRecords = ref(false)
 
 // Helper function to get alert ID
 const getAlertId = (alert) => {
@@ -678,6 +749,9 @@ const loadFinetuneResults = async (alertId) => {
       results = response.data.data
     } else if (Array.isArray(response?.data)) {
       results = response.data
+    } else if (response?.data?.data && !Array.isArray(response.data.data)) {
+      // Single result
+      results = [response.data.data]
     } else {
       console.warn(`Unexpected response structure for alert ${alertIdStr}:`, response)
       results = []
@@ -696,6 +770,78 @@ const loadFinetuneResults = async (alertId) => {
     alertData.finetuneLoading = false
   }
 }
+
+// Load fine-tune records for all selected alerts in order (one record per alert)
+const loadAllFinetuneRecords = async () => {
+  if (props.selectedAlertsData.length === 0) {
+    allFinetuneRecords.value = []
+    return
+  }
+  
+  loadingFinetuneRecords.value = true
+  allFinetuneRecords.value = []
+  
+  try {
+    // Load records sequentially, one alert at a time, one record per alert
+    for (const alertData of props.selectedAlertsData) {
+      if (!alertData || !alertData.alert) continue
+      
+      const alertId = getAlertId(alertData.alert) || alertData.alertId
+      if (!alertId) continue
+      
+      // Query one record (latest) for this alert
+      try {
+        const response = await getAlertAiFineTuneResults(alertId)
+        
+        let record = null
+        if (response?.data?.data) {
+          // Single record response
+          record = response.data.data
+        } else if (response?.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+          record = response.data
+        }
+        
+        // Add alert title to the record for display
+        if (record) {
+          allFinetuneRecords.value.push({
+            ...record,
+            alert_title: alertData.alert?.title || '',
+            alert_id: alertId
+          })
+        } else {
+          // If no record found, still add an entry with alert info
+          allFinetuneRecords.value.push({
+            alert_title: alertData.alert?.title || '',
+            alert_id: alertId,
+            updated_at: null,
+            is_threat: null,
+            confidence_score: null,
+            agent_name: null,
+            updated_by: null
+          })
+        }
+      } catch (error) {
+        console.error(`Failed to load fine-tune record for alert ${alertId}:`, error)
+        // Continue with next alert even if one fails
+        allFinetuneRecords.value.push({
+          alert_title: alertData.alert?.title || '',
+          alert_id: alertId,
+          updated_at: null,
+          is_threat: null,
+          confidence_score: null,
+          agent_name: null,
+          updated_by: null
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load fine-tune records:', error)
+    toast.error('Failed to load fine-tune records', 'ERROR')
+  } finally {
+    loadingFinetuneRecords.value = false
+  }
+}
+
 
 // Toggle fine-tune alert drawer
 const toggleFinetuneAlertDrawer = (alertId) => {
@@ -1069,6 +1215,9 @@ watch(() => props.modelValue, (newVal) => {
         }
       })
     })
+    
+    // Load all fine-tune records for all selected alerts in order
+    loadAllFinetuneRecords()
   }
 })
 </script>
