@@ -230,6 +230,7 @@
     "fineTuneAI": "微调召回测试",
     "noAlertSelected": "未选择告警",
     "selectedAlerts": "已选择告警",
+    "maxAlertsExceeded": "一次最多只能选择5条告警进行微调，请取消部分选择",
     "closeReason": {
       "falsePositive": "误检",
       "resolved": "已解决",

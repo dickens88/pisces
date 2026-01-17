@@ -230,6 +230,7 @@
     "fineTuneAI": "Fine-tune Retrieval Test",
     "noAlertSelected": "No alert selected",
     "selectedAlerts": "Selected Alerts",
+    "maxAlertsExceeded": "You can only select up to 5 alerts for fine-tuning at a time. Please deselect some alerts.",
     "closeReason": {
       "falsePositive": "False detection",
       "resolved": "Resolved",

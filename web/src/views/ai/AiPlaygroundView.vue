@@ -617,7 +617,8 @@
             <button
               type="button"
               @click="handleFineTuneClick"
-              class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+              :disabled="exceedsMaxAlerts || selectedAlerts.length === 0"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary"
             >
               <span class="material-symbols-outlined text-base">tune</span>
               {{ $t('aiPlayground.fineTuneAI') }}
@@ -926,399 +927,16 @@
     </section>
 
     <!-- Retrieval overlay -->
-    <Teleport to="body">
-      <div
-        v-if="showRetrievalOverlay"
-        class="fixed inset-0 z-50 flex items-center justify-end"
-        @click.self="showRetrievalOverlay = false"
-      >
-        <!-- Overlay background -->
-        <div 
-          class="fixed inset-0 bg-black/75"
-          @click="showRetrievalOverlay = false"
-        ></div>
-        
-        <!-- Detail panel - with slide-in animation -->
-        <Transition name="slide" appear>
-          <div
-            v-if="showRetrievalOverlay"
-            class="relative w-[80vw] h-full bg-white dark:bg-panel-dark shadow-2xl flex flex-col overflow-hidden"
-            @click.stop
-          >
-            <!-- Header -->
-            <div class="sticky top-0 z-20 bg-white/80 dark:bg-panel-dark/80 backdrop-blur-sm border-b border-gray-200 dark:border-border-dark">
-              <div class="flex items-center justify-between px-6 py-4">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <span class="material-symbols-outlined text-base">tune</span>
-                    {{ $t('aiPlayground.fineTuneAI') }}
-                  </h3>
-                  <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ $t('aiPlayground.fineTuneSubtitle') || 'Train and debug AI models' }}</p>
-                </div>
-                <button
-                  class="p-2 text-gray-500 dark:text-text-light hover:text-gray-900 dark:hover:text-white transition-colors"
-                  @click="showRetrievalOverlay = false"
-                  aria-label="Close"
-                >
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              </div>
-            </div>
-            
-            <!-- Content -->
-            <div class="flex-1 p-6 min-h-0 overflow-hidden flex flex-col">
-              <div class="flex-1 flex gap-6 min-h-0">
-                <!-- Left Panel: All Selected Alerts with Workflow Selectors -->
-                <div class="w-full lg:w-1/2 flex flex-col min-h-0">
-                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.selectdAlertInfo') || 'Selected Alerts' }}</h4>
-                  
-                  <div class="flex-1 overflow-y-auto custom-scrollbar min-h-0 space-y-4">
-                    <template v-for="alertData in selectedAlertsData" :key="`finetune-${getAlertId(alertData?.alert) || alertData?.alertId || 'unknown'}`">
-                      <div
-                        v-if="alertData && alertData.alert && (getAlertId(alertData.alert) || alertData.alertId)"
-                        :class="[
-                          'bg-gray-50 dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden transition-colors'
-                        ]"
-                      >
-                      <!-- Alert Drawer Header (clickable to expand/collapse) -->
-                      <div 
-                        class="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-[#192233] transition-colors"
-                        @click="toggleFinetuneAlertDrawer(getAlertId(alertData?.alert) || alertData?.alertId)"
-                      >
-                        <div class="flex items-center justify-between gap-3 mb-3">
-                          <div class="flex-1 min-w-0">
-                            <h5 class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                              {{ $t('alerts.detail.title') }} #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
-                            </h5>
-                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">
-                              {{ alertData?.alert?.title || '' }}
-                            </p>
-                          </div>
-                          <div class="flex items-center gap-2 flex-shrink-0">
-                            <!-- Remove from selection button (fine-tune overlay) -->
-                            <button
-                              @click.stop="removeSelectedAlert(getAlertId(alertData?.alert) || alertData?.alertId)"
-                              class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#1c2533] text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors"
-                              :aria-label="$t('common.delete') || 'Remove from selection'"
-                            >
-                              <span class="material-symbols-outlined text-sm">close</span>
-                            </button>
-                            <span
-                              class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0"
-                              :class="alertData.finetuneExpanded ? 'rotate-180' : ''"
-                            >
-                              expand_more
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <!-- Workflow Selection -->
-                        <div class="flex flex-col gap-2" @click.stop>
-                          <label class="text-xs font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.workflowSelection') || 'Workflow Selection' }}</label>
-                          <div class="relative">
-                            <select
-                              v-model="finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId]"
-                              :disabled="loadingWorkflows"
-                              :class="[
-                                'pl-3 pr-8 appearance-none block w-full rounded-lg border h-9 text-xs text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
-                                finetuneWorkflowSelections[getAlertId(alertData?.alert) || alertData?.alertId] 
-                                  ? 'border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533]' 
-                                  : 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
-                              ]"
-                            >
-                              <option value="">{{ $t('aiPlayground.retrievalTest.selectWorkflow') }}</option>
-                              <option v-if="loadingWorkflows" value="__loading__" disabled>{{ $t('common.loading') }}</option>
-                              <option
-                                v-for="workflow in workflows"
-                                :key="workflow.id"
-                                :value="workflow.id"
-                              >
-                                {{ workflow.name }}
-                              </option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
-                              <span
-                                v-if="loadingWorkflows"
-                                class="material-symbols-outlined animate-spin text-sm"
-                              >
-                                sync
-                              </span>
-                              <span
-                                v-else
-                                class="material-symbols-outlined text-sm"
-                              >
-                                arrow_drop_down
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <!-- Alert Details (expandable) -->
-                      <div v-if="alertData.finetuneExpanded" class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-3">
-                        <!-- Alert ID -->
-                        <div class="flex flex-col gap-1.5">
-                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.detail.id') }}</label>
-                          <input
-                            type="text"
-                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5"
-                            :value="getAlertId(alertData?.alert) || alertData?.alertId || ''"
-                            readonly
-                          />
-                        </div>
+    <!-- Fine-tune Retrieval Test Overlay -->
+    <FineTuneRetrievalTest
+      v-model="showRetrievalOverlay"
+      :selected-alerts-data="selectedAlertsData"
+      :workflows="workflows"
+      :loading-workflows="loadingWorkflows"
+      @remove-alert="removeSelectedAlert"
+      @refresh-results="(alertId) => loadFinetuneResults(alertId)"
+    />
 
-                        <!-- Title -->
-                        <div class="flex flex-col gap-1.5">
-                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.list.alertTitle') }}</label>
-                          <textarea
-                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white px-2.5 py-1.5 resize-none overflow-y-auto min-h-[60px]"
-                            :value="alertData.alert?.title || ''"
-                            readonly
-                          ></textarea>
-                        </div>
-
-                        <!-- Close Comment -->
-                        <div class="flex flex-col gap-1.5">
-                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.comments') || 'Close Comment' }}</label>
-                          <textarea
-                            class="w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white p-2 resize-none min-h-[60px]"
-                            :value="alertData.alert?.close_comment || ''"
-                            readonly
-                          ></textarea>
-                        </div>
-
-                        <!-- Description -->
-                        <div class="flex flex-col gap-1.5">
-                          <label class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ $t('alerts.detail.alertContent') }}</label>
-                          <div class="flex gap-2 mb-1.5">
-                            <button
-                              @click="contentFormatMode = 'json'"
-                              :class="[
-                                'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                                contentFormatMode === 'json'
-                                  ? 'bg-primary text-white'
-                                  : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
-                              ]"
-                            >
-                              Raw JSON
-                            </button>
-                            <button
-                              @click="contentFormatMode = 'richtext'"
-                              :class="[
-                                'px-2 py-1 text-xs font-medium rounded-md transition-colors',
-                                contentFormatMode === 'richtext'
-                                  ? 'bg-primary text-white'
-                                  : 'bg-gray-100 dark:bg-[#233348] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#324867]'
-                              ]"
-                            >
-                              Rendered View
-                            </button>
-                          </div>
-                          <textarea
-                            :class="[
-                              'w-full rounded-lg border border-gray-200 dark:border-[#324867] bg-white dark:bg-[#1c2533] text-xs text-gray-900 dark:text-white p-2 resize-none overflow-y-auto h-[200px]',
-                              contentFormatMode === 'json' ? 'font-mono' : ''
-                            ]"
-                            :value="getFormattedContentForAlert(alertData)"
-                            readonly
-                          ></textarea>
-                        </div>
-                      </div>
-                    </div>
-                    </template>
-                  </div>
-                </div>
-
-                <!-- Right Panel: AI Agent Workspace -->
-                <div class="w-full lg:w-1/2 flex flex-col min-h-0">
-                  <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4">{{ $t('aiPlayground.retrievalTest.aiAgentWorkspace') || 'AI Agent Workspace' }}</h4>
-                  
-                  <div class="flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar min-h-0">
-                    <!-- Run Analysis Button -->
-                    <button
-                      type="button"
-                      @click="handleRunAllWorkflows"
-                      :disabled="!canRunAllWorkflows || runningWorkflow"
-                      class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <span
-                        v-if="runningWorkflow"
-                        class="material-symbols-outlined animate-spin text-base"
-                      >
-                        sync
-                      </span>
-                      <span
-                        v-else
-                        class="material-symbols-outlined text-base"
-                      >
-                        play_arrow
-                      </span>
-                      {{ $t('aiPlayground.retrievalTest.runAnalysis') || 'Run Analysis' }}
-                    </button>
-
-                    <!-- Cancel Button (shown when workflows are running) -->
-                    <button
-                      v-if="runningWorkflow"
-                      type="button"
-                      @click="handleCancelWorkflows"
-                      class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-200 dark:bg-[#2a3546] text-gray-700 dark:text-white rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-[#3c4a60] transition-colors"
-                    >
-                      <span class="material-symbols-outlined text-base">cancel</span>
-                      {{ $t('aiPlayground.retrievalTest.cancelRun') }}
-                    </button>
-
-                    <!-- Workflow Results Feed -->
-                    <div class="flex flex-col gap-2">
-                      <h5 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $t('aiPlayground.retrievalTest.aiResponseFeed') || 'AI Response Feed' }}</h5>
-                      <div class="flex-1 overflow-y-auto space-y-3">
-                        <div v-if="!runningWorkflow && Object.keys(finetuneWorkflowResults).length === 0 && selectedAlertsData.length > 0" class="text-center text-gray-500 dark:text-gray-400 text-sm py-8">
-                          {{ $t('aiPlayground.retrievalTest.noResult') || 'No workflow result yet. Run workflows to see the output.' }}
-                        </div>
-
-                        <template
-                          v-for="alertData in selectedAlertsData"
-                          :key="`result-${getAlertId(alertData?.alert) || alertData?.alertId || 'unknown'}`"
-                        >
-                          <div
-                            v-if="alertData && (getAlertId(alertData?.alert) || alertData?.alertId) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]"
-                            class="bg-white dark:bg-[#1c2533] border border-gray-200 dark:border-[#324867] rounded-lg overflow-hidden"
-                          >
-                            <!-- Card Header (clickable to expand/collapse only for completed results) -->
-                            <div 
-                              :class="[
-                                'p-4 transition-colors',
-                                (finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error'
-                                  ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-[#192233]'
-                                  : 'cursor-default'
-                              ]"
-                              @click="(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error' ? toggleFinetuneResultCard(getAlertId(alertData?.alert) || alertData?.alertId) : null"
-                            >
-                              <div class="flex items-center justify-between gap-3">
-                                <div class="flex-1 min-w-0">
-                                  <div class="text-xs font-semibold text-gray-900 dark:text-white mb-1">
-                                    Alert #{{ getAlertId(alertData?.alert) || alertData?.alertId }}
-                                  </div>
-                                  
-                                  <!-- Waiting/In Queue state -->
-                                  <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'waiting'" class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
-                                      schedule
-                                    </span>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.inQueue') }}</p>
-                                  </div>
-                                  
-                                  <!-- Running state (only for currently running alert) -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'running' && currentRunningAlertId === (getAlertId(alertData?.alert) || alertData?.alertId)" class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined animate-spin text-primary text-sm">
-                                      sync
-                                    </span>
-                                    <div class="flex items-center gap-2">
-                                      <p class="text-xs text-primary font-medium">{{ $t('aiPlayground.retrievalTest.running') }}</p>
-                                      <span class="text-xs text-gray-500 dark:text-gray-400">
-                                        ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime || 0) }})
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  <!-- Cancelled state -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'cancelled'" class="flex items-center gap-2">
-                                    <span class="material-symbols-outlined text-gray-400 dark:text-gray-500 text-sm">
-                                      cancel
-                                    </span>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $t('aiPlayground.retrievalTest.cancelled') }}</p>
-                                  </div>
-                                  
-                                  <!-- Error state -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'error' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.error" class="flex items-center gap-2">
-                                    <span class="text-xs font-semibold text-red-600 dark:text-red-400">
-                                      {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].error || $t('aiPlayground.retrievalTest.error') }}
-                                    </span>
-                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime" class="text-xs text-gray-500 dark:text-gray-400">
-                                      ({{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].elapsedTime) }})
-                                    </span>
-                                  </div>
-                                  
-                                  <!-- Success/Completed state -->
-                                  <div v-else-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data" class="flex items-center gap-2">
-                                    <span class="text-xs text-green-600 dark:text-green-400 font-medium">✓ Completed</span>
-                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.workflowName" class="text-xs text-gray-500 dark:text-gray-400">
-                                      • {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].workflowName }}
-                                    </span>
-                                    <span v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.elapsedTime" class="text-xs text-gray-500 dark:text-gray-400">
-                                      • {{ formatElapsedTime(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].elapsedTime) }}
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                <!-- Expand/collapse icon (only show if completed and has data) -->
-                                <span
-                                  v-if="(finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data) && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status !== 'error'"
-                                  class="material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform flex-shrink-0 text-sm"
-                                  :class="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded ? 'rotate-180' : ''"
-                                >
-                                  expand_more
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <!-- Card Content (expandable) -->
-                            <div 
-                              v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.expanded && (finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.status === 'completed' || finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.data)"
-                              class="border-t border-gray-200 dark:border-[#324867] p-4 space-y-3"
-                            >
-                              <!-- Is Threat -->
-                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.is_threat" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Is Threat]
-                                </div>
-                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].is_threat }}
-                                </div>
-                              </div>
-
-                              <!-- Confidence Score -->
-                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.confidence_score" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Confidence Score]
-                                </div>
-                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].confidence_score }}
-                                </div>
-                              </div>
-
-                              <!-- Reason -->
-                              <div v-if="finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.reason" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
-                                <div class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
-                                  [Reason]
-                                </div>
-                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].reason }}
-                                </div>
-                              </div>
-
-                              <!-- Raw Text (fallback if no separated values) -->
-                              <div v-if="!finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.is_threat && !finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.confidence_score && !finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.reason && finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId]?.raw_text" class="border border-gray-200 dark:border-[#324867] rounded-lg p-2 bg-gray-50 dark:bg-[#192233]">
-                                <div class="text-xs text-gray-900 dark:text-white whitespace-pre-wrap break-words">
-                                  {{ finetuneWorkflowResults[getAlertId(alertData?.alert) || alertData?.alertId].raw_text }}
-                                </div>
-                              </div>
-                              
-                              <div class="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-[#324867]">
-                                Results saved. Check the sidebar to view fine-tune investigation results.
-                              </div>
-                            </div>
-                          </div>
-                        </template>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </Teleport>
 
     <!-- Alert detail drawer -->
     <AlertDetail
@@ -1341,6 +959,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import ClearableSelect from '@/components/common/ClearableSelect.vue'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import AlertDetail from '@/components/alerts/AlertDetail.vue'
+import FineTuneRetrievalTest from './FineTuneRetrievalTest.vue'
 import { useTimeRangeStorage } from '@/composables/useTimeRangeStorage'
 import { getAlertCommentsExtension, updateAlert, saveAlertAiFineTuneResult, getAlertAiFineTuneResults } from '@/api/alerts'
 import service from '@/api/axios'
@@ -1357,7 +976,6 @@ const currentAlertId = computed(() => route.params.id ?? null)
 // Dify workflow API configuration (frontend env vars)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
 const aiWorkflowApiKey = import.meta.env.VITE_PLAYGROUND_WORKFLOWS_KEY
-const aiWorkflowRunnerKey = import.meta.env.VITE_PLAYGROUND_RUNNER_KEY
 const workflowAppBaseUrl = import.meta.env.VITE_WORKFLOW_APP_BASE_URL || 'https://sectools.cloudbu.huawei.com:9443'
 
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
@@ -1428,6 +1046,24 @@ const searchContainerRef = ref(null)
 const selectedAlerts = ref([]) // Array of alert IDs
 // Track detailed data for each selected alert
 const selectedAlertsData = ref([]) // Array of { alertId, alert, detail, loading, expanded, aiItems, finetuneResults, finetuneLoading, humanVerdictValue }
+
+// Maximum alerts limit for fine-tuning
+const MAX_ALERTS_LIMIT = 5
+
+// Check if selected alerts exceed the limit
+const exceedsMaxAlerts = computed(() => {
+  return selectedAlerts.value.length > MAX_ALERTS_LIMIT
+})
+
+// Watch selected alerts count and show warning if exceeds limit
+watch(selectedAlerts, (newVal, oldVal) => {
+  const oldLength = oldVal?.length || 0
+  const newLength = newVal.length
+  // Only show warning when crossing the threshold (from <= 10 to > 10)
+  if (newLength > MAX_ALERTS_LIMIT && oldLength <= MAX_ALERTS_LIMIT) {
+    toast.warn(t('aiPlayground.maxAlertsExceeded') || `You can only select up to ${MAX_ALERTS_LIMIT} alerts for fine-tuning at a time. Please deselect some alerts.`, 'WARNING')
+  }
+}, { deep: true })
 // Temporary alert for fine-tuning overlay (compatibility)
 const selectedAlertForFinetuning = ref(null)
 const selectedAlertDetailForFinetuning = ref(null)
@@ -1435,17 +1071,8 @@ const showRetrievalOverlay = ref(false)
 const selectedWorkflow = ref('')
 const workflows = ref([])
 const loadingWorkflows = ref(false)
-const runningWorkflow = ref(false)
 const workflowResult = ref(null)
 const workflowRuns = ref([]) // store last 3 runs while overlay is open
-// Track workflow selections for fine-tuning overlay
-const finetuneWorkflowSelections = ref({}) // { alertId: workflowId }
-// Track workflow results per alert in fine-tuning overlay
-const finetuneWorkflowResults = ref({}) // { alertId: { data, error, loading, status, startTime, elapsedTime, timerInterval } }
-// Track currently running alert ID
-const currentRunningAlertId = ref(null)
-// Track cancellation flag
-const cancelWorkflows = ref(false)
 const aiJudgeFilter = ref('all')
 const humanJudgeFilter = ref('all')
 const matchFilter = ref('all')
@@ -2928,23 +2555,7 @@ const toggleAlertDrawer = (alertId) => {
   }
 }
 
-// Toggle fine-tune overlay alert drawer expanded state
-const toggleFinetuneAlertDrawer = (alertId) => {
-  // Find using the alert object's ID (since it comes from the table)
-  const alertData = selectedAlertsData.value.find(d => {
-    const dataAlertId = getAlertId(d.alert) || d.alertId
-    return String(dataAlertId) === String(alertId)
-  })
-  if (alertData) {
-    // Initialize finetuneExpanded if it doesn't exist
-    if (alertData.finetuneExpanded === undefined) {
-      alertData.finetuneExpanded = false
-    }
-    alertData.finetuneExpanded = !alertData.finetuneExpanded
-  }
-}
-
-// Toggle fine-tune result expanded state
+// Toggle fine-tune result expanded state (for sidebar results)
 const toggleFinetuneResult = (alertId, index) => {
   // Find using the alert object's ID (since it comes from the table)
   const alertData = selectedAlertsData.value.find(d => {
@@ -2953,14 +2564,6 @@ const toggleFinetuneResult = (alertId, index) => {
   })
   if (alertData && alertData.finetuneResults[index]) {
     alertData.finetuneResults[index].expanded = !alertData.finetuneResults[index].expanded
-  }
-}
-
-// Toggle fine-tune workflow result card expanded state
-const toggleFinetuneResultCard = (alertId) => {
-  const result = finetuneWorkflowResults.value[alertId]
-  if (result) {
-    result.expanded = !result.expanded
   }
 }
 
@@ -2987,19 +2590,6 @@ const removeSelectedAlert = (alertId) => {
   }
 }
 
-// Format elapsed time for display
-const formatElapsedTime = (milliseconds) => {
-  if (!milliseconds || milliseconds < 0) return '0s'
-  
-  const seconds = Math.floor(milliseconds / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  
-  if (minutes > 0) {
-    return `${minutes}m ${remainingSeconds}s`
-  }
-  return `${seconds}s`
-}
 
 // Format fine-tune verdict for display
 const formatFinetuneVerdict = (isThreat) => {
@@ -3145,297 +2735,15 @@ const triggerAiWorkflow = async () => {
   }
 }
 
-// Check if all alerts have workflows selected
-const canRunAllWorkflows = computed(() => {
-  if (selectedAlertsData.value.length === 0) return false
-  return selectedAlertsData.value.every(alertData => {
-    if (!alertData || !alertData.alert) return false
-    const alertId = getAlertId(alertData.alert) || alertData.alertId
-    if (!alertId) return false
-    const workflowId = finetuneWorkflowSelections.value[alertId]
-    return workflowId && workflowId !== '' && workflowId !== '__loading__'
-  })
-})
-
-// Get formatted content for an alert
-const getFormattedContentForAlert = (alertData) => {
-  const desc = getRawDescription(alertData.detail, alertData.alert)
-  if (contentFormatMode.value === 'json') {
-    return formatDescriptionAsJson(desc)
-  } else {
-    return formatDescriptionAsRichText(desc)
-  }
-}
-
-// Handle running workflows for all selected alerts
-const handleRunAllWorkflows = async () => {
-  if (!canRunAllWorkflows.value || runningWorkflow.value) return
-
-  runningWorkflow.value = true
-  cancelWorkflows.value = false
-  currentRunningAlertId.value = null
-  const results = []
-
-  try {
-    // Initialize state for alerts that will be processed
-    selectedAlertsData.value.forEach(alertData => {
-      if (alertData && alertData.alert) {
-        const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
-        if (alertIdValue) {
-          const workflowId = finetuneWorkflowSelections.value[alertIdValue]
-          if (workflowId && workflowId !== '') {
-            finetuneWorkflowResults.value[alertIdValue] = { 
-              data: null, 
-              error: null, 
-              loading: false,
-              status: 'waiting', // 'waiting', 'running', 'completed', 'error', 'cancelled'
-              is_threat: null,
-              confidence_score: null,
-              reason: null,
-              raw_text: null,
-              workflowName: null,
-              expanded: false,
-              startTime: null,
-              elapsedTime: 0, // in milliseconds
-              timerInterval: null
-            }
-          }
-        }
-      }
-    })
-
-    // Run workflow for each alert sequentially
-    for (const alertData of selectedAlertsData.value) {
-      // Check if cancellation was requested
-      if (cancelWorkflows.value) {
-        // Mark remaining alerts as cancelled
-        const remainingAlerts = selectedAlertsData.value.slice(
-          selectedAlertsData.value.indexOf(alertData)
-        )
-        remainingAlerts.forEach(remainingAlert => {
-          if (remainingAlert && remainingAlert.alert) {
-            const remainingAlertId = getAlertId(remainingAlert.alert) || remainingAlert.alertId
-            if (remainingAlertId && finetuneWorkflowResults.value[remainingAlertId]) {
-              if (finetuneWorkflowResults.value[remainingAlertId].status === 'waiting') {
-                finetuneWorkflowResults.value[remainingAlertId].status = 'cancelled'
-                finetuneWorkflowResults.value[remainingAlertId].loading = false
-                // Clean up any timer if it exists
-                if (finetuneWorkflowResults.value[remainingAlertId].timerInterval) {
-                  clearInterval(finetuneWorkflowResults.value[remainingAlertId].timerInterval)
-                  finetuneWorkflowResults.value[remainingAlertId].timerInterval = null
-                }
-              }
-            }
-          }
-        })
-        break
-      }
-
-      if (!alertData || !alertData.alert) continue
-      const alertIdValue = getAlertId(alertData.alert) || alertData.alertId
-      if (!alertIdValue) continue
-      const workflowId = finetuneWorkflowSelections.value[alertIdValue]
-      if (!workflowId || workflowId === '') continue
-
-      // Update status to running and start timer
-      if (finetuneWorkflowResults.value[alertIdValue]) {
-        finetuneWorkflowResults.value[alertIdValue].status = 'running'
-        finetuneWorkflowResults.value[alertIdValue].loading = true
-        finetuneWorkflowResults.value[alertIdValue].startTime = Date.now()
-        finetuneWorkflowResults.value[alertIdValue].elapsedTime = 0
-        
-        // Start timer interval to update elapsed time
-        finetuneWorkflowResults.value[alertIdValue].timerInterval = setInterval(() => {
-          if (finetuneWorkflowResults.value[alertIdValue] && finetuneWorkflowResults.value[alertIdValue].startTime) {
-            finetuneWorkflowResults.value[alertIdValue].elapsedTime = Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime
-          }
-        }, 100) // Update every 100ms for smooth display
-      }
-      currentRunningAlertId.value = alertIdValue
-      const subjectValue = alertData.alert?.title || ''
-      const descriptionValue = getRawDescription(alertData.detail, alertData.alert)
-      const descriptionString = typeof descriptionValue === 'object' && descriptionValue !== null
-        ? JSON.stringify(descriptionValue)
-        : String(descriptionValue || '')
-
-      const payload = {
-        inputs: {
-          appid: String(workflowId),
-          subject: String(subjectValue),
-          description: descriptionString,
-          alarm_id: String(alertIdValue)
-        },
-        response_mode: 'blocking',
-        user: 'Pisces AI Playground'
-      }
-
-      try {
-        const response = await fetch(aiWorkflowApi, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${aiWorkflowRunnerKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const data = await response.json()
-        results.push({ alertId: alertIdValue, success: true, data })
-        
-        // Parse workflow result
-        const text = getWorkflowTextFromData(data)
-        const parsed = parseWorkflowBlocks(text || '')
-        const workflowName = workflows.value.find(w => w.id === workflowId)?.name || 'Model'
-        
-        // Extract separated values (matching database structure)
-        const is_threat = parsed?.isThreat || null
-        const confidence_score = parsed?.confidence || null
-        const reason = parsed?.reason || null
-        
-        // Stop timer
-        if (finetuneWorkflowResults.value[alertIdValue]?.timerInterval) {
-          clearInterval(finetuneWorkflowResults.value[alertIdValue].timerInterval)
-        }
-        
-        // Calculate final elapsed time
-        const finalElapsedTime = finetuneWorkflowResults.value[alertIdValue]?.startTime 
-          ? Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime 
-          : 0
-        
-        // Store result for display immediately (results appear as they arrive)
-        finetuneWorkflowResults.value[alertIdValue] = { 
-          data, 
-          error: null, 
-          loading: false,
-          status: 'completed',
-          is_threat,
-          confidence_score,
-          reason,
-          raw_text: text || '',
-          workflowName,
-          expanded: false, // Collapsed by default
-          startTime: finetuneWorkflowResults.value[alertIdValue]?.startTime || null,
-          elapsedTime: finalElapsedTime,
-          timerInterval: null
-        }
-        
-        // Clear current running alert
-        currentRunningAlertId.value = null
-        
-        // Save fine-tune result
-        const savePayload = {
-          workflow_id: String(workflowId),
-          agent_name: workflowName,
-          is_threat,
-          confidence_score,
-          reason,
-          raw_text: text || ''
-        }
-        
-        await saveAlertAiFineTuneResult(alertIdValue, savePayload)
-        
-        // Refresh fine-tune results for this alert
-        await loadFinetuneResults(alertIdValue)
-      } catch (error) {
-        console.error(`Failed to run workflow for alert ${alertIdValue}:`, error)
-        results.push({ alertId: alertIdValue, success: false, error: error.message })
-        
-        // Stop timer
-        if (finetuneWorkflowResults.value[alertIdValue]?.timerInterval) {
-          clearInterval(finetuneWorkflowResults.value[alertIdValue].timerInterval)
-        }
-        
-        // Calculate final elapsed time
-        const finalElapsedTime = finetuneWorkflowResults.value[alertIdValue]?.startTime 
-          ? Date.now() - finetuneWorkflowResults.value[alertIdValue].startTime 
-          : 0
-        
-        finetuneWorkflowResults.value[alertIdValue] = { 
-          data: null, 
-          error: error?.message || 'Failed to run workflow', 
-          loading: false,
-          status: 'error',
-          is_threat: null,
-          confidence_score: null,
-          reason: null,
-          raw_text: null,
-          workflowName: null,
-          expanded: false,
-          startTime: finetuneWorkflowResults.value[alertIdValue]?.startTime || null,
-          elapsedTime: finalElapsedTime,
-          timerInterval: null
-        }
-        
-        // Clear current running alert
-        currentRunningAlertId.value = null
-      }
-    }
-
-    if (results.length > 0) {
-      const successCount = results.filter(r => r.success).length
-      toast.success(`Successfully ran workflows for ${successCount} of ${results.length} alerts`, 'SUCCESS')
-    }
-  } catch (error) {
-    console.error('Failed to run workflows:', error)
-    toast.error('Failed to run workflows', 'ERROR')
-  } finally {
-    runningWorkflow.value = false
-    currentRunningAlertId.value = null
-    // Clear any remaining loading/running states and clean up timers
-    Object.keys(finetuneWorkflowResults.value).forEach(alertId => {
-      if (finetuneWorkflowResults.value[alertId]?.loading) {
-        finetuneWorkflowResults.value[alertId].loading = false
-      }
-      if (finetuneWorkflowResults.value[alertId]?.status === 'running') {
-        // Stop timer if still running
-        if (finetuneWorkflowResults.value[alertId].timerInterval) {
-          clearInterval(finetuneWorkflowResults.value[alertId].timerInterval)
-          finetuneWorkflowResults.value[alertId].timerInterval = null
-        }
-        // Calculate final elapsed time
-        if (finetuneWorkflowResults.value[alertId].startTime) {
-          finetuneWorkflowResults.value[alertId].elapsedTime = Date.now() - finetuneWorkflowResults.value[alertId].startTime
-        }
-        finetuneWorkflowResults.value[alertId].status = 'error'
-      }
-      // Clean up any orphaned timers
-      if (finetuneWorkflowResults.value[alertId]?.timerInterval) {
-        clearInterval(finetuneWorkflowResults.value[alertId].timerInterval)
-        finetuneWorkflowResults.value[alertId].timerInterval = null
-      }
-    })
-  }
-}
-
-// Handle canceling workflow execution
-const handleCancelWorkflows = () => {
-  cancelWorkflows.value = true
-  // Note: Currently running workflows will continue, but queued ones will be cancelled
-}
-
 // Handle Fine-tune AI button click - opens overlay with all selected alerts
 const handleFineTuneClick = async () => {
   if (selectedAlertsData.value.length === 0) return
   
-  // Initialize workflow selections and results for all selected alerts
-  finetuneWorkflowSelections.value = {}
-  finetuneWorkflowResults.value = {}
-  selectedAlertsData.value.forEach(alertData => {
-    if (alertData && alertData.alert) {
-      const alertId = getAlertId(alertData.alert) || alertData.alertId
-      if (alertId) {
-        finetuneWorkflowSelections.value[alertId] = ''
-      }
-      // Initialize finetuneExpanded if it doesn't exist
-      if (alertData.finetuneExpanded === undefined) {
-        alertData.finetuneExpanded = false
-      }
-    }
-  })
+  // Check if exceeds max alerts limit
+  if (selectedAlerts.value.length > MAX_ALERTS_LIMIT) {
+    toast.warn(t('aiPlayground.maxAlertsExceeded') || `You can only select up to ${MAX_ALERTS_LIMIT} alerts for fine-tuning at a time. Please deselect some alerts.`, 'WARNING')
+    return
+  }
   
   // Open overlay (workflows should already be loaded from onMounted)
   showRetrievalOverlay.value = true
@@ -3447,27 +2755,7 @@ const handleFineTuneClick = async () => {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
   }
-  
-  // Auto-select workflows based on agent_name match (case-insensitive)
-  nextTick(() => {
-    selectedAlertsData.value.forEach(alertData => {
-      if (!alertData || !alertData.alert) return
-      const alertId = getAlertId(alertData.alert) || alertData.alertId
-      if (!alertId) return
-      const agentName = alertData.alert?.agent_name
-      if (agentName && workflows.value.length > 0) {
-        const matchedWorkflow = workflows.value.find(w => 
-          w.name && agentName.toLowerCase() === w.name.toLowerCase()
-        )
-        if (matchedWorkflow) {
-          finetuneWorkflowSelections.value[alertId] = matchedWorkflow.id
-        }
-      }
-    })
-  })
 }
-
-// Removed - replaced by handleRunAllWorkflows
 
 // Removed - aiItems now per-alert in selectedAlertsData
 
@@ -3848,8 +3136,6 @@ watch(showRetrievalOverlay, (isOpen) => {
     selectedWorkflow.value = ''
     workflowResult.value = null
     workflowRuns.value = []
-    finetuneWorkflowSelections.value = {}
-    finetuneWorkflowResults.value = {}
   }
 })
 
