@@ -160,8 +160,8 @@
       "title": "AI智能体性能统计",
       "tooltip": "TP (真阳性): AI判断与人工判断一致\nFP (假阳性): AI错误地将非威胁识别为威胁\nFN (假阴性): AI错误地将威胁识别为误报\nAI研判: AI处理的告警总数\n总数: 告警总数\nAI覆盖: AI处理的告警占比",
       "columns": {
-        "modelName": "智能体名称",
-        "agentName": "代理名称",
+        "modelName": "模型名",
+        "agentName": "智能体",
         "aiHandledAlerts": "AI研判",
         "correctDecisions": "TP",
         "falsePositive": "FP",

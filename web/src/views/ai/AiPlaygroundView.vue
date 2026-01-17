@@ -583,19 +583,25 @@
           </template>
           <template #cell-agentName="{ item }">
             <div class="flex items-center justify-center">
-              <a
-                v-if="item.agent_name && getWorkflowUrl(item.agent_name)"
-                :href="getWorkflowUrl(item.agent_name)"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                @click.stop
-              >
-                {{ item.agent_name }}
-              </a>
-              <span v-else class="text-sm text-gray-900 dark:text-white">
-                {{ item.agent_name || '-' }}
-              </span>
+              <div v-if="item.agent_name" class="flex items-center gap-1.5">
+                <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <img src="/dify-logo.png" alt="Dify" class="w-3.5 h-3.5" />
+                </div>
+                <a
+                  v-if="getWorkflowUrl(item.agent_name)"
+                  :href="getWorkflowUrl(item.agent_name)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                  @click.stop
+                >
+                  {{ item.agent_name }}
+                </a>
+                <span v-else class="text-sm text-gray-900 dark:text-white">
+                  {{ item.agent_name }}
+                </span>
+              </div>
+              <span v-else class="text-sm text-gray-900 dark:text-white">-</span>
             </div>
           </template>
         </DataTable>
@@ -678,16 +684,42 @@
                     <span class="material-symbols-outlined text-sm">smart_toy</span>
                     {{ $t('aiPlayground.aiJudgment') }}
                   </h4>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
-                      <span class="material-symbols-outlined text-xs">gavel</span>
-                      {{ $t('aiPlayground.verdict') }}:
-                    </span>
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                    >
-                      {{ getAiVerdictText(alertData.alert) }}
-                    </span>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-xs">gavel</span>
+                        {{ $t('aiPlayground.verdict') }}:
+                      </span>
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                      >
+                        {{ getAiVerdictText(alertData.alert) }}
+                      </span>
+                    </div>
+                    <div v-if="alertData.alert?.agent_name" class="flex items-center gap-2 min-w-0">
+                      <span class="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5 flex-shrink-0">
+                        <span class="material-symbols-outlined text-xs">
+                          <img src="/dify-logo.png" alt="Dify" class="w-3 h-3" />
+                        </span>
+                        {{ $t('aiPlayground.modelPerformance.columns.agentName') || 'Agent Name' }}:
+                      </span>
+                      <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                        <a
+                          v-if="getWorkflowUrl(alertData.alert.agent_name)"
+                          :href="getWorkflowUrl(alertData.alert.agent_name)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline truncate min-w-0"
+                          @click.stop
+                          :title="alertData.alert.agent_name"
+                        >
+                          {{ alertData.alert.agent_name }}
+                        </a>
+                        <span v-else class="text-xs text-gray-900 dark:text-white truncate min-w-0" :title="alertData.alert.agent_name">
+                          {{ alertData.alert.agent_name }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
