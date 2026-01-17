@@ -224,17 +224,7 @@
                     {{ row.modelName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[150px] truncate" :title="row.agentName">
-                    <a
-                      v-if="getWorkflowUrl(row.agentName)"
-                      :href="getWorkflowUrl(row.agentName)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                      @click.stop
-                    >
-                      {{ row.agentName }}
-                    </a>
-                    <span v-else>{{ row.agentName }}</span>
+                    {{ row.agentName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.correctDecisionsCount }}

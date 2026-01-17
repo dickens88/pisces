@@ -278,6 +278,7 @@
                             <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.confidenceScore') || 'Confidence Score' }}</th>
                             <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.agentName') || 'Agent Name' }}</th>
                             <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.updatedBy') || 'Updated By' }}</th>
+                            <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('aiPlayground.retrievalTest.humanVerdict') || 'Human Verdict' }}</th>
                             <th class="px-4 py-2 text-left font-semibold text-gray-700 dark:text-gray-300">{{ $t('alerts.list.alertTitle') || 'Alert Title' }}</th>
                           </tr>
                         </thead>
@@ -301,6 +302,9 @@
                             </td>
                             <td class="px-4 py-2 text-gray-900 dark:text-white">
                               {{ record.updated_by || '-' }}
+                            </td>
+                            <td class="px-4 py-2 text-gray-900 dark:text-white">
+                              {{ getHumanVerdictText(record.human_verdict) }}
                             </td>
                             <td class="px-4 py-2 text-gray-900 dark:text-white max-w-xs truncate" :title="record.alert_title || ''">
                               {{ record.alert_title || '-' }}
@@ -723,6 +727,23 @@ const formatElapsedTime = (milliseconds) => {
   return `${seconds}s`
 }
 
+// Get Human Verdict text
+const getHumanVerdictText = (closeReason) => {
+  if (!closeReason) return '-'
+  
+  const normalized = String(closeReason).trim().toLowerCase()
+  const displayMap = {
+    'falsepositive': t('aiPlayground.closeReason.falsePositive'),
+    'false detection': t('aiPlayground.closeReason.falsePositive'),
+    'false positive': t('aiPlayground.closeReason.falsePositive'),
+    'resolved': t('aiPlayground.closeReason.resolved'),
+    'repeated': t('aiPlayground.closeReason.repeated'),
+    'other': t('aiPlayground.closeReason.other')
+  }
+  
+  return displayMap[normalized] || closeReason
+}
+
 // Load fine-tune results for an alert
 const loadFinetuneResults = async (alertId) => {
   const alertIdStr = String(alertId).trim()
@@ -801,12 +822,13 @@ const loadAllFinetuneRecords = async () => {
           record = response.data
         }
         
-        // Add alert title to the record for display
+        // Add alert title and human verdict to the record for display
         if (record) {
           allFinetuneRecords.value.push({
             ...record,
             alert_title: alertData.alert?.title || '',
-            alert_id: alertId
+            alert_id: alertId,
+            human_verdict: alertData.alert?.close_reason || alertData.alert?.closeReason || null
           })
         } else {
           // If no record found, still add an entry with alert info
@@ -817,7 +839,8 @@ const loadAllFinetuneRecords = async () => {
             is_threat: null,
             confidence_score: null,
             agent_name: null,
-            updated_by: null
+            updated_by: null,
+            human_verdict: alertData.alert?.close_reason || alertData.alert?.closeReason || null
           })
         }
       } catch (error) {
@@ -830,7 +853,8 @@ const loadAllFinetuneRecords = async () => {
           is_threat: null,
           confidence_score: null,
           agent_name: null,
-          updated_by: null
+          updated_by: null,
+          human_verdict: alertData.alert?.close_reason || alertData.alert?.closeReason || null
         })
       }
     }

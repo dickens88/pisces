@@ -203,7 +203,8 @@
       "isThreat": "Is Threat",
       "confidenceScore": "Confidence Score",
       "agentName": "Agent Name",
-      "updatedBy": "Updated By"
+      "updatedBy": "Updated By",
+      "humanVerdict": "Human Verdict"
     },
     "agentFilter": {
       "all": "All Agents"

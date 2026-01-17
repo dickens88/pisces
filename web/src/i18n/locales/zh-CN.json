@@ -203,7 +203,8 @@
       "isThreat": "是否威胁",
       "confidenceScore": "置信度",
       "agentName": "代理名称",
-      "updatedBy": "更新人"
+      "updatedBy": "更新人",
+      "humanVerdict": "人工研判"
     },
     "agentFilter": {
       "all": "全部模型"
