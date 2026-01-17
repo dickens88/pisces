@@ -224,7 +224,17 @@
                     {{ row.modelName }}
                   </td>
                   <td class="px-3 py-2 text-xs text-gray-900 dark:text-white max-w-[150px] truncate" :title="row.agentName">
-                    {{ row.agentName }}
+                    <a
+                      v-if="getWorkflowUrl(row.agentName)"
+                      :href="getWorkflowUrl(row.agentName)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                      @click.stop
+                    >
+                      {{ row.agentName }}
+                    </a>
+                    <span v-else>{{ row.agentName }}</span>
                   </td>
                   <td class="px-3 py-2 text-xs text-right text-gray-900 dark:text-white">
                     {{ row.correctDecisionsCount }}
@@ -573,7 +583,17 @@
           </template>
           <template #cell-agentName="{ item }">
             <div class="flex items-center justify-center">
-              <span class="text-sm text-gray-900 dark:text-white">
+              <a
+                v-if="item.agent_name && getWorkflowUrl(item.agent_name)"
+                :href="getWorkflowUrl(item.agent_name)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                @click.stop
+              >
+                {{ item.agent_name }}
+              </a>
+              <span v-else class="text-sm text-gray-900 dark:text-white">
                 {{ item.agent_name || '-' }}
               </span>
             </div>
@@ -1306,6 +1326,7 @@ const currentAlertId = computed(() => route.params.id ?? null)
 const aiWorkflowApi = import.meta.env.VITE_AI_WORKFLOW_API
 const aiWorkflowApiKey = import.meta.env.VITE_PLAYGROUND_WORKFLOWS_KEY
 const aiWorkflowRunnerKey = import.meta.env.VITE_PLAYGROUND_RUNNER_KEY
+const workflowAppBaseUrl = import.meta.env.VITE_WORKFLOW_APP_BASE_URL || 'https://sectools.cloudbu.huawei.com:9443'
 
 const { selectedTimeRange, customTimeRange } = useTimeRangeStorage('ai-playground', 'last30Days')
 
@@ -3453,6 +3474,26 @@ const getWorkflowTextFromData = (data) => {
   const textValues = extractAllTextValues(resultObject)
   const filtered = textValues.filter(text => text && text.trim().length > 0)
   return filtered.length > 0 ? filtered.join('\n\n') : null
+}
+
+// Get workflow ID by agent name (case-insensitive match)
+const getWorkflowIdByName = (agentName) => {
+  if (!agentName || !workflows.value || workflows.value.length === 0) {
+    return null
+  }
+  const matched = workflows.value.find(
+    w => w.name && agentName && w.name.toLowerCase() === agentName.toLowerCase()
+  )
+  return matched?.id || null
+}
+
+// Get workflow URL by agent name
+const getWorkflowUrl = (agentName) => {
+  const workflowId = getWorkflowIdByName(agentName)
+  if (!workflowId) {
+    return null
+  }
+  return `${workflowAppBaseUrl}/app/${workflowId}/workflow`
 }
 
 const workflowResultText = computed(() => getWorkflowTextFromData(workflowResult.value))
